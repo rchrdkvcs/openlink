@@ -336,6 +336,98 @@ class OpenlinkMvpTest extends TestCase
         $this->assertDatabaseHas('domains', ['id' => $defaultDomain->id]);
     }
 
+    public function test_workspace_manager_can_rename_and_delete_folder_leaving_links_unfiled(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaign']);
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'folder_id' => $folder->id,
+            'domain_id' => $domain->id,
+            'slug' => 'filed',
+            'destination_url' => 'https://example.com/filed',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('folders.update', $folder), ['name' => 'Renamed Campaign'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('folders', ['id' => $folder->id, 'name' => 'Renamed Campaign']);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->delete(route('folders.destroy', $folder))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('folders', ['id' => $folder->id]);
+        $this->assertDatabaseHas('short_links', ['id' => $link->id, 'folder_id' => null]);
+    }
+
+    public function test_viewer_cannot_rename_or_delete_folder(): void
+    {
+        [$workspace] = $this->workspaceAndDomain();
+        $viewer = User::factory()->create();
+        WorkspaceMember::create([
+            'workspace_id' => $workspace->id,
+            'user_id' => $viewer->id,
+            'role' => WorkspaceMember::ROLE_VIEWER,
+        ]);
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaign']);
+
+        $this->actingAs($viewer)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('folders.update', $folder), ['name' => 'Hijacked'])
+            ->assertForbidden();
+
+        $this->actingAs($viewer)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->delete(route('folders.destroy', $folder))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('folders', ['id' => $folder->id, 'name' => 'Campaign']);
+    }
+
+    public function test_short_link_can_be_moved_between_folders_but_not_across_workspaces(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaign']);
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'movable',
+            'destination_url' => 'https://example.com/movable',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('short-links.move', $link), ['folder_id' => $folder->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('short_links', ['id' => $link->id, 'folder_id' => $folder->id]);
+
+        $otherOwner = User::factory()->create();
+        $otherWorkspace = Workspace::create([
+            'owner_id' => $otherOwner->id,
+            'name' => 'Other',
+            'slug' => 'other',
+            'settings' => [],
+        ]);
+        $foreignFolder = Folder::create(['workspace_id' => $otherWorkspace->id, 'name' => 'Foreign']);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('short-links.move', $link), ['folder_id' => $foreignFolder->id])
+            ->assertSessionHasErrors('folder_id');
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('short-links.move', $link), ['folder_id' => null])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('short_links', ['id' => $link->id, 'folder_id' => null]);
+    }
+
     /** @return array{Workspace, Domain, User} */
     private function workspaceAndDomain(): array
     {

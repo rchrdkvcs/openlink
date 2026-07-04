@@ -5,159 +5,158 @@
 @layer base {
     :root {
         color-scheme: dark;
+
+        /* Core surfaces */
+        --background: 240 6% 4%;
+        --surface: 240 5% 7%;
+        --elevated: 240 5% 11%;
+        --overlay: 240 5% 9%;
+
+        /* Strokes */
+        --border: 240 5% 14%;
+        --border-strong: 240 5% 22%;
+
+        /* Text */
+        --foreground: 220 10% 94%;
+        --muted: 220 5% 64%;
+        --faint: 220 4% 44%;
+
+        /* Semantic */
+        --accent: 234 60% 65%;
+        --success: 152 55% 52%;
+        --warning: 38 92% 58%;
+        --danger: 0 72% 63%;
     }
 
-    html,
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
     body {
-        background: #050505;
-        color: #fafafa;
+        @apply bg-background text-foreground;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     }
 
-    input,
-    select,
-    textarea {
-        background-color: #0a0a0a !important;
-        border-color: #2a2a2a !important;
-        color: #fafafa !important;
+    ::selection {
+        background: hsl(var(--accent) / 0.35);
+        color: hsl(var(--foreground));
+    }
+
+    /* Native datetime picker icons */
+    ::-webkit-calendar-picker-indicator {
+        filter: invert(0.6);
+    }
+
+    /* Scrollbars */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(var(--border-strong)) transparent;
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: hsl(var(--border-strong));
+        border-radius: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+/* Form controls — in the components layer so these rules win over
+   the @tailwindcss/forms base styles while staying overridable by utilities. */
+@layer components {
+    input:where(:not([type])),
+    [type='text'],
+    [type='email'],
+    [type='url'],
+    [type='password'],
+    [type='number'],
+    [type='date'],
+    [type='datetime-local'],
+    [type='month'],
+    [type='search'],
+    [type='tel'],
+    [type='time'],
+    [type='week'],
+    [multiple],
+    textarea,
+    select {
+        @apply w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground shadow-none transition-colors duration-150;
+    }
+
+    input:where(:not([type])):hover,
+    [type='text']:hover,
+    [type='email']:hover,
+    [type='url']:hover,
+    [type='password']:hover,
+    [type='number']:hover,
+    [type='datetime-local']:hover,
+    [type='search']:hover,
+    textarea:hover,
+    select:hover {
+        @apply border-border-strong;
+    }
+
+    input:where(:not([type])):focus,
+    [type='text']:focus,
+    [type='email']:focus,
+    [type='url']:focus,
+    [type='password']:focus,
+    [type='number']:focus,
+    [type='date']:focus,
+    [type='datetime-local']:focus,
+    [type='month']:focus,
+    [type='search']:focus,
+    [type='tel']:focus,
+    [type='time']:focus,
+    [type='week']:focus,
+    [multiple]:focus,
+    textarea:focus,
+    select:focus {
+        @apply border-accent/60 ring-2 ring-accent/25 ring-offset-0;
+        outline: none;
     }
 
     input::placeholder,
     textarea::placeholder {
-        color: #737373 !important;
+        @apply text-faint;
+    }
+
+    [type='checkbox'],
+    [type='radio'] {
+        @apply h-4 w-4 cursor-pointer rounded border-border-strong bg-surface p-0 text-accent shadow-none;
+    }
+
+    [type='checkbox']:focus,
+    [type='radio']:focus {
+        @apply ring-2 ring-accent/25 ring-offset-0;
+    }
+
+    [type='color'] {
+        @apply px-1;
+    }
+
+    select {
+        @apply pr-9;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b6b76' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     }
 }
 
 @layer utilities {
-    .bg-white,
-    .bg-\[\#fafafa\],
-    .bg-gray-50,
-    .bg-neutral-50 {
-        background-color: #0a0a0a !important;
-    }
-
-    .bg-neutral-100,
-    .bg-gray-100,
-    .hover\:bg-neutral-100:hover,
-    .hover\:bg-gray-100:hover,
-    .hover\:bg-neutral-50:hover,
-    .hover\:bg-gray-50:hover {
-        background-color: #171717 !important;
-    }
-
-    .bg-neutral-950,
-    .bg-gray-950,
-    .bg-gray-800,
-    .hover\:bg-neutral-800:hover,
-    .hover\:bg-gray-800:hover,
-    .hover\:bg-gray-700:hover {
-        background-color: #fafafa !important;
-    }
-
-    .bg-neutral-950.text-white,
-    .bg-gray-950.text-white,
-    .bg-gray-800.text-white,
-    .hover\:bg-neutral-800:hover.text-white,
-    .hover\:bg-gray-800:hover.text-white,
-    .hover\:bg-gray-700:hover.text-white {
-        color: #050505 !important;
-    }
-
-    .text-neutral-950,
-    .text-neutral-900,
-    .text-neutral-800,
-    .text-gray-950,
-    .text-gray-900,
-    .text-gray-800,
-    .text-gray-700,
-    .hover\:text-neutral-950:hover,
-    .hover\:text-gray-950:hover {
-        color: #fafafa !important;
-    }
-
-    .text-neutral-700,
-    .text-neutral-600,
-    .text-neutral-500,
-    .text-gray-600,
-    .text-gray-500 {
-        color: #a3a3a3 !important;
-    }
-
-    .text-neutral-400,
-    .text-neutral-300,
-    .text-gray-400 {
-        color: #737373 !important;
-    }
-
-    .border-neutral-100,
-    .border-neutral-200,
-    .border-neutral-300,
-    .border-gray-100,
-    .border-gray-200,
-    .border-gray-300,
-    .divide-neutral-100 > :not([hidden]) ~ :not([hidden]),
-    .divide-neutral-200 > :not([hidden]) ~ :not([hidden]),
-    .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-    .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
-    .ring-neutral-200,
-    .ring-gray-200 {
-        border-color: #262626 !important;
-        --tw-divide-opacity: 1 !important;
-        --tw-divide-color: #262626 !important;
-        --tw-ring-color: #262626 !important;
-    }
-
-    .shadow,
-    .shadow-md,
-    .shadow-lg,
-    .shadow-xl,
-    .shadow-2xl {
-        --tw-shadow-color: rgb(0 0 0 / 0.55) !important;
-    }
-
-    .bg-amber-50 {
-        background-color: rgb(120 53 15 / 0.2) !important;
-    }
-
-    .text-amber-600,
-    .text-amber-700,
-    .text-amber-800,
-    .text-amber-900 {
-        color: #fbbf24 !important;
-    }
-
-    .border-amber-200,
-    .ring-amber-200 {
-        border-color: rgb(245 158 11 / 0.35) !important;
-        --tw-ring-color: rgb(245 158 11 / 0.35) !important;
-    }
-
-    .bg-rose-50,
-    .bg-red-50 {
-        background-color: rgb(127 29 29 / 0.28) !important;
-    }
-
-    .text-rose-700,
-    .text-red-600,
-    .text-red-700 {
-        color: #f87171 !important;
-    }
-
-    .border-rose-200,
-    .border-red-200 {
-        border-color: rgb(248 113 113 / 0.35) !important;
-    }
-
-    .bg-blue-50 {
-        background-color: rgb(30 64 175 / 0.24) !important;
-    }
-
-    .text-blue-700 {
-        color: #93c5fd !important;
-    }
-
-    .border-blue-200,
-    .ring-blue-200 {
-        border-color: rgb(96 165 250 / 0.35) !important;
-        --tw-ring-color: rgb(96 165 250 / 0.35) !important;
+    /* Subtle top highlight for cards, à la Linear */
+    .card-sheen {
+        background-image: linear-gradient(
+            180deg,
+            hsl(var(--foreground) / 0.02),
+            transparent 32px
+        );
     }
 }

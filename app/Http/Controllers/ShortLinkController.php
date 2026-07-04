@@ -115,6 +115,24 @@ class ShortLinkController extends Controller
         return back();
     }
 
+    public function move(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    {
+        $workspace = $context->current($request);
+        $shortLink->loadMissing('workspace', 'folder.workspace');
+        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+
+        $data = $request->validate([
+            'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
+        ]);
+
+        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
+        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
+
+        $shortLink->update(['folder_id' => $folder?->id]);
+
+        return back();
+    }
+
     public function destroy(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
     {
         $workspace = $context->current($request);

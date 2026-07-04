@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import Badge from '@/Components/ui/Badge.vue';
+import Button from '@/Components/ui/Button.vue';
+import EmptyState from '@/Components/ui/EmptyState.vue';
+import Field from '@/Components/ui/Field.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Mail, Plus, Users } from '@lucide/vue';
@@ -19,6 +25,10 @@ const inviteForm = useForm({ email: '', role: 'viewer' });
 function submitInvitation() {
     inviteForm.post(route('invitations.store'), { preserveScroll: true, onSuccess: () => inviteForm.reset('email') });
 }
+
+function initial(name: string) {
+    return name.slice(0, 1).toUpperCase();
+}
 </script>
 
 <template>
@@ -26,76 +36,91 @@ function submitInvitation() {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="hidden min-w-0 items-center justify-between gap-4 lg:flex">
-                <div>
-                    <p class="text-xs font-medium uppercase text-neutral-500">Members</p>
-                    <h1 class="text-base font-semibold text-neutral-950">{{ currentWorkspace.name }}</h1>
-                </div>
-            </div>
+            <PageHeader section="Members" />
         </template>
 
-        <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
+        <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
-                <h2 class="text-2xl font-semibold text-neutral-950">Members</h2>
-                <p class="mt-1 text-sm text-neutral-500">Manage workspace access and pending invitations.</p>
+                <h1 class="text-xl font-semibold tracking-tight">Members</h1>
+                <p class="mt-1 text-sm text-muted">Manage workspace access and pending invitations.</p>
             </div>
 
-            <section class="rounded-md border border-neutral-200 bg-white">
-                <form v-if="canManageWorkspace" class="grid gap-3 border-b border-neutral-200 p-4 sm:grid-cols-[1fr_160px_auto]" @submit.prevent="submitInvitation">
-                    <label class="grid gap-1.5">
-                        <span class="text-sm font-medium text-neutral-800">Email address</span>
-                        <input v-model="inviteForm.email" class="h-10 rounded-md border-neutral-300 text-sm" placeholder="person@example.com" />
-                    </label>
-                    <label class="grid gap-1.5">
-                        <span class="text-sm font-medium text-neutral-800">Role</span>
-                        <select v-model="inviteForm.role" class="h-10 rounded-md border-neutral-300 text-sm">
+            <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
+                <form v-if="canManageWorkspace" class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-end" @submit.prevent="submitInvitation">
+                    <Field label="Email address" :error="inviteForm.errors.email" class="min-w-0 flex-1">
+                        <input v-model="inviteForm.email" class="h-9" placeholder="person@example.com" />
+                    </Field>
+                    <Field label="Role" :error="inviteForm.errors.role" class="sm:w-40">
+                        <select v-model="inviteForm.role" class="h-9">
                             <option value="admin">Admin</option>
                             <option value="editor">Editor</option>
                             <option value="viewer">Viewer</option>
                         </select>
-                    </label>
-                    <button class="inline-flex h-10 items-center justify-center gap-2 self-end rounded-md bg-neutral-950 px-4 text-sm font-medium text-white hover:bg-neutral-800">
+                    </Field>
+                    <Button class="shrink-0" :loading="inviteForm.processing">
                         <Plus class="h-4 w-4" /> Invite
-                    </button>
+                    </Button>
                 </form>
 
-                <div class="hidden grid-cols-[minmax(240px,1fr)_160px_160px] border-b border-neutral-200 px-5 py-2 text-xs font-medium uppercase text-neutral-400 lg:grid">
+                <div class="hidden grid-cols-[minmax(240px,1fr)_160px_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid">
                     <span>User</span>
                     <span>Role</span>
                     <span>Status</span>
                 </div>
 
-                <div class="divide-y divide-neutral-100">
-                    <article v-for="member in members" :key="member.id" class="grid gap-2 px-5 py-4 lg:grid-cols-[minmax(240px,1fr)_160px_160px] lg:items-center">
-                        <div>
-                            <p class="text-sm font-medium text-neutral-950">{{ member.user.name }}</p>
-                            <p class="truncate text-xs text-neutral-500">{{ member.user.email }}</p>
+                <div class="divide-y divide-border/60">
+                    <article
+                        v-for="member in members"
+                        :key="member.id"
+                        class="grid gap-2 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(240px,1fr)_160px_160px] lg:items-center"
+                    >
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full border bg-elevated text-xs font-semibold text-foreground">
+                                {{ initial(member.user.name) }}
+                            </span>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium text-foreground">{{ member.user.name }}</p>
+                                <p class="truncate text-xs text-faint">{{ member.user.email }}</p>
+                            </div>
                         </div>
-                        <span class="w-fit rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">{{ member.role }}</span>
-                        <span class="w-fit rounded-md bg-neutral-950 px-2 py-1 text-xs font-medium text-white">Active</span>
+                        <Badge variant="outline">{{ member.role }}</Badge>
+                        <Badge variant="success" dot>Active</Badge>
                     </article>
 
-                    <article v-for="invitation in invitations" :key="invitation.id" class="grid gap-2 px-5 py-4 lg:grid-cols-[minmax(240px,1fr)_160px_160px] lg:items-center">
-                        <div>
-                            <p class="text-sm font-medium text-neutral-950">{{ invitation.email }}</p>
-                            <p class="truncate text-xs text-neutral-500">Invitation pending</p>
+                    <article
+                        v-for="invitation in invitations"
+                        :key="invitation.id"
+                        class="grid gap-2 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(240px,1fr)_160px_160px] lg:items-center"
+                    >
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed text-faint">
+                                <Mail class="h-3.5 w-3.5" />
+                            </span>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium text-foreground">{{ invitation.email }}</p>
+                                <p class="truncate text-xs text-faint">Invitation pending</p>
+                            </div>
                         </div>
-                        <span class="w-fit rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">{{ invitation.role }}</span>
-                        <span class="w-fit rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">Pending</span>
+                        <Badge variant="outline">{{ invitation.role }}</Badge>
+                        <Badge variant="warning" dot>Pending</Badge>
                     </article>
                 </div>
 
-                <div v-if="members.length === 0 && invitations.length === 0" class="px-5 py-16 text-center">
-                    <Users class="mx-auto h-8 w-8 text-neutral-300" />
-                    <p class="mt-3 text-sm font-medium text-neutral-950">No members yet</p>
-                    <p class="mt-1 text-sm text-neutral-500">Invite teammates to collaborate on this workspace.</p>
-                </div>
+                <EmptyState
+                    v-if="members.length === 0 && invitations.length === 0"
+                    title="No members yet"
+                    description="Invite teammates to collaborate on this workspace."
+                >
+                    <template #icon><Users class="h-5 w-5" /></template>
+                </EmptyState>
             </section>
 
-            <section class="mt-5 rounded-md border border-neutral-200 bg-[#fafafa] p-5">
-                <h3 class="flex items-center gap-2 text-sm font-semibold text-neutral-950"><Mail class="h-4 w-4" /> Access model</h3>
-                <p class="mt-2 text-sm text-neutral-500">Workspace roles define global capabilities. Folder grants refine access for project-specific link sets.</p>
-            </section>
+            <SectionCard class="mt-6" title="Access model">
+                <template #icon><Mail class="h-4 w-4 text-faint" /></template>
+                <p class="px-5 py-4 text-sm text-muted">
+                    Workspace roles define global capabilities. Folder grants refine access for project-specific link sets.
+                </p>
+            </SectionCard>
         </div>
     </AuthenticatedLayout>
 </template>

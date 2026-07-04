@@ -50,6 +50,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
 
     Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
+    Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
     Route::post('/folders/{folder}/permissions', [FolderPermissionController::class, 'store'])->name('folder-permissions.store');
     Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
     Route::post('/invitations', [InvitationController::class, 'store'])->name('invitations.store');
@@ -57,6 +59,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/short-links', [ShortLinkController::class, 'store'])->name('short-links.store');
     Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');
+    Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
     Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
     Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
 

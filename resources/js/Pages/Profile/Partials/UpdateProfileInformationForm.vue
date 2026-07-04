@@ -21,26 +21,21 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Profile Information
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">Profile Information</h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-muted">
                 Update your account's profile information and email address.
             </p>
         </header>
 
-        <form
-            @submit.prevent="form.patch(route('profile.update'))"
-            class="mt-6 space-y-6"
-        >
+        <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-5">
             <div>
                 <InputLabel for="name" value="Name" />
 
                 <TextInput
                     id="name"
                     type="text"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.name"
                     required
                     autofocus
@@ -56,7 +51,7 @@ const form = useForm({
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.email"
                     required
                     autocomplete="username"
@@ -66,22 +61,19 @@ const form = useForm({
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800">
+                <p class="mt-2 text-sm text-muted">
                     Your email address is unverified.
                     <Link
                         :href="route('verification.send')"
                         method="post"
                         as="button"
-                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        class="rounded-md text-sm text-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                     >
                         Click here to re-send the verification email.
                     </Link>
                 </p>
 
-                <div
-                    v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
-                >
+                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-success">
                     A new verification link has been sent to your email address.
                 </div>
             </div>
@@ -95,12 +87,7 @@ const form = useForm({
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
-                    >
-                        Saved.
-                    </p>
+                    <p v-if="form.recentlySuccessful" class="text-sm text-success">Saved.</p>
                 </Transition>
             </div>
         </form>

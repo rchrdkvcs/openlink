@@ -12,7 +12,7 @@ const props = withDefaults(
         align: 'right',
         width: '48',
         placement: 'bottom',
-        contentClasses: 'py-1 bg-white',
+        contentClasses: 'p-1',
     },
 );
 
@@ -53,31 +53,24 @@ const open = ref(false);
         </div>
 
         <!-- Full Screen Dropdown Overlay -->
-        <div
-            v-show="open"
-            class="fixed inset-0 z-40"
-            @click="open = false"
-        ></div>
+        <div v-show="open" class="fixed inset-0 z-40" @click="open = false"></div>
 
         <Transition
-            enter-active-class="transition ease-out duration-200"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
+            enter-active-class="transition ease-out duration-150"
+            enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition ease-in duration-100"
             leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
+            leave-to-class="opacity-0 scale-[0.97]"
         >
             <div
                 v-show="open"
-                class="absolute z-50 rounded-md shadow-lg"
+                class="absolute z-50 rounded-lg"
                 :class="[widthClass, alignmentClasses, props.placement === 'top' ? 'bottom-full mb-2' : 'mt-2']"
                 style="display: none"
                 @click="open = false"
             >
-                <div
-                    class="rounded-md ring-1 ring-black ring-opacity-5"
-                    :class="contentClasses"
-                >
+                <div class="rounded-lg bg-overlay shadow-popover" :class="contentClasses">
                     <slot name="content" />
                 </div>
             </div>

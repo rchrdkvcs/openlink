@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import Button from '@/Components/ui/Button.vue';
+import Field from '@/Components/ui/Field.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Settings, ShieldCheck } from '@lucide/vue';
@@ -42,90 +46,95 @@ function updateSettings() {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="hidden min-w-0 items-center justify-between gap-4 lg:flex">
-                <div>
-                    <p class="text-xs font-medium uppercase text-neutral-500">Settings</p>
-                    <h1 class="text-base font-semibold text-neutral-950">{{ currentWorkspace.name }}</h1>
-                </div>
-            </div>
+            <PageHeader section="Settings" />
         </template>
 
-        <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
+        <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
-                <h2 class="text-2xl font-semibold text-neutral-950">Settings</h2>
-                <p class="mt-1 text-sm text-neutral-500">Workspace defaults and instance-level behaviour. Modules live in their own pages.</p>
+                <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
+                <p class="mt-1 text-sm text-muted">Workspace defaults and instance-level behaviour.</p>
             </div>
 
-            <div class="space-y-5">
-                <section class="rounded-md border border-neutral-200 bg-white">
-                    <div class="border-b border-neutral-200 px-5 py-4">
-                        <h3 class="flex items-center gap-2 text-sm font-semibold text-neutral-950"><ShieldCheck class="h-4 w-4" /> Workspace</h3>
-                    </div>
-                    <div class="p-5">
-                        <form v-if="canManageWorkspace" class="grid max-w-2xl gap-4" @submit.prevent="updateWorkspaceSettings">
-                            <label class="grid gap-1.5">
-                                <span class="text-sm font-medium text-neutral-800">Workspace name</span>
-                                <input v-model="workspaceSettingsForm.name" class="h-10 rounded-md border-neutral-300 text-sm" placeholder="Acme Events" />
-                                <span class="text-xs text-neutral-500">Displayed in the sidebar workspace switcher.</span>
-                            </label>
-                            <label class="grid gap-1.5">
-                                <span class="text-sm font-medium text-neutral-800">Preferred domain</span>
-                                <select v-model="workspaceSettingsForm.preferred_domain_id" class="h-10 rounded-md border-neutral-300 text-sm">
-                                <option value="">No preferred domain</option>
-                                <option v-for="domain in domains" :key="domain.id" :value="domain.id">{{ domain.hostname }}</option>
-                                </select>
-                                <span class="text-xs text-neutral-500">Used as the default domain when creating new short links.</span>
-                            </label>
-                            <button class="h-10 w-fit rounded-md bg-neutral-950 px-4 text-sm font-medium text-white hover:bg-neutral-800">Save workspace settings</button>
-                        </form>
-                        <p v-else class="text-sm text-neutral-500">Only workspace managers can edit workspace settings.</p>
-                    </div>
-                </section>
+            <div class="space-y-6">
+                <SectionCard title="Workspace" description="Defaults for this workspace.">
+                    <template #icon><ShieldCheck class="h-4 w-4 text-faint" /></template>
 
-                <section v-if="Object.keys(settings).length" class="rounded-md border border-neutral-200 bg-white">
-                    <div class="border-b border-neutral-200 px-5 py-4">
-                        <h3 class="flex items-center gap-2 text-sm font-semibold text-neutral-950"><Settings class="h-4 w-4" /> Instance</h3>
+                    <div class="p-5">
+                        <form v-if="canManageWorkspace" class="grid max-w-xl gap-5" @submit.prevent="updateWorkspaceSettings">
+                            <Field label="Workspace name" hint="Displayed in the sidebar workspace switcher." :error="workspaceSettingsForm.errors.name">
+                                <input v-model="workspaceSettingsForm.name" class="h-9" placeholder="Acme Events" />
+                            </Field>
+                            <Field
+                                label="Preferred domain"
+                                hint="Used as the default domain when creating new short links."
+                                :error="workspaceSettingsForm.errors.preferred_domain_id"
+                            >
+                                <select v-model="workspaceSettingsForm.preferred_domain_id" class="h-9">
+                                    <option value="">No preferred domain</option>
+                                    <option v-for="domain in domains" :key="domain.id" :value="domain.id">{{ domain.hostname }}</option>
+                                </select>
+                            </Field>
+                            <div class="flex items-center gap-3">
+                                <Button :loading="workspaceSettingsForm.processing">Save changes</Button>
+                                <Transition
+                                    enter-active-class="transition ease-in-out"
+                                    enter-from-class="opacity-0"
+                                    leave-active-class="transition ease-in-out"
+                                    leave-to-class="opacity-0"
+                                >
+                                    <p v-if="workspaceSettingsForm.recentlySuccessful" class="text-[13px] text-success">Saved.</p>
+                                </Transition>
+                            </div>
+                        </form>
+                        <p v-else class="text-sm text-muted">Only workspace managers can edit workspace settings.</p>
                     </div>
-                    <form class="grid gap-4 p-5 md:grid-cols-4" @submit.prevent="updateSettings">
-                        <label class="grid gap-1.5">
-                            <span class="text-sm font-medium text-neutral-800">Registration mode</span>
-                            <select v-model="settingsForm.registration_mode" class="h-10 rounded-md border-neutral-300 text-sm">
+                </SectionCard>
+
+                <SectionCard v-if="Object.keys(settings).length" title="Instance" description="Applies to the whole Openlink installation.">
+                    <template #icon><Settings class="h-4 w-4 text-faint" /></template>
+
+                    <form class="grid gap-5 p-5 sm:grid-cols-2" @submit.prevent="updateSettings">
+                        <Field label="Registration mode" :error="settingsForm.errors.registration_mode">
+                            <select v-model="settingsForm.registration_mode" class="h-9">
                                 <option value="closed">Closed</option>
                                 <option value="invite_only">Invite-only</option>
                                 <option value="open">Open</option>
                             </select>
-                        </label>
-                        <label class="grid gap-1.5">
-                            <span class="text-sm font-medium text-neutral-800">Default domain</span>
-                            <input v-model="settingsForm.default_domain" class="h-10 rounded-md border-neutral-300 text-sm" placeholder="localhost" />
-                        </label>
-                        <label class="grid gap-1.5">
-                            <span class="text-sm font-medium text-neutral-800">Generated slug length</span>
-                            <input v-model="settingsForm.slug_length" type="number" class="h-10 rounded-md border-neutral-300 text-sm" min="4" max="32" />
-                        </label>
-                        <label class="grid gap-1.5">
-                            <span class="text-sm font-medium text-neutral-800">Analytics retention</span>
-                            <input v-model="settingsForm.analytics_retention_days" type="number" class="h-10 rounded-md border-neutral-300 text-sm" min="30" />
-                        </label>
-                        <label class="grid gap-1.5 md:col-span-2">
-                            <span class="text-sm font-medium text-neutral-800">Unavailable page title</span>
-                            <input v-model="settingsForm.public_unavailable_title" class="h-10 rounded-md border-neutral-300 text-sm" placeholder="This link is unavailable" />
-                        </label>
-                        <label class="grid gap-1.5 md:col-span-2">
-                            <span class="text-sm font-medium text-neutral-800">Unavailable page message</span>
-                            <input v-model="settingsForm.public_unavailable_message" class="h-10 rounded-md border-neutral-300 text-sm" placeholder="The link cannot be opened right now." />
-                        </label>
-                        <label class="grid gap-1.5 md:col-span-2">
-                            <span class="text-sm font-medium text-neutral-800">Reserved slugs</span>
-                            <textarea v-model="settingsForm.reserved_slugs" class="rounded-md border-neutral-300 text-sm" rows="4" placeholder="admin&#10;login&#10;settings" />
-                        </label>
-                        <label class="grid gap-1.5 md:col-span-2">
-                            <span class="text-sm font-medium text-neutral-800">Reserved prefixes</span>
-                            <textarea v-model="settingsForm.reserved_prefixes" class="rounded-md border-neutral-300 text-sm" rows="4" placeholder="api/&#10;qr/" />
-                        </label>
-                        <button class="h-10 rounded-md bg-neutral-950 px-4 text-sm font-medium text-white hover:bg-neutral-800 md:col-span-4">Save instance settings</button>
+                        </Field>
+                        <Field label="Default domain" :error="settingsForm.errors.default_domain">
+                            <input v-model="settingsForm.default_domain" class="h-9" placeholder="localhost" />
+                        </Field>
+                        <Field label="Generated slug length" :error="settingsForm.errors.slug_length">
+                            <input v-model="settingsForm.slug_length" type="number" class="h-9" min="4" max="32" />
+                        </Field>
+                        <Field label="Analytics retention (days)" :error="settingsForm.errors.analytics_retention_days">
+                            <input v-model="settingsForm.analytics_retention_days" type="number" class="h-9" min="30" />
+                        </Field>
+                        <Field label="Unavailable page title" class="sm:col-span-2" :error="settingsForm.errors.public_unavailable_title">
+                            <input v-model="settingsForm.public_unavailable_title" class="h-9" placeholder="This link is unavailable" />
+                        </Field>
+                        <Field label="Unavailable page message" class="sm:col-span-2" :error="settingsForm.errors.public_unavailable_message">
+                            <input v-model="settingsForm.public_unavailable_message" class="h-9" placeholder="The link cannot be opened right now." />
+                        </Field>
+                        <Field label="Reserved slugs" hint="One per line." :error="settingsForm.errors.reserved_slugs">
+                            <textarea v-model="settingsForm.reserved_slugs" class="font-mono text-[13px]" rows="4" placeholder="admin&#10;login&#10;settings" />
+                        </Field>
+                        <Field label="Reserved prefixes" hint="One per line." :error="settingsForm.errors.reserved_prefixes">
+                            <textarea v-model="settingsForm.reserved_prefixes" class="font-mono text-[13px]" rows="4" placeholder="api/&#10;qr/" />
+                        </Field>
+                        <div class="flex items-center gap-3 sm:col-span-2">
+                            <Button :loading="settingsForm.processing">Save instance settings</Button>
+                            <Transition
+                                enter-active-class="transition ease-in-out"
+                                enter-from-class="opacity-0"
+                                leave-active-class="transition ease-in-out"
+                                leave-to-class="opacity-0"
+                            >
+                                <p v-if="settingsForm.recentlySuccessful" class="text-[13px] text-success">Saved.</p>
+                            </Transition>
+                        </div>
                     </form>
-                </section>
+                </SectionCard>
             </div>
         </div>
     </AuthenticatedLayout>

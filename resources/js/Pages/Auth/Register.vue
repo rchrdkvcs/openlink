@@ -36,18 +36,23 @@ const submit = () => {
     <GuestLayout>
         <Head title="Register" />
 
-        <div v-if="invitation" class="mb-6 rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            You are joining <strong>{{ invitation.workspace }}</strong> as <strong>{{ invitation.role }}</strong>.
+        <div class="mb-6">
+            <h1 class="text-lg font-semibold text-foreground">Create your account</h1>
+            <p class="mt-1 text-sm text-muted">Start managing short links in minutes.</p>
         </div>
 
-        <form @submit.prevent="submit">
+        <div v-if="invitation" class="mb-5 rounded-md border border-accent/25 bg-accent/10 px-3 py-2.5 text-sm text-foreground">
+            You are joining <strong>{{ invitation.workspace }}</strong> as <strong class="capitalize">{{ invitation.role }}</strong>.
+        </div>
+
+        <form class="space-y-4" @submit.prevent="submit">
             <div>
                 <InputLabel for="name" value="Name" />
 
                 <TextInput
                     id="name"
                     type="text"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.name"
                     required
                     autofocus
@@ -57,13 +62,13 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
 
-            <div class="mt-4">
+            <div>
                 <InputLabel for="email" value="Email" />
 
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.email"
                     required
                     autocomplete="username"
@@ -73,13 +78,13 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4">
+            <div>
                 <InputLabel for="password" value="Password" />
 
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.password"
                     required
                     autocomplete="new-password"
@@ -88,43 +93,29 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
+            <div>
+                <InputLabel for="password_confirmation" value="Confirm Password" />
 
                 <TextInput
                     id="password_confirmation"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1.5 block w-full"
                     v-model="form.password_confirmation"
                     required
                     autocomplete="new-password"
                 />
 
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
+                <InputError class="mt-2" :message="form.errors.password_confirmation" />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                    Already registered?
-                </Link>
-
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Register
-                </PrimaryButton>
-            </div>
+            <PrimaryButton class="w-full" :disabled="form.processing">Register</PrimaryButton>
         </form>
+
+        <template #footer>
+            <p class="mt-6 text-center text-sm text-muted">
+                Already registered?
+                <Link :href="route('login')" class="font-medium text-foreground underline-offset-4 hover:underline">Log in</Link>
+            </p>
+        </template>
     </GuestLayout>
 </template>

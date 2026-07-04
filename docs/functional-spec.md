@@ -1,0 +1,158 @@
+# Functional Specification
+
+## Product Shape
+
+Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, permissions, and settings. Every short link belongs to exactly one workspace.
+
+The MVP should feel like a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
+
+## Users and Access
+
+The first user created on an instance becomes an instance admin. The instance supports closed, invite-only, and open registration modes, with invite-only as the default.
+
+Users authenticate with email and password. Two-factor authentication is available for user accounts. Password reset is handled by email.
+
+Workspace members have one workspace role:
+
+- Owner: controls all workspace data, settings, members, domains, and ownership-level actions.
+- Admin: manages members, domains, folders, links, QR codes, and settings without owning the workspace.
+- Editor: creates and edits links and QR codes in accessible folders.
+- Viewer: reads links, QR codes, and analytics in accessible folders.
+
+Folder permissions are Can view, Can edit, and Can manage. Members do not see folders they cannot access, except Owner and Admin roles, which can see all folders in the workspace.
+
+## Workspaces
+
+A user can belong to multiple workspaces. The app should make the current workspace obvious and allow switching between workspaces. Each workspace can configure a preferred domain used by default for new short links.
+
+Workspace settings include defaults for new links, the preferred domain, member management, folder management, and workspace-level feature settings.
+
+## Folders and Tags
+
+Folders organise links and control access. A short link can belong to a folder and inherits access from that folder.
+
+Tags classify links for filtering and search. Tags do not grant access and must not be used as a permission boundary.
+
+## Domains
+
+A workspace can add one or more domains. A domain must be verified before it can serve short links.
+
+Domain verification uses a DNS TXT record. The UI should show the required TXT record, verification status, last check time, and any verification failure details visible to workspace admins.
+
+Domain states:
+
+- Pending verification
+- Verified
+- Failed verification
+- Disabled
+
+The instance has a default domain so new installations can create links before a workspace-owned domain is configured. A workspace can choose a preferred domain from its usable domains.
+
+## Short Links
+
+A short link connects a domain and slug to a destination URL. Destination URLs must be valid HTTP or HTTPS URLs and must not create obvious resolution loops.
+
+Slugs are unique per domain and remain reserved until the short link is permanently deleted. Archived, disabled, scheduled, active, and expired links all keep their slug reserved.
+
+Generated slugs use a readable non-ambiguous alphabet, are random rather than incremental, and default to 6 characters. Custom slugs can contain path separators as part of the slug. Openlink maintains configurable reserved slugs and reserved slug prefixes that cannot be used for short URLs.
+
+Short links support:
+
+- Generated or custom slugs
+- Enabled and disabled states
+- Archived state
+- Activation date
+- Expiration date
+- Visit limit
+- Optional fallback URL
+- Optional visitor password
+- Folder assignment
+- Tags
+
+Disabled links do not resolve, regardless of lifecycle rules. Archived links are hidden from primary dashboard views, preserved for history and analytics, do not resolve, and keep their slug reserved.
+
+## Public Resolution
+
+When a visitor opens a short URL, Openlink resolves it in this order:
+
+1. Find the domain and slug.
+2. Check that the domain is verified and active.
+3. Check that the short link exists and is enabled.
+4. Check lifecycle rules.
+5. Check the visit limit.
+6. Validate the visitor password when required.
+7. Attribute QR code scans when applicable.
+8. Record analytics.
+9. Redirect to the destination URL or fallback URL.
+
+Availability rules run before password validation. If a link is expired, disabled, scheduled, or over its visit limit, visitors should not be shown a password form.
+
+When a short URL cannot resolve and no fallback URL is available, visitors see a neutral unavailable page. Detailed reasons remain visible only in the dashboard and analytics.
+
+## Protected Links
+
+A protected link requires a visitor password before resolution. The password protects public resolution only; it does not affect workspace member access in the dashboard.
+
+Visitor passwords are never shown in clear text after creation. Failed password attempts are recorded as analytics outcomes but do not consume the visit limit. A successful password entry can be remembered briefly for the visitor to avoid repeated prompts.
+
+## Visit Limits
+
+A visit limit counts successful resolutions to the destination URL. Failed password attempts, unavailable links, disabled links, scheduled links, expired links, and blocked attempts do not consume the visit limit.
+
+When the visit limit is reached, the link becomes expired.
+
+## QR Codes
+
+A QR code is a named scannable entry point attached to a short link. Multiple QR codes can point to the same short link, and each QR code has its own scan analytics.
+
+MVP QR code features:
+
+- PNG export
+- SVG export
+- Configurable export size
+- Configurable foreground color
+- Configurable background color
+- Configurable margin
+- Configurable error correction level
+
+QR code logos and advanced design templates are later features.
+
+## Analytics
+
+Analytics are aggregated and do not identify individual visitors.
+
+The MVP tracks:
+
+- Lifetime visits and scans
+- Daily visits and scans
+- Referrer
+- Approximate country
+- Device type
+- Browser
+- Operating system
+- Resolution outcome
+
+Resolution outcomes include success, password failed, expired, disabled, scheduled, not found, domain unavailable, and visit limit reached.
+
+Daily analytics aggregates are retained for 12 months by default. Lifetime totals remain available while the related link or QR code exists. Retention is configurable in the instance admin panel.
+
+## Instance Admin Panel
+
+The instance admin panel manages product settings for the whole installation. It does not manage infrastructure secrets or boot-time server configuration.
+
+MVP instance settings include:
+
+- Instance name and branding basics
+- Registration mode
+- Default domain
+- Reserved slugs and prefixes
+- Slug generation defaults
+- Analytics retention
+- Feature flags for optional product capabilities
+- Public unavailable page basics
+
+Secrets, database credentials, Redis credentials, mail credentials, storage credentials, and boot-time Laravel configuration remain outside the panel.
+
+## Later Features
+
+Later features include smart destinations, app link presets, bulk import and export, public API, webhooks, SSO/OAuth login, advanced QR code design templates, QR code logos, alerts, monitoring, and SaaS billing.

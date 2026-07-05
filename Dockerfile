@@ -49,9 +49,7 @@ RUN install-php-extensions \
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
-    SERVER_NAME=:8080 \
-    OPENLINK_OPTIMIZE=true \
-    OPENLINK_MIGRATE=false
+    SERVER_NAME=:8080
 
 COPY --chown=www-data:www-data app ./app
 COPY --chown=www-data:www-data bootstrap ./bootstrap
@@ -65,12 +63,8 @@ COPY --chown=www-data:www-data artisan composer.json composer.lock ./
 COPY --from=vendor --chown=www-data:www-data /app/vendor ./vendor
 COPY --from=assets --chown=www-data:www-data /app/public/build ./public/build
 
-COPY docker/production/Caddyfile /etc/caddy/Caddyfile
-COPY docker/production/entrypoint.sh /usr/local/bin/openlink-entrypoint
-
-RUN chmod +x /usr/local/bin/openlink-entrypoint \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
-    && mkdir -p /data/caddy /config/caddy \
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && php artisan package:discover --ansi \
     && chown -R www-data:www-data /app /data/caddy /config/caddy
 
 USER www-data
@@ -79,6 +73,3 @@ EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD wget -qO- http://127.0.0.1:8080/up || exit 1
-
-ENTRYPOINT ["openlink-entrypoint"]
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

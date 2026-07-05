@@ -3,7 +3,7 @@
 ## Phase 0: Project Foundation
 
 - Scaffold Laravel, Inertia.js, Vue 3, TypeScript, Tailwind CSS, and shadcn-vue.
-- Add Docker services for PostgreSQL and Redis.
+- Add a production Docker image for the Laravel application.
 - Configure Laravel queues, scheduler, cache, sessions, and testing.
 - Add authentication with email/password, password reset, and two-factor authentication.
 - Create the first-user instance admin setup flow.

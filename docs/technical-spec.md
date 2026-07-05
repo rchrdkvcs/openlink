@@ -4,7 +4,7 @@
 
 Openlink is a Laravel application using Inertia.js for the primary authenticated app, Vue 3 with TypeScript for the frontend, Tailwind CSS for styling, and shadcn-vue for UI components.
 
-The application is self-hosted first. It runs as a single Laravel application with PostgreSQL and Redis. Local development uses Docker with PostgreSQL and Redis, matching production database and cache behavior.
+The application is self-hosted first. It runs as a single Laravel application with PostgreSQL and Redis. Production deployment uses a Docker image for the application; PostgreSQL, Redis, HTTPS, and reverse proxy concerns are provided by the deployment platform.
 
 ## Main Runtime Components
 

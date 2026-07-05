@@ -20,4 +20,3 @@ storage/logs/*
 npm-debug.log
 yarn-error.log
 Dockerfile
-docker-compose.yml

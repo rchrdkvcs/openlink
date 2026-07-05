@@ -16,7 +16,7 @@ Openlink is built for people and teams who need a clean alternative to Bitly or 
 - shadcn-vue
 - PostgreSQL
 - Redis
-- Docker for local development
+- Docker production image
 
 ## Documentation
 
@@ -30,11 +30,7 @@ Openlink is built for people and teams who need a clean alternative to Bitly or 
 
 ## Local Development
 
-Start PostgreSQL and Redis:
-
-```bash
-docker compose up -d
-```
+Start or provision PostgreSQL and Redis, then configure the connection values in `.env`.
 
 Install dependencies and prepare the app:
 
@@ -63,4 +59,4 @@ npm run build
 
 ## Status
 
-Openlink has an initial Laravel/Inertia MVP implementation in progress, including workspaces, domains, short links, public resolution, protected links, QR code export, aggregated analytics, 2FA, and local Docker services.
+Openlink has an initial Laravel/Inertia MVP implementation in progress, including workspaces, domains, short links, public resolution, protected links, QR code export, aggregated analytics, and 2FA.

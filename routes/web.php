@@ -79,6 +79,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     Route::get('/invitations/{invitation}', [InvitationController::class, 'show'])->name('invitations.show');
 });
 
+Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');
 Route::get('/qr/{qrCode}', [PublicLinkController::class, 'qr'])->middleware('throttle:public-resolution')->name('public.qr');
 Route::post('/password/{shortLink}', [PublicLinkController::class, 'password'])->middleware('throttle:public-resolution')->name('public.password');
 Route::get('/{slug}', [PublicLinkController::class, 'show'])

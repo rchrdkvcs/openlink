@@ -124,6 +124,14 @@ class OpenlinkMvpTest extends TestCase
             ->assertRedirect('https://example.com/customer-login');
     }
 
+    public function test_redirect_only_domain_root_shows_neutral_unavailable_page(): void
+    {
+        [, $domain] = $this->workspaceAndDomain('go.example.test');
+
+        $this->get('http://'.$domain->hostname.'/')
+            ->assertStatus(404);
+    }
+
     public function test_redirect_only_domain_resolves_reserved_prefixes_as_slugs(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain('go.example.test');

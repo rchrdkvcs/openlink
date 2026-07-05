@@ -15,6 +15,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PublicLinkController extends Controller
 {
+    public function unavailable(Request $request, InstanceSettings $settings): Response
+    {
+        return $this->toResponse($request, new ResolutionResult(AnalyticsService::OUTCOME_NOT_FOUND), $settings);
+    }
+
     public function show(Request $request, string $slug, PublicResolutionService $resolver, InstanceSettings $settings): Response
     {
         return $this->toResponse($request, $resolver->resolve($request, $slug), $settings);

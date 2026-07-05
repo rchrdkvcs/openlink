@@ -50,6 +50,7 @@ RUN install-php-extensions \
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
+    LOG_STACK=stderr \
     SERVER_NAME=:8080
 
 COPY --chown=www-data:www-data app ./app

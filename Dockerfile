@@ -17,7 +17,8 @@ COPY config ./config
 COPY database ./database
 COPY routes ./routes
 COPY artisan ./artisan
-RUN composer dump-autoload --no-dev --classmap-authoritative
+RUN mkdir -p bootstrap/cache \
+    && composer dump-autoload --no-dev --classmap-authoritative
 
 
 FROM node:24-alpine AS assets

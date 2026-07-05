@@ -6,6 +6,8 @@ Openlink is a Laravel application using Inertia.js for the primary authenticated
 
 The application is self-hosted first. It runs as a single Laravel application with PostgreSQL and Redis. Production deployment uses a Docker image for the application; PostgreSQL, Redis, HTTPS, and reverse proxy concerns are provided by the deployment platform.
 
+The configured application host is the only hostname that serves the authenticated application, auth screens, workspace management, QR code management, and instance settings. Domains added inside Openlink are redirect-only domains: they may route to the same Laravel process at the reverse proxy layer, but Laravel treats their request paths as public short URL slugs rather than application UI routes.
+
 ## Main Runtime Components
 
 - Laravel HTTP app for dashboard, public resolution, auth, and settings.

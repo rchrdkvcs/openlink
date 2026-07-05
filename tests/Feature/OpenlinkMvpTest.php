@@ -51,6 +51,15 @@ class OpenlinkMvpTest extends TestCase
         $slugs->validateCustom($domain, 'dashboard');
     }
 
+    public function test_slug_service_allows_application_reserved_slugs_on_redirect_only_domains(): void
+    {
+        [, $domain] = $this->workspaceAndDomain('go.example.test');
+        $slugs = app(SlugService::class);
+
+        $this->assertSame('dashboard', $slugs->validateCustom($domain, 'dashboard'));
+        $this->assertSame('app/release', $slugs->validateCustom($domain, 'app/release'));
+    }
+
     public function test_slug_service_rejects_duplicate_slugs_per_domain(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();
@@ -88,6 +97,74 @@ class OpenlinkMvpTest extends TestCase
             'outcome' => AnalyticsService::OUTCOME_SUCCESS,
             'count' => 1,
         ]);
+    }
+
+    public function test_application_routes_render_only_on_application_domain(): void
+    {
+        [, $domain] = $this->workspaceAndDomain('go.example.test');
+
+        $this->get('http://localhost/login')
+            ->assertOk();
+
+        $this->get('http://'.$domain->hostname.'/login')
+            ->assertStatus(404);
+    }
+
+    public function test_redirect_only_domain_resolves_application_route_names_as_slugs(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain('go.example.test');
+        ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'login',
+            'destination_url' => 'https://example.com/customer-login',
+        ]);
+
+        $this->get('http://'.$domain->hostname.'/login')
+            ->assertRedirect('https://example.com/customer-login');
+    }
+
+    public function test_redirect_only_domain_resolves_reserved_prefixes_as_slugs(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain('go.example.test');
+        ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'app/release',
+            'destination_url' => 'https://example.com/releases',
+        ]);
+
+        $this->get('http://'.$domain->hostname.'/app/release')
+            ->assertRedirect('https://example.com/releases');
+    }
+
+    public function test_redirect_only_domain_does_not_render_authenticated_ui_routes(): void
+    {
+        [, $domain, $user] = $this->workspaceAndDomain('go.example.test');
+
+        foreach (['dashboard', 'links', 'domains', 'members', 'workspaces', 'settings', 'profile'] as $path) {
+            $this->actingAs($user)
+                ->get('http://'.$domain->hostname.'/'.$path)
+                ->assertStatus(404);
+        }
+    }
+
+    public function test_protected_link_password_flow_works_on_redirect_only_domain(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain('go.example.test');
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'secret',
+            'destination_url' => 'https://example.com/secret',
+            'password_hash' => Hash::make('opensesame'),
+        ]);
+
+        $this->get('http://'.$domain->hostname.'/secret')
+            ->assertOk();
+
+        $this->post('http://'.$domain->hostname.'/password/'.$link->id, ['password' => 'opensesame'])
+            ->assertRedirect('https://example.com/secret');
     }
 
     public function test_visit_limit_only_counts_successful_destination_redirects(): void
@@ -557,7 +634,7 @@ class OpenlinkMvpTest extends TestCase
     }
 
     /** @return array{Workspace, Domain, User} */
-    private function workspaceAndDomain(): array
+    private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();
         $workspace = Workspace::create([
@@ -573,7 +650,7 @@ class OpenlinkMvpTest extends TestCase
         ]);
         $domain = Domain::create([
             'workspace_id' => $workspace->id,
-            'hostname' => 'localhost',
+            'hostname' => $hostname,
             'status' => Domain::STATUS_VERIFIED,
             'verification_token' => 'test-token-'.str()->random(12),
             'verified_at' => now(),

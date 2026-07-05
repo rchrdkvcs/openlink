@@ -50,6 +50,8 @@ composer run dev
 
 The app runs at `http://127.0.0.1:8000`. Use `http://localhost:8000/<slug>` when testing links created on the default `localhost` domain.
 
+Set `APP_HOST` to the hostname that should render the authenticated application UI. Domains added inside Openlink are redirect-only domains; they can point to the same Laravel app, but their paths are resolved as short URL slugs instead of app routes.
+
 Run verification:
 
 ```bash

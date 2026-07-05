@@ -10,7 +10,10 @@ class SlugService
 {
     private const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-    public function __construct(private readonly InstanceSettings $settings)
+    public function __construct(
+        private readonly InstanceSettings $settings,
+        private readonly ApplicationHost $applicationHost,
+    )
     {
     }
 
@@ -22,7 +25,7 @@ class SlugService
             $slug = collect(range(1, $length))
                 ->map(fn () => self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)])
                 ->implode('');
-        } while ($this->existsForDomain($domain, $slug) || $this->isReserved($slug));
+        } while ($this->existsForDomain($domain, $slug) || $this->isReservedForDomain($domain, $slug));
 
         return $slug;
     }
@@ -37,7 +40,7 @@ class SlugService
             ]);
         }
 
-        if ($this->isReserved($slug)) {
+        if ($this->isReservedForDomain($domain, $slug)) {
             throw ValidationException::withMessages([
                 'slug' => 'This slug is reserved by the application.',
             ]);
@@ -70,6 +73,11 @@ class SlugService
         }
 
         return false;
+    }
+
+    public function isReservedForDomain(Domain $domain, string $slug): bool
+    {
+        return $this->applicationHost->isApplicationDomain($domain) && $this->isReserved($slug);
     }
 
     private function existsForDomain(Domain $domain, string $slug): bool

@@ -43,10 +43,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
     Route::patch('/workspaces/current', [WorkspaceController::class, 'update'])->name('workspaces.update-current');
     Route::post('/workspaces/{workspace}/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
+    Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 
     Route::post('/domains', [DomainController::class, 'store'])->name('domains.store');
     Route::post('/domains/{domain}/verify', [DomainController::class, 'verify'])->name('domains.verify');
     Route::post('/domains/{domain}/disable', [DomainController::class, 'disable'])->name('domains.disable');
+    Route::post('/domains/{domain}/transfer', [DomainController::class, 'transfer'])->name('domains.transfer');
     Route::delete('/domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
 
     Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');

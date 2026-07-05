@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Domain;
 use App\Models\AnalyticsDailyAggregate;
+use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\FolderPermission;
 use App\Models\Invitation;
@@ -17,6 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
@@ -46,7 +47,7 @@ class OpenlinkMvpTest extends TestCase
         [, $domain] = $this->workspaceAndDomain();
         $slugs = app(SlugService::class);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         $slugs->validateCustom($domain, 'dashboard');
     }
 
@@ -62,7 +63,7 @@ class OpenlinkMvpTest extends TestCase
             'destination_url' => 'https://example.com',
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         $slugs->validateCustom($domain, 'event/vip');
     }
 
@@ -178,7 +179,7 @@ class OpenlinkMvpTest extends TestCase
 
     public function test_two_factor_code_is_required_when_enabled(): void
     {
-        $secret = (new Google2FA())->generateSecretKey();
+        $secret = (new Google2FA)->generateSecretKey();
         $user = User::factory()->create([
             'email' => 'two@example.com',
             'password' => Hash::make('password'),
@@ -194,7 +195,7 @@ class OpenlinkMvpTest extends TestCase
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
-            'one_time_password' => (new Google2FA())->getCurrentOtp($secret),
+            'one_time_password' => (new Google2FA)->getCurrentOtp($secret),
         ])->assertRedirect('/dashboard');
 
         $this->assertAuthenticatedAs($user);
@@ -426,6 +427,133 @@ class OpenlinkMvpTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('short_links', ['id' => $link->id, 'folder_id' => null]);
+    }
+
+    public function test_workspace_manager_can_delete_current_workspace_and_switch_to_another(): void
+    {
+        [$workspace, , $user] = $this->workspaceAndDomain();
+        $otherWorkspace = Workspace::create([
+            'owner_id' => $user->id,
+            'name' => 'Other',
+            'slug' => 'other',
+            'settings' => [],
+        ]);
+        WorkspaceMember::create([
+            'workspace_id' => $otherWorkspace->id,
+            'user_id' => $user->id,
+            'role' => WorkspaceMember::ROLE_OWNER,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->delete(route('workspaces.destroy', $workspace))
+            ->assertRedirect(route('workspaces.index'));
+
+        $this->assertDatabaseMissing('workspaces', ['id' => $workspace->id]);
+        $this->assertSame($otherWorkspace->id, session('workspace_id'));
+    }
+
+    public function test_domain_can_transfer_to_another_managed_workspace_when_unused(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $otherWorkspace = Workspace::create([
+            'owner_id' => $user->id,
+            'name' => 'Other',
+            'slug' => 'other',
+            'settings' => [],
+        ]);
+        WorkspaceMember::create([
+            'workspace_id' => $otherWorkspace->id,
+            'user_id' => $user->id,
+            'role' => WorkspaceMember::ROLE_ADMIN,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('domains.transfer', $domain), ['workspace_id' => $otherWorkspace->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('domains', [
+            'id' => $domain->id,
+            'workspace_id' => $otherWorkspace->id,
+        ]);
+    }
+
+    public function test_domain_transfer_is_blocked_when_domain_has_links(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $otherWorkspace = Workspace::create([
+            'owner_id' => $user->id,
+            'name' => 'Other',
+            'slug' => 'other',
+            'settings' => [],
+        ]);
+        WorkspaceMember::create([
+            'workspace_id' => $otherWorkspace->id,
+            'user_id' => $user->id,
+            'role' => WorkspaceMember::ROLE_ADMIN,
+        ]);
+        ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'kept',
+            'destination_url' => 'https://example.com/kept',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('domains.transfer', $domain), ['workspace_id' => $otherWorkspace->id])
+            ->assertSessionHasErrors('workspace_id');
+
+        $this->assertDatabaseHas('domains', [
+            'id' => $domain->id,
+            'workspace_id' => $workspace->id,
+        ]);
+    }
+
+    public function test_link_password_can_be_removed_by_submitting_empty_password(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'public-again',
+            'destination_url' => 'https://example.com/public-again',
+            'password_hash' => Hash::make('secret'),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('short-links.update', $link), [
+                'folder_id' => null,
+                'destination_url' => 'https://example.com/public-again',
+                'fallback_url' => null,
+                'is_enabled' => true,
+                'activates_at' => null,
+                'expires_at' => null,
+                'visit_limit' => null,
+                'password' => null,
+            ])->assertRedirect();
+
+        $this->assertNull($link->fresh()->password_hash);
+    }
+
+    public function test_password_submit_resolves_known_link_even_when_post_host_differs(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'secret-custom',
+            'destination_url' => 'https://example.com/secret-custom',
+            'password_hash' => Hash::make('opensesame'),
+        ]);
+
+        $this->withHeader('Host', 'app.test')
+            ->post(route('public.password', $link), ['password' => 'opensesame'])
+            ->assertRedirect('https://example.com/secret-custom');
+
+        $this->assertSame(1, $link->fresh()->successful_visits);
     }
 
     /** @return array{Workspace, Domain, User} */

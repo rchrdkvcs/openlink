@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Domain;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WorkspaceController extends Controller
 {
-    public function store(Request $request): \Illuminate\Http\RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -47,14 +49,14 @@ class WorkspaceController extends Controller
         return back();
     }
 
-    public function switch(Request $request, Workspace $workspace, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function switch(Request $request, Workspace $workspace, WorkspaceContext $context): RedirectResponse
     {
         $context->setCurrent($request, $workspace);
 
         return back();
     }
 
-    public function update(Request $request, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function update(Request $request, WorkspaceContext $context): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
@@ -68,7 +70,7 @@ class WorkspaceController extends Controller
 
         if ($preferredDomainId) {
             abort_unless(
-                \App\Models\Domain::query()
+                Domain::query()
                     ->whereKey($preferredDomainId)
                     ->where(fn ($query) => $query->where('workspace_id', $workspace->id)->orWhere('is_default', true))
                     ->exists(),
@@ -82,5 +84,23 @@ class WorkspaceController extends Controller
         ]);
 
         return back();
+    }
+
+    public function destroy(Request $request, Workspace $workspace, WorkspaceContext $context): RedirectResponse
+    {
+        abort_unless($context->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
+
+        $nextWorkspace = $request->user()
+            ->workspaces()
+            ->where('workspaces.id', '!=', $workspace->id)
+            ->oldest('workspaces.id')
+            ->first();
+
+        abort_unless($nextWorkspace, 422, 'You must keep at least one workspace.');
+
+        $workspace->delete();
+        $request->session()->put('workspace_id', $nextWorkspace->id);
+
+        return redirect()->route('workspaces.index');
     }
 }

@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AnalyticsTotal;
 use App\Models\AnalyticsDailyAggregate;
+use App\Models\AnalyticsTotal;
 use App\Models\Domain;
+use App\Models\ShortLink;
 use App\Services\DomainVerificationService;
 use App\Services\InstanceSettings;
 use App\Services\WorkspaceContext;
@@ -68,7 +69,6 @@ class DashboardController extends Controller
 
         $links = $workspace->shortLinks()
             ->with(['domain', 'folder', 'tags', 'qrCodes'])
-            ->primary()
             ->when(! $isManager, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds)))
             ->latest()
             ->get()
@@ -81,7 +81,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $link->id,
                     'slug' => $link->slug,
-                    'short_url' => 'http://'.$link->domain->hostname.'/'.$link->slug,
+                    'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
                     'destination_url' => $link->destination_url,
                     'fallback_url' => $link->fallback_url,
                     'status' => $this->status($link),
@@ -188,7 +188,7 @@ class DashboardController extends Controller
         return Domain::query()->where('is_default', true)->first();
     }
 
-    private function status(\App\Models\ShortLink $link): string
+    private function status(ShortLink $link): string
     {
         if ($link->isArchived()) {
             return 'archived';

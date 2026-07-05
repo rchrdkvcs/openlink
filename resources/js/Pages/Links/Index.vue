@@ -16,7 +16,6 @@ import {
     Copy,
     ExternalLink,
     Folder as FolderIcon,
-    FolderInput,
     GripVertical,
     Inbox,
     Link2,
@@ -69,8 +68,10 @@ const props = defineProps<{
 const filters = ref({ search: '', status: '', tag: '' });
 const createOpen = ref(false);
 const selectedLink = ref<ShortLink | null>(null);
+const selectedSettingsTab = ref<'link' | 'qr'>('link');
 const copiedLinkId = ref<number | null>(null);
 const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'verified'));
+const PASSWORD_MASK = '********';
 
 // ── Folder groups ────────────────────────────────────────────────────────────
 
@@ -79,6 +80,10 @@ type Group = { key: string; folder: Folder | null; links: ShortLink[] };
 const hasActiveFilters = computed(() => Boolean(filters.value.search || filters.value.status || filters.value.tag));
 
 function matchesFilters(link: ShortLink) {
+    if (!filters.value.status && link.status === 'archived') {
+        return false;
+    }
+
     const haystack = `${link.short_url} ${link.destination_url} ${link.slug}`.toLowerCase();
     const matchesSearch = !filters.value.search || haystack.includes(filters.value.search.toLowerCase());
     const matchesStatus = !filters.value.status || link.status === filters.value.status;
@@ -192,12 +197,10 @@ function deleteFolder(folder: Folder, linkCount: number) {
 
 // ── Moving links (menu + drag & drop) ────────────────────────────────────────
 
-const moveMenuFor = ref<number | null>(null);
 const dragLinkId = ref<number | null>(null);
 const dropGroupKey = ref<string | null>(null);
 
 function moveLink(link: ShortLink, folderId: number | null) {
-    moveMenuFor.value = null;
     if ((link.folder?.id ?? null) === folderId) {
         return;
     }
@@ -264,10 +267,11 @@ watch(selectedLink, (link) => {
         activates_at: link.activates_at ? String(link.activates_at).slice(0, 16) : '',
         expires_at: link.expires_at ? String(link.expires_at).slice(0, 16) : '',
         visit_limit: link.visit_limit ? String(link.visit_limit) : '',
-        password: '',
+        password: link.has_password ? PASSWORD_MASK : '',
     });
     editForm.reset();
     qrForm.reset();
+    selectedSettingsTab.value = 'link';
 });
 
 watch(() => props.links, (links) => {
@@ -293,7 +297,16 @@ function updateLink() {
         return;
     }
 
-    editForm.patch(route('short-links.update', selectedLink.value.id), { preserveScroll: true });
+    editForm
+        .transform((data) => {
+            if (selectedLink.value?.has_password && data.password === PASSWORD_MASK) {
+                const { password, ...payload } = data;
+                return payload;
+            }
+
+            return data;
+        })
+        .patch(route('short-links.update', selectedLink.value.id), { preserveScroll: true });
 }
 
 function submitQr() {
@@ -522,33 +535,6 @@ function qrPreviewUrl(qr: Qr) {
                                     <ExternalLink class="h-4 w-4" />
                                 </a>
 
-                                <div v-if="canEditWorkspace" class="relative">
-                                    <IconButton title="Move to folder" @click="moveMenuFor = moveMenuFor === link.id ? null : link.id">
-                                        <FolderInput class="h-4 w-4" />
-                                    </IconButton>
-                                    <template v-if="moveMenuFor === link.id">
-                                        <button class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="moveMenuFor = null" />
-                                        <div class="absolute right-0 top-full z-30 mt-1 max-h-56 w-48 overflow-y-auto rounded-lg bg-overlay p-1 shadow-popover">
-                                            <button
-                                                v-if="link.folder"
-                                                class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] italic text-muted transition-colors hover:bg-elevated hover:text-foreground"
-                                                @click="moveLink(link, null)"
-                                            >
-                                                <Inbox class="h-3.5 w-3.5 text-faint" /> Unfiled
-                                            </button>
-                                            <button
-                                                v-for="folder in folders.filter((candidate) => candidate.id !== link.folder?.id)"
-                                                :key="folder.id"
-                                                class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-muted transition-colors hover:bg-elevated hover:text-foreground"
-                                                @click="moveLink(link, folder.id)"
-                                            >
-                                                <FolderIcon class="h-3.5 w-3.5 shrink-0 text-faint" />
-                                                <span class="truncate">{{ folder.name }}</span>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </div>
-
                                 <IconButton title="Edit" @click="selectedLink = link">
                                     <Settings2 class="h-4 w-4" />
                                 </IconButton>
@@ -642,7 +628,26 @@ function qrPreviewUrl(qr: Qr) {
         <!-- Edit drawer -->
         <Drawer :show="Boolean(selectedLink)" eyebrow="Link settings" :title="selectedLink?.short_url" @close="selectedLink = null">
             <div v-if="selectedLink" class="space-y-6 p-5">
-                <form class="grid gap-5" @submit.prevent="updateLink">
+                <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
+                    <button
+                        type="button"
+                        class="h-8 rounded-md text-[13px] font-medium transition-colors"
+                        :class="selectedSettingsTab === 'link' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
+                        @click="selectedSettingsTab = 'link'"
+                    >
+                        Link
+                    </button>
+                    <button
+                        type="button"
+                        class="h-8 rounded-md text-[13px] font-medium transition-colors"
+                        :class="selectedSettingsTab === 'qr' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
+                        @click="selectedSettingsTab = 'qr'"
+                    >
+                        QR code
+                    </button>
+                </div>
+
+                <form v-if="selectedSettingsTab === 'link'" class="grid gap-5" @submit.prevent="updateLink">
                     <Field label="Folder" hint="Move this link into a project folder." :error="editForm.errors.folder_id">
                         <select v-model="editForm.folder_id" class="h-9">
                             <option value="">No folder</option>
@@ -674,7 +679,7 @@ function qrPreviewUrl(qr: Qr) {
                         <Field label="Visit limit" :error="editForm.errors.visit_limit">
                             <input v-model="editForm.visit_limit" type="number" min="1" class="h-9" placeholder="1000" />
                         </Field>
-                        <Field label="New password" hint="Leave empty to keep the current password." :error="editForm.errors.password">
+                        <Field label="Password" hint="Masked when already set. Empty this field to remove protection." :error="editForm.errors.password">
                             <input v-model="editForm.password" type="password" class="h-9" />
                         </Field>
                     </div>
@@ -684,7 +689,7 @@ function qrPreviewUrl(qr: Qr) {
                     </div>
                 </form>
 
-                <form class="grid gap-5 border-t pt-6" @submit.prevent="submitQr">
+                <form v-if="selectedSettingsTab === 'qr'" class="grid gap-5" @submit.prevent="submitQr">
                     <h4 class="flex items-center gap-2 text-[13px] font-semibold text-foreground"><QrCode class="h-4 w-4 text-faint" /> QR codes</h4>
 
                     <Field label="QR name" :error="qrForm.errors.name">

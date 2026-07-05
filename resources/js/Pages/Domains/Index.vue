@@ -7,18 +7,22 @@ import IconButton from '@/Components/ui/IconButton.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Ban, Globe, Plus, RefreshCw, Trash2 } from '@lucide/vue';
+import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Trash2 } from '@lucide/vue';
+import { ref } from 'vue';
 
 type Workspace = { id: number; name: string; slug: string };
 type Domain = { id: number; hostname: string; status: string; is_default: boolean; expected_txt?: string; failure_reason?: string | null };
 
-defineProps<{
+const props = defineProps<{
     currentWorkspace: Workspace;
+    workspaces: Workspace[];
     canManageWorkspace: boolean;
     domains: Domain[];
 }>();
 
 const domainForm = useForm({ hostname: '' });
+const transferMenuFor = ref<number | null>(null);
+const transferForm = useForm({ workspace_id: '' });
 
 function submitDomain() {
     domainForm.post(route('domains.store'), { preserveScroll: true, onSuccess: () => domainForm.reset() });
@@ -32,6 +36,22 @@ function disableDomain(domain: Domain) {
     useForm({}).post(route('domains.disable', domain.id), { preserveScroll: true });
 }
 
+function openTransfer(domain: Domain) {
+    transferForm.clearErrors();
+    transferForm.workspace_id = '';
+    transferMenuFor.value = transferMenuFor.value === domain.id ? null : domain.id;
+}
+
+function transferDomain(domain: Domain) {
+    transferForm.post(route('domains.transfer', domain.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            transferMenuFor.value = null;
+            transferForm.reset();
+        },
+    });
+}
+
 function deleteDomain(domain: Domain) {
     if (confirm(`Delete ${domain.hostname}? Links using this domain will be deleted too.`)) {
         useForm({}).delete(route('domains.destroy', domain.id), { preserveScroll: true });
@@ -42,6 +62,10 @@ function statusVariant(domain: Domain) {
     if (domain.is_default) return 'outline';
     if (domain.status === 'verified') return 'success';
     return 'warning';
+}
+
+function targetWorkspaces() {
+    return props.workspaces.filter((workspace) => workspace.id !== props.currentWorkspace.id);
 }
 </script>
 
@@ -74,7 +98,7 @@ function statusVariant(domain: Domain) {
                     </Button>
                 </form>
 
-                <div class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_120px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid">
+                <div class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid">
                     <span>Hostname</span>
                     <span>Status</span>
                     <span>DNS record</span>
@@ -85,7 +109,7 @@ function statusVariant(domain: Domain) {
                     <article
                         v-for="domain in domains"
                         :key="domain.id"
-                        class="grid gap-3 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_120px] lg:items-start"
+                        class="grid gap-3 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] lg:items-start"
                     >
                         <div>
                             <p class="truncate text-sm font-medium text-foreground">{{ domain.hostname }}</p>
@@ -104,6 +128,23 @@ function statusVariant(domain: Domain) {
                             <IconButton v-if="canManageWorkspace && !domain.is_default" title="Verify DNS" @click="verifyDomain(domain)">
                                 <RefreshCw class="h-4 w-4" />
                             </IconButton>
+                            <div v-if="canManageWorkspace && !domain.is_default" class="relative">
+                                <IconButton title="Transfer domain" @click="openTransfer(domain)">
+                                    <ArrowRightLeft class="h-4 w-4" />
+                                </IconButton>
+                                <template v-if="transferMenuFor === domain.id">
+                                    <button class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="transferMenuFor = null" />
+                                    <form class="absolute right-0 top-full z-30 mt-1 grid w-64 gap-2 rounded-lg bg-overlay p-3 shadow-popover" @submit.prevent="transferDomain(domain)">
+                                        <Field label="Transfer to" :error="transferForm.errors.workspace_id">
+                                            <select v-model="transferForm.workspace_id" class="h-9">
+                                                <option value="">Choose workspace</option>
+                                                <option v-for="workspace in targetWorkspaces()" :key="workspace.id" :value="workspace.id">{{ workspace.name }}</option>
+                                            </select>
+                                        </Field>
+                                        <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id">Transfer</Button>
+                                    </form>
+                                </template>
+                            </div>
                             <IconButton v-if="canManageWorkspace && !domain.is_default" variant="danger" title="Disable domain" @click="disableDomain(domain)">
                                 <Ban class="h-4 w-4" />
                             </IconButton>

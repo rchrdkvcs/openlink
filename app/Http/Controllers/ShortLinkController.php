@@ -8,13 +8,14 @@ use App\Models\ShortLink;
 use App\Models\Tag;
 use App\Services\SlugService;
 use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class ShortLinkController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context, SlugService $slugs): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, WorkspaceContext $context, SlugService $slugs): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $context->canEditWorkspace($request->user(), $workspace), 403);
@@ -64,7 +65,7 @@ class ShortLinkController extends Controller
         return back();
     }
 
-    public function update(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function update(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
     {
         $workspace = $context->current($request);
         $shortLink->loadMissing('workspace', 'folder.workspace');
@@ -78,7 +79,7 @@ class ShortLinkController extends Controller
             'activates_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date'],
             'visit_limit' => ['nullable', 'integer', 'min:1'],
-            'password' => ['nullable', 'string', 'min:4', 'max:255'],
+            'password' => ['sometimes', 'nullable', 'string', 'min:4', 'max:255'],
         ]);
 
         $this->assertNoLoop($request, $shortLink->domain, $shortLink->slug, $data['destination_url']);
@@ -95,8 +96,10 @@ class ShortLinkController extends Controller
             'visit_limit' => $data['visit_limit'] ?? null,
         ]);
 
-        if (filled($data['password'] ?? null)) {
-            $shortLink->password_hash = Hash::make($data['password']);
+        if ($request->has('password')) {
+            $shortLink->password_hash = filled($data['password'] ?? null)
+                ? Hash::make($data['password'])
+                : null;
         }
 
         $shortLink->save();
@@ -104,7 +107,7 @@ class ShortLinkController extends Controller
         return back();
     }
 
-    public function archive(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function archive(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
     {
         $workspace = $context->current($request);
         $shortLink->loadMissing('workspace', 'folder.workspace');
@@ -115,7 +118,7 @@ class ShortLinkController extends Controller
         return back();
     }
 
-    public function move(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function move(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
     {
         $workspace = $context->current($request);
         $shortLink->loadMissing('workspace', 'folder.workspace');
@@ -133,7 +136,7 @@ class ShortLinkController extends Controller
         return back();
     }
 
-    public function destroy(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function destroy(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);

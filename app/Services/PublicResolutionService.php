@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class PublicResolutionService
 {
-    public function __construct(private readonly AnalyticsService $analytics)
-    {
-    }
+    public function __construct(private readonly AnalyticsService $analytics) {}
 
     public function resolve(Request $request, string $slug, ?QrCode $qrCode = null): ResolutionResult
     {
@@ -28,6 +26,21 @@ class PublicResolutionService
 
         if (! $shortLink) {
             return new ResolutionResult(AnalyticsService::OUTCOME_NOT_FOUND);
+        }
+
+        return $this->resolveShortLink($request, $shortLink, $qrCode);
+    }
+
+    public function resolveShortLink(Request $request, ShortLink $shortLink, ?QrCode $qrCode = null): ResolutionResult
+    {
+        $shortLink->loadMissing('domain');
+
+        if (! $shortLink->domain || ! $shortLink->domain->isUsable()) {
+            return new ResolutionResult(
+                outcome: AnalyticsService::OUTCOME_DOMAIN_UNAVAILABLE,
+                shortLink: $shortLink,
+                qrCode: $qrCode,
+            );
         }
 
         $unavailableOutcome = $this->unavailableOutcome($shortLink);

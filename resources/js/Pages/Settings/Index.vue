@@ -5,22 +5,12 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Settings, ShieldCheck } from '@lucide/vue';
-
-type Workspace = { id: number; name: string; slug: string; preferred_domain_id?: number | null };
-type Domain = { id: number; hostname: string; status: string; is_default: boolean };
+import { Settings } from '@lucide/vue';
 
 const props = defineProps<{
-    currentWorkspace: Workspace;
-    canManageWorkspace: boolean;
-    domains: Domain[];
     settings: Record<string, any>;
 }>();
 
-const workspaceSettingsForm = useForm({
-    name: props.currentWorkspace.name,
-    preferred_domain_id: props.currentWorkspace.preferred_domain_id ?? '',
-});
 const settingsForm = useForm({
     registration_mode: props.settings.registration_mode ?? 'invite_only',
     default_domain: props.settings.default_domain ?? 'localhost',
@@ -31,10 +21,6 @@ const settingsForm = useForm({
     public_unavailable_title: props.settings.public_unavailable_title ?? 'This link is unavailable',
     public_unavailable_message: props.settings.public_unavailable_message ?? 'The link cannot be opened right now.',
 });
-
-function updateWorkspaceSettings() {
-    workspaceSettingsForm.patch(route('workspaces.update-current'), { preserveScroll: true });
-}
 
 function updateSettings() {
     settingsForm.patch(route('instance-settings.update'), { preserveScroll: true });
@@ -52,44 +38,10 @@ function updateSettings() {
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
-                <p class="mt-1 text-sm text-muted">Workspace defaults and instance-level behaviour.</p>
+                <p class="mt-1 text-sm text-muted">Instance-level behaviour for this Openlink installation.</p>
             </div>
 
             <div class="space-y-6">
-                <SectionCard title="Workspace" description="Defaults for this workspace.">
-                    <template #icon><ShieldCheck class="h-4 w-4 text-faint" /></template>
-
-                    <div class="p-5">
-                        <form v-if="canManageWorkspace" class="grid max-w-xl gap-5" @submit.prevent="updateWorkspaceSettings">
-                            <Field label="Workspace name" hint="Displayed in the sidebar workspace switcher." :error="workspaceSettingsForm.errors.name">
-                                <input v-model="workspaceSettingsForm.name" class="h-9" placeholder="Acme Events" />
-                            </Field>
-                            <Field
-                                label="Preferred domain"
-                                hint="Used as the default domain when creating new short links."
-                                :error="workspaceSettingsForm.errors.preferred_domain_id"
-                            >
-                                <select v-model="workspaceSettingsForm.preferred_domain_id" class="h-9">
-                                    <option value="">No preferred domain</option>
-                                    <option v-for="domain in domains" :key="domain.id" :value="domain.id">{{ domain.hostname }}</option>
-                                </select>
-                            </Field>
-                            <div class="flex items-center gap-3">
-                                <Button :loading="workspaceSettingsForm.processing">Save changes</Button>
-                                <Transition
-                                    enter-active-class="transition ease-in-out"
-                                    enter-from-class="opacity-0"
-                                    leave-active-class="transition ease-in-out"
-                                    leave-to-class="opacity-0"
-                                >
-                                    <p v-if="workspaceSettingsForm.recentlySuccessful" class="text-[13px] text-success">Saved.</p>
-                                </Transition>
-                            </div>
-                        </form>
-                        <p v-else class="text-sm text-muted">Only workspace managers can edit workspace settings.</p>
-                    </div>
-                </SectionCard>
-
                 <SectionCard v-if="Object.keys(settings).length" title="Instance" description="Applies to the whole Openlink installation.">
                     <template #icon><Settings class="h-4 w-4 text-faint" /></template>
 

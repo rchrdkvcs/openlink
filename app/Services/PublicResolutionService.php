@@ -5,12 +5,14 @@ namespace App\Services;
 use App\Models\Domain;
 use App\Models\QrCode;
 use App\Models\ShortLink;
+use App\Services\Analytics\AnalyticsRecorder;
+use App\Services\Analytics\Outcome;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class PublicResolutionService
 {
-    public function __construct(private readonly AnalyticsService $analytics) {}
+    public function __construct(private readonly AnalyticsRecorder $analytics) {}
 
     public function resolve(Request $request, string $slug, ?QrCode $qrCode = null): ResolutionResult
     {
@@ -18,14 +20,14 @@ class PublicResolutionService
             ?? Domain::query()->where('hostname', $request->getHost())->first();
 
         if (! $domain || ! $domain->isUsable()) {
-            return new ResolutionResult(AnalyticsService::OUTCOME_DOMAIN_UNAVAILABLE);
+            return new ResolutionResult(Outcome::DOMAIN_UNAVAILABLE);
         }
 
         $shortLink = $qrCode?->shortLink
             ?? $this->linkFor($domain, trim($slug, '/'));
 
         if (! $shortLink) {
-            return new ResolutionResult(AnalyticsService::OUTCOME_NOT_FOUND);
+            return new ResolutionResult(Outcome::NOT_FOUND);
         }
 
         return $this->resolveShortLink($request, $shortLink, $qrCode);
@@ -37,7 +39,7 @@ class PublicResolutionService
 
         if (! $shortLink->domain || ! $shortLink->domain->isUsable()) {
             return new ResolutionResult(
-                outcome: AnalyticsService::OUTCOME_DOMAIN_UNAVAILABLE,
+                outcome: Outcome::DOMAIN_UNAVAILABLE,
                 shortLink: $shortLink,
                 qrCode: $qrCode,
             );
@@ -46,7 +48,7 @@ class PublicResolutionService
         $unavailableOutcome = $this->unavailableOutcome($shortLink);
 
         if ($unavailableOutcome) {
-            $this->analytics->queue($request, $shortLink, $qrCode, $qrCode ? 'scan' : 'visit', $unavailableOutcome);
+            $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, $unavailableOutcome);
 
             return new ResolutionResult(
                 outcome: $unavailableOutcome,
@@ -66,10 +68,10 @@ class PublicResolutionService
         }
 
         $shortLink->increment('successful_visits');
-        $this->analytics->queue($request, $shortLink, $qrCode, $qrCode ? 'scan' : 'visit', AnalyticsService::OUTCOME_SUCCESS);
+        $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, Outcome::SUCCESS);
 
         return new ResolutionResult(
-            outcome: AnalyticsService::OUTCOME_SUCCESS,
+            outcome: Outcome::SUCCESS,
             shortLink: $shortLink,
             qrCode: $qrCode,
             redirectUrl: $shortLink->destination_url,
@@ -84,23 +86,23 @@ class PublicResolutionService
     private function unavailableOutcome(ShortLink $shortLink): ?string
     {
         if ($shortLink->isArchived()) {
-            return AnalyticsService::OUTCOME_ARCHIVED;
+            return Outcome::ARCHIVED;
         }
 
         if (! $shortLink->is_enabled) {
-            return AnalyticsService::OUTCOME_DISABLED;
+            return Outcome::DISABLED;
         }
 
         if ($shortLink->activates_at && $shortLink->activates_at->isFuture()) {
-            return AnalyticsService::OUTCOME_SCHEDULED;
+            return Outcome::SCHEDULED;
         }
 
         if ($shortLink->expires_at && $shortLink->expires_at->isPast()) {
-            return AnalyticsService::OUTCOME_EXPIRED;
+            return Outcome::EXPIRED;
         }
 
         if ($shortLink->visit_limit !== null && $shortLink->successful_visits >= $shortLink->visit_limit) {
-            return AnalyticsService::OUTCOME_VISIT_LIMIT_REACHED;
+            return Outcome::VISIT_LIMIT_REACHED;
         }
 
         return null;

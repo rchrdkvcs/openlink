@@ -280,9 +280,10 @@ class ApiV1Test extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.user.id', $user->id);
 
-        $this->getJson('/api/v1/analytics')
+        $this->getJson('/api/v1/analytics?range=7d')
             ->assertOk()
-            ->assertJsonStructure(['data' => ['daily', 'outcomes', 'devices', 'countries', 'browsers', 'operatingSystems', 'referrers']]);
+            ->assertJsonPath('data.range.preset', '7d')
+            ->assertJsonStructure(['data' => ['range', 'summary', 'timeseries', 'breakdowns', 'outcomes', 'top_links', 'top_qr_codes']]);
     }
 
     public function test_inviting_an_existing_user_adds_them_to_the_workspace(): void

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Analytics\AnalyticsFilters;
+use App\Services\Analytics\AnalyticsReporter;
 use App\Services\InstanceSettings;
 use App\Services\WorkspaceContext;
 use App\Services\WorkspaceData;
@@ -11,9 +13,23 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function overview(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function overview(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data, AnalyticsReporter $reporter): Response
     {
-        return Inertia::render('Dashboard', $this->pageProps($request, $context, $settings, $data));
+        $workspace = $context->current($request);
+        abort_unless($workspace, 403);
+
+        $filters = AnalyticsFilters::fromRequest($request);
+        $accessibleLinkIds = $data->accessibleLinkIds($workspace, $request->user());
+
+        return Inertia::render('Dashboard', [
+            ...$this->pageProps($request, $context, $settings, $data),
+            'analytics' => [
+                'range' => ['preset' => $filters->range, 'bucket' => $filters->bucketUnit()],
+                'summary' => $reporter->summary($workspace, $filters, $accessibleLinkIds),
+                'timeseries' => $reporter->timeseries($workspace, $filters, $accessibleLinkIds),
+                'top_links' => $reporter->topLinks($workspace, $filters, $accessibleLinkIds, 5),
+            ],
+        ]);
     }
 
     public function links(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
@@ -60,7 +76,6 @@ class DashboardController extends Controller
             'invitations' => $workspace->invitations()->latest()->get(),
             'tags' => $workspace->tags()->orderBy('name')->get(),
             'links' => $data->links($workspace, $user),
-            'analytics' => $data->analytics($workspace),
             'settings' => $user->is_instance_admin ? $settings->all() : [],
         ];
     }

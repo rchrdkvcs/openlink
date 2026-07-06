@@ -2,7 +2,7 @@
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Boxes, Check, ChevronsUpDown, Globe2, LayoutDashboard, Link2, LogOut, Menu, Settings, User, Users, X } from '@lucide/vue';
+import { BarChart3, Boxes, Check, ChevronsUpDown, Globe2, LayoutDashboard, Link2, LogOut, Menu, Settings, User, Users, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 type Workspace = { id: number; name: string; slug: string };
@@ -15,6 +15,7 @@ const workspaces = computed(() => (page.props.workspaces ?? []) as Workspace[]);
 const navItems = [
     { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
     { label: 'Links', href: route('links.index'), active: route().current('links.index'), icon: Link2 },
+    { label: 'Analytics', href: route('analytics.index'), active: route().current('analytics.index'), icon: BarChart3 },
     { label: 'Domains', href: route('domains.index'), active: route().current('domains.index'), icon: Globe2 },
     { label: 'Members', href: route('members.index'), active: route().current('members.index'), icon: Users },
 ];

@@ -14,7 +14,7 @@ The configured application host is the only hostname that serves the authenticat
 - Inertia/Vue frontend for authenticated product screens.
 - PostgreSQL for durable application data.
 - Redis for cache, rate limiting, and Laravel queues.
-- Queue workers for analytics aggregation, DNS verification tasks, and background maintenance.
+- Optional queue workers for analytics writes, DNS verification tasks, and background maintenance.
 - Scheduler for repeated DNS checks, analytics retention, and cleanup.
 
 ## Suggested Domains in Code
@@ -49,8 +49,7 @@ Expected primary records:
 - short_link_tags
 - domains
 - qr_codes
-- analytics_daily_aggregates
-- analytics_totals
+- analytics_events
 - instance_settings
 
 The exact schema can evolve during implementation, but these concepts should remain visible.
@@ -71,14 +70,16 @@ Public resolution should be a lean path. The resolver should:
 - Prefer Redis cache for active resolution metadata.
 - Fall back to PostgreSQL on cache miss.
 - Avoid expensive analytics writes in the request path.
-- Dispatch analytics work to the queue.
+- Capture analytics dimensions synchronously, write the event after the response (or on the queue when configured).
 - Return redirects quickly.
 
 Cache entries should be invalidated when domains, short links, lifecycle fields, passwords, fallback URLs, or QR code routing metadata change.
 
 ## Analytics Pipeline
 
-The public request records a lightweight analytics event through the queue. Queue workers aggregate events into daily aggregate rows and lifetime totals.
+The public request captures every analytics dimension synchronously (headers are gone once the response is sent) and writes one row to analytics_events after the response is flushed, so recording works on every deployment without a queue worker. Instances that run a worker can set OPENLINK_ANALYTICS_VIA_QUEUE=true to move the write onto the queue instead.
+
+Each event stores the metric (visit or scan), the resolution outcome, referrer host and channel, approximate country, language, device type, browser, operating system, UTM parameters, a bot flag, and a privacy-preserving visitor hash whose salt rotates daily. Reports aggregate these rows on demand with covering indexes; unique visitors are counted as distinct daily hashes.
 
 The system should track resolution outcomes even when no visit is counted. Visit limits are consumed only for successful resolutions to the destination URL.
 

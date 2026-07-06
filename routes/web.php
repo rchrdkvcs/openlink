@@ -1,11 +1,12 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\FolderPermissionController;
-use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InstanceSettingsController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLinkController;
 use App\Http\Controllers\QrCodeController;
@@ -28,6 +29,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     })->name('home');
 
     Route::get('/dashboard', [DashboardController::class, 'overview'])->middleware(['auth', 'verified'])->name('dashboard');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware(['auth', 'verified'])->name('analytics.index');
+    Route::get('/analytics/export', [AnalyticsController::class, 'export'])->middleware(['auth', 'verified'])->name('analytics.export');
     Route::get('/links', [DashboardController::class, 'links'])->middleware(['auth', 'verified'])->name('links.index');
     Route::get('/domains', [DashboardController::class, 'domains'])->middleware(['auth', 'verified'])->name('domains.index');
     Route::get('/members', [DashboardController::class, 'members'])->middleware(['auth', 'verified'])->name('members.index');

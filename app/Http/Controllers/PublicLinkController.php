@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\QrCode;
 use App\Models\ShortLink;
-use App\Services\AnalyticsService;
+use App\Services\Analytics\AnalyticsRecorder;
+use App\Services\Analytics\Outcome;
 use App\Services\InstanceSettings;
 use App\Services\PublicResolutionService;
 use App\Services\ResolutionResult;
@@ -17,7 +18,7 @@ class PublicLinkController extends Controller
 {
     public function unavailable(Request $request, InstanceSettings $settings): Response
     {
-        return $this->toResponse($request, new ResolutionResult(AnalyticsService::OUTCOME_NOT_FOUND), $settings);
+        return $this->toResponse($request, new ResolutionResult(Outcome::NOT_FOUND), $settings);
     }
 
     public function show(Request $request, string $slug, PublicResolutionService $resolver, InstanceSettings $settings): Response
@@ -32,7 +33,7 @@ class PublicLinkController extends Controller
         return $this->toResponse($request, $resolver->resolve($request, $qrCode->shortLink->slug, $qrCode), $settings);
     }
 
-    public function password(Request $request, ShortLink $shortLink, PublicResolutionService $resolver, AnalyticsService $analytics, InstanceSettings $settings): Response
+    public function password(Request $request, ShortLink $shortLink, PublicResolutionService $resolver, AnalyticsRecorder $analytics, InstanceSettings $settings): Response
     {
         $data = $request->validate([
             'password' => ['required', 'string'],
@@ -42,7 +43,7 @@ class PublicLinkController extends Controller
         $qrCode = filled($data['qr_code_id'] ?? null) ? QrCode::query()->find($data['qr_code_id']) : null;
 
         if (! $shortLink->password_hash || ! Hash::check($data['password'], $shortLink->password_hash)) {
-            $analytics->queue($request, $shortLink, $qrCode, $qrCode ? 'scan' : 'visit', AnalyticsService::OUTCOME_PASSWORD_FAILED);
+            $analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, Outcome::PASSWORD_FAILED);
 
             return Inertia::render('Public/Password', [
                 'shortLinkId' => $shortLink->id,

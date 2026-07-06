@@ -16,6 +16,7 @@ import {
     Copy,
     ExternalLink,
     Folder as FolderIcon,
+    Globe,
     GripVertical,
     Inbox,
     Link2,
@@ -152,9 +153,7 @@ function destinationHost(url: string) {
 }
 
 function faviconUrl(url: string) {
-    const parsed = parseDisplayUrl(url);
-
-    return parsed ? `${parsed.origin}/favicon.ico` : null;
+    return route('favicons.show', { url });
 }
 
 function hasFavicon(url: string) {
@@ -343,7 +342,7 @@ function markFaviconFailed(url: string) {
                                     @error="markFaviconFailed(link.destination_url)"
                                 />
                                 <span v-else class="grid h-4 w-4 shrink-0 place-items-center rounded-[3px] bg-elevated">
-                                    <Link2 class="h-3 w-3 text-faint" />
+                                    <Globe class="h-3 w-3 text-faint" />
                                 </span>
                                 <span class="min-w-0 truncate">{{ destinationHost(link.destination_url) }}</span>
                             </a>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
+use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\FolderPermissionController;
 use App\Http\Controllers\InstanceSettingsController;
@@ -32,6 +33,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware(['auth', 'verified'])->name('analytics.index');
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->middleware(['auth', 'verified'])->name('analytics.export');
     Route::get('/links', [DashboardController::class, 'links'])->middleware(['auth', 'verified'])->name('links.index');
+    Route::get('/favicons', [FaviconController::class, 'show'])->middleware(['auth', 'verified'])->name('favicons.show');
     Route::get('/domains', [DashboardController::class, 'domains'])->middleware(['auth', 'verified'])->name('domains.index');
     Route::get('/members', [DashboardController::class, 'members'])->middleware(['auth', 'verified'])->name('members.index');
     Route::get('/workspaces', [DashboardController::class, 'workspaces'])->middleware(['auth', 'verified'])->name('workspaces.index');

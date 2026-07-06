@@ -218,6 +218,25 @@ class OpenlinkMvpTest extends TestCase
         $this->assertSame(1, $link->fresh()->successful_visits);
     }
 
+    public function test_inertia_password_submit_returns_location_for_external_redirect(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'secret-inertia',
+            'destination_url' => 'https://example.com/secret-inertia',
+            'password_hash' => Hash::make('opensesame'),
+        ]);
+
+        $this->withHeader('X-Inertia', 'true')
+            ->post(route('public.password', $link), ['password' => 'opensesame'])
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', 'https://example.com/secret-inertia');
+
+        $this->assertSame(1, $link->fresh()->successful_visits);
+    }
+
     public function test_qr_code_export_returns_svg(): void
     {
         [$workspace, $domain, $user] = $this->workspaceAndDomain();

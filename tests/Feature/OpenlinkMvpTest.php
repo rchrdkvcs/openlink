@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\AnalyticsDailyAggregate;
+use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\FolderPermission;
@@ -11,7 +11,7 @@ use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
-use App\Services\AnalyticsService;
+use App\Services\Analytics\Outcome;
 use App\Services\SlugService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
@@ -91,11 +91,10 @@ class OpenlinkMvpTest extends TestCase
             ->assertRedirect('https://example.com/landing');
 
         $this->assertSame(1, $link->fresh()->successful_visits);
-        $this->assertDatabaseHas('analytics_totals', [
+        $this->assertDatabaseHas('analytics_events', [
             'short_link_id' => $link->id,
             'metric' => 'visit',
-            'outcome' => AnalyticsService::OUTCOME_SUCCESS,
-            'count' => 1,
+            'outcome' => Outcome::SUCCESS,
         ]);
     }
 
@@ -190,11 +189,10 @@ class OpenlinkMvpTest extends TestCase
         $this->withHeader('Host', 'localhost')->get('/limited')->assertStatus(404);
 
         $this->assertSame(1, $link->fresh()->successful_visits);
-        $this->assertDatabaseHas('analytics_totals', [
+        $this->assertDatabaseHas('analytics_events', [
             'short_link_id' => $link->id,
             'metric' => 'visit',
-            'outcome' => AnalyticsService::OUTCOME_VISIT_LIMIT_REACHED,
-            'count' => 1,
+            'outcome' => Outcome::VISIT_LIMIT_REACHED,
         ]);
     }
 
@@ -361,7 +359,7 @@ class OpenlinkMvpTest extends TestCase
         ]);
     }
 
-    public function test_analytics_retention_command_prunes_daily_aggregates_only(): void
+    public function test_analytics_retention_command_prunes_old_events_only(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();
         $link = ShortLink::create([
@@ -370,24 +368,19 @@ class OpenlinkMvpTest extends TestCase
             'slug' => 'old',
             'destination_url' => 'https://example.com/old',
         ]);
-        AnalyticsDailyAggregate::create([
+        $base = [
             'workspace_id' => $workspace->id,
             'short_link_id' => $link->id,
-            'date' => now()->subDays(400)->toDateString(),
             'metric' => 'visit',
-            'outcome' => 'success',
-            'device_type' => 'desktop',
-            'browser' => 'Other',
-            'os' => 'Other',
-            'count' => 1,
-        ]);
+            'outcome' => Outcome::SUCCESS,
+        ];
+        AnalyticsEvent::create([...$base, 'occurred_at' => now()->subDays(400)]);
+        AnalyticsEvent::create([...$base, 'occurred_at' => now()->subDays(10)]);
 
         $this->artisan('openlink:prune-analytics')->assertSuccessful();
 
-        $this->assertDatabaseMissing('analytics_daily_aggregates', [
-            'short_link_id' => $link->id,
-            'date' => now()->subDays(400)->toDateString(),
-        ]);
+        $this->assertSame(1, AnalyticsEvent::query()->count());
+        $this->assertTrue(AnalyticsEvent::query()->sole()->occurred_at->greaterThan(now()->subDays(365)));
     }
 
     public function test_workspace_manager_can_delete_workspace_domain(): void

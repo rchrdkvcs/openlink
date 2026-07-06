@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AnalyticsDailyAggregate;
-use App\Models\AnalyticsTotal;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
@@ -30,10 +28,40 @@ class WorkspaceData
 
         return $workspace->shortLinks()
             ->with(['domain', 'folder', 'tags', 'qrCodes'])
+            ->withCount($this->analyticsCounts())
             ->when(! $isManager, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds)))
             ->latest()
             ->get()
             ->map(fn (ShortLink $link) => $this->linkPayload($link));
+    }
+
+    /**
+     * Short link ids a member may see analytics for, or null when the member
+     * manages the workspace and sees everything.
+     *
+     * @return list<int>|null
+     */
+    public function accessibleLinkIds(Workspace $workspace, User $user): ?array
+    {
+        if ($this->context->canManageWorkspace($user, $workspace)) {
+            return null;
+        }
+
+        $accessibleFolderIds = $this->folders($workspace, $user)->pluck('id');
+
+        return $workspace->shortLinks()
+            ->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds))
+            ->pluck('id')
+            ->all();
+    }
+
+    /** @return array<string, \Closure> withCount definitions for successful visit/scan totals. */
+    private function analyticsCounts(): array
+    {
+        return [
+            'analyticsEvents as visits_count' => fn ($query) => $query->successful()->where('metric', 'visit'),
+            'analyticsEvents as scans_count' => fn ($query) => $query->successful()->where('metric', 'scan'),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -41,10 +69,9 @@ class WorkspaceData
     {
         $link->loadMissing(['domain', 'folder', 'tags', 'qrCodes']);
 
-        $totals = AnalyticsTotal::query()
-            ->where('short_link_id', $link->id)
-            ->where('outcome', 'success')
-            ->pluck('count', 'metric');
+        if (! isset($link->visits_count) || ! isset($link->scans_count)) {
+            $link->loadCount($this->analyticsCounts());
+        }
 
         return [
             'id' => $link->id,
@@ -57,8 +84,8 @@ class WorkspaceData
             'folder' => $link->folder?->only(['id', 'name']),
             'tags' => $link->tags->map->only(['id', 'name'])->values(),
             'qr_codes' => $link->qrCodes->map->only(['id', 'name', 'token'])->values(),
-            'visits' => (int) ($totals['visit'] ?? 0),
-            'scans' => (int) ($totals['scan'] ?? 0),
+            'visits' => (int) $link->visits_count,
+            'scans' => (int) $link->scans_count,
             'is_enabled' => $link->is_enabled,
             'archived_at' => $link->archived_at,
             'activates_at' => $link->activates_at,
@@ -124,61 +151,5 @@ class WorkspaceData
     public function defaultDomain(): ?Domain
     {
         return Domain::query()->where('is_default', true)->first();
-    }
-
-    /** @return array<string, mixed> */
-    public function analytics(Workspace $workspace): array
-    {
-        return [
-            'daily' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->where('date', '>=', now()->subDays(30)->toDateString())
-                ->selectRaw('date, metric, outcome, sum(count) as count')
-                ->groupBy('date', 'metric', 'outcome')
-                ->orderBy('date')
-                ->get(),
-            'outcomes' => AnalyticsTotal::query()
-                ->where('workspace_id', $workspace->id)
-                ->selectRaw('metric, outcome, sum(count) as count')
-                ->groupBy('metric', 'outcome')
-                ->orderByDesc('count')
-                ->get(),
-            'devices' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->selectRaw('device_type, sum(count) as count')
-                ->groupBy('device_type')
-                ->orderByDesc('count')
-                ->get(),
-            'countries' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->whereNotNull('country')
-                ->selectRaw('country, sum(count) as count')
-                ->groupBy('country')
-                ->orderByDesc('count')
-                ->limit(8)
-                ->get(),
-            'browsers' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->selectRaw('browser, sum(count) as count')
-                ->groupBy('browser')
-                ->orderByDesc('count')
-                ->limit(8)
-                ->get(),
-            'operatingSystems' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->selectRaw('os, sum(count) as count')
-                ->groupBy('os')
-                ->orderByDesc('count')
-                ->limit(8)
-                ->get(),
-            'referrers' => AnalyticsDailyAggregate::query()
-                ->where('workspace_id', $workspace->id)
-                ->whereNotNull('referrer_host')
-                ->selectRaw('referrer_host, sum(count) as count')
-                ->groupBy('referrer_host')
-                ->orderByDesc('count')
-                ->limit(8)
-                ->get(),
-        ];
     }
 }

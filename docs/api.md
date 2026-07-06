@@ -161,7 +161,7 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/v1/analytics` | Aggregated workspace analytics (daily series, outcomes, devices, countries, browsers, operating systems, referrers) |
+| `GET` | `/api/v1/analytics` | Workspace analytics report: summary with previous-period deltas, time series, breakdowns (referrers, channels, countries, languages, devices, browsers, OS, UTM), outcomes, top links, and top QR codes. Accepts `range` (`24h`,`7d`,`14d`,`30d`,`90d`,`12m`,`custom` with `from`/`to`), `link`, `qr`, `domain`, `folder`, `tag`, and `metric` query parameters |
 
 ### Instance settings (instance admins)
 

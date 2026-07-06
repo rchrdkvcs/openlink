@@ -124,17 +124,18 @@ Analytics are aggregated and do not identify individual visitors.
 The MVP tracks:
 
 - Lifetime visits and scans
-- Daily visits and scans
-- Referrer
-- Approximate country
-- Device type
-- Browser
-- Operating system
+- Visits and scans over time (hourly, daily, or monthly depending on the selected range)
+- Unique visitors (privacy-preserving daily hash, never a profile)
+- Referrer host and acquisition channel (direct, search, social, video, email, messaging, AI, referral)
+- UTM source, medium, campaign, term, and content
+- Approximate country and browser language
+- Device type, browser, and operating system
+- Bot and crawler traffic, flagged and excluded from headline figures
 - Resolution outcome
 
 Resolution outcomes include success, password failed, expired, disabled, scheduled, not found, domain unavailable, and visit limit reached.
 
-Daily analytics aggregates are retained for 12 months by default. Lifetime totals remain available while the related link or QR code exists. Retention is configurable in the instance admin panel.
+Analytics events are retained for 12 months by default; retention is configurable in the instance admin panel. The analytics page filters by date range, link, domain, folder, tag, and metric, compares each figure to the previous period, and exports the filtered events as CSV.
 
 ## Instance Admin Panel
 

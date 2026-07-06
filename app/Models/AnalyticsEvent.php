@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class AnalyticsDailyAggregate extends Model
+class AnalyticsEvent extends Model
 {
+    public const UPDATED_AT = null;
+
     protected $guarded = [];
 
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            'occurred_at' => 'datetime',
+            'is_bot' => 'boolean',
         ];
     }
 
@@ -29,5 +33,16 @@ class AnalyticsDailyAggregate extends Model
     public function qrCode(): BelongsTo
     {
         return $this->belongsTo(QrCode::class);
+    }
+
+    public function domain(): BelongsTo
+    {
+        return $this->belongsTo(Domain::class);
+    }
+
+    /** Human traffic that reached the destination URL. */
+    public function scopeSuccessful(Builder $query): Builder
+    {
+        return $query->where('outcome', 'success')->where('is_bot', false);
     }
 }

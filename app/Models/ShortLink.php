@@ -48,6 +48,11 @@ class ShortLink extends Model
         return $this->hasMany(QrCode::class);
     }
 
+    public function analyticsEvents(): HasMany
+    {
+        return $this->hasMany(AnalyticsEvent::class);
+    }
+
     public function scopePrimary(Builder $query): Builder
     {
         return $query->whereNull('archived_at');

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\Folder;
 use App\Models\FolderPermission;
 use App\Models\ShortLink;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Http\Request;
@@ -20,10 +20,19 @@ class WorkspaceContext
             return null;
         }
 
-        $workspaceId = $request->session()->get('workspace_id');
-
         $query = Workspace::query()
             ->whereHas('members', fn ($query) => $query->where('user_id', $user->id));
+
+        // Stateless clients (API tokens, browser extensions) select the
+        // workspace per request; an explicit header never falls back so a
+        // typo cannot silently target another workspace.
+        $headerId = $request->headers->get('X-Workspace-Id');
+
+        if ($headerId !== null && $headerId !== '') {
+            return (clone $query)->whereKey((int) $headerId)->first();
+        }
+
+        $workspaceId = $request->hasSession() ? $request->session()->get('workspace_id') : null;
 
         if ($workspaceId) {
             $workspace = (clone $query)->whereKey($workspaceId)->first();
@@ -35,7 +44,7 @@ class WorkspaceContext
 
         $workspace = $query->oldest('workspaces.id')->first();
 
-        if ($workspace) {
+        if ($workspace && $request->hasSession()) {
             $request->session()->put('workspace_id', $workspace->id);
         }
 
@@ -46,7 +55,9 @@ class WorkspaceContext
     {
         abort_unless($this->isMember($request->user(), $workspace), 403);
 
-        $request->session()->put('workspace_id', $workspace->id);
+        if ($request->hasSession()) {
+            $request->session()->put('workspace_id', $workspace->id);
+        }
     }
 
     public function isMember(?User $user, Workspace $workspace): bool

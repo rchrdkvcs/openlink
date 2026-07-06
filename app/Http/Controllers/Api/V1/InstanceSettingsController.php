@@ -1,14 +1,23 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
+use App\Services\InstanceSettings;
 use App\Services\InstanceSettingsUpdater;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InstanceSettingsController extends Controller
 {
-    public function update(Request $request, InstanceSettingsUpdater $updater): RedirectResponse
+    public function show(Request $request, InstanceSettings $settings): JsonResponse
+    {
+        abort_unless($request->user()?->is_instance_admin, 403);
+
+        return response()->json(['data' => $settings->all()]);
+    }
+
+    public function update(Request $request, InstanceSettings $settings, InstanceSettingsUpdater $updater): JsonResponse
     {
         abort_unless($request->user()?->is_instance_admin, 403);
 
@@ -25,6 +34,6 @@ class InstanceSettingsController extends Controller
 
         $updater->update($data);
 
-        return back();
+        return response()->json(['data' => $settings->all()]);
     }
 }

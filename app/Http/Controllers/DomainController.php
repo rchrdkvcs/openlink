@@ -3,16 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Domain;
+use App\Services\DomainManager;
 use App\Services\DomainVerificationService;
 use App\Services\WorkspaceContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class DomainController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context): RedirectResponse
+    public function store(Request $request, WorkspaceContext $context, DomainManager $domains): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
@@ -21,15 +20,7 @@ class DomainController extends Controller
             'hostname' => ['required', 'string', 'max:255', 'unique:domains,hostname'],
         ]);
 
-        $hostname = strtolower(preg_replace('/^https?:\/\//', '', trim($data['hostname'])));
-        $hostname = trim($hostname, '/');
-
-        Domain::create([
-            'workspace_id' => $workspace->id,
-            'hostname' => $hostname,
-            'status' => Domain::STATUS_PENDING,
-            'verification_token' => Str::random(40),
-        ]);
+        $domains->create($workspace, $data['hostname']);
 
         return back();
     }
@@ -44,20 +35,17 @@ class DomainController extends Controller
         return back();
     }
 
-    public function disable(Request $request, Domain $domain, WorkspaceContext $context): RedirectResponse
+    public function disable(Request $request, Domain $domain, WorkspaceContext $context, DomainManager $domains): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
 
-        $domain->update([
-            'status' => Domain::STATUS_DISABLED,
-            'disabled_at' => now(),
-        ]);
+        $domains->disable($domain);
 
         return back();
     }
 
-    public function transfer(Request $request, Domain $domain, WorkspaceContext $context): RedirectResponse
+    public function transfer(Request $request, Domain $domain, WorkspaceContext $context, DomainManager $domains): RedirectResponse
     {
         $workspace = $context->current($request);
         abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
@@ -74,21 +62,7 @@ class DomainController extends Controller
 
         abort_unless($targetWorkspace && $context->canManageWorkspace($request->user(), $targetWorkspace), 403);
 
-        if ($targetWorkspace->id === $workspace->id) {
-            return back();
-        }
-
-        if ($domain->shortLinks()->exists()) {
-            throw ValidationException::withMessages([
-                'workspace_id' => 'Move or delete links using this domain before transferring it.',
-            ]);
-        }
-
-        if ((int) $workspace->preferred_domain_id === $domain->id) {
-            $workspace->forceFill(['preferred_domain_id' => null])->save();
-        }
-
-        $domain->update(['workspace_id' => $targetWorkspace->id]);
+        $domains->transfer($domain, $workspace, $targetWorkspace);
 
         return back();
     }

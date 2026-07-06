@@ -7,9 +7,8 @@ import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{
-    invitation?: {
+    invite?: {
         token: string;
-        email: string;
         workspace: string;
         role: string;
     } | null;
@@ -17,10 +16,10 @@ const props = defineProps<{
 
 const form = useForm({
     name: '',
-    email: props.invitation?.email ?? '',
+    email: '',
     password: '',
     password_confirmation: '',
-    invitation_token: props.invitation?.token ?? '',
+    invite_token: props.invite?.token ?? '',
 });
 
 const submit = () => {
@@ -41,8 +40,8 @@ const submit = () => {
             <p class="mt-1 text-sm text-muted">Start managing short links in minutes.</p>
         </div>
 
-        <div v-if="invitation" class="mb-5 rounded-md border border-accent/25 bg-accent/10 px-3 py-2.5 text-sm text-foreground">
-            You are joining <strong>{{ invitation.workspace }}</strong> as <strong class="capitalize">{{ invitation.role }}</strong>.
+        <div v-if="invite" class="mb-5 rounded-md border border-accent/25 bg-accent/10 px-3 py-2.5 text-sm text-foreground">
+            You are joining <strong>{{ invite.workspace }}</strong> as <strong class="capitalize">{{ invite.role }}</strong>.
         </div>
 
         <form class="space-y-4" @submit.prevent="submit">
@@ -72,7 +71,6 @@ const submit = () => {
                     v-model="form.email"
                     required
                     autocomplete="username"
-                    :readonly="Boolean(invitation)"
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />

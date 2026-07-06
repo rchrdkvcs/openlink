@@ -41,7 +41,7 @@ Expected primary records:
 - users
 - workspaces
 - workspace_members
-- invitations
+- invite_links
 - folders
 - folder_permissions
 - tags
@@ -118,7 +118,7 @@ The authenticated app should prioritize dense, clear workflows:
 - QR code create/edit/export flow
 - Domain management and verification screen
 - Folder permissions screen
-- Workspace members and invitations
+- Workspace members and invite links
 - Workspace settings
 - Instance admin panel
 

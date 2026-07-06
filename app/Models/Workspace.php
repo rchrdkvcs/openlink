@@ -42,9 +42,9 @@ class Workspace extends Model
         return $this->hasMany(Folder::class);
     }
 
-    public function invitations(): HasMany
+    public function inviteLinks(): HasMany
     {
-        return $this->hasMany(Invitation::class);
+        return $this->hasMany(InviteLink::class);
     }
 
     public function tags(): HasMany

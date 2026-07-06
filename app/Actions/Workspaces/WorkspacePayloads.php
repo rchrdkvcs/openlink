@@ -6,6 +6,7 @@ use App\Actions\Domains\VerifyDomain;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Models\Domain;
 use App\Models\Folder;
+use App\Models\InviteLink;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
@@ -131,5 +132,31 @@ class WorkspacePayloads
     public function defaultDomain(): ?Domain
     {
         return Domain::query()->where('is_default', true)->first();
+    }
+
+    /** @return Collection<int, array<string, mixed>> */
+    public function inviteLinks(Workspace $workspace): Collection
+    {
+        return $workspace->inviteLinks()
+            ->whereNull('revoked_at')
+            ->latest()
+            ->get()
+            ->map(fn (InviteLink $link) => $this->inviteLinkPayload($link));
+    }
+
+    /** @return array<string, mixed> */
+    public function inviteLinkPayload(InviteLink $link): array
+    {
+        return [
+            'id' => $link->id,
+            'role' => $link->role,
+            'token' => $link->token,
+            'url' => $link->url(),
+            'expires_at' => $link->expires_at,
+            'max_uses' => $link->max_uses,
+            'uses' => $link->uses,
+            'is_usable' => $link->isUsable(),
+            'created_at' => $link->created_at,
+        ];
     }
 }

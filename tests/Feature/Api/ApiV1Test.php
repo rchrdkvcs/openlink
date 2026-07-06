@@ -286,17 +286,24 @@ class ApiV1Test extends TestCase
             ->assertJsonStructure(['data' => ['range', 'summary', 'timeseries', 'breakdowns', 'outcomes', 'top_links', 'top_qr_codes']]);
     }
 
-    public function test_inviting_an_existing_user_adds_them_to_the_workspace(): void
+    public function test_invite_link_lets_an_existing_user_join_the_workspace(): void
     {
         [$workspace, , $owner] = $this->workspaceAndDomain();
         $existing = User::factory()->create();
 
         Sanctum::actingAs($owner);
 
-        $this->postJson('/api/v1/invitations', [
-            'email' => $existing->email,
+        $response = $this->postJson('/api/v1/invite-links', [
             'role' => WorkspaceMember::ROLE_EDITOR,
         ])->assertCreated();
+
+        $token = $response->json('data.invite_link.token');
+
+        $this->getJson('/api/v1/invite-links')->assertOk()->assertJsonCount(1, 'data');
+
+        Sanctum::actingAs($existing);
+
+        $this->postJson("/api/v1/invite-links/{$token}/join")->assertOk();
 
         $this->assertDatabaseHas('workspace_members', [
             'workspace_id' => $workspace->id,

@@ -44,6 +44,6 @@ Product settings can be managed through the instance admin panel or workspace se
 
 ## Abuse Controls
 
-Redis-backed rate limiting should protect public resolution, password attempts, login, invitation acceptance, and domain verification checks.
+Redis-backed rate limiting should protect public resolution, password attempts, login, invite link joins, and domain verification checks.
 
 The application should avoid making DNS verification or redirect behavior an amplification vector. Background jobs should have sensible retries and backoff.

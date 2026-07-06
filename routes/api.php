@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\V1\AuthTokenController;
 use App\Http\Controllers\Api\V1\DomainController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\InstanceSettingsController;
-use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\InviteLinkController;
 use App\Http\Controllers\Api\V1\MemberController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\QrCodeController;
@@ -80,10 +80,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/qr-codes/{qrCode}/export/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
 
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+        Route::patch('/members/{member}', [MemberController::class, 'update'])->name('members.update');
+        Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
 
-        Route::get('/invitations', [InvitationController::class, 'index'])->name('invitations.index');
-        Route::post('/invitations', [InvitationController::class, 'store'])->name('invitations.store');
-        Route::post('/invitations/{invitation}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
+        Route::get('/invite-links', [InviteLinkController::class, 'index'])->name('invite-links.index');
+        Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
+        Route::delete('/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');
+        Route::post('/invite-links/{inviteLink}/join', [InviteLinkController::class, 'join'])->name('invite-links.join');
 
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 

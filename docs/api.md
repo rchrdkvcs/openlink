@@ -152,14 +152,17 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 
 The QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the domain selected for the link. When a logo is set, the effective error correction level is raised to at least quartile.
 
-### Members and invitations
+### Members and invite links
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/v1/members` | List workspace members |
-| `GET` | `/api/v1/invitations` | List invitations |
-| `POST` | `/api/v1/invitations` | Invite by email (`email`, `role`); existing users are added immediately |
-| `POST` | `/api/v1/invitations/{token}/accept` | Accept an invitation for the authenticated user |
+| `PATCH` | `/api/v1/members/{id}` | Change a member's role (`role`: `admin`, `editor`, `viewer`); the owner cannot be changed |
+| `DELETE` | `/api/v1/members/{id}` | Remove a member from the workspace (not the owner, not yourself) |
+| `GET` | `/api/v1/invite-links` | List active invite links (owner/admin only) |
+| `POST` | `/api/v1/invite-links` | Create an invite link (`role`, optional `expires_in_days`, optional `max_uses`) |
+| `DELETE` | `/api/v1/invite-links/{token}` | Revoke an invite link |
+| `POST` | `/api/v1/invite-links/{token}/join` | Join the link's workspace as the authenticated user; existing members keep their role |
 
 ### Analytics
 
@@ -181,7 +184,7 @@ Responses follow Laravel conventions, always as JSON on `/api/*`:
 - `401` missing or invalid token
 - `403` no accessible workspace, insufficient role, or folder permission denied
 - `404` unknown resource (or resource outside the active workspace)
-- `410` invitation expired or already used
+- `410` invite link expired, revoked, or out of uses
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 
 ## CORS and browser extensions

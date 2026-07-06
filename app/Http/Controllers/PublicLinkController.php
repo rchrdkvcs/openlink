@@ -48,6 +48,7 @@ class PublicLinkController extends Controller
             return Inertia::render('Public/Password', [
                 'shortLinkId' => $shortLink->id,
                 'qrCodeId' => $qrCode?->id,
+                'passwordUrl' => route('public.password', $shortLink, false),
                 'error' => 'The password is incorrect.',
             ])->toResponse($request)->setStatusCode(403);
         }
@@ -59,10 +60,11 @@ class PublicLinkController extends Controller
 
     private function toResponse(Request $request, ResolutionResult $result, InstanceSettings $settings): Response
     {
-        if ($result->requiresPassword) {
+        if ($result->requiresPassword && $result->shortLink) {
             return Inertia::render('Public/Password', [
-                'shortLinkId' => $result->shortLink?->id,
+                'shortLinkId' => $result->shortLink->id,
                 'qrCodeId' => $result->qrCode?->id,
+                'passwordUrl' => route('public.password', $result->shortLink, false),
                 'error' => null,
             ])->toResponse($request);
         }

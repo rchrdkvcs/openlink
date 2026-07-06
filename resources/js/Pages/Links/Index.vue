@@ -48,6 +48,7 @@ const {
     isCollapsed,
     onDrop,
 } = useLinkGroups(props, filters);
+const failedFavicons = ref<Set<string>>(new Set());
 
 const {
     selectedSettingsTab,
@@ -126,6 +127,53 @@ function deleteFolder(folder: Folder, linkCount: number) {
     }
 }
 
+function parseDisplayUrl(url: string): URL | null {
+    try {
+        return new URL(url.includes('://') ? url : `https://${url}`);
+    } catch {
+        return null;
+    }
+}
+
+function urlWithoutProtocol(url: string) {
+    const parsed = parseDisplayUrl(url);
+
+    if (!parsed) {
+        return url.replace(/^https?:\/\//, '');
+    }
+
+    const path = parsed.pathname === '/' ? '' : parsed.pathname;
+
+    return `${parsed.host}${path}${parsed.search}`;
+}
+
+function destinationHost(url: string) {
+    return parseDisplayUrl(url)?.host ?? urlWithoutProtocol(url).split('/')[0];
+}
+
+function faviconUrl(url: string) {
+    const parsed = parseDisplayUrl(url);
+
+    return parsed ? `${parsed.origin}/favicon.ico` : null;
+}
+
+function hasFavicon(url: string) {
+    const favicon = faviconUrl(url);
+
+    return Boolean(favicon && !failedFavicons.value.has(favicon));
+}
+
+function markFaviconFailed(url: string) {
+    const favicon = faviconUrl(url);
+
+    if (!favicon) {
+        return;
+    }
+
+    const next = new Set(failedFavicons.value);
+    next.add(favicon);
+    failedFavicons.value = next;
+}
 </script>
 
 <template>
@@ -267,7 +315,7 @@ function deleteFolder(folder: Folder, linkCount: number) {
 
                             <div class="flex min-w-0 items-center gap-1.5">
                                 <a :href="link.short_url" target="_blank" class="truncate text-sm font-medium text-foreground hover:text-accent">
-                                    {{ link.short_url }}
+                                    {{ urlWithoutProtocol(link.short_url) }}
                                 </a>
                                 <button
                                     class="shrink-0 rounded p-1 text-faint opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/r:opacity-100"
@@ -279,7 +327,26 @@ function deleteFolder(folder: Folder, linkCount: number) {
                                 </button>
                             </div>
 
-                            <p class="min-w-0 truncate text-[13px] text-muted">{{ link.destination_url }}</p>
+                            <a
+                                :href="link.destination_url"
+                                target="_blank"
+                                rel="noopener"
+                                class="flex min-w-0 items-center gap-2 text-[13px] text-muted transition-colors hover:text-foreground"
+                                :title="urlWithoutProtocol(link.destination_url)"
+                            >
+                                <img
+                                    v-if="hasFavicon(link.destination_url)"
+                                    :src="faviconUrl(link.destination_url) ?? undefined"
+                                    alt=""
+                                    class="h-4 w-4 shrink-0 rounded-[3px] bg-elevated"
+                                    loading="lazy"
+                                    @error="markFaviconFailed(link.destination_url)"
+                                />
+                                <span v-else class="grid h-4 w-4 shrink-0 place-items-center rounded-[3px] bg-elevated">
+                                    <Link2 class="h-3 w-3 text-faint" />
+                                </span>
+                                <span class="min-w-0 truncate">{{ destinationHost(link.destination_url) }}</span>
+                            </a>
 
                             <div class="flex items-center gap-2">
                                 <Badge :variant="statusVariant(link.status)" dot>{{ link.status }}</Badge>
@@ -296,7 +363,9 @@ function deleteFolder(folder: Folder, linkCount: number) {
                                 <span v-for="tag in link.tags" :key="tag.id" class="rounded bg-elevated px-1.5 py-0.5 text-[11px] text-muted">#{{ tag.name }}</span>
                             </div>
 
-                            <div class="flex justify-start gap-0.5 lg:justify-end">
+                            <div
+                                class="pointer-events-none flex justify-start gap-0.5 opacity-0 transition-opacity focus-within:pointer-events-auto focus-within:opacity-100 group-hover/r:pointer-events-auto group-hover/r:opacity-100 lg:justify-end"
+                            >
                                 <a
                                     :href="link.short_url"
                                     target="_blank"
@@ -460,7 +529,7 @@ function deleteFolder(folder: Folder, linkCount: number) {
                     </div>
                 </form>
 
-                <div v-if="selectedSettingsTab === 'qr'" class="grid gap-5">
+                <div v-if="selectedSettingsTab === 'qr'" class="grid gap-5 rounded-lg border border-border/70 bg-elevated/20 p-4 sm:p-5">
                     <h4 class="flex items-center gap-2 text-[13px] font-semibold text-foreground"><QrCode class="h-4 w-4 text-faint" /> QR codes</h4>
 
                     <form class="flex items-end gap-2" @submit.prevent="submitQr">

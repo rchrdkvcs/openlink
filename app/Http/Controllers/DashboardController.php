@@ -64,7 +64,10 @@ class DashboardController extends Controller
 
         return [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-            'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+            'workspaces' => $user->workspaces()
+                ->orderBy('workspaces.created_at')
+                ->orderBy('workspaces.id')
+                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
             'role' => $access->role($user, $workspace),
             'canManageWorkspace' => $access->canManageWorkspace($user, $workspace),
             'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),

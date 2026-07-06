@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use PragmaRX\Google2FA\Google2FA;
 
 class LoginRequest extends FormRequest
 {
@@ -32,20 +31,25 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'one_time_password' => ['nullable', 'string'],
         ];
     }
 
     /**
      * Attempt to authenticate the request's credentials.
      *
+     * @return User|null A user that still needs a two-factor challenge.
+     *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): ?User
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+        $provider = Auth::getProvider();
+        $user = $provider->retrieveByCredentials($credentials);
+
+        if (! $user || ! $provider->validateCredentials($user, $credentials)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -53,23 +57,20 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        $user = Auth::user();
-
-        if ($user?->two_factor_confirmed_at) {
-            $secret = Crypt::decryptString($user->two_factor_secret);
-            $valid = (new Google2FA())->verifyKey($secret, (string) $this->input('one_time_password'));
-
-            if (! $valid) {
-                Auth::logout();
-                RateLimiter::hit($this->throttleKey());
-
-                throw ValidationException::withMessages([
-                    'one_time_password' => 'Enter a valid two-factor authentication code.',
-                ]);
-            }
+        if (method_exists($provider, 'rehashPasswordIfRequired')) {
+            $provider->rehashPasswordIfRequired($user, $credentials);
         }
 
+        if ($user instanceof User && $user->two_factor_confirmed_at) {
+            RateLimiter::clear($this->throttleKey());
+
+            return $user;
+        }
+
+        Auth::login($user, $this->boolean('remember'));
         RateLimiter::clear($this->throttleKey());
+
+        return null;
     }
 
     /**

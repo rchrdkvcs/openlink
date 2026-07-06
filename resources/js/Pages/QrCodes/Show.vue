@@ -138,9 +138,10 @@ async function copyPublicUrl() {
             </PageHeader>
         </template>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-            <!-- Preview panel -->
-            <SectionCard>
+        <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+                <!-- Preview panel -->
+                <SectionCard>
                 <div class="grid gap-5 p-5">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0">
@@ -191,10 +192,10 @@ async function copyPublicUrl() {
                         </a>
                     </div>
                 </div>
-            </SectionCard>
+                </SectionCard>
 
-            <!-- Customization panel -->
-            <SectionCard>
+                <!-- Customization panel -->
+                <SectionCard>
                 <form class="grid gap-5 p-5" @submit.prevent="save">
                     <Field label="Name" :error="form.errors.name">
                         <input v-model="form.name" class="h-9" placeholder="Poster, badge, flyer…" />
@@ -296,7 +297,8 @@ async function copyPublicUrl() {
                         <Button :loading="form.processing" :disabled="!isDirty">Save changes</Button>
                     </div>
                 </form>
-            </SectionCard>
+                </SectionCard>
+            </div>
         </div>
     </AuthenticatedLayout>
 </template>

@@ -1,12 +1,18 @@
 <?php
 
-namespace App\Services\Analytics;
+namespace App\Actions\Analytics;
 
+use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\AnalyticsEvent;
 use App\Models\QrCode;
 use App\Models\ShortLink;
+use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Analytics\AnalyticsFilters;
+use App\Services\Analytics\Outcome;
 use Carbon\CarbonImmutable;
+use Generator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,9 +21,14 @@ use Illuminate\Support\Facades\DB;
  * consumed by the dashboard, the analytics page, and the API. Every figure
  * is computed against the same AnalyticsFilters slice.
  */
-class AnalyticsReporter
+class BuildAnalyticsReport
 {
     private const BREAKDOWN_LIMIT = 12;
+
+    public function __construct(
+        private readonly WorkspaceAccess $access,
+        private readonly WorkspacePayloads $workspacePayloads,
+    ) {}
 
     /**
      * @param  list<int>|null  $accessibleLinkIds  Restricts the report to these
@@ -230,8 +241,60 @@ class AnalyticsReporter
         })->all();
     }
 
-    /** Filtered event query for exports, ordered chronologically. */
-    public function eventsQuery(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Builder
+    /**
+     * Short link ids a member may see analytics for, or null when the member
+     * manages the workspace and sees everything.
+     *
+     * @return list<int>|null
+     */
+    public function accessibleLinkIds(Workspace $workspace, User $user): ?array
+    {
+        if ($this->access->canManageWorkspace($user, $workspace)) {
+            return null;
+        }
+
+        $accessibleFolderIds = $this->workspacePayloads->folders($workspace, $user)->pluck('id');
+
+        return $workspace->shortLinks()
+            ->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds))
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * @return Generator<int, list<string|null>, void, void>
+     */
+    public function exportRows(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Generator
+    {
+        $query = $this->eventsQuery($workspace, $filters, $accessibleLinkIds)
+            ->with(['shortLink:id,slug', 'qrCode:id,name', 'domain:id,hostname']);
+
+        foreach ($query->lazy(1000) as $event) {
+            yield [
+                $event->occurred_at->toIso8601String(),
+                $event->metric,
+                $event->outcome,
+                $event->shortLink?->slug,
+                $event->qrCode?->name,
+                $event->domain?->hostname,
+                $event->referrer_host,
+                $event->referrer_channel,
+                $event->country,
+                $event->language,
+                $event->device_type,
+                $event->browser,
+                $event->os,
+                $event->is_bot ? '1' : '0',
+                $event->utm_source,
+                $event->utm_medium,
+                $event->utm_campaign,
+                $event->utm_term,
+                $event->utm_content,
+            ];
+        }
+    }
+
+    private function eventsQuery(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Builder
     {
         return $this->events($workspace, $filters, $accessibleLinkIds)->orderBy('occurred_at');
     }

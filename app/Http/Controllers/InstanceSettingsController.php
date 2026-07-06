@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\InstanceSettingsUpdater;
+use App\Actions\Settings\UpdateInstanceSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class InstanceSettingsController extends Controller
 {
-    public function update(Request $request, InstanceSettingsUpdater $updater): RedirectResponse
+    public function update(Request $request, UpdateInstanceSettings $updater): RedirectResponse
     {
-        abort_unless($request->user()?->is_instance_admin, 403);
-
         $data = $request->validate([
             'registration_mode' => ['required', 'in:closed,invite_only,open'],
             'default_domain' => ['required', 'string', 'max:255'],
@@ -23,7 +21,7 @@ class InstanceSettingsController extends Controller
             'public_unavailable_message' => ['required', 'string', 'max:500'],
         ]);
 
-        $updater->update($data);
+        $updater->handle($request, $data);
 
         return back();
     }

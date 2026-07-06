@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Settings\UpdateInstanceSettings;
 use App\Http\Controllers\Controller;
 use App\Services\InstanceSettings;
-use App\Services\InstanceSettingsUpdater;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,10 +17,8 @@ class InstanceSettingsController extends Controller
         return response()->json(['data' => $settings->all()]);
     }
 
-    public function update(Request $request, InstanceSettings $settings, InstanceSettingsUpdater $updater): JsonResponse
+    public function update(Request $request, InstanceSettings $settings, UpdateInstanceSettings $updater): JsonResponse
     {
-        abort_unless($request->user()?->is_instance_admin, 403);
-
         $data = $request->validate([
             'registration_mode' => ['required', 'in:closed,invite_only,open'],
             'default_domain' => ['required', 'string', 'max:255'],
@@ -32,7 +30,7 @@ class InstanceSettingsController extends Controller
             'public_unavailable_message' => ['required', 'string', 'max:500'],
         ]);
 
-        $updater->update($data);
+        $updater->handle($request, $data);
 
         return response()->json(['data' => $settings->all()]);
     }

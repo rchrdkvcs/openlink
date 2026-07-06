@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Folder;
+use App\Actions\ShortLinks\ArchiveShortLink;
+use App\Actions\ShortLinks\CreateShortLink;
+use App\Actions\ShortLinks\DeleteShortLink;
+use App\Actions\ShortLinks\MoveShortLink;
+use App\Actions\ShortLinks\UpdateShortLink;
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\ShortLink;
-use App\Services\ShortLinkManager;
-use App\Services\WorkspaceContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ShortLinkController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context, ShortLinkManager $shortLinks): RedirectResponse
+    public function store(Request $request, WorkspaceAccess $access, CreateShortLink $shortLinks): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canEditWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireEditableWorkspace($request);
 
         $data = $request->validate([
             'domain_id' => ['required', 'integer'],
@@ -31,22 +33,14 @@ class ShortLinkController extends Controller
             'tags' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $domain = $shortLinks->domainForWorkspace($data['domain_id'], $workspace->id);
-        abort_unless($domain, 422);
-        abort_unless($domain->isUsable(), 422);
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLinks->create($workspace, $domain, $folder, $data);
+        $shortLinks->handle($workspace, $request->user(), $data);
 
         return back();
     }
 
-    public function update(Request $request, ShortLink $shortLink, WorkspaceContext $context, ShortLinkManager $shortLinks): RedirectResponse
+    public function update(Request $request, ShortLink $shortLink, WorkspaceAccess $access, UpdateShortLink $shortLinks): RedirectResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+        $workspace = $access->requireEditableShortLink($request, $shortLink);
 
         $data = $request->validate([
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
@@ -59,49 +53,34 @@ class ShortLinkController extends Controller
             'password' => ['sometimes', 'nullable', 'string', 'min:4', 'max:255'],
         ]);
 
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLinks->update($shortLink, $folder, $data, $request->has('password'));
+        $shortLinks->handle($request, $shortLink, $data);
 
         return back();
     }
 
-    public function archive(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
+    public function archive(Request $request, ShortLink $shortLink, ArchiveShortLink $archive): RedirectResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
-
-        $shortLink->update(['archived_at' => now()]);
+        $archive->handle($request, $shortLink);
 
         return back();
     }
 
-    public function move(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
+    public function move(Request $request, ShortLink $shortLink, WorkspaceAccess $access, MoveShortLink $move): RedirectResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+        $workspace = $access->requireEditableShortLink($request, $shortLink);
 
         $data = $request->validate([
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
         ]);
 
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLink->update(['folder_id' => $folder?->id]);
+        $move->handle($request, $shortLink, $data['folder_id'] ?? null);
 
         return back();
     }
 
-    public function destroy(Request $request, ShortLink $shortLink, WorkspaceContext $context): RedirectResponse
+    public function destroy(Request $request, ShortLink $shortLink, DeleteShortLink $delete): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-
-        $shortLink->delete();
+        $delete->handle($request, $shortLink);
 
         return back();
     }

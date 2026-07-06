@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\Workspaces;
 
+use App\Actions\Domains\VerifyDomain;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
@@ -9,21 +10,17 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Collection;
 
-/**
- * Builds the workspace-scoped payloads shared by the Inertia dashboard
- * pages and the JSON API, so both surfaces expose the same data.
- */
-class WorkspaceData
+class WorkspacePayloads
 {
     public function __construct(
-        private readonly WorkspaceContext $context,
-        private readonly DomainVerificationService $domainVerifier,
+        private readonly WorkspaceAccess $access,
+        private readonly VerifyDomain $domainVerifier,
     ) {}
 
     /** @return Collection<int, array<string, mixed>> */
     public function links(Workspace $workspace, User $user): Collection
     {
-        $isManager = $this->context->canManageWorkspace($user, $workspace);
+        $isManager = $this->access->canManageWorkspace($user, $workspace);
         $accessibleFolderIds = $isManager ? collect() : $this->folders($workspace, $user)->pluck('id');
 
         return $workspace->shortLinks()
@@ -35,27 +32,7 @@ class WorkspaceData
             ->map(fn (ShortLink $link) => $this->linkPayload($link));
     }
 
-    /**
-     * Short link ids a member may see analytics for, or null when the member
-     * manages the workspace and sees everything.
-     *
-     * @return list<int>|null
-     */
-    public function accessibleLinkIds(Workspace $workspace, User $user): ?array
-    {
-        if ($this->context->canManageWorkspace($user, $workspace)) {
-            return null;
-        }
-
-        $accessibleFolderIds = $this->folders($workspace, $user)->pluck('id');
-
-        return $workspace->shortLinks()
-            ->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds))
-            ->pluck('id')
-            ->all();
-    }
-
-    /** @return array<string, \Closure> withCount definitions for successful visit/scan totals. */
+    /** @return array<string, \Closure> */
     private function analyticsCounts(): array
     {
         return [
@@ -120,7 +97,7 @@ class WorkspaceData
     /** @return Collection<int, Folder> */
     public function folders(Workspace $workspace, User $user): Collection
     {
-        $isManager = $this->context->canManageWorkspace($user, $workspace);
+        $isManager = $this->access->canManageWorkspace($user, $workspace);
 
         return $workspace->folders()
             ->when(! $isManager, fn ($query) => $query->whereHas('permissions', fn ($query) => $query->where('user_id', $user->id)))

@@ -28,112 +28,43 @@ import {
     Settings2,
     Trash2,
 } from '@lucide/vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { nextTick, ref } from 'vue';
+import type { Folder, LinksPageProps, ShortLink } from './types';
+import { useLinkForms } from './useLinkForms';
+import { useLinkGroups } from './useLinkGroups';
 
-type Workspace = { id: number; name: string; slug: string; preferred_domain_id?: number | null };
-type Domain = { id: number; hostname: string; status: string; is_default: boolean };
-type Folder = { id: number; name: string };
-type Qr = { id: number; name: string; token: string };
-type ShortLink = {
-    id: number;
-    slug: string;
-    short_url: string;
-    destination_url: string;
-    fallback_url?: string | null;
-    status: string;
-    domain: Domain;
-    folder?: Folder | null;
-    tags: { id: number; name: string }[];
-    qr_codes: Qr[];
-    visits: number;
-    scans: number;
-    is_enabled: boolean;
-    activates_at?: string | null;
-    expires_at?: string | null;
-    visit_limit?: number | null;
-    successful_visits: number;
-    has_password: boolean;
-};
-
-const props = defineProps<{
-    currentWorkspace: Workspace;
-    canManageWorkspace: boolean;
-    canEditWorkspace: boolean;
-    domains: Domain[];
-    folders: Folder[];
-    tags: { id: number; name: string }[];
-    links: ShortLink[];
-}>();
+const props = defineProps<LinksPageProps>();
 
 const filters = ref({ search: '', status: '', tag: '' });
 const createOpen = ref(false);
 const selectedLink = ref<ShortLink | null>(null);
-const selectedSettingsTab = ref<'link' | 'qr'>('link');
-const copiedLinkId = ref<number | null>(null);
-const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'verified'));
-const PASSWORD_MASK = '********';
+const {
+    groups,
+    totalMatching,
+    hasActiveFilters,
+    dragLinkId,
+    dropGroupKey,
+    toggleCollapse,
+    isCollapsed,
+    onDrop,
+} = useLinkGroups(props, filters);
 
-// ── Folder groups ────────────────────────────────────────────────────────────
-
-type Group = { key: string; folder: Folder | null; links: ShortLink[] };
-
-const hasActiveFilters = computed(() => Boolean(filters.value.search || filters.value.status || filters.value.tag));
-
-function matchesFilters(link: ShortLink) {
-    if (!filters.value.status && link.status === 'archived') {
-        return false;
-    }
-
-    const haystack = `${link.short_url} ${link.destination_url} ${link.slug}`.toLowerCase();
-    const matchesSearch = !filters.value.search || haystack.includes(filters.value.search.toLowerCase());
-    const matchesStatus = !filters.value.status || link.status === filters.value.status;
-    const matchesTag = !filters.value.tag || link.tags.some((tag) => tag.name === filters.value.tag);
-    return matchesSearch && matchesStatus && matchesTag;
-}
-
-const groups = computed<Group[]>(() => {
-    const result: Group[] = props.folders.map((folder) => ({
-        key: String(folder.id),
-        folder,
-        links: props.links.filter((link) => link.folder?.id === folder.id && matchesFilters(link)),
-    }));
-
-    const unfiled = props.links.filter((link) => !link.folder && matchesFilters(link));
-    if (unfiled.length > 0 || props.folders.length === 0) {
-        result.push({ key: 'unfiled', folder: null, links: unfiled });
-    }
-
-    // While filtering, empty groups are noise; without filters they are managed objects.
-    return hasActiveFilters.value ? result.filter((group) => group.links.length > 0) : result;
-});
-
-const totalMatching = computed(() => groups.value.reduce((sum, group) => sum + group.links.length, 0));
-
-// ── Collapse state (persisted per workspace) ─────────────────────────────────
-
-const collapseStorageKey = `links.collapsed.${props.currentWorkspace.id}`;
-
-function readCollapsed(): Set<string> {
-    try {
-        return new Set(JSON.parse(localStorage.getItem(collapseStorageKey) ?? '[]'));
-    } catch {
-        return new Set();
-    }
-}
-
-const collapsed = ref<Set<string>>(readCollapsed());
-
-function toggleCollapse(key: string) {
-    const next = new Set(collapsed.value);
-    next.has(key) ? next.delete(key) : next.add(key);
-    collapsed.value = next;
-    localStorage.setItem(collapseStorageKey, JSON.stringify([...next]));
-}
-
-// Active filters override collapse: search results must never be hidden.
-function isCollapsed(key: string) {
-    return collapsed.value.has(key) && !hasActiveFilters.value;
-}
+const {
+    selectedSettingsTab,
+    copiedLinkId,
+    usableDomains,
+    linkForm,
+    editForm,
+    qrForm,
+    submitLink,
+    updateLink,
+    submitQr,
+    archiveLink,
+    deleteLink,
+    copyShortUrl,
+    statusVariant,
+    qrPreviewUrl,
+} = useLinkForms(props, selectedLink, createOpen);
 
 // ── Folder CRUD ──────────────────────────────────────────────────────────────
 
@@ -195,166 +126,6 @@ function deleteFolder(folder: Folder, linkCount: number) {
     }
 }
 
-// ── Moving links (menu + drag & drop) ────────────────────────────────────────
-
-const dragLinkId = ref<number | null>(null);
-const dropGroupKey = ref<string | null>(null);
-
-function moveLink(link: ShortLink, folderId: number | null) {
-    if ((link.folder?.id ?? null) === folderId) {
-        return;
-    }
-
-    router.post(route('short-links.move', link.id), { folder_id: folderId }, { preserveScroll: true });
-}
-
-function onDrop(group: Group) {
-    const link = props.links.find((candidate) => candidate.id === dragLinkId.value);
-    dragLinkId.value = null;
-    dropGroupKey.value = null;
-
-    if (link) {
-        moveLink(link, group.folder?.id ?? null);
-    }
-}
-
-// ── Link forms & actions ─────────────────────────────────────────────────────
-
-const linkForm = useForm({
-    domain_id: props.currentWorkspace.preferred_domain_id ?? usableDomains.value[0]?.id ?? '',
-    folder_id: '',
-    slug: '',
-    destination_url: '',
-    fallback_url: '',
-    is_enabled: true,
-    activates_at: '',
-    expires_at: '',
-    visit_limit: '',
-    password: '',
-    tags: '',
-});
-
-const editForm = useForm({
-    folder_id: '',
-    destination_url: '',
-    fallback_url: '',
-    is_enabled: true,
-    activates_at: '',
-    expires_at: '',
-    visit_limit: '',
-    password: '',
-});
-
-const qrForm = useForm({
-    name: '',
-    size: 1024,
-    foreground_color: '#171717',
-    background_color: '#fafafa',
-    margin: 2,
-    error_correction: 'medium',
-});
-
-watch(selectedLink, (link) => {
-    if (!link) {
-        return;
-    }
-
-    editForm.defaults({
-        folder_id: link.folder?.id ? String(link.folder.id) : '',
-        destination_url: link.destination_url,
-        fallback_url: link.fallback_url ?? '',
-        is_enabled: link.is_enabled,
-        activates_at: link.activates_at ? String(link.activates_at).slice(0, 16) : '',
-        expires_at: link.expires_at ? String(link.expires_at).slice(0, 16) : '',
-        visit_limit: link.visit_limit ? String(link.visit_limit) : '',
-        password: link.has_password ? PASSWORD_MASK : '',
-    });
-    editForm.reset();
-    qrForm.reset();
-    selectedSettingsTab.value = 'link';
-});
-
-watch(() => props.links, (links) => {
-    if (!selectedLink.value) {
-        return;
-    }
-
-    selectedLink.value = links.find((link) => link.id === selectedLink.value?.id) ?? null;
-});
-
-function submitLink() {
-    linkForm.post(route('short-links.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            linkForm.reset('slug', 'destination_url', 'fallback_url', 'password', 'tags');
-            createOpen.value = false;
-        },
-    });
-}
-
-function updateLink() {
-    if (!selectedLink.value) {
-        return;
-    }
-
-    editForm
-        .transform((data) => {
-            if (selectedLink.value?.has_password && data.password === PASSWORD_MASK) {
-                const { password, ...payload } = data;
-                return payload;
-            }
-
-            return data;
-        })
-        .patch(route('short-links.update', selectedLink.value.id), { preserveScroll: true });
-}
-
-function submitQr() {
-    if (!selectedLink.value) {
-        return;
-    }
-
-    qrForm.post(route('qr-codes.store', selectedLink.value.id), {
-        preserveScroll: true,
-        onSuccess: () => qrForm.reset('name'),
-    });
-}
-
-function archiveLink(link: ShortLink) {
-    useForm({}).post(route('short-links.archive', link.id), { preserveScroll: true });
-}
-
-function deleteLink(link: ShortLink) {
-    if (confirm(`Permanently delete ${link.short_url}? This frees its slug.`)) {
-        useForm({}).delete(route('short-links.destroy', link.id), { preserveScroll: true });
-    }
-}
-
-async function copyShortUrl(link: ShortLink) {
-    try {
-        await navigator.clipboard.writeText(link.short_url);
-        copiedLinkId.value = link.id;
-        setTimeout(() => {
-            if (copiedLinkId.value === link.id) {
-                copiedLinkId.value = null;
-            }
-        }, 1500);
-    } catch {
-        // Clipboard unavailable (insecure context) — ignore silently.
-    }
-}
-
-function statusVariant(status: string) {
-    if (status === 'active') return 'success';
-    if (status === 'scheduled') return 'accent';
-    if (status === 'expired') return 'warning';
-    if (status === 'archived') return 'default';
-    return 'danger';
-}
-
-function qrPreviewUrl(qr: Qr) {
-    return route('qr-codes.preview', qr.token);
-}
 </script>
 
 <template>

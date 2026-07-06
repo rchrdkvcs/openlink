@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\Domains;
 
 use App\Models\Domain;
 
-class DomainVerificationService
+class VerifyDomain
 {
     public function expectedTxtValue(Domain $domain): string
     {
         return 'openlink-verification='.$domain->verification_token;
     }
 
-    public function verify(Domain $domain): Domain
+    public function handle(Domain $domain): Domain
     {
         $expected = $this->expectedTxtValue($domain);
         $records = @dns_get_record($domain->hostname, DNS_TXT) ?: [];

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Analytics\RecordAnalytics;
+use App\Actions\Resolution\ResolvePublicLink;
 use App\Models\QrCode;
 use App\Models\ShortLink;
-use App\Services\Analytics\AnalyticsRecorder;
 use App\Services\Analytics\Outcome;
 use App\Services\InstanceSettings;
-use App\Services\PublicResolutionService;
 use App\Services\ResolutionResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -21,19 +21,19 @@ class PublicLinkController extends Controller
         return $this->toResponse($request, new ResolutionResult(Outcome::NOT_FOUND), $settings);
     }
 
-    public function show(Request $request, string $slug, PublicResolutionService $resolver, InstanceSettings $settings): Response
+    public function show(Request $request, string $slug, ResolvePublicLink $resolver, InstanceSettings $settings): Response
     {
         return $this->toResponse($request, $resolver->resolve($request, $slug), $settings);
     }
 
-    public function qr(Request $request, QrCode $qrCode, PublicResolutionService $resolver, InstanceSettings $settings): Response
+    public function qr(Request $request, QrCode $qrCode, ResolvePublicLink $resolver, InstanceSettings $settings): Response
     {
         $qrCode->load('shortLink.domain');
 
         return $this->toResponse($request, $resolver->resolve($request, $qrCode->shortLink->slug, $qrCode), $settings);
     }
 
-    public function password(Request $request, ShortLink $shortLink, PublicResolutionService $resolver, AnalyticsRecorder $analytics, InstanceSettings $settings): Response
+    public function password(Request $request, ShortLink $shortLink, ResolvePublicLink $resolver, RecordAnalytics $analytics, InstanceSettings $settings): Response
     {
         $data = $request->validate([
             'password' => ['required', 'string'],
@@ -43,7 +43,7 @@ class PublicLinkController extends Controller
         $qrCode = filled($data['qr_code_id'] ?? null) ? QrCode::query()->find($data['qr_code_id']) : null;
 
         if (! $shortLink->password_hash || ! Hash::check($data['password'], $shortLink->password_hash)) {
-            $analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, Outcome::PASSWORD_FAILED);
+            $analytics->record($request, $shortLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, Outcome::PASSWORD_FAILED);
 
             return Inertia::render('Public/Password', [
                 'shortLinkId' => $shortLink->id,

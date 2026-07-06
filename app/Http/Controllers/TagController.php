@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Tag;
-use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canEditWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireEditableWorkspace($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:80'],

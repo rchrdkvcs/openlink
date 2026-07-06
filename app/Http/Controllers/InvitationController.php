@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Invitations\AcceptWorkspaceInvitation;
+use App\Actions\Invitations\InviteWorkspaceMember;
 use App\Models\Invitation;
 use App\Models\WorkspaceMember;
 use App\Services\InstanceSettings;
-use App\Services\InvitationManager;
-use App\Services\WorkspaceContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,11 +15,8 @@ use Inertia\Response;
 
 class InvitationController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context, InvitationManager $invitations): RedirectResponse
+    public function store(Request $request, InviteWorkspaceMember $invitations): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
-
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'role' => ['required', Rule::in([
@@ -29,7 +26,7 @@ class InvitationController extends Controller
             ])],
         ]);
 
-        $invitations->invite($workspace, $request->user(), $data['email'], $data['role']);
+        $invitations->handle($request, $data['email'], $data['role']);
 
         return back();
     }
@@ -49,9 +46,9 @@ class InvitationController extends Controller
         ]);
     }
 
-    public function accept(Request $request, Invitation $invitation, InvitationManager $invitations): RedirectResponse
+    public function accept(Request $request, Invitation $invitation, AcceptWorkspaceInvitation $invitations): RedirectResponse
     {
-        $invitations->accept($request->user(), $invitation);
+        $invitations->handle($request->user(), $invitation);
 
         $request->session()->put('workspace_id', $invitation->workspace_id);
 

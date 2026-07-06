@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\QrCodeRenderer;
-use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
-    public function store(Request $request, ShortLink $shortLink, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, ShortLink $shortLink, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+        $access->requireEditableShortLink($request, $shortLink);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -39,9 +39,9 @@ class QrCodeController extends Controller
         return back();
     }
 
-    public function export(Request $request, QrCode $qrCode, string $format, WorkspaceContext $context, QrCodeRenderer $renderer): \Symfony\Component\HttpFoundation\Response
+    public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
     {
-        $this->authorizeQrCode($request, $qrCode, $context);
+        $access->requireEditableQrCode($request, $qrCode);
         abort_unless(in_array($format, ['png', 'svg'], true), 404);
 
         $url = route('public.qr', ['qrCode' => $qrCode->token], true);
@@ -53,9 +53,9 @@ class QrCodeController extends Controller
         ]);
     }
 
-    public function preview(Request $request, QrCode $qrCode, WorkspaceContext $context, QrCodeRenderer $renderer): \Symfony\Component\HttpFoundation\Response
+    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
     {
-        $this->authorizeQrCode($request, $qrCode, $context);
+        $access->requireEditableQrCode($request, $qrCode);
 
         $url = route('public.qr', ['qrCode' => $qrCode->token], true);
 
@@ -63,14 +63,5 @@ class QrCodeController extends Controller
             'Content-Type' => 'image/svg+xml',
             'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
         ]);
-    }
-
-    private function authorizeQrCode(Request $request, QrCode $qrCode, WorkspaceContext $context): void
-    {
-        $qrCode->load('shortLink.domain');
-        $workspace = $context->current($request);
-        $qrCode->shortLink->loadMissing('workspace', 'folder.workspace');
-
-        abort_unless($workspace && $qrCode->shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $qrCode->shortLink), 403);
     }
 }

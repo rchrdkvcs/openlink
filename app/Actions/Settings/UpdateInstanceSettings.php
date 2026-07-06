@@ -1,21 +1,23 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\Settings;
 
 use App\Models\Domain;
+use App\Services\InstanceSettings;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class InstanceSettingsUpdater
+class UpdateInstanceSettings
 {
-    public function __construct(
-        private readonly InstanceSettings $settings,
-    ) {}
+    public function __construct(private readonly InstanceSettings $settings) {}
 
     /**
-     * @param  array<string, mixed>  $data  Validated instance settings.
+     * @param  array<string, mixed>  $data
      */
-    public function update(array $data): void
+    public function handle(Request $request, array $data): void
     {
+        abort_unless($request->user()?->is_instance_admin, 403);
+
         foreach (['registration_mode', 'default_domain', 'slug_length', 'analytics_retention_days', 'public_unavailable_title', 'public_unavailable_message'] as $key) {
             $this->settings->set($key, $data[$key]);
         }

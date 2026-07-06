@@ -2,6 +2,7 @@
 
 namespace App\Services\Analytics;
 
+use App\Actions\Analytics\RecordAnalytics;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
@@ -52,7 +53,7 @@ class AnalyticsFilters
             domainId: self::id($request, 'domain'),
             folderId: self::id($request, 'folder'),
             tagId: self::id($request, 'tag'),
-            metric: in_array($metric, [AnalyticsRecorder::METRIC_VISIT, AnalyticsRecorder::METRIC_SCAN], true) ? $metric : null,
+            metric: in_array($metric, [RecordAnalytics::METRIC_VISIT, RecordAnalytics::METRIC_SCAN], true) ? $metric : null,
         );
     }
 

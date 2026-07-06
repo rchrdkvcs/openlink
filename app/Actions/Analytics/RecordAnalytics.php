@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Services\Analytics;
+namespace App\Actions\Analytics;
 
 use App\Jobs\RecordAnalyticsEvent;
 use App\Models\AnalyticsEvent;
 use App\Models\QrCode;
 use App\Models\ShortLink;
+use App\Services\Analytics\ReferrerClassifier;
+use App\Services\Analytics\UserAgentParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -15,7 +17,7 @@ use Illuminate\Support\Str;
  * recording works without a queue worker. Set OPENLINK_ANALYTICS_VIA_QUEUE=true
  * to move the write onto the queue on instances that run one.
  */
-class AnalyticsRecorder
+class RecordAnalytics
 {
     public const METRIC_VISIT = 'visit';
 

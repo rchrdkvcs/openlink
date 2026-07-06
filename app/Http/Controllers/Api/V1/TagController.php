@@ -2,26 +2,24 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
-use App\Services\WorkspaceContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
-    public function index(Request $request, WorkspaceContext $context): JsonResponse
+    public function index(Request $request, WorkspaceAccess $access): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         return response()->json(['data' => $workspace->tags()->orderBy('name')->get()]);
     }
 
-    public function store(Request $request, WorkspaceContext $context): JsonResponse
+    public function store(Request $request, WorkspaceAccess $access): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canEditWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireEditableWorkspace($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:80'],

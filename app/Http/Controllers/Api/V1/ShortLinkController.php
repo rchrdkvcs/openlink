@@ -2,39 +2,38 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\ShortLinks\ArchiveShortLink;
+use App\Actions\ShortLinks\CreateShortLink;
+use App\Actions\ShortLinks\DeleteShortLink;
+use App\Actions\ShortLinks\MoveShortLink;
+use App\Actions\ShortLinks\UpdateShortLink;
+use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Http\Controllers\Controller;
-use App\Models\Folder;
 use App\Models\ShortLink;
-use App\Services\ShortLinkManager;
-use App\Services\WorkspaceContext;
-use App\Services\WorkspaceData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ShortLinkController extends Controller
 {
-    public function index(Request $request, WorkspaceContext $context, WorkspaceData $data): JsonResponse
+    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         return response()->json(['data' => $data->links($workspace, $request->user())]);
     }
 
-    public function show(Request $request, ShortLink $shortLink, WorkspaceContext $context, WorkspaceData $data): JsonResponse
+    public function show(Request $request, ShortLink $shortLink, WorkspaceAccess $access, WorkspacePayloads $data): JsonResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canViewShortLink($request->user(), $shortLink), 403);
+        $access->requireViewableShortLink($request, $shortLink);
 
         return response()->json(['data' => $data->linkPayload($shortLink)]);
     }
 
-    public function store(Request $request, WorkspaceContext $context, ShortLinkManager $shortLinks, WorkspaceData $workspaceData): JsonResponse
+    public function store(Request $request, WorkspaceAccess $access, CreateShortLink $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canEditWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireEditableWorkspace($request);
 
         $data = $request->validate([
             'domain_id' => ['nullable', 'integer'],
@@ -52,29 +51,17 @@ class ShortLinkController extends Controller
 
         // API convenience: fall back to the workspace's preferred domain,
         // then the instance default domain, when no domain_id is given.
-        $domainId = $data['domain_id']
-            ?? $workspace->preferred_domain_id
-            ?? $workspaceData->defaultDomain()?->id;
+        $fallbackDomain = $workspace->preferredDomain ?? $workspaceData->defaultDomain();
+        abort_unless(($data['domain_id'] ?? null) || $fallbackDomain, 422, 'No domain available for this workspace.');
 
-        abort_unless($domainId, 422, 'No domain available for this workspace.');
-
-        $domain = $shortLinks->domainForWorkspace((int) $domainId, $workspace->id);
-        abort_unless($domain, 422, 'Domain does not belong to this workspace.');
-        abort_unless($domain->isUsable(), 422, 'Domain is not verified or is disabled.');
-
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLink = $shortLinks->create($workspace, $domain, $folder, $data);
+        $shortLink = $shortLinks->handle($workspace, $request->user(), $data, $fallbackDomain);
 
         return response()->json(['data' => $workspaceData->linkPayload($shortLink)], 201);
     }
 
-    public function update(Request $request, ShortLink $shortLink, WorkspaceContext $context, ShortLinkManager $shortLinks, WorkspaceData $workspaceData): JsonResponse
+    public function update(Request $request, ShortLink $shortLink, WorkspaceAccess $access, UpdateShortLink $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+        $workspace = $access->requireEditableShortLink($request, $shortLink);
 
         $data = $request->validate([
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
@@ -87,49 +74,34 @@ class ShortLinkController extends Controller
             'password' => ['sometimes', 'nullable', 'string', 'min:4', 'max:255'],
         ]);
 
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLink = $shortLinks->update($shortLink, $folder, $data, $request->has('password'));
+        $shortLink = $shortLinks->handle($request, $shortLink, $data);
 
         return response()->json(['data' => $workspaceData->linkPayload($shortLink)]);
     }
 
-    public function move(Request $request, ShortLink $shortLink, WorkspaceContext $context, WorkspaceData $workspaceData): JsonResponse
+    public function move(Request $request, ShortLink $shortLink, WorkspaceAccess $access, MoveShortLink $move, WorkspacePayloads $workspaceData): JsonResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
+        $workspace = $access->requireEditableShortLink($request, $shortLink);
 
         $data = $request->validate([
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
         ]);
 
-        $folder = filled($data['folder_id'] ?? null) ? Folder::query()->find($data['folder_id']) : null;
-        abort_if($folder && ! $context->canEditFolder($request->user(), $folder), 403);
-
-        $shortLink->update(['folder_id' => $folder?->id]);
+        $shortLink = $move->handle($request, $shortLink, $data['folder_id'] ?? null);
 
         return response()->json(['data' => $workspaceData->linkPayload($shortLink->fresh(['domain', 'folder', 'tags', 'qrCodes']))]);
     }
 
-    public function archive(Request $request, ShortLink $shortLink, WorkspaceContext $context, WorkspaceData $workspaceData): JsonResponse
+    public function archive(Request $request, ShortLink $shortLink, ArchiveShortLink $archive, WorkspacePayloads $workspaceData): JsonResponse
     {
-        $workspace = $context->current($request);
-        $shortLink->loadMissing('workspace', 'folder.workspace');
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canEditShortLink($request->user(), $shortLink), 403);
-
-        $shortLink->update(['archived_at' => now()]);
+        $shortLink = $archive->handle($request, $shortLink);
 
         return response()->json(['data' => $workspaceData->linkPayload($shortLink)]);
     }
 
-    public function destroy(Request $request, ShortLink $shortLink, WorkspaceContext $context): JsonResponse
+    public function destroy(Request $request, ShortLink $shortLink, DeleteShortLink $delete): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $shortLink->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-
-        $shortLink->delete();
+        $delete->handle($request, $shortLink);
 
         return response()->json(['message' => 'Short link deleted.']);
     }

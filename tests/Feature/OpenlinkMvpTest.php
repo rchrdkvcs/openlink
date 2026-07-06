@@ -174,6 +174,24 @@ class OpenlinkMvpTest extends TestCase
             ->assertRedirect('https://example.com/secret');
     }
 
+    public function test_protected_link_password_form_posts_to_current_host(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain('go.example.test');
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'host-bound-secret',
+            'destination_url' => 'https://example.com/host-bound-secret',
+            'password_hash' => Hash::make('opensesame'),
+        ]);
+
+        $this->withHeader('X-Inertia', 'true')
+            ->get('http://'.$domain->hostname.'/host-bound-secret')
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Password')
+            ->assertJsonPath('props.passwordUrl', '/password/'.$link->id);
+    }
+
     public function test_visit_limit_only_counts_successful_destination_redirects(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();

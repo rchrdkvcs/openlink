@@ -3,6 +3,7 @@
 namespace App\Actions\Workspaces;
 
 use App\Actions\Domains\VerifyDomain;
+use App\Actions\QrCodes\QrCodePayload;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
@@ -24,7 +25,9 @@ class WorkspacePayloads
         $accessibleFolderIds = $isManager ? collect() : $this->folders($workspace, $user)->pluck('id');
 
         return $workspace->shortLinks()
-            ->with(['domain', 'folder', 'tags', 'qrCodes'])
+            ->with(['domain', 'folder', 'tags', 'qrCodes' => fn ($query) => $query->withCount([
+                'analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan'),
+            ])])
             ->withCount($this->analyticsCounts())
             ->when(! $isManager, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds)))
             ->latest()
@@ -60,7 +63,7 @@ class WorkspacePayloads
             'domain' => $link->domain?->only(['id', 'hostname', 'status', 'is_default']),
             'folder' => $link->folder?->only(['id', 'name']),
             'tags' => $link->tags->map->only(['id', 'name'])->values(),
-            'qr_codes' => $link->qrCodes->map->only(['id', 'name', 'token'])->values(),
+            'qr_codes' => $link->qrCodes->map(fn ($qrCode) => QrCodePayload::make($qrCode->setRelation('shortLink', $link)))->values(),
             'visits' => (int) $link->visits_count,
             'scans' => (int) $link->scans_count,
             'is_enabled' => $link->is_enabled,

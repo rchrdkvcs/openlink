@@ -105,17 +105,23 @@ When the visit limit is reached, the link becomes expired.
 
 A QR code is a named scannable entry point attached to a short link. Multiple QR codes can point to the same short link, and each QR code has its own scan analytics.
 
-MVP QR code features:
+Each QR code encodes a trackable entry URL on the short link's domain (`https://{domain}/qr/{token}`), never on the application host.
+
+QR code features:
 
 - PNG export
 - SVG export
 - Configurable export size
 - Configurable foreground color
 - Configurable background color
-- Configurable margin
+- Configurable margin (quiet zone, in modules)
 - Configurable error correction level
+- Module style: squares, rounded, or dots
+- Eye style: square, rounded, or circle
+- Transparent background
+- Optional centered logo (error correction is raised to at least quartile when a logo is set)
 
-QR code logos and advanced design templates are later features.
+Each QR code has a dedicated studio page with a live preview of unsaved settings, copyable entry URL, and PNG/SVG downloads at a chosen size.
 
 ## Analytics
 

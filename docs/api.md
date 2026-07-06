@@ -144,9 +144,13 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/api/v1/links/{id}/qr-codes` | Create a QR code for a link (`name`, optional size/colors/margin/error_correction) |
-| `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview |
-| `GET` | `/api/v1/qr-codes/{token}/export/{png\|svg}` | Download the QR code |
+| `POST` | `/api/v1/links/{id}/qr-codes` | Create a QR code for a link (`name`, optional `size`, `foreground_color`, `background_color`, `margin`, `error_correction`, `style` (`square`/`rounded`/`dot`), `eye_style` (`square`/`rounded`/`circle`), `background_transparent`, `logo` file upload) |
+| `PATCH` | `/api/v1/qr-codes/{token}` | Update a QR code (same fields as create, plus `remove_logo`) |
+| `DELETE` | `/api/v1/qr-codes/{token}` | Delete a QR code and its logo |
+| `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview; accepts the customization fields as query overrides for live previews |
+| `GET` | `/api/v1/qr-codes/{token}/export/{png\|svg}` | Download the QR code; accepts a `size` query override |
+
+The QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the domain selected for the link. When a logo is set, the effective error correction level is raised to at least quartile.
 
 ### Members and invitations
 

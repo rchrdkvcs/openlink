@@ -7,13 +7,17 @@ use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\FolderPermissionController;
 use App\Http\Controllers\InstanceSettingsController;
-use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\InviteLinkController;
+use App\Http\Controllers\JoinController;
+use App\Http\Controllers\MemberController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLinkController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\EnsureHasWorkspace;
 use App\Models\User;
 use App\Services\ApplicationHost;
 use Illuminate\Support\Facades\Route;
@@ -29,15 +33,23 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
             : redirect()->route('register');
     })->name('home');
 
-    Route::get('/dashboard', [DashboardController::class, 'overview'])->middleware(['auth', 'verified'])->name('dashboard');
-    Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware(['auth', 'verified'])->name('analytics.index');
-    Route::get('/analytics/export', [AnalyticsController::class, 'export'])->middleware(['auth', 'verified'])->name('analytics.export');
-    Route::get('/links', [DashboardController::class, 'links'])->middleware(['auth', 'verified'])->name('links.index');
-    Route::get('/favicons', [FaviconController::class, 'show'])->middleware(['auth', 'verified'])->name('favicons.show');
-    Route::get('/domains', [DashboardController::class, 'domains'])->middleware(['auth', 'verified'])->name('domains.index');
-    Route::get('/members', [DashboardController::class, 'members'])->middleware(['auth', 'verified'])->name('members.index');
-    Route::get('/workspaces', [DashboardController::class, 'workspaces'])->middleware(['auth', 'verified'])->name('workspaces.index');
-    Route::get('/settings', [DashboardController::class, 'settings'])->middleware(['auth', 'verified'])->name('settings.index');
+    Route::middleware(['auth', 'verified', EnsureHasWorkspace::class])->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'overview'])->name('dashboard');
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
+        Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
+        Route::get('/domains', [DashboardController::class, 'domains'])->name('domains.index');
+        Route::get('/members', [DashboardController::class, 'members'])->name('members.index');
+        Route::get('/workspaces', [DashboardController::class, 'workspaces'])->name('workspaces.index');
+        Route::get('/settings', [DashboardController::class, 'settings'])->name('settings.index');
+    });
+
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Route::get('/favicons', [FaviconController::class, 'show'])->name('favicons.show');
+        Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
+        Route::post('/onboarding/workspace', [OnboardingController::class, 'storeWorkspace'])->name('onboarding.workspace');
+        Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
+    });
 
     Route::middleware('auth')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -63,8 +75,16 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
         Route::post('/folders/{folder}/permissions', [FolderPermissionController::class, 'store'])->name('folder-permissions.store');
         Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
-        Route::post('/invitations', [InvitationController::class, 'store'])->name('invitations.store');
-        Route::post('/invitations/{invitation}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
+
+        Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
+        Route::delete('/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');
+
+        Route::patch('/members/{member}', [MemberController::class, 'update'])->name('members.update');
+        Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
+        Route::post('/members/leave', [MemberController::class, 'leave'])->name('members.leave');
+        Route::post('/members/{member}/transfer-ownership', [MemberController::class, 'transferOwnership'])->name('members.transfer-ownership');
+
+        Route::post('/join/{inviteLink}', [JoinController::class, 'store'])->name('join.store');
 
         Route::post('/short-links', [ShortLinkController::class, 'store'])->name('short-links.store');
         Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');
@@ -84,7 +104,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
 
     require __DIR__.'/auth.php';
 
-    Route::get('/invitations/{invitation}', [InvitationController::class, 'show'])->name('invitations.show');
+    Route::get('/join/{inviteLink}', [JoinController::class, 'show'])->name('join.show');
 });
 
 Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');

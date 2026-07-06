@@ -28,6 +28,9 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+
+        // New users have no workspace yet; the dashboard hands them to onboarding.
+        $this->get(route('dashboard'))->assertRedirect(route('onboarding.show', absolute: false));
     }
 
     public function test_registration_screen_redirects_to_login_when_invite_only_after_first_user(): void
@@ -36,7 +39,7 @@ class RegistrationTest extends TestCase
 
         $this->get('/register')
             ->assertRedirect(route('login', absolute: false))
-            ->assertSessionHas('status', 'Registration is invite-only. Use an invitation link or sign in.');
+            ->assertSessionHas('status', 'Registration is invite-only. Use an invite link or sign in.');
     }
 
     public function test_home_redirects_guest_to_register_before_setup(): void

@@ -61,6 +61,8 @@ class DashboardController extends Controller
         $workspace = $access->requireCurrent($request);
 
         $user = $request->user();
+        $canManage = $access->canManageWorkspace($user, $workspace);
+        $role = $access->role($user, $workspace);
 
         return [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
@@ -68,13 +70,13 @@ class DashboardController extends Controller
                 ->orderBy('workspaces.created_at')
                 ->orderBy('workspaces.id')
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
-            'role' => $access->role($user, $workspace),
-            'canManageWorkspace' => $access->canManageWorkspace($user, $workspace),
+            'role' => $role,
+            'canManageWorkspace' => $canManage,
             'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),
             'domains' => $data->domains($workspace),
             'folders' => $data->folders($workspace, $user),
             'members' => $workspace->members()->with('user:id,name,email')->orderBy('role')->get(),
-            'invitations' => $workspace->invitations()->latest()->get(),
+            'inviteLinks' => $canManage ? $data->inviteLinks($workspace) : [],
             'tags' => $workspace->tags()->orderBy('name')->get(),
             'links' => $data->links($workspace, $user),
             'settings' => $user->is_instance_admin ? $settings->all() : [],

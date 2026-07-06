@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Invitation extends Model
+class InviteLink extends Model
 {
     protected $guarded = [];
 
@@ -18,7 +18,7 @@ class Invitation extends Model
     {
         return [
             'expires_at' => 'datetime',
-            'accepted_at' => 'datetime',
+            'revoked_at' => 'datetime',
         ];
     }
 
@@ -27,14 +27,20 @@ class Invitation extends Model
         return $this->belongsTo(Workspace::class);
     }
 
-    public function invitedBy(): BelongsTo
+    public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'invited_by_id');
+        return $this->belongsTo(User::class, 'created_by_id');
     }
 
     public function isUsable(): bool
     {
-        return $this->accepted_at === null
-            && ($this->expires_at === null || $this->expires_at->isFuture());
+        return $this->revoked_at === null
+            && ($this->expires_at === null || $this->expires_at->isFuture())
+            && ($this->max_uses === null || $this->uses < $this->max_uses);
+    }
+
+    public function url(): string
+    {
+        return route('join.show', $this);
     }
 }

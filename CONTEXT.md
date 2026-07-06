@@ -144,9 +144,9 @@ _Avoid_: Account settings, organisation settings
 A user who belongs to a workspace.
 _Avoid_: Collaborator, teammate
 
-**Invitation**:
-An invite that lets a person join a workspace.
-_Avoid_: Invite, access request
+**Invite Link**:
+A revocable link created inside a workspace that lets anyone who opens it join that workspace with the link's role (Admin, Editor, or Viewer). An invite link can carry an optional expiration date and an optional usage limit, and a workspace can have several active invite links at once. Joining through an invite link cannot create a user account when the instance registration mode is closed.
+_Avoid_: Invitation, invite, invite code, access request
 
 **Analytics**:
 Aggregated measurements about visits, scans, referrers, approximate geography, device types, browsers, operating systems, and resolution outcomes. Analytics do not identify individual visitors.

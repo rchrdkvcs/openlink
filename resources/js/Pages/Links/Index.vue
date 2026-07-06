@@ -241,7 +241,7 @@ function markFaviconFailed(url: string) {
                 <section
                     v-for="group in groups"
                     :key="group.key"
-                    class="card-sheen overflow-hidden rounded-lg border bg-surface transition-shadow"
+                    class="card-sheen rounded-lg border bg-surface transition-shadow"
                     :class="dropGroupKey === group.key && dragLinkId !== null ? 'ring-1 ring-accent' : ''"
                     @dragover.prevent="dropGroupKey = group.key"
                     @dragleave="dropGroupKey = null"
@@ -298,8 +298,8 @@ function markFaviconFailed(url: string) {
                         </div>
                     </header>
 
-                    <!-- Rows -->
-                    <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60">
+                    <!-- Rows (rounded + clipped here so the folder menu can overflow the card) -->
+                    <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60 overflow-hidden rounded-b-lg">
                         <article
                             v-for="link in group.links"
                             :key="link.id"

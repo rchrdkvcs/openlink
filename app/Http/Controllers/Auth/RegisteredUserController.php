@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
 use App\Http\Controllers\Controller;
 use App\Models\Domain;
-use App\Models\Invitation;
+use App\Models\InviteLink;
 use App\Models\User;
-use App\Models\Workspace;
-use App\Models\WorkspaceMember;
 use App\Services\InstanceSettings;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -26,17 +25,25 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(InstanceSettings $settings): Response
+    public function create(Request $request, InstanceSettings $settings): Response
     {
-        if (User::query()->exists() && $settings->get('registration_mode') !== 'open') {
+        $inviteLink = $this->usableInviteLink($request->query('invite'));
+
+        $inviteAllowsRegistration = $inviteLink && $settings->get('registration_mode') !== 'closed';
+
+        if (! $inviteAllowsRegistration && User::query()->exists() && $settings->get('registration_mode') !== 'open') {
             redirect()
                 ->route('login')
-                ->with('status', 'Registration is invite-only. Use an invitation link or sign in.')
+                ->with('status', 'Registration is invite-only. Use an invite link or sign in.')
                 ->throwResponse();
         }
 
         return Inertia::render('Auth/Register', [
-            'invitation' => null,
+            'invite' => $inviteAllowsRegistration ? [
+                'token' => $inviteLink->token,
+                'workspace' => $inviteLink->workspace->name,
+                'role' => $inviteLink->role,
+            ] : null,
         ]);
     }
 
@@ -45,26 +52,26 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, JoinWorkspaceViaInviteLink $joiner): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'invitation_token' => ['nullable', 'string'],
+            'invite_token' => ['nullable', 'string'],
         ]);
 
         $isFirstUser = ! User::query()->exists();
-        $invitation = $request->filled('invitation_token')
-            ? Invitation::query()->where('token', $request->string('invitation_token'))->first()
+        $inviteLink = $request->filled('invite_token')
+            ? InviteLink::query()->where('token', $request->string('invite_token'))->first()
             : null;
 
         $registrationMode = app(InstanceSettings::class)->get('registration_mode');
         abort_if(! $isFirstUser && $registrationMode === 'closed', 403);
-        abort_if(! $isFirstUser && ! $invitation && $registrationMode !== 'open', 403);
-        abort_if($invitation && (! $invitation->isUsable() || $invitation->email !== $request->email), 403);
+        abort_if(! $isFirstUser && ! $inviteLink && $registrationMode !== 'open', 403);
+        abort_if($inviteLink && ! $inviteLink->isUsable(), 410);
 
-        $user = DB::transaction(function () use ($request, $isFirstUser, $invitation) {
+        $user = DB::transaction(function () use ($request, $isFirstUser, $inviteLink, $joiner) {
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -73,19 +80,6 @@ class RegisteredUserController extends Controller
             ]);
 
             if ($isFirstUser) {
-                $workspace = Workspace::create([
-                    'owner_id' => $user->id,
-                    'name' => 'Personal',
-                    'slug' => 'personal',
-                    'settings' => [],
-                ]);
-
-                WorkspaceMember::create([
-                    'workspace_id' => $workspace->id,
-                    'user_id' => $user->id,
-                    'role' => WorkspaceMember::ROLE_OWNER,
-                ]);
-
                 Domain::query()->firstOrCreate([
                     'hostname' => parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost',
                 ], [
@@ -97,14 +91,9 @@ class RegisteredUserController extends Controller
                 ]);
             }
 
-            if ($invitation) {
-                WorkspaceMember::query()->updateOrCreate([
-                    'workspace_id' => $invitation->workspace_id,
-                    'user_id' => $user->id,
-                ], ['role' => $invitation->role]);
-
-                $invitation->update(['accepted_at' => now()]);
-                $request->session()->put('workspace_id', $invitation->workspace_id);
+            if ($inviteLink) {
+                $member = $joiner->handle($user, $inviteLink);
+                $request->session()->put('workspace_id', $member->workspace_id);
             }
 
             return $user;
@@ -115,5 +104,18 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    private function usableInviteLink(?string $token): ?InviteLink
+    {
+        if (! $token) {
+            return null;
+        }
+
+        $inviteLink = InviteLink::query()->where('token', $token)->first();
+
+        return $inviteLink && $inviteLink->isUsable()
+            ? $inviteLink->load('workspace:id,name')
+            : null;
     }
 }

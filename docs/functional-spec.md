@@ -12,6 +12,8 @@ The first user created on an instance becomes an instance admin. The instance su
 
 Users authenticate with email and password. Two-factor authentication is available for user accounts. Password reset is handled by email.
 
+New users go through a short onboarding wizard: they name their first workspace (required when they have none), then can optionally create a first short link and generate an invite link for their team. Users who arrive through an invite link skip the wizard and land in the workspace they joined.
+
 Workspace members have one workspace role:
 
 - Owner: controls all workspace data, settings, members, domains, and ownership-level actions.
@@ -20,6 +22,12 @@ Workspace members have one workspace role:
 - Viewer: reads links, QR codes, and analytics in accessible folders.
 
 Folder permissions are Can view, Can edit, and Can manage. Members do not see folders they cannot access, except Owner and Admin roles, which can see all folders in the workspace.
+
+### Members and invite links
+
+People join a workspace through invite links (see ADR 0008). Owners and admins create invite links, each carrying a role (Admin, Editor, or Viewer), an optional expiration date, and an optional usage limit; several links can be active at once and each can be revoked individually. Anyone who opens a usable link can join the workspace with the link's role — signed-in users join directly, and new visitors create an account first unless the instance registration mode is closed. Existing members who open a link keep their current role.
+
+Owners and admins manage members: they can change any member's role and remove any member, except the Owner, who can only be changed through an explicit ownership transfer (the previous owner becomes an Admin). Any member except the Owner can leave a workspace. Removing a member revokes their folder permissions but keeps the links they created, which belong to the workspace.
 
 ## Workspaces
 

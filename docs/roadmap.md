@@ -11,7 +11,7 @@
 ## Phase 1: Workspace Core
 
 - Create workspaces and workspace switching.
-- Add workspace members, invitations, and workspace roles.
+- Add workspace members, invite links, and workspace roles.
 - Add folders and folder permissions.
 - Add tags as classification only.
 - Add workspace settings.

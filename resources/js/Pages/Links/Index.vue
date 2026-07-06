@@ -7,7 +7,7 @@ import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     Archive,
     Check,
@@ -460,54 +460,31 @@ function deleteFolder(folder: Folder, linkCount: number) {
                     </div>
                 </form>
 
-                <form v-if="selectedSettingsTab === 'qr'" class="grid gap-5" @submit.prevent="submitQr">
+                <div v-if="selectedSettingsTab === 'qr'" class="grid gap-5">
                     <h4 class="flex items-center gap-2 text-[13px] font-semibold text-foreground"><QrCode class="h-4 w-4 text-faint" /> QR codes</h4>
 
-                    <Field label="QR name" :error="qrForm.errors.name">
-                        <input v-model="qrForm.name" class="h-9" placeholder="Poster, badge, flyer…" />
-                    </Field>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <Field label="Size" :error="qrForm.errors.size">
-                            <input v-model="qrForm.size" type="number" min="128" max="4096" class="h-9" />
+                    <form class="flex items-end gap-2" @submit.prevent="submitQr">
+                        <Field label="QR name" :error="qrForm.errors.name" class="flex-1">
+                            <input v-model="qrForm.name" class="h-9" placeholder="Poster, badge, flyer…" />
                         </Field>
-                        <Field label="Error correction" :error="qrForm.errors.error_correction">
-                            <select v-model="qrForm.error_correction" class="h-9">
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="quartile">Quartile</option>
-                                <option value="high">High</option>
-                            </select>
-                        </Field>
-                    </div>
-                    <div class="grid gap-4 sm:grid-cols-3">
-                        <Field label="Foreground">
-                            <input v-model="qrForm.foreground_color" type="color" class="h-9 w-full cursor-pointer rounded-md border bg-surface p-1" />
-                        </Field>
-                        <Field label="Background">
-                            <input v-model="qrForm.background_color" type="color" class="h-9 w-full cursor-pointer rounded-md border bg-surface p-1" />
-                        </Field>
-                        <Field label="Margin" :error="qrForm.errors.margin">
-                            <input v-model="qrForm.margin" type="number" min="0" max="20" class="h-9" />
-                        </Field>
-                    </div>
-                    <div>
-                        <Button variant="secondary" :loading="qrForm.processing">Add QR code</Button>
-                    </div>
+                        <Button variant="secondary" :loading="qrForm.processing">Create &amp; customize</Button>
+                    </form>
 
                     <div class="grid gap-3">
                         <article v-for="qr in selectedLink.qr_codes" :key="qr.id" class="grid gap-4 rounded-lg border bg-elevated/30 p-3 sm:grid-cols-[112px_1fr]">
-                            <img :src="qrPreviewUrl(qr)" :alt="`${qr.name} QR code`" class="h-28 w-28 rounded-md bg-white p-1.5" />
+                            <Link :href="route('qr-codes.show', qr.token)">
+                                <img :src="qrPreviewUrl(qr)" :alt="`${qr.name} QR code`" class="h-28 w-28 rounded-md bg-white p-1.5 transition-opacity hover:opacity-80" />
+                            </Link>
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-medium text-foreground">{{ qr.name }}</p>
-                                <p class="mt-1 text-xs text-faint">Scans through this QR are tracked separately.</p>
+                                <p class="mt-1 text-xs text-faint">{{ qr.scans }} scans · tracked separately from visits.</p>
                                 <div class="mt-3 flex flex-wrap gap-2">
-                                    <a
-                                        :href="qrPreviewUrl(qr)"
-                                        target="_blank"
-                                        class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                                    <Link
+                                        :href="route('qr-codes.show', qr.token)"
+                                        class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated"
                                     >
-                                        View
-                                    </a>
+                                        <Settings2 class="h-3 w-3" /> Customize
+                                    </Link>
                                     <a
                                         :href="route('qr-codes.export', [qr.token, 'svg'])"
                                         class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
@@ -527,7 +504,7 @@ function deleteFolder(folder: Folder, linkCount: number) {
                             No QR code yet for this link.
                         </p>
                     </div>
-                </form>
+                </div>
             </div>
         </Drawer>
     </AuthenticatedLayout>

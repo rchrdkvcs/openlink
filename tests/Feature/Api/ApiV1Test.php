@@ -329,7 +329,7 @@ class ApiV1Test extends TestCase
 
         $this->get('/api/v1/qr-codes/'.$token.'/export/svg')
             ->assertOk()
-            ->assertDownload($token.'.svg');
+            ->assertDownload('poster.svg');
     }
 
     public function test_workspaces_can_be_created_and_listed_via_api(): void

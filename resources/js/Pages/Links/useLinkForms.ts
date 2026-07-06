@@ -35,11 +35,6 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
 
     const qrForm = useForm({
         name: '',
-        size: 1024,
-        foreground_color: '#171717',
-        background_color: '#fafafa',
-        margin: 2,
-        error_correction: 'medium',
     });
 
     watch(selectedLink, (link) => {
@@ -102,10 +97,8 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
             return;
         }
 
-        qrForm.post(route('qr-codes.store', selectedLink.value.id), {
-            preserveScroll: true,
-            onSuccess: () => qrForm.reset('name'),
-        });
+        // The server redirects to the QR studio page for customization.
+        qrForm.post(route('qr-codes.store', selectedLink.value.id));
     }
 
     function archiveLink(link: ShortLink) {

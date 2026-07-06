@@ -52,6 +52,7 @@
 - Export PNG and SVG.
 - Add export options for size, colors, margin, and error correction level.
 - Attribute scans to QR codes during resolution.
+- QR code studio page with live preview, module styles, eye styles, transparent background, and centered logos.
 
 ## Phase 6: Analytics
 
@@ -78,6 +79,5 @@
 - Public API.
 - Webhooks.
 - SSO and OAuth login.
-- Advanced QR code templates and QR logos.
 - Alerts and monitoring.
 - SaaS billing and commercial plans.

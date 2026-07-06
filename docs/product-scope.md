@@ -14,7 +14,7 @@
 - Activation dates, expiration dates, visit limits, and fallback URLs.
 - Protected links with visitor passwords.
 - Named QR codes attached to short links.
-- QR codes can be exported as PNG and SVG with configurable size, foreground color, background color, margin, and error correction level.
+- QR codes can be exported as PNG and SVG with configurable size, foreground color, background color, margin (quiet zone in modules), error correction level, module style (squares, rounded, dots), eye style (square, rounded, circle), transparent background, and an optional centered logo.
 - Aggregated analytics for visits and scans.
 - Analytics retention defaults to 12 months for daily aggregates, while lifetime totals remain available while the related link or QR code exists.
 - Instance admin panel and workspace settings.
@@ -35,7 +35,5 @@ When a short URL cannot resolve and no fallback URL is available, visitors see a
 - Public API.
 - Webhooks.
 - SSO and OAuth login.
-- Advanced QR code design templates.
-- QR code logos.
 - Alerts and monitoring.
 - SaaS billing and commercial plans.

@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\QrCodes\CreateQrCode;
+use App\Actions\QrCodes\DeleteQrCode;
+use App\Actions\QrCodes\QrCodePayload;
+use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\QrCode;
@@ -14,34 +18,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
-    public function store(Request $request, ShortLink $shortLink, WorkspaceAccess $access): JsonResponse
+    public function store(Request $request, ShortLink $shortLink, CreateQrCode $action): JsonResponse
     {
-        $access->requireEditableShortLink($request, $shortLink);
+        $qrCode = $action->handle($request, $shortLink, $request->validate(QrCodePayload::rules()));
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'size' => ['nullable', 'integer', 'min:128', 'max:4096'],
-            'foreground_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'background_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'margin' => ['nullable', 'integer', 'min:0', 'max:20'],
-            'error_correction' => ['nullable', 'in:low,medium,quartile,high'],
-        ]);
+        return response()->json(['data' => QrCodePayload::make($qrCode)], 201);
+    }
 
-        $qrCode = $shortLink->qrCodes()->create([
-            'name' => $data['name'],
-            'token' => Str::random(32),
-            'size' => $data['size'] ?? 1024,
-            'foreground_color' => $data['foreground_color'] ?? '#111827',
-            'background_color' => $data['background_color'] ?? '#ffffff',
-            'margin' => $data['margin'] ?? 2,
-            'error_correction' => $data['error_correction'] ?? 'medium',
-        ]);
+    public function update(Request $request, QrCode $qrCode, UpdateQrCode $action): JsonResponse
+    {
+        $qrCode = $action->handle($request, $qrCode, $request->validate(QrCodePayload::rules(creating: false)));
 
-        return response()->json([
-            'data' => $qrCode->only(['id', 'name', 'token', 'size', 'foreground_color', 'background_color', 'margin', 'error_correction']) + [
-                'public_url' => route('public.qr', ['qrCode' => $qrCode->token], true),
-            ],
-        ], 201);
+        return response()->json(['data' => QrCodePayload::make($qrCode)]);
+    }
+
+    public function destroy(Request $request, QrCode $qrCode, DeleteQrCode $action): JsonResponse
+    {
+        $action->handle($request, $qrCode);
+
+        return response()->json(['message' => 'QR code deleted.']);
     }
 
     public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
@@ -49,12 +44,15 @@ class QrCodeController extends Controller
         $access->requireEditableQrCode($request, $qrCode);
         abort_unless(in_array($format, ['png', 'svg'], true), 404);
 
-        $url = route('public.qr', ['qrCode' => $qrCode->token], true);
-        $contents = $format === 'png' ? $renderer->png($qrCode, $url) : $renderer->svg($qrCode, $url);
+        $size = $request->validate(['size' => ['nullable', 'integer', 'min:128', 'max:4096']])['size'] ?? null;
+
+        $url = $qrCode->publicUrl();
+        $contents = $format === 'png' ? $renderer->png($qrCode, $url, $size) : $renderer->svg($qrCode, $url, $size);
+        $filename = (Str::slug($qrCode->name) ?: $qrCode->token).'.'.$format;
 
         return response($contents, 200, [
             'Content-Type' => $format === 'png' ? 'image/png' : 'image/svg+xml',
-            'Content-Disposition' => 'attachment; filename="'.$qrCode->token.'.'.$format.'"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -62,11 +60,16 @@ class QrCodeController extends Controller
     {
         $access->requireEditableQrCode($request, $qrCode);
 
-        $url = route('public.qr', ['qrCode' => $qrCode->token], true);
+        $overrides = collect($request->validate(QrCodePayload::rules(creating: false)))
+            ->except(['name', 'logo', 'remove_logo'])
+            ->filter(fn ($value) => $value !== null);
 
-        return response($renderer->svg($qrCode, $url), 200, [
+        $qrCode->fill($overrides->all());
+
+        return response($renderer->svg($qrCode, $qrCode->publicUrl()), 200, [
             'Content-Type' => 'image/svg+xml',
             'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
+            'Cache-Control' => 'no-store',
         ]);
     }
 }

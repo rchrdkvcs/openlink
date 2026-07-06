@@ -41,6 +41,7 @@ FROM dunglas/frankenphp:1-php8.4-alpine AS production
 WORKDIR /app
 
 RUN install-php-extensions \
+    gd \
     intl \
     opcache \
     pcntl \

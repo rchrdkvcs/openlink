@@ -2,27 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Analytics\BuildAnalyticsReport;
+use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Services\Analytics\AnalyticsFilters;
-use App\Services\Analytics\AnalyticsReporter;
 use App\Services\InstanceSettings;
-use App\Services\WorkspaceContext;
-use App\Services\WorkspaceData;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function overview(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data, AnalyticsReporter $reporter): Response
+    public function overview(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data, BuildAnalyticsReport $reporter): Response
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         $filters = AnalyticsFilters::fromRequest($request);
-        $accessibleLinkIds = $data->accessibleLinkIds($workspace, $request->user());
+        $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $request->user());
 
         return Inertia::render('Dashboard', [
-            ...$this->pageProps($request, $context, $settings, $data),
+            ...$this->pageProps($request, $access, $settings, $data),
             'analytics' => [
                 'range' => ['preset' => $filters->range, 'bucket' => $filters->bucketUnit()],
                 'summary' => $reporter->summary($workspace, $filters, $accessibleLinkIds),
@@ -32,44 +31,43 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function links(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function links(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): Response
     {
-        return Inertia::render('Links/Index', $this->pageProps($request, $context, $settings, $data));
+        return Inertia::render('Links/Index', $this->pageProps($request, $access, $settings, $data));
     }
 
-    public function domains(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function domains(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): Response
     {
-        return Inertia::render('Domains/Index', $this->pageProps($request, $context, $settings, $data));
+        return Inertia::render('Domains/Index', $this->pageProps($request, $access, $settings, $data));
     }
 
-    public function members(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function members(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): Response
     {
-        return Inertia::render('Members/Index', $this->pageProps($request, $context, $settings, $data));
+        return Inertia::render('Members/Index', $this->pageProps($request, $access, $settings, $data));
     }
 
-    public function workspaces(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function workspaces(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): Response
     {
-        return Inertia::render('Workspaces/Index', $this->pageProps($request, $context, $settings, $data));
+        return Inertia::render('Workspaces/Index', $this->pageProps($request, $access, $settings, $data));
     }
 
-    public function settings(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): Response
+    public function settings(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): Response
     {
-        return Inertia::render('Settings/Index', $this->pageProps($request, $context, $settings, $data));
+        return Inertia::render('Settings/Index', $this->pageProps($request, $access, $settings, $data));
     }
 
-    private function pageProps(Request $request, WorkspaceContext $context, InstanceSettings $settings, WorkspaceData $data): array
+    private function pageProps(Request $request, WorkspaceAccess $access, InstanceSettings $settings, WorkspacePayloads $data): array
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         $user = $request->user();
 
         return [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
             'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
-            'role' => $context->role($user, $workspace),
-            'canManageWorkspace' => $context->canManageWorkspace($user, $workspace),
-            'canEditWorkspace' => $context->canEditWorkspace($user, $workspace),
+            'role' => $access->role($user, $workspace),
+            'canManageWorkspace' => $access->canManageWorkspace($user, $workspace),
+            'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),
             'domains' => $data->domains($workspace),
             'folders' => $data->folders($workspace, $user),
             'members' => $workspace->members()->with('user:id,name,email')->orderBy('role')->get(),

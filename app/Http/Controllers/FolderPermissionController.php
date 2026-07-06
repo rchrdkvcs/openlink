@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Folder;
 use App\Models\FolderPermission;
-use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class FolderPermissionController extends Controller
 {
-    public function store(Request $request, Folder $folder, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, Folder $folder, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $folder->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireManagedFolder($request, $folder);
 
         $data = $request->validate([
             'user_id' => ['required', Rule::exists('workspace_members', 'user_id')->where('workspace_id', $workspace->id)],

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Analytics\BuildAnalyticsReport;
+use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
-use App\Services\Analytics\AnalyticsReporter;
-use App\Services\WorkspaceContext;
-use App\Services\WorkspaceData;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,39 +14,34 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, WorkspaceContext $context, WorkspaceData $data, AnalyticsReporter $reporter): Response
+    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, BuildAnalyticsReport $reporter): Response
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         $user = $request->user();
         $filters = AnalyticsFilters::fromRequest($request);
-        $accessibleLinkIds = $data->accessibleLinkIds($workspace, $user);
+        $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $user);
 
         return Inertia::render('Analytics/Index', [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
             'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
-            'role' => $context->role($user, $workspace),
+            'role' => $access->role($user, $workspace),
             'report' => $reporter->report($workspace, $filters, $accessibleLinkIds),
             'filters' => $filters->toQuery() + ['range' => $filters->range],
             'filterOptions' => $this->filterOptions($workspace, $accessibleLinkIds, $data, $user),
         ]);
     }
 
-    public function export(Request $request, WorkspaceContext $context, WorkspaceData $data, AnalyticsReporter $reporter): StreamedResponse
+    public function export(Request $request, WorkspaceAccess $access, BuildAnalyticsReport $reporter): StreamedResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         $filters = AnalyticsFilters::fromRequest($request);
-        $accessibleLinkIds = $data->accessibleLinkIds($workspace, $request->user());
-
-        $query = $reporter->eventsQuery($workspace, $filters, $accessibleLinkIds)
-            ->with(['shortLink:id,slug', 'qrCode:id,name', 'domain:id,hostname']);
+        $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $request->user());
 
         $filename = sprintf('openlink-analytics-%s-%s.csv', $workspace->slug, now()->format('Y-m-d'));
 
-        return response()->streamDownload(function () use ($query): void {
+        return response()->streamDownload(function () use ($reporter, $workspace, $filters, $accessibleLinkIds): void {
             $out = fopen('php://output', 'w');
 
             fputcsv($out, [
@@ -56,28 +51,8 @@ class AnalyticsController extends Controller
                 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
             ]);
 
-            foreach ($query->lazy(1000) as $event) {
-                fputcsv($out, [
-                    $event->occurred_at->toIso8601String(),
-                    $event->metric,
-                    $event->outcome,
-                    $event->shortLink?->slug,
-                    $event->qrCode?->name,
-                    $event->domain?->hostname,
-                    $event->referrer_host,
-                    $event->referrer_channel,
-                    $event->country,
-                    $event->language,
-                    $event->device_type,
-                    $event->browser,
-                    $event->os,
-                    $event->is_bot ? '1' : '0',
-                    $event->utm_source,
-                    $event->utm_medium,
-                    $event->utm_campaign,
-                    $event->utm_term,
-                    $event->utm_content,
-                ]);
+            foreach ($reporter->exportRows($workspace, $filters, $accessibleLinkIds) as $row) {
+                fputcsv($out, $row);
             }
 
             fclose($out);
@@ -85,7 +60,7 @@ class AnalyticsController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspaceData $data, $user): array
+    private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspacePayloads $data, $user): array
     {
         $links = $workspace->shortLinks()
             ->with('domain:id,hostname')

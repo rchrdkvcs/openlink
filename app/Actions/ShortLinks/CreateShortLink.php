@@ -1,25 +1,38 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\ShortLinks;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
 use App\Models\Tag;
+use App\Models\User;
 use App\Models\Workspace;
+use App\Services\SlugService;
 use Illuminate\Support\Facades\Hash;
 
-class ShortLinkManager
+class CreateShortLink
 {
     public function __construct(
+        private readonly WorkspaceAccess $access,
         private readonly SlugService $slugs,
     ) {}
 
     /**
-     * @param  array<string, mixed>  $data  Validated short link attributes.
+     * @param  array<string, mixed>  $data
      */
-    public function create(Workspace $workspace, Domain $domain, ?Folder $folder, array $data): ShortLink
+    public function handle(Workspace $workspace, User $user, array $data, ?Domain $fallbackDomain = null): ShortLink
     {
+        abort_unless($this->access->canEditWorkspace($user, $workspace), 403);
+
+        $domain = $this->domainForWorkspace((int) ($data['domain_id'] ?? $fallbackDomain?->id), $workspace->id);
+        abort_unless($domain, 422, 'Domain does not belong to this workspace.');
+        abort_unless($domain->isUsable(), 422, 'Domain is not verified or is disabled.');
+
+        $folder = $this->folderForWorkspace($workspace, $data['folder_id'] ?? null);
+        abort_if($folder && ! $this->access->canEditFolder($user, $folder), 403);
+
         $slug = filled($data['slug'] ?? null)
             ? $this->slugs->validateCustom($domain, $data['slug'])
             : $this->slugs->generate($domain);
@@ -45,43 +58,31 @@ class ShortLinkManager
         return $shortLink;
     }
 
-    /**
-     * @param  array<string, mixed>  $data  Validated short link attributes.
-     */
-    public function update(ShortLink $shortLink, ?Folder $folder, array $data, bool $updatePassword): ShortLink
+    private function domainForWorkspace(int $domainId, int $workspaceId): ?Domain
     {
-        $this->assertNoLoop($shortLink->domain, $shortLink->slug, $data['destination_url']);
-
-        $shortLink->fill([
-            'folder_id' => $folder?->id,
-            'destination_url' => $data['destination_url'],
-            'fallback_url' => $data['fallback_url'] ?? null,
-            'is_enabled' => $data['is_enabled'],
-            'activates_at' => $data['activates_at'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
-            'visit_limit' => $data['visit_limit'] ?? null,
-        ]);
-
-        if ($updatePassword) {
-            $shortLink->password_hash = filled($data['password'] ?? null)
-                ? Hash::make($data['password'])
-                : null;
+        if ($domainId <= 0) {
+            return null;
         }
 
-        $shortLink->save();
-
-        return $shortLink;
-    }
-
-    public function domainForWorkspace(int $domainId, int $workspaceId): ?Domain
-    {
         return Domain::query()
             ->whereKey($domainId)
             ->where(fn ($query) => $query->where('workspace_id', $workspaceId)->orWhere('is_default', true))
             ->first();
     }
 
-    public function assertNoLoop(Domain $domain, string $slug, string $destinationUrl): void
+    private function folderForWorkspace(Workspace $workspace, mixed $folderId): ?Folder
+    {
+        if (! filled($folderId)) {
+            return null;
+        }
+
+        return Folder::query()
+            ->whereKey((int) $folderId)
+            ->where('workspace_id', $workspace->id)
+            ->firstOrFail();
+    }
+
+    private function assertNoLoop(Domain $domain, string $slug, string $destinationUrl): void
     {
         $targetHost = parse_url($destinationUrl, PHP_URL_HOST);
         $targetPath = trim((string) parse_url($destinationUrl, PHP_URL_PATH), '/');
@@ -91,7 +92,7 @@ class ShortLinkManager
         }
     }
 
-    public function syncTags(ShortLink $shortLink, string $tags): void
+    private function syncTags(ShortLink $shortLink, string $tags): void
     {
         $tagIds = collect(explode(',', $tags))
             ->map(fn (string $tag) => trim($tag))

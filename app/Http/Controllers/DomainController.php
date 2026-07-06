@@ -2,78 +2,58 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Domains\CreateDomain;
+use App\Actions\Domains\DeleteDomain;
+use App\Actions\Domains\DisableDomain;
+use App\Actions\Domains\TransferDomain;
+use App\Actions\Domains\VerifyDomain;
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
-use App\Services\DomainManager;
-use App\Services\DomainVerificationService;
-use App\Services\WorkspaceContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class DomainController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context, DomainManager $domains): RedirectResponse
+    public function store(Request $request, CreateDomain $domains): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
-
         $data = $request->validate([
             'hostname' => ['required', 'string', 'max:255', 'unique:domains,hostname'],
         ]);
 
-        $domains->create($workspace, $data['hostname']);
+        $domains->handle($request, $data['hostname']);
 
         return back();
     }
 
-    public function verify(Request $request, Domain $domain, WorkspaceContext $context, DomainVerificationService $verifier): RedirectResponse
+    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, VerifyDomain $verifier): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-
-        $verifier->verify($domain);
+        $access->requireManagedDomain($request, $domain);
+        $verifier->handle($domain);
 
         return back();
     }
 
-    public function disable(Request $request, Domain $domain, WorkspaceContext $context, DomainManager $domains): RedirectResponse
+    public function disable(Request $request, Domain $domain, DisableDomain $domains): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-
-        $domains->disable($domain);
+        $domains->handle($request, $domain);
 
         return back();
     }
 
-    public function transfer(Request $request, Domain $domain, WorkspaceContext $context, DomainManager $domains): RedirectResponse
+    public function transfer(Request $request, Domain $domain, TransferDomain $domains): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-        abort_if($domain->is_default, 403);
-
         $data = $request->validate([
             'workspace_id' => ['required', 'integer'],
         ]);
 
-        $targetWorkspace = $request->user()
-            ->workspaces()
-            ->where('workspaces.id', $data['workspace_id'])
-            ->first();
-
-        abort_unless($targetWorkspace && $context->canManageWorkspace($request->user(), $targetWorkspace), 403);
-
-        $domains->transfer($domain, $workspace, $targetWorkspace);
+        $domains->handle($request, $domain, (int) $data['workspace_id']);
 
         return back();
     }
 
-    public function destroy(Request $request, Domain $domain, WorkspaceContext $context): RedirectResponse
+    public function destroy(Request $request, Domain $domain, DeleteDomain $domains): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $domain->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
-        abort_if($domain->is_default, 403);
-
-        $domain->delete();
+        $domains->handle($request, $domain);
 
         return back();
     }

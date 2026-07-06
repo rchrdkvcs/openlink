@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Workspaces\CreateWorkspace;
+use App\Actions\Workspaces\DeleteWorkspace;
+use App\Actions\Workspaces\UpdateWorkspace;
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
-use App\Services\WorkspaceContext;
-use App\Services\WorkspaceManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,10 +30,9 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function current(Request $request, WorkspaceContext $context): JsonResponse
+    public function current(Request $request, WorkspaceAccess $access): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         $user = $request->user();
 
@@ -41,48 +42,47 @@ class WorkspaceController extends Controller
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,
                 'preferred_domain_id' => $workspace->preferred_domain_id,
-                'role' => $context->role($user, $workspace),
-                'can_manage' => $context->canManageWorkspace($user, $workspace),
-                'can_edit' => $context->canEditWorkspace($user, $workspace),
+                'role' => $access->role($user, $workspace),
+                'can_manage' => $access->canManageWorkspace($user, $workspace),
+                'can_edit' => $access->canEditWorkspace($user, $workspace),
             ],
         ]);
     }
 
-    public function store(Request $request, WorkspaceManager $workspaces): JsonResponse
+    public function store(Request $request, CreateWorkspace $workspaces): JsonResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $workspace = $workspaces->create($request->user(), $data['name']);
+        $workspace = $workspaces->handle($request->user(), $data['name']);
 
         return response()->json([
             'data' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
         ], 201);
     }
 
-    public function update(Request $request, WorkspaceContext $context, WorkspaceManager $workspaces): JsonResponse
+    public function update(Request $request, WorkspaceAccess $access, UpdateWorkspace $workspaces): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireManagedWorkspace($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'preferred_domain_id' => ['nullable', 'integer'],
         ]);
 
-        $workspace = $workspaces->update($workspace, $data['name'], $data['preferred_domain_id'] ?? null);
+        $workspace = $workspaces->handle($workspace, $data['name'], $data['preferred_domain_id'] ?? null);
 
         return response()->json([
             'data' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
         ]);
     }
 
-    public function destroy(Request $request, Workspace $workspace, WorkspaceContext $context, WorkspaceManager $workspaces): JsonResponse
+    public function destroy(Request $request, Workspace $workspace, WorkspaceAccess $access, DeleteWorkspace $workspaces): JsonResponse
     {
-        abort_unless($context->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
+        abort_unless($access->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
 
-        $nextWorkspace = $workspaces->destroy($request->user(), $workspace);
+        $nextWorkspace = $workspaces->handle($request->user(), $workspace);
 
         return response()->json([
             'message' => 'Workspace deleted.',

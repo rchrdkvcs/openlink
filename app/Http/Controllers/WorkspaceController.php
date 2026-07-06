@@ -2,55 +2,56 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspaces\CreateWorkspace;
+use App\Actions\Workspaces\DeleteWorkspace;
+use App\Actions\Workspaces\UpdateWorkspace;
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
-use App\Services\WorkspaceContext;
-use App\Services\WorkspaceManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class WorkspaceController extends Controller
 {
-    public function store(Request $request, WorkspaceManager $workspaces): RedirectResponse
+    public function store(Request $request, CreateWorkspace $workspaces): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $workspace = $workspaces->create($request->user(), $data['name']);
+        $workspace = $workspaces->handle($request->user(), $data['name']);
 
         $request->session()->put('workspace_id', $workspace->id);
 
         return back();
     }
 
-    public function switch(Request $request, Workspace $workspace, WorkspaceContext $context): RedirectResponse
+    public function switch(Request $request, Workspace $workspace, WorkspaceAccess $access): RedirectResponse
     {
-        $context->setCurrent($request, $workspace);
+        $access->selectCurrent($request, $workspace);
 
         return back();
     }
 
-    public function update(Request $request, WorkspaceContext $context, WorkspaceManager $workspaces): RedirectResponse
+    public function update(Request $request, WorkspaceAccess $access, UpdateWorkspace $workspaces): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireManagedWorkspace($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'preferred_domain_id' => ['nullable', 'integer'],
         ]);
 
-        $workspaces->update($workspace, $data['name'], $data['preferred_domain_id'] ?? null);
+        $workspaces->handle($workspace, $data['name'], $data['preferred_domain_id'] ?? null);
 
         return back();
     }
 
-    public function destroy(Request $request, Workspace $workspace, WorkspaceContext $context, WorkspaceManager $workspaces): RedirectResponse
+    public function destroy(Request $request, Workspace $workspace, WorkspaceAccess $access, DeleteWorkspace $workspaces): RedirectResponse
     {
-        abort_unless($context->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
+        abort_unless($access->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
 
-        $nextWorkspace = $workspaces->destroy($request->user(), $workspace);
+        $nextWorkspace = $workspaces->handle($request->user(), $workspace);
 
         $request->session()->put('workspace_id', $nextWorkspace->id);
 

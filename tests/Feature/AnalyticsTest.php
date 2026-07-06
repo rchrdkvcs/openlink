@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Analytics\BuildAnalyticsReport;
 use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\Folder;
@@ -12,7 +13,6 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Analytics\AnalyticsFilters;
-use App\Services\Analytics\AnalyticsReporter;
 use App\Services\Analytics\Outcome;
 use App\Services\Analytics\ReferrerClassifier;
 use App\Services\Analytics\UserAgentParser;
@@ -73,7 +73,7 @@ class AnalyticsTest extends TestCase
 
         $this->assertTrue(AnalyticsEvent::query()->sole()->is_bot);
 
-        $report = app(AnalyticsReporter::class)->report($workspace, AnalyticsFilters::fromRequest(Request::create('/')));
+        $report = app(BuildAnalyticsReport::class)->report($workspace, AnalyticsFilters::fromRequest(Request::create('/')));
 
         $this->assertSame(0, $report['summary']['visits']);
         $this->assertSame(1, $report['summary']['bots']);
@@ -119,7 +119,7 @@ class AnalyticsTest extends TestCase
         // Previous period traffic for the delta baseline.
         $this->event($workspace, $link, ['occurred_at' => now()->subDays(40), 'visitor_hash' => 'ccc']);
 
-        $report = app(AnalyticsReporter::class)->report($workspace, AnalyticsFilters::fromRequest(Request::create('/?range=30d')));
+        $report = app(BuildAnalyticsReport::class)->report($workspace, AnalyticsFilters::fromRequest(Request::create('/?range=30d')));
 
         $this->assertSame(3, $report['summary']['visits']);
         $this->assertSame(2, $report['summary']['visitors']);
@@ -155,7 +155,7 @@ class AnalyticsTest extends TestCase
         $this->event($workspace, $linkB);
         $this->event($workspace, $linkB, ['metric' => 'scan']);
 
-        $reporter = app(AnalyticsReporter::class);
+        $reporter = app(BuildAnalyticsReport::class);
 
         $byLink = $reporter->summary($workspace, AnalyticsFilters::fromRequest(Request::create('/?link='.$linkA->id)));
         $this->assertSame(1, $byLink['visits']);

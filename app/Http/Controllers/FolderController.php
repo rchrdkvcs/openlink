@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Folder;
-use App\Services\WorkspaceContext;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class FolderController extends Controller
 {
-    public function store(Request $request, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function store(Request $request, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $workspace = $access->requireManagedWorkspace($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -25,10 +25,9 @@ class FolderController extends Controller
         return back();
     }
 
-    public function update(Request $request, Folder $folder, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function update(Request $request, Folder $folder, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $folder->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $access->requireManagedFolder($request, $folder);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -39,10 +38,9 @@ class FolderController extends Controller
         return back();
     }
 
-    public function destroy(Request $request, Folder $folder, WorkspaceContext $context): \Illuminate\Http\RedirectResponse
+    public function destroy(Request $request, Folder $folder, WorkspaceAccess $access): RedirectResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $folder->workspace_id === $workspace->id && $context->canManageWorkspace($request->user(), $workspace), 403);
+        $access->requireManagedFolder($request, $folder);
 
         // short_links.folder_id is nullOnDelete: links in the folder become unfiled.
         $folder->delete();

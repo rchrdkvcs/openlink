@@ -1,18 +1,19 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\Resolution;
 
+use App\Actions\Analytics\RecordAnalytics;
 use App\Models\Domain;
 use App\Models\QrCode;
 use App\Models\ShortLink;
-use App\Services\Analytics\AnalyticsRecorder;
 use App\Services\Analytics\Outcome;
+use App\Services\ResolutionResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
-class PublicResolutionService
+class ResolvePublicLink
 {
-    public function __construct(private readonly AnalyticsRecorder $analytics) {}
+    public function __construct(private readonly RecordAnalytics $analytics) {}
 
     public function resolve(Request $request, string $slug, ?QrCode $qrCode = null): ResolutionResult
     {
@@ -48,7 +49,7 @@ class PublicResolutionService
         $unavailableOutcome = $this->unavailableOutcome($shortLink);
 
         if ($unavailableOutcome) {
-            $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, $unavailableOutcome);
+            $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, $unavailableOutcome);
 
             return new ResolutionResult(
                 outcome: $unavailableOutcome,
@@ -68,7 +69,7 @@ class PublicResolutionService
         }
 
         $shortLink->increment('successful_visits');
-        $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? AnalyticsRecorder::METRIC_SCAN : AnalyticsRecorder::METRIC_VISIT, Outcome::SUCCESS);
+        $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, Outcome::SUCCESS);
 
         return new ResolutionResult(
             outcome: Outcome::SUCCESS,

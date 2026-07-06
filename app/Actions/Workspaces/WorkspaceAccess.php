@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions\Workspaces;
 
+use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\FolderPermission;
+use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Http\Request;
 
-class WorkspaceContext
+class WorkspaceAccess
 {
     public function current(Request $request): ?Workspace
     {
@@ -23,9 +25,6 @@ class WorkspaceContext
         $query = Workspace::query()
             ->whereHas('members', fn ($query) => $query->where('user_id', $user->id));
 
-        // Stateless clients (API tokens, browser extensions) select the
-        // workspace per request; an explicit header never falls back so a
-        // typo cannot silently target another workspace.
         $headerId = $request->headers->get('X-Workspace-Id');
 
         if ($headerId !== null && $headerId !== '') {
@@ -51,13 +50,99 @@ class WorkspaceContext
         return $workspace;
     }
 
-    public function setCurrent(Request $request, Workspace $workspace): void
+    public function requireCurrent(Request $request): Workspace
+    {
+        $workspace = $this->current($request);
+        abort_unless($workspace, 403);
+
+        return $workspace;
+    }
+
+    public function requireManagedWorkspace(Request $request): Workspace
+    {
+        $workspace = $this->requireCurrent($request);
+        abort_unless($this->canManageWorkspace($request->user(), $workspace), 403);
+
+        return $workspace;
+    }
+
+    public function requireEditableWorkspace(Request $request): Workspace
+    {
+        $workspace = $this->requireCurrent($request);
+        abort_unless($this->canEditWorkspace($request->user(), $workspace), 403);
+
+        return $workspace;
+    }
+
+    public function selectCurrent(Request $request, Workspace $workspace): void
     {
         abort_unless($this->isMember($request->user(), $workspace), 403);
 
         if ($request->hasSession()) {
             $request->session()->put('workspace_id', $workspace->id);
         }
+    }
+
+    public function requireManagedDomain(Request $request, Domain $domain): Workspace
+    {
+        $workspace = $this->requireManagedWorkspace($request);
+        abort_unless($domain->workspace_id === $workspace->id, 403);
+
+        return $workspace;
+    }
+
+    public function requireManagedFolder(Request $request, Folder $folder): Workspace
+    {
+        $workspace = $this->requireManagedWorkspace($request);
+        abort_unless($folder->workspace_id === $workspace->id, 403);
+
+        return $workspace;
+    }
+
+    public function requireViewableShortLink(Request $request, ShortLink $shortLink): Workspace
+    {
+        $workspace = $this->requireCurrent($request);
+        $shortLink->loadMissing('workspace', 'folder.workspace');
+        abort_unless(
+            $shortLink->workspace_id === $workspace->id
+            && $this->canViewShortLink($request->user(), $shortLink),
+            403
+        );
+
+        return $workspace;
+    }
+
+    public function requireEditableShortLink(Request $request, ShortLink $shortLink): Workspace
+    {
+        $workspace = $this->requireCurrent($request);
+        $shortLink->loadMissing('workspace', 'folder.workspace');
+        abort_unless(
+            $shortLink->workspace_id === $workspace->id
+            && $this->canEditShortLink($request->user(), $shortLink),
+            403
+        );
+
+        return $workspace;
+    }
+
+    public function requireManageableShortLink(Request $request, ShortLink $shortLink): Workspace
+    {
+        $workspace = $this->requireCurrent($request);
+        abort_unless(
+            $shortLink->workspace_id === $workspace->id
+            && $this->canManageWorkspace($request->user(), $workspace),
+            403
+        );
+
+        return $workspace;
+    }
+
+    public function requireEditableQrCode(Request $request, QrCode $qrCode): Workspace
+    {
+        $qrCode->load('shortLink.domain');
+        $qrCode->shortLink->loadMissing('workspace', 'folder.workspace');
+
+        return $this->requireEditableShortLink($request, $qrCode->shortLink);
     }
 
     public function isMember(?User $user, Workspace $workspace): bool

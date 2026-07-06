@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Domains\VerifyDomain;
 use App\Models\Domain;
-use App\Services\DomainVerificationService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -15,7 +15,7 @@ class VerifyPendingDomains extends Command
     /**
      * Execute the console command.
      */
-    public function handle(DomainVerificationService $verifier): int
+    public function handle(VerifyDomain $verifier): int
     {
         $limit = max(1, (int) $this->option('limit'));
         $domains = Domain::query()
@@ -25,7 +25,7 @@ class VerifyPendingDomains extends Command
             ->limit($limit)
             ->get();
 
-        $domains->each(fn (Domain $domain) => $verifier->verify($domain));
+        $domains->each(fn (Domain $domain) => $verifier->handle($domain));
 
         $this->info("Checked {$domains->count()} domains.");
 

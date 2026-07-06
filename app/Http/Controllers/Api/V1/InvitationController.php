@@ -2,30 +2,27 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Invitations\AcceptWorkspaceInvitation;
+use App\Actions\Invitations\InviteWorkspaceMember;
+use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
 use App\Models\WorkspaceMember;
-use App\Services\InvitationManager;
-use App\Services\WorkspaceContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class InvitationController extends Controller
 {
-    public function index(Request $request, WorkspaceContext $context): JsonResponse
+    public function index(Request $request, WorkspaceAccess $access): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace, 403);
+        $workspace = $access->requireCurrent($request);
 
         return response()->json(['data' => $workspace->invitations()->latest()->get()]);
     }
 
-    public function store(Request $request, WorkspaceContext $context, InvitationManager $invitations): JsonResponse
+    public function store(Request $request, InviteWorkspaceMember $invitations): JsonResponse
     {
-        $workspace = $context->current($request);
-        abort_unless($workspace && $context->canManageWorkspace($request->user(), $workspace), 403);
-
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'role' => ['required', Rule::in([
@@ -35,7 +32,7 @@ class InvitationController extends Controller
             ])],
         ]);
 
-        $result = $invitations->invite($workspace, $request->user(), $data['email'], $data['role']);
+        $result = $invitations->handle($request, $data['email'], $data['role']);
 
         if ($result['member']) {
             return response()->json([
@@ -50,9 +47,9 @@ class InvitationController extends Controller
         ], 201);
     }
 
-    public function accept(Request $request, Invitation $invitation, InvitationManager $invitations): JsonResponse
+    public function accept(Request $request, Invitation $invitation, AcceptWorkspaceInvitation $invitations): JsonResponse
     {
-        $member = $invitations->accept($request->user(), $invitation);
+        $member = $invitations->handle($request->user(), $invitation);
 
         return response()->json([
             'message' => 'Invitation accepted.',

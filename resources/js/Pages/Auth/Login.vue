@@ -15,7 +15,6 @@ defineProps<{
 const form = useForm({
     email: '',
     password: '',
-    one_time_password: '',
     remember: false,
 });
 
@@ -80,22 +79,6 @@ const submit = () => {
                 />
 
                 <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div>
-                <InputLabel for="one_time_password" value="Two-factor code" />
-
-                <TextInput
-                    id="one_time_password"
-                    type="text"
-                    inputmode="numeric"
-                    class="mt-1.5 block w-full"
-                    v-model="form.one_time_password"
-                    autocomplete="one-time-code"
-                    placeholder="Required when 2FA is enabled"
-                />
-
-                <InputError class="mt-2" :message="form.errors.one_time_password" />
             </div>
 
             <label class="flex items-center gap-2">

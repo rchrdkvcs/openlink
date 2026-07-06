@@ -18,7 +18,8 @@ class WorkspaceController extends Controller
     {
         return response()->json([
             'data' => $request->user()->workspaces()
-                ->orderBy('name')
+                ->orderBy('workspaces.created_at')
+                ->orderBy('workspaces.id')
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug', 'workspaces.preferred_domain_id'])
                 ->map(fn ($workspace) => [
                     'id' => $workspace->id,

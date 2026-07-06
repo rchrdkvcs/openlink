@@ -185,11 +185,11 @@ class OpenlinkMvpTest extends TestCase
             'password_hash' => Hash::make('opensesame'),
         ]);
 
-        $this->withHeader('X-Inertia', 'true')
-            ->get('http://'.$domain->hostname.'/host-bound-secret')
+        $this->get('http://'.$domain->hostname.'/host-bound-secret')
             ->assertOk()
-            ->assertJsonPath('component', 'Public/Password')
-            ->assertJsonPath('props.passwordUrl', '/password/'.$link->id);
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Password')
+                ->where('passwordUrl', '/password/'.$link->id));
     }
 
     public function test_visit_limit_only_counts_successful_destination_redirects(): void
@@ -310,11 +310,11 @@ class OpenlinkMvpTest extends TestCase
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
-        ])->assertSessionHasErrors('one_time_password');
+        ])->assertRedirect(route('login.two-factor', absolute: false));
 
-        $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'password',
+        $this->assertGuest();
+
+        $this->post(route('login.two-factor'), [
             'one_time_password' => (new Google2FA)->getCurrentOtp($secret),
         ])->assertRedirect('/dashboard');
 

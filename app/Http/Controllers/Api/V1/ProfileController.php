@@ -21,7 +21,8 @@ class ProfileController extends Controller
             'user' => $user->only(['id', 'name', 'email', 'email_verified_at', 'is_instance_admin']),
             'two_factor_enabled' => (bool) $user->two_factor_confirmed_at,
             'workspaces' => $user->workspaces()
-                ->orderBy('name')
+                ->orderBy('workspaces.created_at')
+                ->orderBy('workspaces.id')
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug'])
                 ->map(fn ($workspace) => [
                     'id' => $workspace->id,

@@ -24,7 +24,10 @@ class AnalyticsController extends Controller
 
         return Inertia::render('Analytics/Index', [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-            'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+            'workspaces' => $user->workspaces()
+                ->orderBy('workspaces.created_at')
+                ->orderBy('workspaces.id')
+                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
             'role' => $access->role($user, $workspace),
             'report' => $reporter->report($workspace, $filters, $accessibleLinkIds),
             'filters' => $filters->toQuery() + ['range' => $filters->range],

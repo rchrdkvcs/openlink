@@ -68,6 +68,10 @@ class PublicLinkController extends Controller
         }
 
         if ($result->redirectUrl) {
+            if ($request->header('X-Inertia')) {
+                return Inertia::location($result->redirectUrl);
+            }
+
             return redirect()->away($result->redirectUrl);
         }
 

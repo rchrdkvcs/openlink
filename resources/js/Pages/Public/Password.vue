@@ -5,6 +5,7 @@ import { LockKeyhole } from '@lucide/vue';
 const props = defineProps<{
     shortLinkId: number;
     qrCodeId?: number | null;
+    passwordUrl: string;
     error?: string | null;
 }>();
 
@@ -14,7 +15,7 @@ const form = useForm({
 });
 
 function submit() {
-    form.post(route('public.password', props.shortLinkId));
+    form.post(props.passwordUrl);
 }
 </script>
 

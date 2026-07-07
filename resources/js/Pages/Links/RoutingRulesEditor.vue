@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import Button from '@/Components/ui/Button.vue';
-import Field from '@/Components/ui/Field.vue';
 import Switch from '@/Components/ui/Switch.vue';
 import {
-    Activity,
     CalendarClock,
     ChevronDown,
-    ChevronUp,
+    ChevronRight,
     Copy,
     Globe2,
     Megaphone,
@@ -16,7 +14,7 @@ import {
     Shuffle,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import type { RoutingCondition, RoutingRuleDraft, RoutingVariantDraft } from './types';
 
 const rules = defineModel<RoutingRuleDraft[]>({ required: true });
@@ -25,9 +23,29 @@ const props = defineProps<{
     errors?: Record<string, string | undefined>;
 }>();
 
-const editingIndex = ref<number | null>(null);
+type PresetKind = 'country' | 'device' | 'campaign' | 'time' | 'split' | 'custom';
 
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const openIndex = ref<number | null>(null);
+const menuOpen = ref(false);
+
+const presets: { kind: PresetKind; label: string; description: string }[] = [
+    { kind: 'country', label: 'Country', description: 'Send visitors to a destination by country.' },
+    { kind: 'device', label: 'Device', description: 'Route mobile, desktop, tablet, or bot traffic.' },
+    { kind: 'campaign', label: 'Campaign', description: 'Match UTM campaign parameters.' },
+    { kind: 'time', label: 'Time', description: 'Use a time window with an explicit timezone.' },
+    { kind: 'split', label: 'Split test', description: 'Split traffic between weighted variants.' },
+    { kind: 'custom', label: 'Custom', description: 'Start from a blank rule.' },
+];
+
+const presetIcons: Record<PresetKind, unknown> = {
+    country: Globe2,
+    device: MonitorSmartphone,
+    campaign: Megaphone,
+    time: CalendarClock,
+    split: Shuffle,
+    custom: Plus,
+};
 
 const conditionTypes = [
     { value: 'country', label: 'Country' },
@@ -67,8 +85,6 @@ const timeOperators = [
 const dayOptions = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const deviceOptions = ['mobile', 'desktop', 'tablet', 'bot'];
 const channelOptions = ['direct', 'search', 'social', 'video', 'email', 'messaging', 'ai', 'referral'];
-
-const editingRule = computed(() => (editingIndex.value === null ? null : rules.value[editingIndex.value] ?? null));
 
 function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -113,17 +129,23 @@ function newRule(type: RoutingRuleDraft['type'], conditionType = 'country'): Rou
     };
 }
 
-function addRule(kind: string) {
-    const type = kind === 'split' ? 'split_test' : 'conditional';
-    const conditionType =
-        kind === 'device' ? 'device_type' :
-        kind === 'campaign' ? 'utm_campaign' :
-        kind === 'time' ? 'time_of_day' :
-        kind === 'custom' || kind === 'split' ? 'custom' :
-        'country';
+function ruleFromKind(kind: PresetKind): RoutingRuleDraft {
+    if (kind === 'split') return newRule('split_test', 'custom');
+    if (kind === 'device') return newRule('conditional', 'device_type');
+    if (kind === 'campaign') return newRule('conditional', 'utm_campaign');
+    if (kind === 'time') return newRule('conditional', 'time_of_day');
+    if (kind === 'custom') return newRule('conditional', 'custom');
+    return newRule('conditional', 'country');
+}
 
-    rules.value = [...rules.value, newRule(type, conditionType)];
-    editingIndex.value = rules.value.length - 1;
+function addRule(kind: PresetKind) {
+    rules.value = [...rules.value, ruleFromKind(kind)];
+    openIndex.value = rules.value.length - 1;
+    menuOpen.value = false;
+}
+
+function toggle(index: number) {
+    openIndex.value = openIndex.value === index ? null : index;
 }
 
 function duplicateRule(index: number) {
@@ -133,12 +155,12 @@ function duplicateRule(index: number) {
     copy.name = `${copy.name} copy`;
     copy.variants = copy.variants.map((variant) => ({ ...variant, id: undefined, client_id: uid() }));
     rules.value = [...rules.value.slice(0, index + 1), copy, ...rules.value.slice(index + 1)];
-    editingIndex.value = index + 1;
+    openIndex.value = index + 1;
 }
 
 function removeRule(index: number) {
     rules.value = rules.value.filter((_, current) => current !== index);
-    editingIndex.value = null;
+    openIndex.value = null;
 }
 
 function moveRule(index: number, direction: -1 | 1) {
@@ -147,23 +169,13 @@ function moveRule(index: number, direction: -1 | 1) {
     const clone = [...rules.value];
     [clone[index], clone[next]] = [clone[next], clone[index]];
     rules.value = clone;
-    editingIndex.value = next;
+    openIndex.value = next;
 }
 
-function addCondition(rule: RoutingRuleDraft) {
-    rule.conditions.push(newCondition());
-}
-
-function removeCondition(rule: RoutingRuleDraft, index: number) {
-    rule.conditions.splice(index, 1);
-}
-
-function addVariant(rule: RoutingRuleDraft) {
-    rule.variants.push(newVariant(String.fromCharCode(65 + rule.variants.length)));
-}
-
-function removeVariant(rule: RoutingRuleDraft, index: number) {
-    rule.variants.splice(index, 1);
+function onRuleTypeChange(rule: RoutingRuleDraft) {
+    if (rule.type === 'split_test' && rule.variants.length === 0) {
+        rule.variants = [newVariant('A'), newVariant('B')];
+    }
 }
 
 function onConditionTypeChange(condition: RoutingCondition) {
@@ -171,12 +183,6 @@ function onConditionTypeChange(condition: RoutingCondition) {
     condition.operator = replacement.operator;
     condition.value = replacement.value;
     condition.timezone = replacement.timezone;
-}
-
-function onRuleTypeChange(rule: RoutingRuleDraft) {
-    if (rule.type === 'split_test' && rule.variants.length === 0) {
-        rule.variants = [newVariant('A'), newVariant('B')];
-    }
 }
 
 function operatorsFor(condition: RoutingCondition) {
@@ -237,7 +243,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
 </script>
 
 <template>
-    <div class="grid gap-4">
+    <div class="grid gap-3">
         <div v-if="props.errors?.routing_rules" class="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
             {{ props.errors.routing_rules }}
         </div>
@@ -252,141 +258,191 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
                     <p class="mt-1 text-xs leading-5 text-faint">Choose destinations by country, device, campaign, time, or split traffic between variants.</p>
                 </div>
             </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-2">
+                <button
+                    v-for="preset in presets"
+                    :key="preset.kind"
+                    type="button"
+                    class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-elevated"
+                    @click="addRule(preset.kind)"
+                >
+                    <component :is="presetIcons[preset.kind]" class="h-3.5 w-3.5 shrink-0 text-accent" />
+                    <span class="text-[13px] font-medium text-foreground">{{ preset.label }}</span>
+                </button>
+            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Button type="button" variant="secondary" size="sm" @click="addRule('country')"><Globe2 class="h-3.5 w-3.5" />Country</Button>
-            <Button type="button" variant="secondary" size="sm" @click="addRule('device')"><MonitorSmartphone class="h-3.5 w-3.5" />Device</Button>
-            <Button type="button" variant="secondary" size="sm" @click="addRule('campaign')"><Megaphone class="h-3.5 w-3.5" />Campaign</Button>
-            <Button type="button" variant="secondary" size="sm" @click="addRule('time')"><CalendarClock class="h-3.5 w-3.5" />Time</Button>
-            <Button type="button" variant="secondary" size="sm" @click="addRule('split')"><Shuffle class="h-3.5 w-3.5" />Split test</Button>
-            <Button type="button" variant="secondary" size="sm" @click="addRule('custom')"><Plus class="h-3.5 w-3.5" />Custom</Button>
-        </div>
-
-        <div v-if="rules.length" class="grid gap-2">
-            <article
-                v-for="(rule, index) in rules"
-                :key="rule.id ?? rule.client_id ?? index"
-                class="rounded-lg border bg-surface p-3 transition-colors"
-                :class="editingIndex === index ? 'border-accent/50' : 'hover:border-border-strong'"
-            >
-                <div class="flex items-start gap-3">
-                    <div class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-elevated text-xs font-semibold text-muted">{{ index + 1 }}</div>
-                    <button type="button" class="min-w-0 flex-1 text-left" @click="editingIndex = editingIndex === index ? null : index">
-                        <span class="block truncate text-[13px] font-medium text-foreground">{{ rule.name }}</span>
-                        <span class="mt-0.5 block truncate text-xs text-faint">{{ ruleSummary(rule) }}</span>
+        <div v-else class="flex items-center justify-between gap-3">
+            <p class="text-xs text-faint">{{ rules.length }} rule{{ rules.length > 1 ? 's' : '' }} · evaluated top to bottom, first match wins.</p>
+            <div class="relative">
+                <Button type="button" variant="secondary" size="sm" @click="menuOpen = !menuOpen">
+                    <Plus class="h-3.5 w-3.5" />Add rule<ChevronDown class="h-3 w-3 text-faint" />
+                </Button>
+                <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
+                <div v-if="menuOpen" class="absolute right-0 z-20 mt-1.5 w-64 rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer">
+                    <button
+                        v-for="preset in presets"
+                        :key="preset.kind"
+                        type="button"
+                        class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-elevated"
+                        @click="addRule(preset.kind)"
+                    >
+                        <component :is="presetIcons[preset.kind]" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+                        <span class="min-w-0">
+                            <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
+                            <span class="block text-xs text-faint">{{ preset.description }}</span>
+                        </span>
                     </button>
-                    <Switch v-model="rule.is_enabled" />
                 </div>
-                <div class="mt-3 flex flex-wrap justify-end gap-1.5">
-                    <Button type="button" variant="ghost" size="sm" title="Move up" :disabled="index === 0" @click="moveRule(index, -1)"><ChevronUp class="h-3.5 w-3.5" /></Button>
-                    <Button type="button" variant="ghost" size="sm" title="Move down" :disabled="index === rules.length - 1" @click="moveRule(index, 1)"><ChevronDown class="h-3.5 w-3.5" /></Button>
-                    <Button type="button" variant="ghost" size="sm" title="Duplicate" @click="duplicateRule(index)"><Copy class="h-3.5 w-3.5" /></Button>
-                    <Button type="button" variant="danger" size="sm" title="Delete" @click="removeRule(index)"><Trash2 class="h-3.5 w-3.5" /></Button>
-                </div>
-            </article>
+            </div>
         </div>
 
-        <section v-if="editingRule" class="grid gap-4 rounded-lg border bg-elevated/40 p-4">
-            <div class="grid gap-3 sm:grid-cols-[1fr_140px]">
-                <Field label="Rule name">
-                    <input v-model="editingRule.name" class="h-9" />
-                </Field>
-                <Field label="Type">
-                    <select v-model="editingRule.type" class="h-9" @change="onRuleTypeChange(editingRule)">
+        <article
+            v-for="(rule, index) in rules"
+            :key="rule.id ?? rule.client_id ?? index"
+            class="rounded-lg border bg-surface transition-colors"
+            :class="openIndex === index ? 'border-accent/50' : 'hover:border-border-strong'"
+        >
+            <div class="flex items-center gap-2.5 p-3">
+                <button type="button" class="flex min-w-0 flex-1 items-center gap-2.5 text-left" @click="toggle(index)">
+                    <ChevronRight class="h-3.5 w-3.5 shrink-0 text-faint transition-transform" :class="openIndex === index && 'rotate-90'" />
+                    <span class="min-w-0">
+                        <span class="block truncate text-[13px] font-medium" :class="rule.is_enabled ? 'text-foreground' : 'text-faint line-through'">{{ rule.name }}</span>
+                        <span class="mt-0.5 block truncate text-xs text-faint">{{ ruleSummary(rule) }}</span>
+                    </span>
+                </button>
+                <Switch v-model="rule.is_enabled" />
+            </div>
+
+            <div v-if="openIndex === index" class="grid gap-4 border-t bg-elevated/30 p-3">
+                <div class="grid gap-3 sm:grid-cols-[1fr_140px]">
+                    <input v-model="rule.name" class="h-9" placeholder="Rule name" />
+                    <select v-model="rule.type" class="h-9" @change="onRuleTypeChange(rule)">
                         <option value="conditional">Destination</option>
                         <option value="split_test">Split test</option>
                     </select>
-                </Field>
-            </div>
+                </div>
 
-            <div class="flex items-center justify-between gap-3 rounded-md border bg-surface px-3 py-2">
-                <span class="text-[13px] text-muted">Conditions match</span>
-                <select v-model="editingRule.match_mode" class="h-8 w-28">
-                    <option value="all">All</option>
-                    <option value="any">Any</option>
-                </select>
-            </div>
-
-            <div class="grid gap-2">
-                <div
-                    v-for="(condition, conditionIndex) in editingRule.conditions"
-                    :key="conditionIndex"
-                    class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[140px_140px_1fr_auto]"
-                >
-                    <select v-model="condition.type" class="h-9" @change="onConditionTypeChange(condition)">
-                        <option v-for="option in conditionTypes" :key="option.value" :value="option.value">{{ option.label }}</option>
-                    </select>
-                    <select v-model="condition.operator" class="h-9">
-                        <option v-for="option in operatorsFor(condition)" :key="option.value" :value="option.value">{{ option.label }}</option>
-                    </select>
-
-                    <template v-if="hasValueInput(condition)">
-                        <div v-if="condition.operator === 'between'" class="grid grid-cols-2 gap-2">
-                            <input v-model="rangeValue(condition).from" class="h-9" :type="condition.type === 'date_time' ? 'datetime-local' : 'time'" />
-                            <input v-model="rangeValue(condition).to" class="h-9" :type="condition.type === 'date_time' ? 'datetime-local' : 'time'" />
+                <div class="grid gap-2">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-faint">When</p>
+                        <div class="grid grid-cols-2 rounded-md border bg-surface p-0.5 text-xs">
+                            <button
+                                v-for="mode in ['all', 'any'] as const"
+                                :key="mode"
+                                type="button"
+                                class="rounded px-2.5 py-1 font-medium transition-colors"
+                                :class="rule.match_mode === mode ? 'bg-elevated text-foreground' : 'text-faint hover:text-foreground'"
+                                @click="rule.match_mode = mode"
+                            >
+                                {{ mode === 'all' ? 'All match' : 'Any match' }}
+                            </button>
                         </div>
-                        <select v-else-if="valueOptions(condition)" v-model="condition.value" class="h-9">
-                            <option v-for="option in valueOptions(condition)" :key="option" :value="option">{{ option }}</option>
+                    </div>
+
+                    <p v-if="rule.conditions.length === 0" class="rounded-md border border-dashed px-3 py-2 text-xs text-faint">
+                        No condition - applies to every visitor.
+                    </p>
+
+                    <div
+                        v-for="(condition, conditionIndex) in rule.conditions"
+                        :key="conditionIndex"
+                        class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[140px_140px_1fr_auto]"
+                    >
+                        <select v-model="condition.type" class="h-9" @change="onConditionTypeChange(condition)">
+                            <option v-for="option in conditionTypes" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
+                        <select v-model="condition.operator" class="h-9">
+                            <option v-for="option in operatorsFor(condition)" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+
+                        <template v-if="hasValueInput(condition)">
+                            <div v-if="condition.operator === 'between'" class="grid grid-cols-2 gap-2">
+                                <input v-model="rangeValue(condition).from" class="h-9" :type="condition.type === 'date_time' ? 'datetime-local' : 'time'" />
+                                <input v-model="rangeValue(condition).to" class="h-9" :type="condition.type === 'date_time' ? 'datetime-local' : 'time'" />
+                            </div>
+                            <select v-else-if="valueOptions(condition)" v-model="condition.value" class="h-9">
+                                <option v-for="option in valueOptions(condition)" :key="option" :value="option">{{ option }}</option>
+                            </select>
+                            <input
+                                v-else
+                                v-model="condition.value"
+                                class="h-9"
+                                :type="condition.type === 'date_time' ? 'datetime-local' : 'text'"
+                                placeholder="Value"
+                            />
+                        </template>
+                        <div v-else class="h-9 rounded-md border bg-elevated px-3 py-2 text-xs text-faint">No value needed</div>
+
+                        <Button type="button" variant="ghost" size="sm" title="Remove condition" @click="rule.conditions.splice(conditionIndex, 1)">
+                            <Trash2 class="h-3.5 w-3.5" />
+                        </Button>
+
                         <input
-                            v-else
-                            v-model="condition.value"
-                            class="h-9"
-                            :type="condition.type === 'date_time' ? 'datetime-local' : 'text'"
-                            placeholder="Value"
+                            v-if="['date_time', 'day_of_week', 'time_of_day'].includes(condition.type)"
+                            v-model="condition.timezone"
+                            class="h-8 sm:col-span-4"
+                            placeholder="Timezone"
                         />
-                    </template>
-                    <div v-else class="h-9 rounded-md border bg-elevated px-3 py-2 text-xs text-faint">No value needed</div>
+                    </div>
 
-                    <Button type="button" variant="ghost" size="sm" title="Remove condition" @click="removeCondition(editingRule, conditionIndex)">
-                        <Trash2 class="h-3.5 w-3.5" />
+                    <Button type="button" variant="ghost" size="sm" class="justify-self-start" @click="rule.conditions.push(newCondition())">
+                        <Plus class="h-3.5 w-3.5" />Condition
                     </Button>
-
-                    <input
-                        v-if="['date_time', 'day_of_week', 'time_of_day'].includes(condition.type)"
-                        v-model="condition.timezone"
-                        class="h-8 sm:col-span-4"
-                        placeholder="Timezone"
-                    />
                 </div>
-                <Button type="button" variant="secondary" size="sm" class="justify-self-start" @click="addCondition(editingRule)">
-                    <Plus class="h-3.5 w-3.5" />Condition
-                </Button>
-            </div>
 
-            <Field v-if="editingRule.type === 'conditional'" label="Destination URL" :error="props.errors?.[`routing_rules.${editingIndex}.destination_url`]">
-                <input v-model="editingRule.destination_url" class="h-9" placeholder="https://example.com/landing" />
-            </Field>
-
-            <div v-else class="grid gap-2">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-[13px] font-medium text-foreground">Variants</p>
-                    <Button type="button" variant="secondary" size="sm" @click="addVariant(editingRule)"><Plus class="h-3.5 w-3.5" />Variant</Button>
+                <div class="grid gap-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-faint">Then</p>
+                    <template v-if="rule.type === 'conditional'">
+                        <input v-model="rule.destination_url" class="h-9" placeholder="https://example.com/landing" />
+                        <p v-if="props.errors?.[`routing_rules.${index}.destination_url`]" class="text-xs text-danger">
+                            {{ props.errors[`routing_rules.${index}.destination_url`] }}
+                        </p>
+                    </template>
+                    <template v-else>
+                        <div
+                            v-for="(variant, variantIndex) in rule.variants"
+                            :key="variant.id ?? variant.client_id ?? variantIndex"
+                            class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[80px_1fr_72px_auto]"
+                        >
+                            <input v-model="variant.name" class="h-9" />
+                            <input v-model="variant.destination_url" class="h-9" placeholder="https://example.com/variant" />
+                            <input v-model="variant.weight" class="h-9" type="number" min="1" />
+                            <div class="flex items-center gap-2">
+                                <Switch v-model="variant.is_enabled" />
+                                <Button type="button" variant="ghost" size="sm" title="Remove variant" @click="rule.variants.splice(variantIndex, 1)">
+                                    <Trash2 class="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" class="justify-self-start" @click="rule.variants.push(newVariant(String.fromCharCode(65 + rule.variants.length)))">
+                            <Plus class="h-3.5 w-3.5" />Variant
+                        </Button>
+                        <p v-if="props.errors?.[`routing_rules.${index}.variants`]" class="text-xs text-danger">
+                            {{ props.errors[`routing_rules.${index}.variants`] }}
+                        </p>
+                    </template>
                 </div>
-                <div
-                    v-for="(variant, variantIndex) in editingRule.variants"
-                    :key="variant.id ?? variant.client_id ?? variantIndex"
-                    class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[92px_1fr_80px_auto]"
-                >
-                    <input v-model="variant.name" class="h-9" />
-                    <input v-model="variant.destination_url" class="h-9" placeholder="https://example.com/variant" />
-                    <input v-model="variant.weight" class="h-9" type="number" min="1" />
-                    <div class="flex items-center gap-2">
-                        <Switch v-model="variant.is_enabled" />
-                        <Button type="button" variant="ghost" size="sm" title="Remove variant" @click="removeVariant(editingRule, variantIndex)">
+
+                <div class="flex items-center justify-between border-t pt-3">
+                    <div class="flex gap-1.5">
+                        <Button type="button" variant="ghost" size="sm" title="Move up" :disabled="index === 0" @click="moveRule(index, -1)">
+                            <ChevronDown class="h-3.5 w-3.5 rotate-180" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" title="Move down" :disabled="index === rules.length - 1" @click="moveRule(index, 1)">
+                            <ChevronDown class="h-3.5 w-3.5" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" title="Duplicate" @click="duplicateRule(index)">
+                            <Copy class="h-3.5 w-3.5" />
+                        </Button>
+                        <Button type="button" variant="danger" size="sm" title="Delete" @click="removeRule(index)">
                             <Trash2 class="h-3.5 w-3.5" />
                         </Button>
                     </div>
+                    <Button type="button" variant="secondary" size="sm" @click="openIndex = null">Done</Button>
                 </div>
-                <p v-if="props.errors?.[`routing_rules.${editingIndex}.variants`]" class="text-xs text-danger">
-                    {{ props.errors[`routing_rules.${editingIndex}.variants`] }}
-                </p>
             </div>
-
-            <div class="flex justify-end">
-                <Button type="button" variant="secondary" @click="editingIndex = null"><Activity class="h-3.5 w-3.5" />Done</Button>
-            </div>
-        </section>
+        </article>
     </div>
 </template>

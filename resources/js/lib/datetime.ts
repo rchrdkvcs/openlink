@@ -15,7 +15,13 @@ export function toInputValue(d: Date): string {
 
 export function fromInputValue(value: string): Date | null {
     if (!value) return null;
-    const d = new Date(value);
+
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+    if (!match) return null;
+
+    const [, year, month, day, hours, minutes] = match;
+    const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
+
     return Number.isNaN(d.getTime()) ? null : d;
 }
 

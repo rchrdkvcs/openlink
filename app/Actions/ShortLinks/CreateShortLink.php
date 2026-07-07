@@ -28,7 +28,7 @@ class CreateShortLink
 
         $domain = $this->domainForWorkspace((int) ($data['domain_id'] ?? $fallbackDomain?->id), $workspace->id);
         abort_unless($domain, 422, 'Domain does not belong to this workspace.');
-        abort_unless($domain->isUsable(), 422, 'Domain is not verified or is disabled.');
+        abort_unless($domain->isUsable(), 422, 'Domain is not active or is disabled.');
 
         $folder = $this->folderForWorkspace($workspace, $data['folder_id'] ?? null);
         abort_if($folder && ! $this->access->canEditFolder($user, $folder), 403);

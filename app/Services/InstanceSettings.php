@@ -11,6 +11,7 @@ class InstanceSettings
         'instance_name' => 'Openlink',
         'registration_mode' => 'invite_only',
         'default_domain' => 'localhost',
+        'dns_target' => '',
         'reserved_slugs' => [
             'admin',
             'app',

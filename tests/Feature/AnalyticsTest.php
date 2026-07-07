@@ -272,7 +272,7 @@ class AnalyticsTest extends TestCase
         $domain = Domain::create([
             'workspace_id' => $workspace->id,
             'hostname' => $hostname,
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => 'test-token-'.str()->random(12),
             'verified_at' => now(),
         ]);

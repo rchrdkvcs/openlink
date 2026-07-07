@@ -5,30 +5,47 @@ namespace App\Http\Controllers;
 use App\Actions\Domains\CreateDomain;
 use App\Actions\Domains\DeleteDomain;
 use App\Actions\Domains\DisableDomain;
+use App\Actions\Domains\DomainPayload;
+use App\Actions\Domains\RunDomainChecks;
 use App\Actions\Domains\TransferDomain;
-use App\Actions\Domains\VerifyDomain;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DomainController extends Controller
 {
+    public function create(Request $request, WorkspaceAccess $access): Response
+    {
+        $access->requireManagedWorkspace($request);
+
+        return Inertia::render('Domains/Setup', ['domain' => null]);
+    }
+
+    public function setup(Request $request, Domain $domain, WorkspaceAccess $access, DomainPayload $payload): Response
+    {
+        $access->requireManagedDomain($request, $domain);
+
+        return Inertia::render('Domains/Setup', ['domain' => $payload->handle($domain)]);
+    }
+
     public function store(Request $request, CreateDomain $domains): RedirectResponse
     {
         $data = $request->validate([
             'hostname' => ['required', 'string', 'max:255', 'unique:domains,hostname'],
         ]);
 
-        $domains->handle($request, $data['hostname']);
+        $domain = $domains->handle($request, $data['hostname']);
 
-        return back();
+        return redirect()->route('domains.setup', $domain);
     }
 
-    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, VerifyDomain $verifier): RedirectResponse
+    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, RunDomainChecks $checks): RedirectResponse
     {
         $access->requireManagedDomain($request, $domain);
-        $verifier->handle($domain);
+        $checks->handle($domain);
 
         return back();
     }
@@ -55,6 +72,6 @@ class DomainController extends Controller
     {
         $domains->handle($request, $domain);
 
-        return back();
+        return redirect()->route('domains.index');
     }
 }

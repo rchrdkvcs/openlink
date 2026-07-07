@@ -121,12 +121,14 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/v1/domains` | List domains (incl. default domain and expected TXT record) |
+| `GET` | `/api/v1/domains` | List domains (incl. default domain, expected TXT record, and pointing record) |
 | `POST` | `/api/v1/domains` | Add a domain (`hostname`) |
-| `POST` | `/api/v1/domains/{id}/verify` | Run DNS TXT verification |
+| `POST` | `/api/v1/domains/{id}/verify` | Run DNS checks: TXT ownership verification and A/CNAME pointing |
 | `POST` | `/api/v1/domains/{id}/disable` | Disable the domain |
 | `POST` | `/api/v1/domains/{id}/transfer` | Transfer to another managed workspace (`workspace_id`) |
 | `DELETE` | `/api/v1/domains/{id}` | Delete the domain |
+
+Domain `status` is one of `pending_verification`, `failed_verification`, `ownership_verified` (TXT found, DNS not yet pointing to the server), `active` (serves short links), or `disabled`. An `ownership_verified` domain also becomes `active` when a real request reaches the server on that hostname. Payloads include `dns_record` (`type` + `value` the domain should point to, from the instance `dns_target` setting, falling back to the default domain) and `dns_check_error` when the pointing check fails.
 
 ### Folders, tags, permissions
 

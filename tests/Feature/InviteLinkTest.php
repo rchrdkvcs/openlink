@@ -159,7 +159,7 @@ class InviteLinkTest extends TestCase
         Domain::create([
             'workspace_id' => null,
             'hostname' => 'localhost',
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => Str::random(12),
             'is_default' => true,
             'verified_at' => now(),

@@ -84,10 +84,11 @@ class RegisteredUserController extends Controller
                     'hostname' => parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost',
                 ], [
                     'workspace_id' => null,
-                    'status' => Domain::STATUS_VERIFIED,
+                    'status' => Domain::STATUS_ACTIVE,
                     'verification_token' => Str::random(40),
                     'is_default' => true,
                     'verified_at' => now(),
+                    'dns_pointed_at' => now(),
                 ]);
             }
 

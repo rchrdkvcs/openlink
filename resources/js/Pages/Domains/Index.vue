@@ -5,12 +5,20 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Trash2 } from '@lucide/vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 
 type Workspace = { id: number; name: string; slug: string };
-type Domain = { id: number; hostname: string; status: string; is_default: boolean; expected_txt?: string; failure_reason?: string | null };
+type Domain = {
+    id: number;
+    hostname: string;
+    status: string;
+    is_default: boolean;
+    expected_txt?: string;
+    failure_reason?: string | null;
+    dns_check_error?: string | null;
+};
 
 const props = defineProps<{
     currentWorkspace: Workspace;
@@ -19,13 +27,8 @@ const props = defineProps<{
     domains: Domain[];
 }>();
 
-const domainForm = useForm({ hostname: '' });
 const transferMenuFor = ref<number | null>(null);
 const transferForm = useForm({ workspace_id: '' });
-
-function submitDomain() {
-    domainForm.post(route('domains.store'), { preserveScroll: true, onSuccess: () => domainForm.reset() });
-}
 
 function verifyDomain(domain: Domain) {
     useForm({}).post(route('domains.verify', domain.id), { preserveScroll: true });
@@ -59,8 +62,24 @@ function deleteDomain(domain: Domain) {
 
 function statusVariant(domain: Domain) {
     if (domain.is_default) return 'outline';
-    if (domain.status === 'verified') return 'success';
+    if (domain.status === 'active') return 'success';
+    if (domain.status === 'failed_verification') return 'danger';
     return 'warning';
+}
+
+function statusLabel(domain: Domain) {
+    if (domain.is_default) return 'default';
+    return {
+        active: 'active',
+        ownership_verified: 'almost ready',
+        pending_verification: 'setup needed',
+        failed_verification: 'setup needed',
+        disabled: 'disabled',
+    }[domain.status] ?? domain.status;
+}
+
+function needsSetup(domain: Domain) {
+    return !domain.is_default && domain.status !== 'active' && domain.status !== 'disabled';
 }
 
 function targetWorkspaces() {
@@ -73,26 +92,17 @@ function targetWorkspaces() {
 
     <AuthenticatedLayout>
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-            <div class="mb-6">
-                <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
-                <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
+            <div class="mb-6 flex items-end justify-between gap-3">
+                <div>
+                    <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
+                    <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
+                </div>
+                <Link v-if="canManageWorkspace" :href="route('domains.create')">
+                    <Button class="shrink-0"><Plus class="h-4 w-4" /> Add domain</Button>
+                </Link>
             </div>
 
             <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
-                <form v-if="canManageWorkspace" class="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-end" @submit.prevent="submitDomain">
-                    <Field
-                        label="Hostname"
-                        hint="Enter the domain or subdomain used for short URLs."
-                        :error="domainForm.errors.hostname"
-                        class="min-w-0 flex-1"
-                    >
-                        <input v-model="domainForm.hostname" class="h-9" placeholder="go.example.com" />
-                    </Field>
-                    <Button class="mb-[22px] shrink-0" :loading="domainForm.processing">
-                        <Plus class="h-4 w-4" /> Add domain
-                    </Button>
-                </form>
-
                 <div class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid">
                     <span>Hostname</span>
                     <span>Status</span>
@@ -111,12 +121,13 @@ function targetWorkspaces() {
                             <p class="mt-0.5 text-xs text-faint">{{ domain.is_default ? 'Application default' : 'Workspace domain' }}</p>
                         </div>
                         <div>
-                            <Badge :variant="statusVariant(domain)" dot>{{ domain.is_default ? 'default' : domain.status }}</Badge>
+                            <Badge :variant="statusVariant(domain)" dot>{{ statusLabel(domain) }}</Badge>
                         </div>
                         <div class="min-w-0">
-                            <code v-if="!domain.is_default" class="block break-all rounded-md bg-elevated px-2 py-1 font-mono text-xs text-muted">
-                                TXT {{ domain.expected_txt }}
-                            </code>
+                            <Link v-if="canManageWorkspace && needsSetup(domain)" :href="route('domains.setup', domain.id)">
+                                <Button variant="secondary" size="sm"><Settings2 class="h-3.5 w-3.5" /> Continue setup</Button>
+                            </Link>
+                            <p v-else-if="!domain.is_default && domain.status === 'active'" class="text-xs text-muted">DNS configured</p>
                             <p v-if="domain.failure_reason" class="mt-1.5 text-xs text-danger">{{ domain.failure_reason }}</p>
                         </div>
                         <div class="flex gap-0.5 lg:justify-end">

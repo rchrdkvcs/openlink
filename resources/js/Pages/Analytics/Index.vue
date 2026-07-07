@@ -3,9 +3,7 @@ import BarList from '@/Components/analytics/BarList.vue';
 import BreakdownCard from '@/Components/analytics/BreakdownCard.vue';
 import KpiCard from '@/Components/analytics/KpiCard.vue';
 import TimeSeriesChart from '@/Components/analytics/TimeSeriesChart.vue';
-import Badge from '@/Components/ui/Badge.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import {
@@ -29,7 +27,6 @@ type Option = { id: number; name?: string; slug?: string; hostname?: string };
 
 const props = defineProps<{
     currentWorkspace: { id: number; name: string; slug: string };
-    role: string;
     report: Report;
     filters: Record<string, string | number>;
     filterOptions: {
@@ -172,12 +169,6 @@ const outcomeRows = computed(() =>
     <Head title="Analytics" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Analytics">
-                <Badge variant="outline">{{ role }}</Badge>
-            </PageHeader>
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>

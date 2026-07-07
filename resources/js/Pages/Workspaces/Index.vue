@@ -2,7 +2,6 @@
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -49,10 +48,6 @@ function initial(name: string) {
     <Head title="Workspaces" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Workspaces" />
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Workspaces</h1>

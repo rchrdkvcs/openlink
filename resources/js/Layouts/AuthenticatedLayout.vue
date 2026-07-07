@@ -32,18 +32,16 @@ function initial(name?: string) {
 
 <template>
     <div class="min-h-screen bg-background text-foreground">
-        <!-- Sidebar (desktop) -->
-        <aside class="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-background lg:flex">
+        <!-- Sidebar (desktop) — floating card -->
+        <aside class="card-sheen fixed bottom-3 left-3 top-3 z-30 hidden w-60 flex-col rounded-lg border bg-surface lg:flex">
             <!-- Workspace switcher -->
-            <div class="px-3 pb-2 pt-3">
+            <div class="px-2.5 pb-2 pt-2.5">
                 <Dropdown align="left" width="64" contentClasses="p-1">
                     <template #trigger>
                         <button
                             class="flex h-10 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         >
-                            <span
-                                class="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-accent to-accent/60 text-xs font-semibold text-white"
-                            >
+                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
                                 {{ initial(currentWorkspace?.name) }}
                             </span>
                             <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
@@ -75,14 +73,16 @@ function initial(name?: string) {
                 </Dropdown>
             </div>
 
+            <div class="mx-2.5 border-t" />
+
             <!-- Navigation -->
-            <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+            <nav class="flex-1 space-y-0.5 overflow-y-auto px-2.5 py-2.5">
                 <Link
                     v-for="item in navItems"
                     :key="item.label"
                     :href="item.href"
                     class="group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-100"
-                    :class="item.active ? 'bg-elevated text-foreground' : 'text-muted hover:bg-elevated/60 hover:text-foreground'"
+                    :class="item.active ? 'bg-elevated text-foreground ring-1 ring-inset ring-border' : 'text-muted hover:bg-elevated/60 hover:text-foreground'"
                 >
                     <component :is="item.icon" class="h-4 w-4 shrink-0" :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'" />
                     <span>{{ item.label }}</span>
@@ -94,7 +94,7 @@ function initial(name?: string) {
                     :key="item.label"
                     :href="item.href"
                     class="group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-100"
-                    :class="item.active ? 'bg-elevated text-foreground' : 'text-muted hover:bg-elevated/60 hover:text-foreground'"
+                    :class="item.active ? 'bg-elevated text-foreground ring-1 ring-inset ring-border' : 'text-muted hover:bg-elevated/60 hover:text-foreground'"
                 >
                     <component :is="item.icon" class="h-4 w-4 shrink-0" :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'" />
                     <span>{{ item.label }}</span>
@@ -159,7 +159,7 @@ function initial(name?: string) {
                 <aside v-if="mobileNavOpen" class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-overlay lg:hidden">
                     <div class="flex h-14 items-center justify-between border-b px-4">
                         <span class="inline-flex items-center gap-2.5">
-                            <span class="grid h-6 w-6 place-items-center rounded-[6px] bg-gradient-to-br from-accent to-accent/60 text-xs font-semibold text-white">
+                            <span class="grid h-6 w-6 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
                                 {{ initial(currentWorkspace?.name) }}
                             </span>
                             <span class="text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
@@ -202,20 +202,23 @@ function initial(name?: string) {
             </Transition>
         </Teleport>
 
-        <!-- Main column -->
-        <div class="flex min-h-screen flex-col lg:pl-60">
-            <header class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <!-- Main column — no desktop top bar -->
+        <div class="flex min-h-screen flex-col lg:pl-[16.5rem]">
+            <header class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden">
                 <button
                     type="button"
-                    class="grid h-8 w-8 place-items-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground lg:hidden"
+                    class="grid h-8 w-8 place-items-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground"
                     @click="mobileNavOpen = true"
                 >
                     <Menu class="h-4 w-4" />
                 </button>
 
-                <div class="min-w-0 flex-1">
-                    <slot name="header" />
-                </div>
+                <span class="inline-flex min-w-0 items-center gap-2.5">
+                    <span class="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
+                        {{ initial(currentWorkspace?.name) }}
+                    </span>
+                    <span class="truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
+                </span>
             </header>
 
             <main class="flex-1">

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import TwoFactorForm from './Partials/TwoFactorForm.vue';
@@ -22,10 +21,6 @@ defineProps<{
     <Head title="Profile" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Profile" />
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Profile</h1>

@@ -4,7 +4,6 @@ import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Trash2 } from '@lucide/vue';
@@ -73,10 +72,6 @@ function targetWorkspaces() {
     <Head title="Domains" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Domains" />
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Domains</h1>

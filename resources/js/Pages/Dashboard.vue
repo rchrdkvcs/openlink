@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import KpiCard from '@/Components/analytics/KpiCard.vue';
 import TimeSeriesChart from '@/Components/analytics/TimeSeriesChart.vue';
-import Badge from '@/Components/ui/Badge.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { formatNumber, type ReportRange, type Summary, type TimePoint, type TopLink } from '@/lib/analytics';
@@ -17,7 +15,6 @@ type ShortLink = { id: number; status: string; is_enabled: boolean };
 
 const props = defineProps<{
     currentWorkspace: Workspace;
-    role: string;
     domains: Domain[];
     links: ShortLink[];
     analytics: {
@@ -38,12 +35,6 @@ const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0
     <Head title="Overview" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Overview">
-                <Badge variant="outline">{{ role }}</Badge>
-            </PageHeader>
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>

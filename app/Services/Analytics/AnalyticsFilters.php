@@ -24,6 +24,8 @@ class AnalyticsFilters
         public readonly ?int $domainId = null,
         public readonly ?int $folderId = null,
         public readonly ?int $tagId = null,
+        public readonly ?int $routingRuleId = null,
+        public readonly ?int $routingVariantId = null,
         public readonly ?string $metric = null,
     ) {}
 
@@ -53,6 +55,8 @@ class AnalyticsFilters
             domainId: self::id($request, 'domain'),
             folderId: self::id($request, 'folder'),
             tagId: self::id($request, 'tag'),
+            routingRuleId: self::id($request, 'rule'),
+            routingVariantId: self::id($request, 'variant'),
             metric: in_array($metric, [RecordAnalytics::METRIC_VISIT, RecordAnalytics::METRIC_SCAN], true) ? $metric : null,
         );
     }
@@ -71,6 +75,8 @@ class AnalyticsFilters
             domainId: $this->domainId,
             folderId: $this->folderId,
             tagId: $this->tagId,
+            routingRuleId: $this->routingRuleId,
+            routingVariantId: $this->routingVariantId,
             metric: $this->metric,
         );
     }
@@ -99,6 +105,8 @@ class AnalyticsFilters
             'domain' => $this->domainId,
             'folder' => $this->folderId,
             'tag' => $this->tagId,
+            'rule' => $this->routingRuleId,
+            'variant' => $this->routingVariantId,
             'metric' => $this->metric,
         ]);
     }

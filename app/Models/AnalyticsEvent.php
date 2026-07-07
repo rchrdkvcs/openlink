@@ -40,6 +40,16 @@ class AnalyticsEvent extends Model
         return $this->belongsTo(Domain::class);
     }
 
+    public function routingRule(): BelongsTo
+    {
+        return $this->belongsTo(RoutingRule::class);
+    }
+
+    public function routingVariant(): BelongsTo
+    {
+        return $this->belongsTo(RoutingVariant::class);
+    }
+
     /** Human traffic that reached the destination URL. */
     public function scopeSuccessful(Builder $query): Builder
     {

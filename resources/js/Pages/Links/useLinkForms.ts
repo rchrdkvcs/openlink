@@ -1,6 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import type { LinksPageProps, ShortLink } from './types';
+import type { LinksPageProps, RoutingRuleDraft, ShortLink } from './types';
 
 export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink | null>, createOpen: Ref<boolean>) {
     const copiedLinkId = ref<number | null>(null);
@@ -19,6 +19,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         visit_limit: '',
         password: '',
         tags: '',
+        routing_rules: [] as RoutingRuleDraft[],
     });
 
     const editForm = useForm({
@@ -32,6 +33,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         expires_at: '',
         visit_limit: '',
         password: '',
+        routing_rules: [] as RoutingRuleDraft[],
     });
 
     const qrForm = useForm({
@@ -54,6 +56,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
             expires_at: link.expires_at ? String(link.expires_at).slice(0, 16) : '',
             visit_limit: link.visit_limit ? String(link.visit_limit) : '',
             password: link.has_password ? PASSWORD_MASK : '',
+            routing_rules: cloneRoutingRules(link.routing_rules ?? []),
         });
         editForm.reset();
         qrForm.reset();
@@ -72,6 +75,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
             preserveScroll: true,
             onSuccess: () => {
                 linkForm.reset('slug', 'destination_url', 'fallback_url', 'password', 'tags');
+                linkForm.routing_rules = [];
                 createOpen.value = false;
             },
         });
@@ -149,4 +153,12 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         copyShortUrl,
         statusVariant,
     };
+}
+
+function cloneRoutingRules(rules: RoutingRuleDraft[]): RoutingRuleDraft[] {
+    return rules.map((rule) => ({
+        ...rule,
+        conditions: JSON.parse(JSON.stringify(rule.conditions ?? [])),
+        variants: (rule.variants ?? []).map((variant) => ({ ...variant })),
+    }));
 }

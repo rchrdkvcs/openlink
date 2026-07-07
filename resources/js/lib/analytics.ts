@@ -61,6 +61,17 @@ export type TopQrCode = {
     visitors: number;
 };
 
+export type RoutingPerformanceRow = {
+    routing_rule_id: number | null;
+    routing_variant_id: number | null;
+    rule_name: string;
+    variant_name: string | null;
+    visits: number;
+    scans: number;
+    visitors: number;
+    total: number;
+};
+
 export type BarListRow = {
     label: string;
     /** Optional human-readable replacement for the raw label. */
@@ -95,6 +106,7 @@ export type Report = {
         utm_campaigns: BreakdownRow[];
     };
     outcomes: OutcomeRow[];
+    routing: RoutingPerformanceRow[];
     top_links: TopLink[];
     top_qr_codes: TopQrCode[];
 };

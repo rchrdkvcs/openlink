@@ -34,6 +34,8 @@ const props = defineProps<{
         domains: Option[];
         folders: Option[];
         tags: Option[];
+        routingRules: Option[];
+        routingVariants: Option[];
     };
 }>();
 
@@ -55,6 +57,8 @@ const state = reactive({
     domain: String(props.filters.domain ?? ''),
     folder: String(props.filters.folder ?? ''),
     tag: String(props.filters.tag ?? ''),
+    rule: String(props.filters.rule ?? ''),
+    variant: String(props.filters.variant ?? ''),
     metric: String(props.filters.metric ?? ''),
 });
 
@@ -66,7 +70,7 @@ function query(): Record<string, string> {
         if (state.from) params.from = state.from;
         if (state.to) params.to = state.to;
     }
-    for (const key of ['link', 'domain', 'folder', 'tag', 'metric'] as const) {
+    for (const key of ['link', 'domain', 'folder', 'tag', 'rule', 'variant', 'metric'] as const) {
         if (state[key]) params[key] = state[key];
     }
     return params;
@@ -83,7 +87,7 @@ function reload() {
 }
 
 watch(
-    () => [state.range, state.link, state.domain, state.folder, state.tag, state.metric],
+    () => [state.range, state.link, state.domain, state.folder, state.tag, state.rule, state.variant, state.metric],
     () => {
         if (state.range !== 'custom' || (state.from && state.to)) reload();
     },
@@ -226,6 +230,16 @@ const outcomeRows = computed(() =>
                     <option v-for="tag in filterOptions.tags" :key="tag.id" :value="String(tag.id)">{{ tag.name }}</option>
                 </select>
 
+                <select v-if="filterOptions.routingRules.length > 0" v-model="state.rule" class="h-9 w-auto min-w-32">
+                    <option value="">All rules</option>
+                    <option v-for="rule in filterOptions.routingRules" :key="rule.id" :value="String(rule.id)">{{ rule.name }}</option>
+                </select>
+
+                <select v-if="filterOptions.routingVariants.length > 0" v-model="state.variant" class="h-9 w-auto min-w-32">
+                    <option value="">All variants</option>
+                    <option v-for="variant in filterOptions.routingVariants" :key="variant.id" :value="String(variant.id)">{{ variant.name }}</option>
+                </select>
+
                 <select v-model="state.metric" class="h-9 w-auto min-w-28">
                     <option value="">Visits + scans</option>
                     <option value="visit">Visits only</option>
@@ -308,6 +322,33 @@ const outcomeRows = computed(() =>
                     <BreakdownCard title="Devices" :tabs="deviceTabs" />
                     <BreakdownCard title="Campaigns (UTM)" :tabs="campaignTabs" />
                 </section>
+
+                <SectionCard v-if="hasEvents && report.routing.length > 0" title="Routing performance" description="Traffic distribution across default destination, rules, and variants">
+                    <template #icon><TrendingUp class="h-4 w-4 text-faint" /></template>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-[13px]">
+                            <thead class="text-left text-xs uppercase tracking-wide text-faint">
+                                <tr>
+                                    <th class="px-5 py-2.5 font-medium">Destination path</th>
+                                    <th class="px-3 py-2.5 text-right font-medium">Visits</th>
+                                    <th class="px-3 py-2.5 text-right font-medium">Scans</th>
+                                    <th class="px-5 py-2.5 text-right font-medium">Visitors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="row in report.routing" :key="`${row.routing_rule_id ?? 'default'}-${row.routing_variant_id ?? 'none'}`" class="border-t">
+                                    <td class="max-w-0 px-5 py-2.5">
+                                        <span class="block truncate font-medium text-foreground">{{ row.rule_name }}</span>
+                                        <span v-if="row.variant_name" class="block truncate text-xs text-faint">{{ row.variant_name }}</span>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-right font-medium tabular-nums">{{ formatNumber(row.visits) }}</td>
+                                    <td class="px-3 py-2.5 text-right tabular-nums text-muted">{{ formatNumber(row.scans) }}</td>
+                                    <td class="px-5 py-2.5 text-right tabular-nums text-muted">{{ formatNumber(row.visitors) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </SectionCard>
 
                 <section v-if="hasEvents" class="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
                     <SectionCard title="Top links" description="By successful visits and scans in the period">

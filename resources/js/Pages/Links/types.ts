@@ -41,6 +41,35 @@ export type ShortLink = {
     visit_limit?: number | null;
     successful_visits: number;
     has_password: boolean;
+    routing_rules: RoutingRuleDraft[];
+};
+
+export type RoutingCondition = {
+    type: string;
+    operator: string;
+    value?: string | string[] | { from?: string; to?: string } | null;
+    timezone?: string;
+};
+
+export type RoutingVariantDraft = {
+    id?: number;
+    client_id?: string;
+    name: string;
+    is_enabled: boolean;
+    destination_url: string;
+    weight: number | string;
+};
+
+export type RoutingRuleDraft = {
+    id?: number;
+    client_id?: string;
+    name: string;
+    type: 'conditional' | 'split_test';
+    is_enabled: boolean;
+    match_mode: 'all' | 'any';
+    conditions: RoutingCondition[];
+    destination_url: string;
+    variants: RoutingVariantDraft[];
 };
 
 export type CreateLinkFormData = {
@@ -55,6 +84,7 @@ export type CreateLinkFormData = {
     visit_limit: string;
     password: string;
     tags: string;
+    routing_rules: RoutingRuleDraft[];
 };
 
 export type EditLinkFormData = {
@@ -68,6 +98,7 @@ export type EditLinkFormData = {
     expires_at: string;
     visit_limit: string;
     password: string;
+    routing_rules: RoutingRuleDraft[];
 };
 
 export type LinkFilters = { search: string; status: string; tag: string };

@@ -16,12 +16,14 @@ import {
     LifeBuoy,
     Link2,
     Lock,
+    Route,
     Tags as TagsIcon,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DestinationUrlField from './DestinationUrlField.vue';
 import OptionChips from './OptionChips.vue';
 import OptionRow from './OptionRow.vue';
+import RoutingRulesEditor from './RoutingRulesEditor.vue';
 import ShortUrlComposer from './ShortUrlComposer.vue';
 import type { CreateLinkFormData, Domain, Folder } from './types';
 
@@ -35,6 +37,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; submit: [] }>();
 
+const tab = ref<'link' | 'routing'>('link');
 const destinationValid = computed(() => isLikelyUrl(props.form.destination_url));
 
 // ── Short URL segment control ────────────────────────────────────────────────
@@ -73,6 +76,7 @@ watch(
     (show) => {
         if (show && !props.form.isDirty) {
             activeOptions.value = [];
+            tab.value = 'link';
         }
     },
 );
@@ -93,7 +97,25 @@ watch(
         </template>
 
         <form class="flex min-h-full flex-col" @submit.prevent="emit('submit')">
-            <div class="flex-1 space-y-6 p-5">
+            <div class="flex-1 space-y-5 p-5">
+                <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
+                    <button
+                        v-for="entry in [
+                            { key: 'link' as const, label: 'Link', icon: Link2 },
+                            { key: 'routing' as const, label: 'Routing', icon: Route },
+                        ]"
+                        :key="entry.key"
+                        type="button"
+                        class="flex h-8 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-colors"
+                        :class="tab === entry.key ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
+                        @click="tab = entry.key"
+                    >
+                        <component :is="entry.icon" class="h-3.5 w-3.5" />
+                        {{ entry.label }}
+                    </button>
+                </div>
+
+                <div v-if="tab === 'link'" class="space-y-6">
                 <!-- Destination hero -->
                 <DestinationUrlField v-model="form.destination_url" :error="form.errors.destination_url" autofocus />
 
@@ -156,6 +178,9 @@ watch(
                 </TransitionGroup>
 
                 <OptionChips :options="availableOptions" @add="addOption" />
+                </div>
+
+                <RoutingRulesEditor v-else v-model="form.routing_rules" :errors="form.errors" />
             </div>
 
             <!-- Sticky footer with live preview -->

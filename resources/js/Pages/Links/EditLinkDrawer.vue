@@ -16,12 +16,14 @@ import {
     Link2,
     Lock,
     QrCode,
+    Route,
     Settings2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DestinationUrlField from './DestinationUrlField.vue';
 import OptionChips from './OptionChips.vue';
 import OptionRow from './OptionRow.vue';
+import RoutingRulesEditor from './RoutingRulesEditor.vue';
 import ShortUrlComposer from './ShortUrlComposer.vue';
 import type { Domain, EditLinkFormData, Folder, Qr, ShortLink } from './types';
 
@@ -35,7 +37,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; submit: []; submitQr: [] }>();
 
-const tab = ref<'link' | 'qr'>('link');
+const tab = ref<'link' | 'routing' | 'qr'>('link');
 
 // ── Progressive options — settings already on the link open expanded, the rest are chips ──
 type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url';
@@ -87,10 +89,11 @@ function qrPreviewUrl(qr: Qr) {
 <template>
     <Drawer :show="Boolean(link)" eyebrow="Link settings" :title="link?.short_url" @close="emit('close')">
         <div v-if="link" class="space-y-5 p-5">
-            <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
+            <div class="grid grid-cols-3 rounded-lg border bg-elevated/30 p-1">
                 <button
                     v-for="entry in [
                         { key: 'link' as const, label: 'Link', icon: Link2 },
+                        { key: 'routing' as const, label: 'Routing', icon: Route },
                         { key: 'qr' as const, label: 'QR code', icon: QrCode },
                     ]"
                     :key="entry.key"
@@ -179,6 +182,14 @@ function qrPreviewUrl(qr: Qr) {
                 </TransitionGroup>
 
                 <OptionChips :options="availableOptions" @add="addOption" />
+
+                <div class="flex justify-end">
+                    <Button :loading="editForm.processing">Save changes</Button>
+                </div>
+            </form>
+
+            <form v-if="tab === 'routing'" class="grid gap-5" @submit.prevent="emit('submit')">
+                <RoutingRulesEditor v-model="editForm.routing_rules" :errors="editForm.errors" />
 
                 <div class="flex justify-end">
                     <Button :loading="editForm.processing">Save changes</Button>

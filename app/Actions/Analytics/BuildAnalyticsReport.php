@@ -6,6 +6,8 @@ use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\AnalyticsEvent;
 use App\Models\QrCode;
+use App\Models\RoutingRule;
+use App\Models\RoutingVariant;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
@@ -59,6 +61,7 @@ class BuildAnalyticsReport
                 'utm_campaigns' => $this->breakdown($workspace, $filters, $accessibleLinkIds, 'utm_campaign'),
             ],
             'outcomes' => $this->outcomes($workspace, $filters, $accessibleLinkIds),
+            'routing' => $this->routingPerformance($workspace, $filters, $accessibleLinkIds),
             'top_links' => $this->topLinks($workspace, $filters, $accessibleLinkIds),
             'top_qr_codes' => $this->topQrCodes($workspace, $filters, $accessibleLinkIds),
         ];
@@ -241,6 +244,40 @@ class BuildAnalyticsReport
         })->all();
     }
 
+    /** @return list<array<string, mixed>> */
+    public function routingPerformance(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
+    {
+        $rows = $this->events($workspace, $filters, $accessibleLinkIds)
+            ->successful()
+            ->selectRaw('routing_rule_id, routing_variant_id, count(*) as total')
+            ->selectRaw("sum(case when metric = 'visit' then 1 else 0 end) as visits")
+            ->selectRaw("sum(case when metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw('count(distinct visitor_hash) as visitors')
+            ->groupBy('routing_rule_id', 'routing_variant_id')
+            ->orderByDesc('total')
+            ->limit(20)
+            ->get();
+
+        $rules = RoutingRule::query()->findMany($rows->pluck('routing_rule_id')->filter())->keyBy('id');
+        $variants = RoutingVariant::query()->findMany($rows->pluck('routing_variant_id')->filter())->keyBy('id');
+
+        return $rows->map(function ($row) use ($rules, $variants) {
+            $rule = $rules->get($row->routing_rule_id);
+            $variant = $variants->get($row->routing_variant_id);
+
+            return [
+                'routing_rule_id' => $row->routing_rule_id ? (int) $row->routing_rule_id : null,
+                'routing_variant_id' => $row->routing_variant_id ? (int) $row->routing_variant_id : null,
+                'rule_name' => $rule?->name ?? 'Default destination',
+                'variant_name' => $variant?->name,
+                'visits' => (int) $row->visits,
+                'scans' => (int) $row->scans,
+                'visitors' => (int) $row->visitors,
+                'total' => (int) $row->total,
+            ];
+        })->all();
+    }
+
     /**
      * Short link ids a member may see analytics for, or null when the member
      * manages the workspace and sees everything.
@@ -267,7 +304,7 @@ class BuildAnalyticsReport
     public function exportRows(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Generator
     {
         $query = $this->eventsQuery($workspace, $filters, $accessibleLinkIds)
-            ->with(['shortLink:id,slug', 'qrCode:id,name', 'domain:id,hostname']);
+            ->with(['shortLink:id,slug', 'qrCode:id,name', 'domain:id,hostname', 'routingRule:id,name', 'routingVariant:id,name']);
 
         foreach ($query->lazy(1000) as $event) {
             yield [
@@ -277,6 +314,8 @@ class BuildAnalyticsReport
                 $event->shortLink?->slug,
                 $event->qrCode?->name,
                 $event->domain?->hostname,
+                $event->routingRule?->name,
+                $event->routingVariant?->name,
                 $event->referrer_host,
                 $event->referrer_channel,
                 $event->country,
@@ -308,6 +347,8 @@ class BuildAnalyticsReport
             ->when($filters->shortLinkId, fn (Builder $query, int $id) => $query->where('short_link_id', $id))
             ->when($filters->qrCodeId, fn (Builder $query, int $id) => $query->where('qr_code_id', $id))
             ->when($filters->domainId, fn (Builder $query, int $id) => $query->where('domain_id', $id))
+            ->when($filters->routingRuleId, fn (Builder $query, int $id) => $query->where('routing_rule_id', $id))
+            ->when($filters->routingVariantId, fn (Builder $query, int $id) => $query->where('routing_variant_id', $id))
             ->when($filters->metric, fn (Builder $query, string $metric) => $query->where('metric', $metric))
             ->when($filters->folderId, fn (Builder $query, int $id) => $query->whereIn(
                 'short_link_id',

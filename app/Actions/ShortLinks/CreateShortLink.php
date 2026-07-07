@@ -2,6 +2,7 @@
 
 namespace App\Actions\ShortLinks;
 
+use App\Actions\Routing\SyncRoutingRules;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
 use App\Models\Folder;
@@ -10,6 +11,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\SlugService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class CreateShortLink
@@ -17,6 +19,7 @@ class CreateShortLink
     public function __construct(
         private readonly WorkspaceAccess $access,
         private readonly SlugService $slugs,
+        private readonly SyncRoutingRules $routingRules,
     ) {}
 
     /**
@@ -39,23 +42,26 @@ class CreateShortLink
 
         $this->assertNoLoop($domain, $slug, $data['destination_url']);
 
-        $shortLink = ShortLink::create([
-            'workspace_id' => $workspace->id,
-            'folder_id' => $folder?->id,
-            'domain_id' => $domain->id,
-            'slug' => $slug,
-            'destination_url' => $data['destination_url'],
-            'fallback_url' => $data['fallback_url'] ?? null,
-            'is_enabled' => $data['is_enabled'] ?? true,
-            'activates_at' => $data['activates_at'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
-            'visit_limit' => $data['visit_limit'] ?? null,
-            'password_hash' => filled($data['password'] ?? null) ? Hash::make($data['password']) : null,
-        ]);
+        return DB::transaction(function () use ($workspace, $folder, $domain, $slug, $data): ShortLink {
+            $shortLink = ShortLink::create([
+                'workspace_id' => $workspace->id,
+                'folder_id' => $folder?->id,
+                'domain_id' => $domain->id,
+                'slug' => $slug,
+                'destination_url' => $data['destination_url'],
+                'fallback_url' => $data['fallback_url'] ?? null,
+                'is_enabled' => $data['is_enabled'] ?? true,
+                'activates_at' => $data['activates_at'] ?? null,
+                'expires_at' => $data['expires_at'] ?? null,
+                'visit_limit' => $data['visit_limit'] ?? null,
+                'password_hash' => filled($data['password'] ?? null) ? Hash::make($data['password']) : null,
+            ]);
 
-        $this->syncTags($shortLink, $data['tags'] ?? '');
+            $this->syncTags($shortLink, $data['tags'] ?? '');
+            $this->routingRules->handle($shortLink, $data['routing_rules'] ?? []);
 
-        return $shortLink;
+            return $shortLink;
+        });
     }
 
     private function domainForWorkspace(int $domainId, int $workspaceId): ?Domain

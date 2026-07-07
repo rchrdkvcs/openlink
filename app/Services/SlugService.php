@@ -13,9 +13,7 @@ class SlugService
     public function __construct(
         private readonly InstanceSettings $settings,
         private readonly ApplicationHost $applicationHost,
-    )
-    {
-    }
+    ) {}
 
     public function generate(Domain $domain): string
     {
@@ -36,19 +34,19 @@ class SlugService
 
         if ($slug === '' || ! preg_match('/^[A-Za-z0-9][A-Za-z0-9_\/-]*$/', $slug)) {
             throw ValidationException::withMessages([
-                'slug' => 'Use letters, numbers, dashes, underscores, and path separators only.',
+                'slug' => __('openlink.validation.slug_invalid'),
             ]);
         }
 
         if ($this->isReservedForDomain($domain, $slug)) {
             throw ValidationException::withMessages([
-                'slug' => 'This slug is reserved by the application.',
+                'slug' => __('openlink.validation.slug_reserved'),
             ]);
         }
 
         if ($this->existsForDomain($domain, $slug)) {
             throw ValidationException::withMessages([
-                'slug' => 'This slug is already reserved for this domain.',
+                'slug' => __('openlink.validation.slug_duplicate'),
             ]);
         }
 

@@ -62,10 +62,12 @@ onUnmounted(() => {
                 aria-modal="true"
             >
                 <header class="flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4">
-                    <div class="min-w-0">
-                        <p v-if="eyebrow" class="text-xs font-medium uppercase tracking-wide text-faint">{{ eyebrow }}</p>
-                        <h3 class="truncate text-[15px] font-semibold text-foreground">{{ title }}</h3>
-                    </div>
+                    <slot name="header">
+                        <div class="min-w-0">
+                            <p v-if="eyebrow" class="text-xs font-medium uppercase tracking-wide text-faint">{{ eyebrow }}</p>
+                            <h3 class="truncate text-[15px] font-semibold text-foreground">{{ title }}</h3>
+                        </div>
+                    </slot>
                     <IconButton title="Close" @click="emit('close')">
                         <X class="h-4 w-4" />
                     </IconButton>

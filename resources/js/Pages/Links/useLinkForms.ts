@@ -1,9 +1,8 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import type { LinksPageProps, Qr, ShortLink } from './types';
+import type { LinksPageProps, ShortLink } from './types';
 
 export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink | null>, createOpen: Ref<boolean>) {
-    const selectedSettingsTab = ref<'link' | 'qr'>('link');
     const copiedLinkId = ref<number | null>(null);
     const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'active'));
     const PASSWORD_MASK = '********';
@@ -24,6 +23,8 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
 
     const editForm = useForm({
         folder_id: '',
+        domain_id: '' as number | string,
+        slug: '',
         destination_url: '',
         fallback_url: '',
         is_enabled: true,
@@ -44,6 +45,8 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
 
         editForm.defaults({
             folder_id: link.folder?.id ? String(link.folder.id) : '',
+            domain_id: link.domain.id,
+            slug: link.slug,
             destination_url: link.destination_url,
             fallback_url: link.fallback_url ?? '',
             is_enabled: link.is_enabled,
@@ -54,7 +57,6 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         });
         editForm.reset();
         qrForm.reset();
-        selectedSettingsTab.value = 'link';
     });
 
     watch(() => props.links, (links) => {
@@ -133,12 +135,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         return 'danger';
     }
 
-    function qrPreviewUrl(qr: Qr) {
-        return route('qr-codes.preview', qr.token);
-    }
-
     return {
-        selectedSettingsTab,
         copiedLinkId,
         usableDomains,
         linkForm,
@@ -151,6 +148,5 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
         deleteLink,
         copyShortUrl,
         statusVariant,
-        qrPreviewUrl,
     };
 }

@@ -660,6 +660,73 @@ class OpenlinkMvpTest extends TestCase
         $this->assertNull($link->fresh()->password_hash);
     }
 
+    public function test_short_url_can_be_changed_and_old_address_stops_resolving(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'before',
+            'destination_url' => 'https://example.com/target',
+        ]);
+
+        // Warm the resolution cache for the old address.
+        $this->get('/before')->assertRedirect('https://example.com/target');
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('short-links.update', $link), [
+                'folder_id' => null,
+                'domain_id' => $domain->id,
+                'slug' => 'after',
+                'destination_url' => 'https://example.com/target',
+                'fallback_url' => null,
+                'is_enabled' => true,
+                'activates_at' => null,
+                'expires_at' => null,
+                'visit_limit' => null,
+            ])->assertRedirect();
+
+        $this->assertSame('after', $link->fresh()->slug);
+
+        // The cached entry for the old address must be gone immediately.
+        $this->get('/before')->assertNotFound();
+        $this->get('/after')->assertRedirect('https://example.com/target');
+    }
+
+    public function test_short_url_change_rejects_slug_already_taken(): void
+    {
+        [$workspace, $domain, $user] = $this->workspaceAndDomain();
+        ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'taken',
+            'destination_url' => 'https://example.com/taken',
+        ]);
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'mine',
+            'destination_url' => 'https://example.com/mine',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('short-links.update', $link), [
+                'folder_id' => null,
+                'domain_id' => $domain->id,
+                'slug' => 'taken',
+                'destination_url' => 'https://example.com/mine',
+                'fallback_url' => null,
+                'is_enabled' => true,
+                'activates_at' => null,
+                'expires_at' => null,
+                'visit_limit' => null,
+            ])->assertSessionHasErrors('slug');
+
+        $this->assertSame('mine', $link->fresh()->slug);
+    }
+
     public function test_password_submit_resolves_known_link_even_when_post_host_differs(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();

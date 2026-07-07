@@ -22,15 +22,18 @@ class UpdateInstanceSettings
             $this->settings->set($key, $data[$key]);
         }
 
+        $this->settings->set('dns_target', trim((string) ($data['dns_target'] ?? '')));
+
         Domain::query()->where('is_default', true)->update(['is_default' => false]);
         Domain::query()->updateOrCreate([
             'hostname' => strtolower(trim($data['default_domain'])),
         ], [
             'workspace_id' => null,
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => Str::random(40),
             'is_default' => true,
             'verified_at' => now(),
+            'dns_pointed_at' => now(),
             'disabled_at' => null,
         ]);
 

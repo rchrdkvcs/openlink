@@ -39,6 +39,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
         Route::get('/domains', [DashboardController::class, 'domains'])->name('domains.index');
+        Route::get('/domains/new', [DomainController::class, 'create'])->name('domains.create');
+        Route::get('/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
         Route::get('/members', [DashboardController::class, 'members'])->name('members.index');
         Route::get('/workspaces', [DashboardController::class, 'workspaces'])->name('workspaces.index');
         Route::get('/settings', [DashboardController::class, 'settings'])->name('settings.index');

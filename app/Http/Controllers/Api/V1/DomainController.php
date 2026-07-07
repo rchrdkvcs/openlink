@@ -6,8 +6,8 @@ use App\Actions\Domains\CreateDomain;
 use App\Actions\Domains\DeleteDomain;
 use App\Actions\Domains\DisableDomain;
 use App\Actions\Domains\DomainPayload;
+use App\Actions\Domains\RunDomainChecks;
 use App\Actions\Domains\TransferDomain;
-use App\Actions\Domains\VerifyDomain;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
 use App\Http\Controllers\Controller;
@@ -35,10 +35,10 @@ class DomainController extends Controller
         return response()->json(['data' => $payload->handle($domain)], 201);
     }
 
-    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, VerifyDomain $verifier, DomainPayload $payload): JsonResponse
+    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, RunDomainChecks $checks, DomainPayload $payload): JsonResponse
     {
         $access->requireManagedDomain($request, $domain);
-        $domain = $verifier->handle($domain);
+        $domain = $checks->handle($domain);
 
         return response()->json(['data' => $payload->handle($domain)]);
     }

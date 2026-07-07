@@ -2,7 +2,7 @@
 
 namespace App\Actions\Workspaces;
 
-use App\Actions\Domains\VerifyDomain;
+use App\Actions\Domains\DomainPayload;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Models\Domain;
 use App\Models\Folder;
@@ -16,7 +16,7 @@ class WorkspacePayloads
 {
     public function __construct(
         private readonly WorkspaceAccess $access,
-        private readonly VerifyDomain $domainVerifier,
+        private readonly DomainPayload $domainPayload,
     ) {}
 
     /** @return Collection<int, array<string, mixed>> */
@@ -119,14 +119,7 @@ class WorkspacePayloads
             ->prepend($this->defaultDomain())
             ->filter()
             ->values()
-            ->map(fn (Domain $domain) => [
-                'id' => $domain->id,
-                'hostname' => $domain->hostname,
-                'status' => $domain->status,
-                'is_default' => $domain->is_default,
-                'expected_txt' => $this->domainVerifier->expectedTxtValue($domain),
-                'failure_reason' => $domain->failure_reason,
-            ]);
+            ->map(fn (Domain $domain) => $this->domainPayload->handle($domain));
     }
 
     public function defaultDomain(): ?Domain

@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Cache;
 class Domain extends Model
 {
     public const STATUS_PENDING = 'pending_verification';
-    public const STATUS_VERIFIED = 'verified';
+    public const STATUS_OWNERSHIP_VERIFIED = 'ownership_verified';
+    public const STATUS_ACTIVE = 'active';
     public const STATUS_FAILED = 'failed_verification';
     public const STATUS_DISABLED = 'disabled';
 
@@ -21,6 +22,7 @@ class Domain extends Model
         return [
             'is_default' => 'boolean',
             'verified_at' => 'datetime',
+            'dns_pointed_at' => 'datetime',
             'disabled_at' => 'datetime',
             'last_checked_at' => 'datetime',
         ];
@@ -38,7 +40,21 @@ class Domain extends Model
 
     public function isUsable(): bool
     {
-        return $this->status === self::STATUS_VERIFIED && $this->disabled_at === null;
+        return $this->status === self::STATUS_ACTIVE && $this->disabled_at === null;
+    }
+
+    public function isOwnershipVerified(): bool
+    {
+        return in_array($this->status, [self::STATUS_OWNERSHIP_VERIFIED, self::STATUS_ACTIVE], true);
+    }
+
+    public function activate(): void
+    {
+        $this->forceFill([
+            'status' => self::STATUS_ACTIVE,
+            'dns_pointed_at' => $this->dns_pointed_at ?? now(),
+            'dns_check_error' => null,
+        ])->save();
     }
 
     protected static function booted(): void

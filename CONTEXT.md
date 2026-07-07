@@ -33,8 +33,12 @@ The public URL made from a domain and slug.
 _Avoid_: Shortened URL, public link
 
 **Domain**:
-A workspace-owned hostname used to publish short URLs. A domain must be verified before it can serve short links.
+A workspace-owned hostname used to publish short URLs. A domain must be active before it can serve short links: ownership is proven with a DNS TXT record, and the domain becomes active once its DNS points to the server — confirmed by an IP check or by real traffic reaching the server on that hostname.
 _Avoid_: Custom domain, host, hostname
+
+**DNS Target**:
+The instance-level IP address or hostname that workspace domains must point to. Configured by the instance admin; falls back to the default domain when unset.
+_Avoid_: Server address, origin
 
 **Default Domain**:
 The instance-level domain available for creating short URLs without adding a workspace-owned domain.

@@ -13,6 +13,7 @@ const props = defineProps<{
 const settingsForm = useForm({
     registration_mode: props.settings.registration_mode ?? 'invite_only',
     default_domain: props.settings.default_domain ?? 'localhost',
+    dns_target: props.settings.dns_target ?? '',
     slug_length: props.settings.slug_length ?? 6,
     analytics_retention_days: props.settings.analytics_retention_days ?? 365,
     reserved_slugs: (props.settings.reserved_slugs ?? []).join('\n'),
@@ -50,6 +51,14 @@ function updateSettings() {
                         </Field>
                         <Field label="Default domain" :error="settingsForm.errors.default_domain">
                             <input v-model="settingsForm.default_domain" class="h-9" placeholder="localhost" />
+                        </Field>
+                        <Field
+                            label="DNS target"
+                            hint="IP address or hostname workspace domains should point to. Leave empty to use the default domain."
+                            class="sm:col-span-2"
+                            :error="settingsForm.errors.dns_target"
+                        >
+                            <input v-model="settingsForm.dns_target" class="h-9" placeholder="203.0.113.10 or app.example.com" />
                         </Field>
                         <Field label="Generated slug length" :error="settingsForm.errors.slug_length">
                             <input v-model="settingsForm.slug_length" type="number" class="h-9" min="4" max="32" />

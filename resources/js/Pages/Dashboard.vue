@@ -27,7 +27,7 @@ const props = defineProps<{
 
 const summary = computed(() => props.analytics.summary);
 const activeLinks = computed(() => props.links.filter((link) => link.status === 'active' && link.is_enabled).length);
-const verifiedDomains = computed(() => props.domains.filter((domain) => domain.status === 'verified').length);
+const verifiedDomains = computed(() => props.domains.filter((domain) => domain.status === 'active').length);
 const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0);
 </script>
 

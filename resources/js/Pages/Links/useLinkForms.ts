@@ -5,7 +5,7 @@ import type { LinksPageProps, Qr, ShortLink } from './types';
 export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink | null>, createOpen: Ref<boolean>) {
     const selectedSettingsTab = ref<'link' | 'qr'>('link');
     const copiedLinkId = ref<number | null>(null);
-    const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'verified'));
+    const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'active'));
     const PASSWORD_MASK = '********';
 
     const linkForm = useForm({

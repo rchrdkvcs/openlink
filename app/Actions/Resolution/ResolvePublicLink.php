@@ -20,6 +20,10 @@ class ResolvePublicLink
         $domain = $qrCode?->shortLink?->domain
             ?? Domain::query()->where('hostname', $request->getHost())->first();
 
+        if ($domain) {
+            $this->activateOnObservedTraffic($request, $domain);
+        }
+
         if (! $domain || ! $domain->isUsable()) {
             return new ResolutionResult(Outcome::DOMAIN_UNAVAILABLE);
         }
@@ -37,6 +41,10 @@ class ResolvePublicLink
     public function resolveShortLink(Request $request, ShortLink $shortLink, ?QrCode $qrCode = null): ResolutionResult
     {
         $shortLink->loadMissing('domain');
+
+        if ($shortLink->domain) {
+            $this->activateOnObservedTraffic($request, $shortLink->domain);
+        }
 
         if (! $shortLink->domain || ! $shortLink->domain->isUsable()) {
             return new ResolutionResult(
@@ -77,6 +85,20 @@ class ResolvePublicLink
             qrCode: $qrCode,
             redirectUrl: $shortLink->destination_url,
         );
+    }
+
+    /**
+     * A real request reaching this server with the domain's hostname is
+     * definitive proof the DNS points here — more reliable than comparing
+     * resolved IPs, which proxies and CDNs can mask.
+     */
+    private function activateOnObservedTraffic(Request $request, Domain $domain): void
+    {
+        if ($domain->status === Domain::STATUS_OWNERSHIP_VERIFIED
+            && $domain->disabled_at === null
+            && strcasecmp($request->getHost(), $domain->hostname) === 0) {
+            $domain->activate();
+        }
     }
 
     public function passwordSessionKey(ShortLink $shortLink): string

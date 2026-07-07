@@ -37,7 +37,7 @@ class OpenlinkMvpTest extends TestCase
         $user = User::query()->where('email', 'bear@example.com')->firstOrFail();
 
         $this->assertTrue($user->is_instance_admin);
-        $this->assertDatabaseHas('domains', ['hostname' => 'localhost', 'status' => Domain::STATUS_VERIFIED, 'is_default' => true]);
+        $this->assertDatabaseHas('domains', ['hostname' => 'localhost', 'status' => Domain::STATUS_ACTIVE, 'is_default' => true]);
         $this->assertDatabaseCount('workspaces', 0);
 
         $this->actingAs($user)->get('/dashboard')->assertRedirect(route('onboarding.show', absolute: false));
@@ -445,7 +445,7 @@ class OpenlinkMvpTest extends TestCase
         $defaultDomain = Domain::create([
             'workspace_id' => null,
             'hostname' => 'short.test',
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'is_default' => true,
             'verification_token' => 'default-token',
             'verified_at' => now(),
@@ -696,7 +696,7 @@ class OpenlinkMvpTest extends TestCase
         $domain = Domain::create([
             'workspace_id' => $workspace->id,
             'hostname' => $hostname,
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => 'test-token-'.str()->random(12),
             'verified_at' => now(),
         ]);

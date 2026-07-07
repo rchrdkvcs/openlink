@@ -129,7 +129,7 @@ class ApiV1Test extends TestCase
         $default = Domain::create([
             'workspace_id' => null,
             'hostname' => 'localhost',
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => 'default-token',
             'verified_at' => now(),
             'is_default' => true,
@@ -401,7 +401,7 @@ class ApiV1Test extends TestCase
         $domain = Domain::create([
             'workspace_id' => $workspace->id,
             'hostname' => $hostname,
-            'status' => Domain::STATUS_VERIFIED,
+            'status' => Domain::STATUS_ACTIVE,
             'verification_token' => 'test-token-'.str()->random(12),
             'verified_at' => now(),
         ]);

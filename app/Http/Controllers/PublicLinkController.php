@@ -69,6 +69,15 @@ class PublicLinkController extends Controller
             ])->toResponse($request);
         }
 
+        if ($result->outcome === Outcome::SCHEDULED && $result->shortLink?->activates_at) {
+            $shortLink = $result->shortLink;
+
+            return Inertia::render('Public/Scheduled', [
+                'shortUrl' => $shortLink->domain->hostname.'/'.$shortLink->slug,
+                'activatesAt' => $shortLink->activates_at->toIso8601String(),
+            ])->toResponse($request);
+        }
+
         if ($result->redirectUrl) {
             if ($request->header('X-Inertia')) {
                 return Inertia::location($result->redirectUrl);

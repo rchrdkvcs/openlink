@@ -26,10 +26,12 @@ import {
     QrCode,
     Search,
     Settings2,
+    Timer,
     Trash2,
 } from '@lucide/vue';
 import { nextTick, ref } from 'vue';
 import type { Folder, LinksPageProps, ShortLink } from './types';
+import { useActivationCountdown } from './useActivationCountdown';
 import { useLinkForms } from './useLinkForms';
 import { useLinkGroups } from './useLinkGroups';
 
@@ -66,6 +68,8 @@ const {
     statusVariant,
     qrPreviewUrl,
 } = useLinkForms(props, selectedLink, createOpen);
+
+const { countdownFor, activationTitle } = useActivationCountdown(props);
 
 // ── Folder CRUD ──────────────────────────────────────────────────────────────
 
@@ -299,7 +303,7 @@ function markFaviconFailed(url: string) {
                         <article
                             v-for="link in group.links"
                             :key="link.id"
-                            class="group/r grid items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_110px_150px_minmax(90px,0.5fr)_168px]"
+                            class="group/r grid items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_150px_150px_minmax(90px,0.5fr)_168px]"
                             :class="[dragLinkId === link.id ? 'opacity-40' : '', canEditWorkspace ? 'cursor-grab active:cursor-grabbing' : '']"
                             :draggable="canEditWorkspace"
                             @dragstart="dragLinkId = link.id"
@@ -345,6 +349,14 @@ function markFaviconFailed(url: string) {
 
                             <div class="flex items-center gap-2">
                                 <Badge :variant="statusVariant(link.status)" dot>{{ link.status }}</Badge>
+                                <span
+                                    v-if="countdownFor(link)"
+                                    class="inline-flex items-center gap-1 text-xs tabular-nums text-faint"
+                                    :title="activationTitle(link)"
+                                >
+                                    <Timer class="h-3 w-3" />
+                                    {{ countdownFor(link) }}
+                                </span>
                                 <Lock v-if="link.has_password" class="h-3.5 w-3.5 text-warning" />
                             </div>
 

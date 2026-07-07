@@ -61,7 +61,7 @@ class DomainSetupTest extends TestCase
         [, $domain, $user] = $this->workspaceAndPendingDomain();
         app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
 
-        $this->dns->txt[$domain->hostname] = ['openlink-verification='.$domain->verification_token];
+        $this->dns->txt['_openlink.'.$domain->hostname] = ['openlink-verification='.$domain->verification_token];
         $this->dns->ips[$domain->hostname] = ['198.51.100.7'];
 
         $this->actingAs($user)->post(route('domains.verify', $domain))->assertRedirect();
@@ -78,7 +78,7 @@ class DomainSetupTest extends TestCase
         [, $domain, $user] = $this->workspaceAndPendingDomain();
         app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
 
-        $this->dns->txt[$domain->hostname] = ['openlink-verification='.$domain->verification_token];
+        $this->dns->txt['_openlink.'.$domain->hostname] = ['openlink-verification='.$domain->verification_token];
         $this->dns->ips[$domain->hostname] = ['203.0.113.10'];
 
         $this->actingAs($user)->post(route('domains.verify', $domain))->assertRedirect();
@@ -88,6 +88,22 @@ class DomainSetupTest extends TestCase
         $this->assertNotNull($domain->dns_pointed_at);
         $this->assertNull($domain->dns_check_error);
         $this->assertTrue($domain->isUsable());
+    }
+
+    public function test_cloudflare_proxied_domain_activates_after_txt_verification(): void
+    {
+        [, $domain, $user] = $this->workspaceAndPendingDomain();
+        app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
+
+        $this->dns->txt['_openlink.'.$domain->hostname] = ['openlink-verification='.$domain->verification_token];
+        $this->dns->ips[$domain->hostname] = ['104.16.0.10'];
+
+        $this->actingAs($user)->post(route('domains.verify', $domain))->assertRedirect();
+
+        $domain->refresh();
+        $this->assertSame(Domain::STATUS_ACTIVE, $domain->status);
+        $this->assertNotNull($domain->dns_pointed_at);
+        $this->assertNull($domain->dns_check_error);
     }
 
     public function test_missing_txt_marks_verification_failed(): void
@@ -104,7 +120,7 @@ class DomainSetupTest extends TestCase
         [, $domain, $user] = $this->workspaceAndPendingDomain();
         app(InstanceSettings::class)->set('default_domain', 'app.example.test');
 
-        $this->dns->txt[$domain->hostname] = ['openlink-verification='.$domain->verification_token];
+        $this->dns->txt['_openlink.'.$domain->hostname] = ['openlink-verification='.$domain->verification_token];
         $this->dns->ips[$domain->hostname] = ['203.0.113.10'];
         $this->dns->ips['app.example.test'] = ['203.0.113.10'];
 
@@ -153,7 +169,7 @@ class DomainSetupTest extends TestCase
         $domain->forceFill(['status' => Domain::STATUS_OWNERSHIP_VERIFIED, 'verified_at' => now()])->save();
         app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
 
-        $this->dns->txt[$domain->hostname] = ['openlink-verification='.$domain->verification_token];
+        $this->dns->txt['_openlink.'.$domain->hostname] = ['openlink-verification='.$domain->verification_token];
         $this->dns->ips[$domain->hostname] = ['203.0.113.10'];
 
         $this->artisan('openlink:verify-pending-domains')->assertSuccessful();
@@ -172,6 +188,7 @@ class DomainSetupTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Domains/Setup')
                 ->where('domain.hostname', $domain->hostname)
+                ->where('domain.expected_txt_name', '_openlink.'.$domain->hostname)
                 ->where('domain.dns_record.type', 'A')
                 ->where('domain.dns_record.value', '203.0.113.10'));
     }

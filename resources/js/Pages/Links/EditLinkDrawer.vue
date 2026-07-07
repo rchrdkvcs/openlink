@@ -89,7 +89,7 @@ function qrPreviewUrl(qr: Qr) {
 <template>
     <Drawer :show="Boolean(link)" eyebrow="Link settings" :title="link?.short_url" @close="emit('close')">
         <div v-if="link" class="space-y-5 p-5">
-            <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
+            <div class="grid grid-cols-3 rounded-lg border bg-elevated/30 p-1">
                 <button
                     v-for="entry in [
                         { key: 'link' as const, label: 'Link', icon: Link2 },

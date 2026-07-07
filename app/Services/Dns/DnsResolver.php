@@ -10,8 +10,22 @@ class DnsResolver
         $records = @dns_get_record($hostname, DNS_TXT) ?: [];
 
         return collect($records)
-            ->map(fn (array $record): ?string => $record['txt'] ?? null)
+            ->flatMap(function (array $record): array {
+                $values = [];
+
+                if (($record['txt'] ?? '') !== '') {
+                    $values[] = $record['txt'];
+                }
+
+                if (isset($record['entries']) && is_array($record['entries'])) {
+                    $values[] = implode('', array_map('strval', $record['entries']));
+                }
+
+                return $values;
+            })
+            ->map(fn (string $value): string => trim($value, " \n\r\t\v\0\"'"))
             ->filter()
+            ->unique()
             ->values()
             ->all();
     }

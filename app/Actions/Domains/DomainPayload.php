@@ -21,6 +21,7 @@ class DomainPayload
             'status' => $domain->status,
             'is_default' => $domain->is_default,
             'workspace_id' => $domain->workspace_id,
+            'expected_txt_name' => $this->verifier->expectedTxtName($domain),
             'expected_txt' => $this->verifier->expectedTxtValue($domain),
             'failure_reason' => $domain->failure_reason,
             'ownership_verified' => $domain->isOwnershipVerified(),

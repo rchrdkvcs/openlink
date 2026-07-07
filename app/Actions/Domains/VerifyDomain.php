@@ -14,10 +14,15 @@ class VerifyDomain
         return 'openlink-verification='.$domain->verification_token;
     }
 
+    public function expectedTxtName(Domain $domain): string
+    {
+        return '_openlink.'.$domain->hostname;
+    }
+
     public function handle(Domain $domain): Domain
     {
         $expected = $this->expectedTxtValue($domain);
-        $found = in_array($expected, $this->resolver->txtValues($domain->hostname), true);
+        $found = in_array($expected, $this->resolver->txtValues($this->expectedTxtName($domain)), true);
 
         // An active domain already proved ownership and serves traffic; a
         // missing TXT record later (records are often cleaned up) must not

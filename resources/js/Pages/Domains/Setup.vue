@@ -11,6 +11,7 @@ type Domain = {
     id: number;
     hostname: string;
     status: string;
+    expected_txt_name: string;
     expected_txt: string;
     failure_reason: string | null;
     ownership_verified: boolean;
@@ -79,7 +80,7 @@ const records = computed(() => {
             key: 'txt',
             purpose: 'Proves you own the domain',
             type: 'TXT',
-            name: props.domain.hostname,
+            name: props.domain.expected_txt_name,
             value: props.domain.expected_txt,
             done: props.domain.ownership_verified,
             error: props.domain.ownership_verified ? null : props.domain.failure_reason,

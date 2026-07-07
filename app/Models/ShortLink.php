@@ -48,6 +48,11 @@ class ShortLink extends Model
         return $this->hasMany(QrCode::class);
     }
 
+    public function routingRules(): HasMany
+    {
+        return $this->hasMany(RoutingRule::class)->orderBy('position');
+    }
+
     public function analyticsEvents(): HasMany
     {
         return $this->hasMany(AnalyticsEvent::class);

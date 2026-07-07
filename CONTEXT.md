@@ -96,6 +96,14 @@ _Avoid_: QR image, code
 A short link that requires a visitor to provide a password before it can resolve to the destination URL.
 _Avoid_: Locked link, private link, password link
 
+**Smart Routing**:
+The short link capability that chooses a destination URL from ordered routing rules when a visitor resolves the short link. QR codes attached to the short link inherit its smart routing.
+_Avoid_: Conditional redirects, routing engine, dynamic rules
+
+**Routing Rule**:
+An ordered condition attached to a short link that can send matching visitors to a specific destination URL.
+_Avoid_: Rule, redirect rule, target rule
+
 **Smart Destination**:
 A destination rule that chooses where to send a visitor based on their device, platform, or app context.
 _Avoid_: Deep link, dynamic destination

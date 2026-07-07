@@ -49,6 +49,7 @@ class AnalyticsController extends Controller
 
             fputcsv($out, [
                 'occurred_at', 'metric', 'outcome', 'link_slug', 'qr_code', 'domain',
+                'routing_rule', 'routing_variant',
                 'referrer_host', 'referrer_channel', 'country', 'language',
                 'device_type', 'browser', 'os', 'is_bot',
                 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
@@ -76,11 +77,22 @@ class AnalyticsController extends Controller
                 'hostname' => $link->domain?->hostname,
             ]);
 
+        $rules = $workspace->shortLinks()
+            ->with('routingRules.variants')
+            ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('id', $accessibleLinkIds))
+            ->get()
+            ->flatMap(fn ($link) => $link->routingRules)
+            ->values();
+
         return [
             'links' => $links,
             'domains' => $workspace->domains()->orderBy('hostname')->get(['id', 'hostname']),
             'folders' => $data->folders($workspace, $user)->map->only(['id', 'name'])->values(),
             'tags' => $workspace->tags()->orderBy('name')->get(['id', 'name']),
+            'routingRules' => $rules->map(fn ($rule) => ['id' => $rule->id, 'name' => $rule->name])->values(),
+            'routingVariants' => $rules
+                ->flatMap(fn ($rule) => $rule->variants->map(fn ($variant) => ['id' => $variant->id, 'name' => $rule->name.' / '.$variant->name]))
+                ->values(),
         ];
     }
 }

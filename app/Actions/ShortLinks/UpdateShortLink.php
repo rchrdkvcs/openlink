@@ -2,12 +2,14 @@
 
 namespace App\Actions\ShortLinks;
 
+use App\Actions\Routing\SyncRoutingRules;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
 use App\Services\SlugService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UpdateShortLink
@@ -15,6 +17,7 @@ class UpdateShortLink
     public function __construct(
         private readonly WorkspaceAccess $access,
         private readonly SlugService $slugs,
+        private readonly SyncRoutingRules $routingRules,
     ) {}
 
     /**
@@ -48,27 +51,33 @@ class UpdateShortLink
 
         $this->assertNoLoop($domain, $slug, $data['destination_url']);
 
-        $shortLink->fill([
-            'folder_id' => $folder?->id,
-            'domain_id' => $domain->id,
-            'slug' => $slug,
-            'destination_url' => $data['destination_url'],
-            'fallback_url' => $data['fallback_url'] ?? null,
-            'is_enabled' => $data['is_enabled'],
-            'activates_at' => $data['activates_at'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
-            'visit_limit' => $data['visit_limit'] ?? null,
-        ]);
+        return DB::transaction(function () use ($shortLink, $folder, $domain, $slug, $data): ShortLink {
+            $shortLink->fill([
+                'folder_id' => $folder?->id,
+                'domain_id' => $domain->id,
+                'slug' => $slug,
+                'destination_url' => $data['destination_url'],
+                'fallback_url' => $data['fallback_url'] ?? null,
+                'is_enabled' => $data['is_enabled'],
+                'activates_at' => $data['activates_at'] ?? null,
+                'expires_at' => $data['expires_at'] ?? null,
+                'visit_limit' => $data['visit_limit'] ?? null,
+            ]);
 
-        if (array_key_exists('password', $data)) {
-            $shortLink->password_hash = filled($data['password'] ?? null)
-                ? Hash::make($data['password'])
-                : null;
-        }
+            if (array_key_exists('password', $data)) {
+                $shortLink->password_hash = filled($data['password'] ?? null)
+                    ? Hash::make($data['password'])
+                    : null;
+            }
 
-        $shortLink->save();
+            $shortLink->save();
 
-        return $shortLink;
+            if (array_key_exists('routing_rules', $data)) {
+                $this->routingRules->handle($shortLink, $data['routing_rules'] ?? []);
+            }
+
+            return $shortLink;
+        });
     }
 
     private function domainForWorkspace(int $domainId, int $workspaceId): ?Domain

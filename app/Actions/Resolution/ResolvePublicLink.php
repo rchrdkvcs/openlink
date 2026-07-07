@@ -7,13 +7,18 @@ use App\Models\Domain;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\Analytics\Outcome;
+use App\Services\ResolutionContextFactory;
 use App\Services\ResolutionResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class ResolvePublicLink
 {
-    public function __construct(private readonly RecordAnalytics $analytics) {}
+    public function __construct(
+        private readonly RecordAnalytics $analytics,
+        private readonly ResolutionContextFactory $contexts,
+        private readonly ResolveSmartRouting $routing,
+    ) {}
 
     public function resolve(Request $request, string $slug, ?QrCode $qrCode = null): ResolutionResult
     {
@@ -76,14 +81,26 @@ class ResolvePublicLink
             );
         }
 
+        $context = $this->contexts->fromRequest($request);
+        $decision = $this->routing->resolve($shortLink, $context);
+
         $shortLink->increment('successful_visits');
-        $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, Outcome::SUCCESS);
+        $this->analytics->record(
+            $request,
+            $shortLink,
+            $qrCode,
+            $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT,
+            Outcome::SUCCESS,
+            $context,
+            $decision->rule,
+            $decision->variant,
+        );
 
         return new ResolutionResult(
             outcome: Outcome::SUCCESS,
             shortLink: $shortLink,
             qrCode: $qrCode,
-            redirectUrl: $shortLink->destination_url,
+            redirectUrl: $decision->destinationUrl,
         );
     }
 

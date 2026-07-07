@@ -31,6 +31,7 @@ class ShortLinkController extends Controller
             'visit_limit' => ['nullable', 'integer', 'min:1'],
             'password' => ['nullable', 'string', 'min:4', 'max:255'],
             'tags' => ['nullable', 'string', 'max:500'],
+            'routing_rules' => ['nullable', 'array'],
         ]);
 
         $shortLinks->handle($workspace, $request->user(), $data);
@@ -53,6 +54,7 @@ class ShortLinkController extends Controller
             'expires_at' => ['nullable', 'date'],
             'visit_limit' => ['nullable', 'integer', 'min:1'],
             'password' => ['sometimes', 'nullable', 'string', 'min:4', 'max:255'],
+            'routing_rules' => ['nullable', 'array'],
         ]);
 
         $shortLinks->handle($request, $shortLink, $data);

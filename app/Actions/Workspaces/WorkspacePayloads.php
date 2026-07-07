@@ -26,7 +26,7 @@ class WorkspacePayloads
         $accessibleFolderIds = $isManager ? collect() : $this->folders($workspace, $user)->pluck('id');
 
         return $workspace->shortLinks()
-            ->with(['domain', 'folder', 'tags', 'qrCodes' => fn ($query) => $query->withCount([
+            ->with(['domain', 'folder', 'tags', 'routingRules.variants', 'qrCodes' => fn ($query) => $query->withCount([
                 'analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan'),
             ])])
             ->withCount($this->analyticsCounts())
@@ -48,7 +48,7 @@ class WorkspacePayloads
     /** @return array<string, mixed> */
     public function linkPayload(ShortLink $link): array
     {
-        $link->loadMissing(['domain', 'folder', 'tags', 'qrCodes']);
+        $link->loadMissing(['domain', 'folder', 'tags', 'routingRules.variants', 'qrCodes']);
 
         if (! isset($link->visits_count) || ! isset($link->scans_count)) {
             $link->loadCount($this->analyticsCounts());
@@ -74,6 +74,24 @@ class WorkspacePayloads
             'visit_limit' => $link->visit_limit,
             'successful_visits' => $link->successful_visits,
             'has_password' => $link->hasPassword(),
+            'routing_rules' => $link->routingRules->map(fn ($rule) => [
+                'id' => $rule->id,
+                'name' => $rule->name,
+                'type' => $rule->type,
+                'position' => $rule->position,
+                'is_enabled' => $rule->is_enabled,
+                'match_mode' => $rule->match_mode,
+                'conditions' => $rule->conditions ?? [],
+                'destination_url' => $rule->destination_url,
+                'variants' => $rule->variants->map(fn ($variant) => [
+                    'id' => $variant->id,
+                    'name' => $variant->name,
+                    'position' => $variant->position,
+                    'is_enabled' => $variant->is_enabled,
+                    'destination_url' => $variant->destination_url,
+                    'weight' => $variant->weight,
+                ])->values(),
+            ])->values(),
         ];
     }
 

@@ -1,5 +1,14 @@
-export function randomSlug(): string {
-    return Math.random().toString(36).replace(/[^a-z0-9]/g, '').slice(0, 7);
+export function randomSlug(length = 7): string {
+    const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    const cryptoObj = globalThis.crypto;
+
+    if (cryptoObj?.getRandomValues) {
+        const bytes = new Uint8Array(length);
+        cryptoObj.getRandomValues(bytes);
+        return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+    }
+
+    return Math.random().toString(36).replace(/[^a-z0-9]/g, '').padEnd(length, '0').slice(0, length);
 }
 
 export function isLikelyUrl(value: string): boolean {

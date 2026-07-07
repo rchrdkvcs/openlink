@@ -5,7 +5,6 @@ import Drawer from '@/Components/ui/Drawer.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
@@ -179,14 +178,6 @@ function markFaviconFailed(url: string) {
     <Head title="Links" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Links">
-                <Button v-if="canEditWorkspace" size="sm" type="button" @click="createOpen = true">
-                    <Plus class="h-3.5 w-3.5" /> New link
-                </Button>
-            </PageHeader>
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Links</h1>
@@ -214,25 +205,30 @@ function markFaviconFailed(url: string) {
 
                 <span v-if="hasActiveFilters" class="text-[13px] tabular-nums text-faint">{{ totalMatching }} result{{ totalMatching === 1 ? '' : 's' }}</span>
 
-                <div v-if="canManageWorkspace" class="ml-auto">
-                    <form v-if="creatingFolder" class="flex items-center gap-2" @submit.prevent="submitFolder">
-                        <input
-                            ref="newFolderInput"
-                            v-model="folderForm.name"
-                            class="h-8 w-48 text-[13px]"
-                            placeholder="Folder name…"
-                            @keydown.escape="creatingFolder = false; folderForm.reset()"
-                            @blur="submitFolder"
-                        />
-                        <p v-if="folderForm.errors.name" class="text-xs text-danger">{{ folderForm.errors.name }}</p>
-                    </form>
-                    <button
-                        v-else
-                        class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                        @click="startCreateFolder"
-                    >
-                        <Plus class="h-3.5 w-3.5" /> New folder
-                    </button>
+                <div v-if="canEditWorkspace || canManageWorkspace" class="ml-auto flex items-center gap-2">
+                    <template v-if="canManageWorkspace">
+                        <form v-if="creatingFolder" class="flex items-center gap-2" @submit.prevent="submitFolder">
+                            <input
+                                ref="newFolderInput"
+                                v-model="folderForm.name"
+                                class="h-8 w-48 text-[13px]"
+                                placeholder="Folder name…"
+                                @keydown.escape="creatingFolder = false; folderForm.reset()"
+                                @blur="submitFolder"
+                            />
+                            <p v-if="folderForm.errors.name" class="text-xs text-danger">{{ folderForm.errors.name }}</p>
+                        </form>
+                        <button
+                            v-else
+                            class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                            @click="startCreateFolder"
+                        >
+                            <Plus class="h-3.5 w-3.5" /> New folder
+                        </button>
+                    </template>
+                    <Button v-if="canEditWorkspace" size="sm" type="button" @click="createOpen = true">
+                        <Plus class="h-3.5 w-3.5" /> New link
+                    </Button>
                 </div>
             </div>
 

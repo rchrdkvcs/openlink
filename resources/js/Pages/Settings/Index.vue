@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
@@ -31,10 +30,6 @@ function updateSettings() {
     <Head title="Settings" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader section="Settings" />
-        </template>
-
         <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-xl font-semibold tracking-tight">Settings</h1>

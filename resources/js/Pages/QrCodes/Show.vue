@@ -2,7 +2,6 @@
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
-import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -127,18 +126,17 @@ async function copyPublicUrl() {
     <Head :title="`QR — ${qr.name}`" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <PageHeader :section="`QR code — ${qr.name}`">
+        <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+            <div class="mb-6">
                 <Link
                     :href="route('links.index')"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                    class="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-foreground"
                 >
                     <ArrowLeft class="h-3.5 w-3.5" /> Back to links
                 </Link>
-            </PageHeader>
-        </template>
+                <h1 class="mt-2 text-xl font-semibold tracking-tight">QR code — {{ qr.name }}</h1>
+            </div>
 
-        <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
                 <!-- Preview panel -->
                 <SectionCard>

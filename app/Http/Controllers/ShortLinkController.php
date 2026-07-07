@@ -44,6 +44,8 @@ class ShortLinkController extends Controller
 
         $data = $request->validate([
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
+            'domain_id' => ['sometimes', 'required', 'integer'],
+            'slug' => ['sometimes', 'required', 'string', 'max:512'],
             'destination_url' => ['required', 'url:http,https'],
             'fallback_url' => ['nullable', 'url:http,https'],
             'is_enabled' => ['required', 'boolean'],

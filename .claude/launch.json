@@ -6,6 +6,12 @@
             "runtimeExecutable": "php",
             "runtimeArgs": ["artisan", "serve", "--port=8321"],
             "port": 8321
+        },
+        {
+            "name": "vite",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "port": 5173
         }
     ]
 }

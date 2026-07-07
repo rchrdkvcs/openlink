@@ -43,6 +43,33 @@ export type ShortLink = {
     has_password: boolean;
 };
 
+export type CreateLinkFormData = {
+    domain_id: number | string;
+    folder_id: string;
+    slug: string;
+    destination_url: string;
+    fallback_url: string;
+    is_enabled: boolean;
+    activates_at: string;
+    expires_at: string;
+    visit_limit: string;
+    password: string;
+    tags: string;
+};
+
+export type EditLinkFormData = {
+    folder_id: string;
+    domain_id: number | string;
+    slug: string;
+    destination_url: string;
+    fallback_url: string;
+    is_enabled: boolean;
+    activates_at: string;
+    expires_at: string;
+    visit_limit: string;
+    password: string;
+};
+
 export type LinkFilters = { search: string; status: string; tag: string };
 
 export type LinkGroup = { key: string; folder: Folder | null; links: ShortLink[] };

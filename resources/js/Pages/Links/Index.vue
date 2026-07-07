@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
-import Drawer from '@/Components/ui/Drawer.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     Archive,
     Check,
@@ -23,13 +21,14 @@ import {
     MoreHorizontal,
     Pencil,
     Plus,
-    QrCode,
     Search,
     Settings2,
     Timer,
     Trash2,
 } from '@lucide/vue';
 import { nextTick, ref } from 'vue';
+import CreateLinkDrawer from './CreateLinkDrawer.vue';
+import EditLinkDrawer from './EditLinkDrawer.vue';
 import type { Folder, LinksPageProps, ShortLink } from './types';
 import { useActivationCountdown } from './useActivationCountdown';
 import { useLinkForms } from './useLinkForms';
@@ -53,7 +52,6 @@ const {
 const failedFavicons = ref<Set<string>>(new Set());
 
 const {
-    selectedSettingsTab,
     copiedLinkId,
     usableDomains,
     linkForm,
@@ -66,7 +64,6 @@ const {
     deleteLink,
     copyShortUrl,
     statusVariant,
-    qrPreviewUrl,
 } = useLinkForms(props, selectedLink, createOpen);
 
 const { countdownFor, activationTitle } = useActivationCountdown(props);
@@ -417,171 +414,25 @@ function markFaviconFailed(url: string) {
             </div>
         </div>
 
-        <!-- Create drawer -->
-        <Drawer :show="createOpen" eyebrow="New link" title="Create short URL" @close="createOpen = false">
-            <form class="grid gap-5 p-5" @submit.prevent="submitLink">
-                <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                    <Field label="Domain" hint="The hostname used for the short URL." :error="linkForm.errors.domain_id">
-                        <select v-model="linkForm.domain_id" class="h-9">
-                            <option v-for="domain in usableDomains" :key="domain.id" :value="domain.id">{{ domain.hostname }}</option>
-                        </select>
-                    </Field>
-                    <Field label="Custom slug" hint="Leave empty to generate one automatically." :error="linkForm.errors.slug">
-                        <input v-model="linkForm.slug" class="h-9" placeholder="summer-launch" />
-                    </Field>
-                </div>
-                <Field label="Destination URL" :error="linkForm.errors.destination_url">
-                    <input v-model="linkForm.destination_url" class="h-9" placeholder="https://destination.example" />
-                </Field>
-                <Field label="Folder" :error="linkForm.errors.folder_id">
-                    <select v-model="linkForm.folder_id" class="h-9">
-                        <option value="">No folder</option>
-                        <option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
-                    </select>
-                </Field>
-                <Field label="Fallback URL" hint="Optional URL used when the link is expired or unavailable." :error="linkForm.errors.fallback_url">
-                    <input v-model="linkForm.fallback_url" class="h-9" placeholder="https://fallback.example" />
-                </Field>
+        <CreateLinkDrawer
+            :show="createOpen"
+            :form="linkForm"
+            :domains="usableDomains"
+            :folders="folders"
+            :known-tags="tags"
+            @close="createOpen = false"
+            @submit="submitLink"
+        />
 
-                <div class="border-t pt-5">
-                    <p class="mb-4 text-[13px] font-semibold text-foreground">Lifecycle</p>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <Field label="Activation date" :error="linkForm.errors.activates_at">
-                            <input v-model="linkForm.activates_at" type="datetime-local" class="h-9" />
-                        </Field>
-                        <Field label="Expiration date" :error="linkForm.errors.expires_at">
-                            <input v-model="linkForm.expires_at" type="datetime-local" class="h-9" />
-                        </Field>
-                        <Field label="Visit limit" :error="linkForm.errors.visit_limit">
-                            <input v-model="linkForm.visit_limit" type="number" min="1" class="h-9" placeholder="1000" />
-                        </Field>
-                        <Field label="Password" :error="linkForm.errors.password">
-                            <input v-model="linkForm.password" type="password" class="h-9" placeholder="Optional" />
-                        </Field>
-                    </div>
-                </div>
-
-                <Field label="Tags" hint="Comma-separated tags for filtering." :error="linkForm.errors.tags">
-                    <input v-model="linkForm.tags" class="h-9" placeholder="event, vip" />
-                </Field>
-
-                <div class="flex justify-end gap-2 border-t pt-5">
-                    <Button variant="secondary" type="button" @click="createOpen = false">Cancel</Button>
-                    <Button :loading="linkForm.processing">Create link</Button>
-                </div>
-            </form>
-        </Drawer>
-
-        <!-- Edit drawer -->
-        <Drawer :show="Boolean(selectedLink)" eyebrow="Link settings" :title="selectedLink?.short_url" @close="selectedLink = null">
-            <div v-if="selectedLink" class="space-y-6 p-5">
-                <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
-                    <button
-                        type="button"
-                        class="h-8 rounded-md text-[13px] font-medium transition-colors"
-                        :class="selectedSettingsTab === 'link' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
-                        @click="selectedSettingsTab = 'link'"
-                    >
-                        Link
-                    </button>
-                    <button
-                        type="button"
-                        class="h-8 rounded-md text-[13px] font-medium transition-colors"
-                        :class="selectedSettingsTab === 'qr' ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
-                        @click="selectedSettingsTab = 'qr'"
-                    >
-                        QR code
-                    </button>
-                </div>
-
-                <form v-if="selectedSettingsTab === 'link'" class="grid gap-5" @submit.prevent="updateLink">
-                    <Field label="Folder" hint="Move this link into a project folder." :error="editForm.errors.folder_id">
-                        <select v-model="editForm.folder_id" class="h-9">
-                            <option value="">No folder</option>
-                            <option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
-                        </select>
-                    </Field>
-                    <Field label="Destination URL" :error="editForm.errors.destination_url">
-                        <input v-model="editForm.destination_url" class="h-9" placeholder="Destination URL" />
-                    </Field>
-                    <Field label="Fallback URL" :error="editForm.errors.fallback_url">
-                        <input v-model="editForm.fallback_url" class="h-9" placeholder="Fallback URL" />
-                    </Field>
-
-                    <label class="flex items-center justify-between gap-3 rounded-md border bg-elevated/40 px-3 py-2.5">
-                        <span>
-                            <span class="block text-[13px] font-medium text-foreground">Enabled</span>
-                            <span class="block text-xs text-faint">Allow this link to resolve when its lifecycle rules allow it.</span>
-                        </span>
-                        <input v-model="editForm.is_enabled" type="checkbox" class="h-4 w-4 rounded" />
-                    </label>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <Field label="Activation date" :error="editForm.errors.activates_at">
-                            <input v-model="editForm.activates_at" type="datetime-local" class="h-9" />
-                        </Field>
-                        <Field label="Expiration date" :error="editForm.errors.expires_at">
-                            <input v-model="editForm.expires_at" type="datetime-local" class="h-9" />
-                        </Field>
-                        <Field label="Visit limit" :error="editForm.errors.visit_limit">
-                            <input v-model="editForm.visit_limit" type="number" min="1" class="h-9" placeholder="1000" />
-                        </Field>
-                        <Field label="Password" hint="Masked when already set. Empty this field to remove protection." :error="editForm.errors.password">
-                            <input v-model="editForm.password" type="password" class="h-9" />
-                        </Field>
-                    </div>
-
-                    <div class="flex justify-end">
-                        <Button :loading="editForm.processing">Save changes</Button>
-                    </div>
-                </form>
-
-                <div v-if="selectedSettingsTab === 'qr'" class="grid gap-5 rounded-lg border border-border/70 bg-elevated/20 p-4 sm:p-5">
-                    <h4 class="flex items-center gap-2 text-[13px] font-semibold text-foreground"><QrCode class="h-4 w-4 text-faint" /> QR codes</h4>
-
-                    <form class="flex items-end gap-2" @submit.prevent="submitQr">
-                        <Field label="QR name" :error="qrForm.errors.name" class="flex-1">
-                            <input v-model="qrForm.name" class="h-9" placeholder="Poster, badge, flyer…" />
-                        </Field>
-                        <Button variant="secondary" :loading="qrForm.processing">Create &amp; customize</Button>
-                    </form>
-
-                    <div class="grid gap-3">
-                        <article v-for="qr in selectedLink.qr_codes" :key="qr.id" class="grid gap-4 rounded-lg border bg-elevated/30 p-3 sm:grid-cols-[112px_1fr]">
-                            <Link :href="route('qr-codes.show', qr.token)">
-                                <img :src="qrPreviewUrl(qr)" :alt="`${qr.name} QR code`" class="h-28 w-28 rounded-md bg-white p-1.5 transition-opacity hover:opacity-80" />
-                            </Link>
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-medium text-foreground">{{ qr.name }}</p>
-                                <p class="mt-1 text-xs text-faint">{{ qr.scans }} scans · tracked separately from visits.</p>
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    <Link
-                                        :href="route('qr-codes.show', qr.token)"
-                                        class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated"
-                                    >
-                                        <Settings2 class="h-3 w-3" /> Customize
-                                    </Link>
-                                    <a
-                                        :href="route('qr-codes.export', [qr.token, 'svg'])"
-                                        class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                                    >
-                                        SVG
-                                    </a>
-                                    <a
-                                        :href="route('qr-codes.export', [qr.token, 'png'])"
-                                        class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                                    >
-                                        PNG
-                                    </a>
-                                </div>
-                            </div>
-                        </article>
-                        <p v-if="selectedLink.qr_codes.length === 0" class="rounded-md border border-dashed px-3 py-4 text-center text-[13px] text-faint">
-                            No QR code yet for this link.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </Drawer>
+        <EditLinkDrawer
+            :link="selectedLink"
+            :edit-form="editForm"
+            :qr-form="qrForm"
+            :domains="usableDomains"
+            :folders="folders"
+            @close="selectedLink = null"
+            @submit="updateLink"
+            @submit-qr="submitQr"
+        />
     </AuthenticatedLayout>
 </template>

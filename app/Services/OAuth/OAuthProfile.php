@@ -38,7 +38,7 @@ class OAuthProfile
     private static function emailIsVerified(string $provider, array $raw): bool
     {
         $value = match ($provider) {
-            'google', 'apple' => $raw['email_verified'] ?? false,
+            'google' => $raw['email_verified'] ?? false,
             'discord' => $raw['verified'] ?? false,
             default => false,
         };

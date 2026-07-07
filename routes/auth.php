@@ -42,12 +42,12 @@ Route::middleware('guest')->group(function () {
 
     Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirect'])
         ->middleware('throttle:oauth')
-        ->whereIn('provider', ['google', 'apple', 'discord'])
+        ->whereIn('provider', ['google', 'discord'])
         ->name('oauth.redirect');
 
     Route::match(['get', 'post'], 'auth/{provider}/callback', [OAuthController::class, 'callback'])
         ->middleware('throttle:oauth')
-        ->whereIn('provider', ['google', 'apple', 'discord'])
+        ->whereIn('provider', ['google', 'discord'])
         ->name('oauth.callback');
 });
 

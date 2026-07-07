@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
-use SocialiteProviders\Apple\Provider as AppleProvider;
 use SocialiteProviders\Discord\Provider as DiscordProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
@@ -38,7 +37,6 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(function (SocialiteWasCalled $event): void {
-            $event->extendSocialite('apple', AppleProvider::class);
             $event->extendSocialite('discord', DiscordProvider::class);
         });
     }

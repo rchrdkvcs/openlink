@@ -5,7 +5,7 @@ namespace App\Services\OAuth;
 class OAuthProviderRegistry
 {
     /** @var array<int, string> */
-    private const PROVIDERS = ['google', 'apple', 'discord'];
+    private const PROVIDERS = ['google', 'discord'];
 
     /**
      * @return array<string, bool>
@@ -25,7 +25,6 @@ class OAuthProviderRegistry
     {
         return match ($provider) {
             'google' => ['openid', 'profile', 'email'],
-            'apple' => ['name', 'email'],
             'discord' => ['identify', 'email'],
             default => [],
         };
@@ -48,16 +47,6 @@ class OAuthProviderRegistry
             'google', 'discord' => filled($config['client_id'] ?? null)
                 && filled($config['client_secret'] ?? null)
                 && filled($config['redirect'] ?? null),
-            'apple' => filled($config['client_id'] ?? null)
-                && filled($config['redirect'] ?? null)
-                && (
-                    filled($config['client_secret'] ?? null)
-                    || (
-                        filled($config['key_id'] ?? null)
-                        && filled($config['team_id'] ?? null)
-                        && filled($config['private_key'] ?? null)
-                    )
-                ),
             default => false,
         };
     }

@@ -15,7 +15,6 @@
         "laravel/tinker": "^3.0",
         "pragmarx/google2fa": "^9.0",
         "predis/predis": "^3.5",
-        "socialiteproviders/apple": "^5.10",
         "socialiteproviders/discord": "^4.2",
         "tightenco/ziggy": "^2.0"
     },

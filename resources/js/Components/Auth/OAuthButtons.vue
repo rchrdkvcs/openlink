@@ -12,7 +12,6 @@ const providerEntries = (providers: Record<string, boolean>) => Object.keys(prov
 const providerLabel = (provider: string) =>
     ({
         google: 'Google',
-        apple: 'Apple',
         discord: 'Discord',
     })[provider] ?? provider;
 </script>

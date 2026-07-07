@@ -28,13 +28,11 @@ class OAuthAuthenticationTest extends TestCase
     public function test_configured_providers_appear_on_login_and_register_when_registration_is_allowed(): void
     {
         $this->configureGoogle();
-        $this->configureApple();
         $this->configureDiscord();
 
         $this->get(route('login'))->assertInertia(fn (Assert $page) => $page
             ->component('Auth/Login')
             ->where('oauthProviders.google', true)
-            ->where('oauthProviders.apple', true)
             ->where('oauthProviders.discord', true)
         );
 
@@ -420,15 +418,6 @@ class OAuthAuthenticationTest extends TestCase
         config()->set('services.google.client_id', 'google-client');
         config()->set('services.google.client_secret', 'google-secret');
         config()->set('services.google.redirect', 'http://localhost/auth/google/callback');
-    }
-
-    private function configureApple(): void
-    {
-        config()->set('services.apple.client_id', 'apple-client');
-        config()->set('services.apple.team_id', 'apple-team');
-        config()->set('services.apple.key_id', 'apple-key');
-        config()->set('services.apple.private_key', 'apple-private-key');
-        config()->set('services.apple.redirect', 'http://localhost/auth/apple/callback');
     }
 
     private function configureDiscord(): void

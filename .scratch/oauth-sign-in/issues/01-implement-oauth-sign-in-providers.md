@@ -4,13 +4,13 @@ Status: done
 
 ## Context
 
-Openlink currently supports email/password authentication, password reset, email verification, TOTP two-factor authentication, invite links, and instance-level registration modes. Add OAuth sign-in for Google, Apple, and Discord without weakening the self-hosted registration and security model.
+Openlink currently supports email/password authentication, password reset, email verification, TOTP two-factor authentication, invite links, and instance-level registration modes. Add OAuth sign-in for Google and Discord without weakening the self-hosted registration and security model.
 
 This issue implements the first increment described by ADR 0009.
 
 ## Scope
 
-- Add Laravel Socialite and provider support for Google, Apple, and Discord.
+- Add Laravel Socialite and provider support for Google and Discord.
 - Add a `social_accounts` table with `user_id`, `provider`, `provider_user_id`, `email`, `email_verified`, nullable `avatar_url`, timestamps, and a unique constraint on `(provider, provider_user_id)`.
 - Make `users.password` nullable for OAuth-only accounts.
 - Add a `SocialAccount` model and `User` relationship.
@@ -24,7 +24,6 @@ This issue implements the first increment described by ADR 0009.
 - Require verified provider email for account creation and account linking.
 - Preserve Openlink TOTP 2FA after OAuth authentication.
 - Support invite links for new OAuth users and existing OAuth users.
-- Accept verified Apple private relay emails without automatic merging to real-email accounts.
 - Store provider names only when creating a new user; do not overwrite existing user names.
 - Store provider avatar URLs on `social_accounts` only.
 - Request minimal OAuth scopes and do not store OAuth access or refresh tokens.
@@ -42,7 +41,7 @@ This issue implements the first increment described by ADR 0009.
 ## Implementation Notes
 
 - Google should use Socialite's built-in provider.
-- Discord and Apple may use Socialite provider extensions compatible with the current Laravel and Socialite versions.
+- Discord may use a Socialite provider extension compatible with the current Laravel and Socialite versions.
 - Provider buttons should appear on login when configured.
 - Provider buttons should appear on register only when registration is allowed in the current context: first user, open registration, or valid invite link.
 - Direct OAuth attempts that would create an account while registration is not allowed must be refused on callback.
@@ -71,4 +70,4 @@ This issue implements the first increment described by ADR 0009.
 ## Comments
 
 - Decisions were validated through a grill-me design interview on 2026-07-07.
-- Implemented OAuth sign-in for Google, Apple, and Discord with Socialite, `social_accounts`, nullable OAuth-only passwords, invite-link handling, registration-mode enforcement, TOTP handoff, provider availability props, and feature coverage on 2026-07-07.
+- Implemented OAuth sign-in for Google and Discord with Socialite, `social_accounts`, nullable OAuth-only passwords, invite-link handling, registration-mode enforcement, TOTP handoff, provider availability props, and feature coverage on 2026-07-07.

@@ -8,11 +8,12 @@ use App\Models\Domain;
 use App\Models\InviteLink;
 use App\Models\User;
 use App\Services\InstanceSettings;
+use App\Services\OAuth\OAuthProviderRegistry;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -25,13 +26,17 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(Request $request, InstanceSettings $settings): Response
+    public function create(Request $request, InstanceSettings $settings, OAuthProviderRegistry $providers): Response
     {
         $inviteLink = $this->usableInviteLink($request->query('invite'));
 
         $inviteAllowsRegistration = $inviteLink && $settings->get('registration_mode') !== 'closed';
+        $registrationMode = $settings->get('registration_mode');
+        $registrationAllowsOAuth = ! User::query()->exists()
+            || $registrationMode === 'open'
+            || $inviteAllowsRegistration;
 
-        if (! $inviteAllowsRegistration && User::query()->exists() && $settings->get('registration_mode') !== 'open') {
+        if (! $inviteAllowsRegistration && User::query()->exists() && $registrationMode !== 'open') {
             redirect()
                 ->route('login')
                 ->with('status', 'Registration is invite-only. Use an invite link or sign in.')
@@ -44,6 +49,7 @@ class RegisteredUserController extends Controller
                 'workspace' => $inviteLink->workspace->name,
                 'role' => $inviteLink->role,
             ] : null,
+            'oauthProviders' => $registrationAllowsOAuth ? $providers->availableProviders() : [],
         ]);
     }
 

@@ -2,6 +2,7 @@
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -12,6 +13,7 @@ const props = defineProps<{
         workspace: string;
         role: string;
     } | null;
+    oauthProviders: Record<string, boolean>;
 }>();
 
 const form = useForm({
@@ -108,6 +110,8 @@ const submit = () => {
 
             <PrimaryButton class="w-full" :disabled="form.processing">Register</PrimaryButton>
         </form>
+
+        <OAuthButtons class="mt-5" :providers="oauthProviders" intent="register" :invite="invite?.token" />
 
         <template #footer>
             <p class="mt-6 text-center text-sm text-muted">

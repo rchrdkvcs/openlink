@@ -11,9 +11,11 @@
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^13.8",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.28",
         "laravel/tinker": "^3.0",
         "pragmarx/google2fa": "^9.0",
         "predis/predis": "^3.5",
+        "socialiteproviders/discord": "^4.2",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

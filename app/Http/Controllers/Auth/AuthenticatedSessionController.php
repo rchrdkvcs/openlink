@@ -94,7 +94,7 @@ class AuthenticatedSessionController extends Controller
             RateLimiter::hit($this->twoFactorThrottleKey($request, $user));
 
             throw ValidationException::withMessages([
-                'one_time_password' => 'Enter a valid two-factor authentication code.',
+                'one_time_password' => __('auth.two_factor'),
             ]);
         }
 

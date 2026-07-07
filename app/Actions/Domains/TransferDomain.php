@@ -29,7 +29,7 @@ class TransferDomain
 
         if ($domain->shortLinks()->exists()) {
             throw ValidationException::withMessages([
-                'workspace_id' => 'Move or delete links using this domain before transferring it.',
+                'workspace_id' => __('openlink.validation.domain_has_links'),
             ]);
         }
 

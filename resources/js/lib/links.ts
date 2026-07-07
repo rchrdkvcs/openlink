@@ -4,8 +4,8 @@ export function randomSlug(): string {
 
 export function isLikelyUrl(value: string): boolean {
     try {
-        const u = new URL(value.includes('://') ? value : `https://${value}`);
-        return u.hostname.includes('.');
+        const u = new URL(value);
+        return (u.protocol === 'http:' || u.protocol === 'https:') && u.hostname.includes('.');
     } catch {
         return false;
     }

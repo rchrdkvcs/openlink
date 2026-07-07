@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'is_instance_admin', 'two_factor_secret', 'two_factor_confirmed_at'])]
+#[Fillable(['name', 'email', 'email_verified_at', 'password', 'is_instance_admin', 'two_factor_secret', 'two_factor_confirmed_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret'])]
 class User extends Authenticatable
 {
@@ -43,6 +43,11 @@ class User extends Authenticatable
     public function workspaceMemberships(): HasMany
     {
         return $this->hasMany(WorkspaceMember::class);
+    }
+
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
     }
 
     public function workspaces(): BelongsToMany

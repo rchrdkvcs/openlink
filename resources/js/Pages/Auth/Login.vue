@@ -3,12 +3,14 @@ import Checkbox from '@/Components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 defineProps<{
     canResetPassword?: boolean;
+    oauthProviders: Record<string, boolean>;
     status?: string;
 }>();
 
@@ -88,6 +90,8 @@ const submit = () => {
 
             <PrimaryButton class="w-full" :disabled="form.processing">Log in</PrimaryButton>
         </form>
+
+        <OAuthButtons class="mt-5" :providers="oauthProviders" intent="login" />
 
         <template #footer>
             <p class="mt-6 text-center text-sm text-muted">

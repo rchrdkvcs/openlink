@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import { Head } from '@inertiajs/vue3';
-import { Check, Copy, QrCode } from '@lucide/vue';
+import { QrCode } from '@lucide/vue';
 import { ref } from 'vue';
 
 const props = defineProps<{
@@ -44,8 +45,7 @@ async function copyContent() {
                         class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
                         @click="copyContent"
                     >
-                        <Check v-if="copied" class="h-3.5 w-3.5 text-success" />
-                        <Copy v-else class="h-3.5 w-3.5" />
+                        <CopyCheckIcon :copied="copied" />
                         {{ copied ? 'Copied' : 'Copy' }}
                     </button>
                 </div>

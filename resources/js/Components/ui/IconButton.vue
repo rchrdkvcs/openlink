@@ -20,7 +20,7 @@ withDefaults(
         :title="title"
         :class="
             cn(
-                'grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                'grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted transition-[color,background-color,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-95',
                 variant === 'danger' ? 'hover:bg-danger/15 hover:text-danger' : 'hover:bg-elevated hover:text-foreground',
             )
         "

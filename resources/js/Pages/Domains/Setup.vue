@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Check, Copy, Globe, Link2, RefreshCw } from '@lucide/vue';
+import { ArrowLeft, Check, Globe, Link2, RefreshCw } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 type Domain = {
@@ -182,16 +183,14 @@ const records = computed(() => {
                                     <dt class="font-medium uppercase tracking-wide text-faint">Name</dt>
                                     <dd class="min-w-0"><code class="block truncate rounded bg-elevated px-1.5 py-0.5 font-mono">{{ record.name }}</code></dd>
                                     <button type="button" class="text-faint hover:text-foreground" title="Copy" @click="copy(record.key + '-name', record.name)">
-                                        <Check v-if="copiedKey === record.key + '-name'" class="h-3.5 w-3.5 text-success" />
-                                        <Copy v-else class="h-3.5 w-3.5" />
+                                        <CopyCheckIcon :copied="copiedKey === record.key + '-name'" />
                                     </button>
                                 </div>
                                 <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2">
                                     <dt class="font-medium uppercase tracking-wide text-faint">Value</dt>
                                     <dd class="min-w-0"><code class="block truncate rounded bg-elevated px-1.5 py-0.5 font-mono">{{ record.value }}</code></dd>
                                     <button type="button" class="text-faint hover:text-foreground" title="Copy" @click="copy(record.key + '-value', record.value)">
-                                        <Check v-if="copiedKey === record.key + '-value'" class="h-3.5 w-3.5 text-success" />
-                                        <Copy v-else class="h-3.5 w-3.5" />
+                                        <CopyCheckIcon :copied="copiedKey === record.key + '-value'" />
                                     </button>
                                 </div>
                             </dl>

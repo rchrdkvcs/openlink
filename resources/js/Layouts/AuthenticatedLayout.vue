@@ -142,7 +142,7 @@ function initial(name?: string) {
                 enter-active-class="transition-opacity ease-out duration-200"
                 enter-from-class="opacity-0"
                 enter-to-class="opacity-100"
-                leave-active-class="transition-opacity ease-in duration-150"
+                leave-active-class="transition-opacity ease-out duration-150"
                 leave-from-class="opacity-100"
                 leave-to-class="opacity-0"
             >
@@ -153,7 +153,7 @@ function initial(name?: string) {
                 enter-active-class="transition-transform ease-emphasized-out duration-300"
                 enter-from-class="-translate-x-full"
                 enter-to-class="translate-x-0"
-                leave-active-class="transition-transform ease-in duration-200"
+                leave-active-class="transition-transform ease-drawer duration-200"
                 leave-from-class="translate-x-0"
                 leave-to-class="-translate-x-full"
             >

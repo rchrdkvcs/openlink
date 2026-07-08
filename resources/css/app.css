@@ -68,6 +68,18 @@
     ::-webkit-scrollbar-track {
         background: transparent;
     }
+
+    /* Collapse motion for users who opt out; spinners keep rotating
+       so loading feedback survives. */
+    @media (prefers-reduced-motion: reduce) {
+        *:not(.animate-spin),
+        *:not(.animate-spin)::before,
+        *:not(.animate-spin)::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
 }
 
 /* Form controls — in the components layer so these rules win over
@@ -153,6 +165,11 @@
 @layer utilities {
     .ease-emphasized-out {
         transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* iOS-like curve for drawers and sheets (Ionic) */
+    .ease-drawer {
+        transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     /* Subtle top highlight for cards, à la Linear */

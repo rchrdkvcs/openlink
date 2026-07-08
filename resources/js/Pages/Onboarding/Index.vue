@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from '@/Components/ui/Button.vue';
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Check, Copy, Link2, Users } from '@lucide/vue';
+import { Check, Link2, Users } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 type Domain = { id: number; hostname: string; is_default: boolean };
@@ -175,8 +176,7 @@ const steps = [
                         <div class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2.5">
                             <code class="min-w-0 flex-1 truncate text-xs text-muted">{{ teamInviteLink.url }}</code>
                             <Button variant="secondary" size="sm" type="button" @click="copyInviteLink">
-                                <Check v-if="copied" class="h-3.5 w-3.5 text-success" />
-                                <Copy v-else class="h-3.5 w-3.5" />
+                                <CopyCheckIcon :copied="copied" />
                                 {{ copied ? 'Copied' : 'Copy' }}
                             </Button>
                         </div>

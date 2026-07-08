@@ -30,7 +30,7 @@ function submitWorkspace() {
 }
 
 function updateWorkspaceSettings() {
-    workspaceSettingsForm.patch(route('workspaces.update-current'), { preserveScroll: true });
+    workspaceSettingsForm.patch(route('workspaces.update', props.currentWorkspace.id), { preserveScroll: true });
 }
 
 function deleteCurrentWorkspace() {

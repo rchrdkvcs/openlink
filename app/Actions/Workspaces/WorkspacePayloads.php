@@ -10,6 +10,7 @@ use App\Models\InviteLink;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\ShortLinks\ShortLinkLifecycle;
 use Illuminate\Support\Collection;
 
 class WorkspacePayloads
@@ -17,6 +18,7 @@ class WorkspacePayloads
     public function __construct(
         private readonly WorkspaceAccess $access,
         private readonly DomainPayload $domainPayload,
+        private readonly ShortLinkLifecycle $lifecycle,
     ) {}
 
     /** @return Collection<int, array<string, mixed>> */
@@ -60,7 +62,7 @@ class WorkspacePayloads
             'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
             'destination_url' => $link->destination_url,
             'fallback_url' => $link->fallback_url,
-            'status' => $this->status($link),
+            'status' => $this->lifecycle->status($link),
             'domain' => $link->domain?->only(['id', 'hostname', 'status', 'is_default']),
             'folder' => $link->folder?->only(['id', 'name']),
             'tags' => $link->tags->map->only(['id', 'name'])->values(),
@@ -93,27 +95,6 @@ class WorkspacePayloads
                 ])->values(),
             ])->values(),
         ];
-    }
-
-    public function status(ShortLink $link): string
-    {
-        if ($link->isArchived()) {
-            return 'archived';
-        }
-
-        if (! $link->is_enabled) {
-            return 'disabled';
-        }
-
-        if ($link->activates_at?->isFuture()) {
-            return 'scheduled';
-        }
-
-        if ($link->expires_at?->isPast() || ($link->visit_limit !== null && $link->successful_visits >= $link->visit_limit)) {
-            return 'expired';
-        }
-
-        return 'active';
     }
 
     /** @return Collection<int, Folder> */

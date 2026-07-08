@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
+use App\Actions\QrCodes\QrCodeAppearance;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
@@ -56,15 +57,11 @@ class QrCodeController extends Controller
         ]);
     }
 
-    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
+    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer, QrCodeAppearance $appearance): Response
     {
         $access->requireEditableQrCode($request, $qrCode);
 
-        $overrides = collect($request->validate(QrCodePayload::rules(creating: false)))
-            ->except(['name', 'logo', 'remove_logo'])
-            ->filter(fn ($value) => $value !== null);
-
-        $qrCode->fill($overrides->all());
+        $qrCode->fill($appearance->previewOverrides($request->validate(QrCodePayload::rules(creating: false))));
 
         return response($renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
             'Content-Type' => 'image/svg+xml',

@@ -459,6 +459,7 @@ function markFaviconFailed(url: string) {
             :domains="usableDomains"
             :folders="folders"
             :known-tags="tags"
+            :routing-schema="routingSchema"
             @close="createOpen = false"
             @submit="submitLink"
         />
@@ -469,6 +470,7 @@ function markFaviconFailed(url: string) {
             :qr-form="qrForm"
             :domains="usableDomains"
             :folders="folders"
+            :routing-schema="routingSchema"
             @close="selectedLink = null"
             @submit="updateLink"
             @submit-qr="submitQr"

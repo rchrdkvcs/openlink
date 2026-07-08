@@ -3,12 +3,14 @@
 namespace App\Actions\Resolution;
 
 use App\Actions\Analytics\RecordAnalytics;
+use App\Actions\Domains\DomainLifecycle;
 use App\Models\Domain;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\Analytics\Outcome;
 use App\Services\ResolutionContextFactory;
 use App\Services\ResolutionResult;
+use App\Services\ShortLinks\ShortLinkLifecycle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -17,6 +19,8 @@ class ResolvePublicLink
     public function __construct(
         private readonly RecordAnalytics $analytics,
         private readonly ResolutionContextFactory $contexts,
+        private readonly DomainLifecycle $domains,
+        private readonly ShortLinkLifecycle $lifecycle,
         private readonly ResolveSmartRouting $routing,
     ) {}
 
@@ -26,7 +30,7 @@ class ResolvePublicLink
             ?? Domain::query()->where('hostname', $request->getHost())->first();
 
         if ($domain) {
-            $this->activateOnObservedTraffic($request, $domain);
+            $this->domains->activateOnObservedTraffic($request, $domain);
         }
 
         if (! $domain || ! $domain->isUsable()) {
@@ -48,7 +52,7 @@ class ResolvePublicLink
         $shortLink->loadMissing('domain');
 
         if ($shortLink->domain) {
-            $this->activateOnObservedTraffic($request, $shortLink->domain);
+            $this->domains->activateOnObservedTraffic($request, $shortLink->domain);
         }
 
         if (! $shortLink->domain || ! $shortLink->domain->isUsable()) {
@@ -59,7 +63,7 @@ class ResolvePublicLink
             );
         }
 
-        $unavailableOutcome = $this->unavailableOutcome($shortLink);
+        $unavailableOutcome = $this->lifecycle->unavailableOutcome($shortLink);
 
         if ($unavailableOutcome) {
             $this->analytics->record($request, $shortLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, $unavailableOutcome);
@@ -104,48 +108,9 @@ class ResolvePublicLink
         );
     }
 
-    /**
-     * A real request reaching this server with the domain's hostname is
-     * definitive proof the DNS points here — more reliable than comparing
-     * resolved IPs, which proxies and CDNs can mask.
-     */
-    private function activateOnObservedTraffic(Request $request, Domain $domain): void
-    {
-        if ($domain->status === Domain::STATUS_OWNERSHIP_VERIFIED
-            && $domain->disabled_at === null
-            && strcasecmp($request->getHost(), $domain->hostname) === 0) {
-            $domain->activate();
-        }
-    }
-
     public function passwordSessionKey(ShortLink $shortLink): string
     {
-        return 'openlink_protected_link_'.$shortLink->id;
-    }
-
-    private function unavailableOutcome(ShortLink $shortLink): ?string
-    {
-        if ($shortLink->isArchived()) {
-            return Outcome::ARCHIVED;
-        }
-
-        if (! $shortLink->is_enabled) {
-            return Outcome::DISABLED;
-        }
-
-        if ($shortLink->activates_at && $shortLink->activates_at->isFuture()) {
-            return Outcome::SCHEDULED;
-        }
-
-        if ($shortLink->expires_at && $shortLink->expires_at->isPast()) {
-            return Outcome::EXPIRED;
-        }
-
-        if ($shortLink->visit_limit !== null && $shortLink->successful_visits >= $shortLink->visit_limit) {
-            return Outcome::VISIT_LIMIT_REACHED;
-        }
-
-        return null;
+        return $this->lifecycle->passwordSessionKey($shortLink);
     }
 
     private function linkFor(Domain $domain, string $slug): ?ShortLink

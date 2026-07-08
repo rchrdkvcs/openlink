@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Actions\Domains\CreateDomain;
 use App\Actions\Domains\DeleteDomain;
 use App\Actions\Domains\DisableDomain;
+use App\Actions\Domains\DomainLifecycle;
 use App\Actions\Domains\DomainPayload;
-use App\Actions\Domains\RunDomainChecks;
 use App\Actions\Domains\TransferDomain;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
@@ -42,10 +42,10 @@ class DomainController extends Controller
         return redirect()->route('domains.setup', $domain);
     }
 
-    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, RunDomainChecks $checks): RedirectResponse
+    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, DomainLifecycle $domains): RedirectResponse
     {
         $access->requireManagedDomain($request, $domain);
-        $checks->handle($domain);
+        $domains->check($domain);
 
         return back();
     }

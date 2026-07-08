@@ -12,17 +12,23 @@ class QrCodeContent
     /** @return array<string, string> */
     public static function types(): array
     {
+        return collect(self::descriptors())->map(fn (array $descriptor) => $descriptor['label'])->all();
+    }
+
+    /** @return array<string, array{label: string, hint: string, defaults: array<string, mixed>}> */
+    public static function descriptors(): array
+    {
         return [
-            'url' => 'URL',
-            'text' => 'Text',
-            'email' => 'Email',
-            'phone' => 'Phone',
-            'sms' => 'SMS',
-            'wifi' => 'Wi-Fi',
-            'vcard' => 'vCard',
-            'event' => 'Calendar event',
-            'location' => 'Location',
-            'raw' => 'Raw payload',
+            'url' => ['label' => 'URL', 'hint' => 'Open a web page', 'defaults' => ['url' => '']],
+            'text' => ['label' => 'Text', 'hint' => 'Show plain text', 'defaults' => ['text' => '']],
+            'email' => ['label' => 'Email', 'hint' => 'Compose an email', 'defaults' => ['email' => '', 'subject' => '', 'body' => '']],
+            'phone' => ['label' => 'Phone', 'hint' => 'Start a phone call', 'defaults' => ['phone' => '']],
+            'sms' => ['label' => 'SMS', 'hint' => 'Prefill a text message', 'defaults' => ['phone' => '', 'message' => '']],
+            'wifi' => ['label' => 'Wi-Fi', 'hint' => 'Join a Wi-Fi network', 'defaults' => ['ssid' => '', 'encryption' => 'WPA', 'password' => '', 'hidden' => false]],
+            'vcard' => ['label' => 'vCard', 'hint' => 'Share a contact card', 'defaults' => ['full_name' => '', 'organization' => '', 'title' => '', 'phone' => '', 'email' => '', 'url' => '', 'address' => '']],
+            'event' => ['label' => 'Calendar event', 'hint' => 'Add a calendar event', 'defaults' => ['title' => '', 'starts_at' => '', 'ends_at' => '', 'location' => '', 'description' => '']],
+            'location' => ['label' => 'Location', 'hint' => 'Open a map location', 'defaults' => ['latitude' => '', 'longitude' => '', 'label' => '']],
+            'raw' => ['label' => 'Raw payload', 'hint' => 'Any custom QR payload', 'defaults' => ['content' => '']],
         ];
     }
 

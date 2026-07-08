@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Services\ShortLinks\ShortUrlCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Cache;
 
 class Domain extends Model
 {
     public const STATUS_PENDING = 'pending_verification';
+
     public const STATUS_OWNERSHIP_VERIFIED = 'ownership_verified';
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_FAILED = 'failed_verification';
+
     public const STATUS_DISABLED = 'disabled';
 
     protected $guarded = [];
@@ -60,15 +64,11 @@ class Domain extends Model
     protected static function booted(): void
     {
         static::saved(function (Domain $domain): void {
-            $domain->shortLinks()->pluck('slug')->each(
-                fn (string $slug) => Cache::forget("resolution:{$domain->hostname}:{$slug}")
-            );
+            app(ShortUrlCache::class)->forgetForDomain($domain);
         });
 
         static::deleting(function (Domain $domain): void {
-            $domain->shortLinks()->pluck('slug')->each(
-                fn (string $slug) => Cache::forget("resolution:{$domain->hostname}:{$slug}")
-            );
+            app(ShortUrlCache::class)->forgetForDomain($domain);
         });
     }
 }

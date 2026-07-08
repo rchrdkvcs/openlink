@@ -4,43 +4,13 @@ namespace App\Actions\Routing;
 
 use App\Models\RoutingRule;
 use App\Models\ShortLink;
+use App\Services\Routing\SmartRoutingSchema;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SyncRoutingRules
 {
-    private const CONDITION_TYPES = [
-        'country',
-        'language',
-        'device_type',
-        'browser',
-        'operating_system',
-        'referrer_host',
-        'referrer_channel',
-        'utm_source',
-        'utm_medium',
-        'utm_campaign',
-        'utm_term',
-        'utm_content',
-        'date_time',
-        'day_of_week',
-        'time_of_day',
-    ];
-
-    private const OPERATORS = [
-        'is',
-        'is_not',
-        'contains',
-        'does_not_contain',
-        'starts_with',
-        'ends_with',
-        'is_empty',
-        'is_not_empty',
-        'before',
-        'after',
-        'between',
-    ];
+    public function __construct(private readonly SmartRoutingSchema $schema) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $rules
@@ -86,7 +56,7 @@ class SyncRoutingRules
      */
     private function validate(ShortLink $shortLink, array $rules): void
     {
-        Validator::make(['routing_rules' => $rules], $this->rules())->validate();
+        Validator::make(['routing_rules' => $rules], $this->schema->validationRules())->validate();
 
         foreach (array_values($rules) as $index => $rule) {
             $enabled = $rule['is_enabled'] ?? true;
@@ -121,29 +91,6 @@ class SyncRoutingRules
                 $this->assertNoLoop($shortLink, $variant['destination_url'], "routing_rules.$index.variants.$variantIndex.destination_url");
             }
         }
-    }
-
-    /** @return array<string, mixed> */
-    private function rules(): array
-    {
-        return [
-            'routing_rules' => ['array', 'max:50'],
-            'routing_rules.*.name' => ['nullable', 'string', 'max:120'],
-            'routing_rules.*.type' => ['nullable', Rule::in([RoutingRule::TYPE_CONDITIONAL, RoutingRule::TYPE_SPLIT_TEST])],
-            'routing_rules.*.is_enabled' => ['nullable', 'boolean'],
-            'routing_rules.*.match_mode' => ['nullable', Rule::in([RoutingRule::MATCH_ALL, RoutingRule::MATCH_ANY])],
-            'routing_rules.*.conditions' => ['nullable', 'array', 'max:20'],
-            'routing_rules.*.conditions.*.type' => ['required_with:routing_rules.*.conditions', Rule::in(self::CONDITION_TYPES)],
-            'routing_rules.*.conditions.*.operator' => ['required_with:routing_rules.*.conditions', Rule::in(self::OPERATORS)],
-            'routing_rules.*.conditions.*.value' => ['nullable'],
-            'routing_rules.*.conditions.*.timezone' => ['nullable', 'timezone'],
-            'routing_rules.*.destination_url' => ['nullable', 'url:http,https'],
-            'routing_rules.*.variants' => ['nullable', 'array', 'max:20'],
-            'routing_rules.*.variants.*.name' => ['nullable', 'string', 'max:120'],
-            'routing_rules.*.variants.*.is_enabled' => ['nullable', 'boolean'],
-            'routing_rules.*.variants.*.destination_url' => ['required_with:routing_rules.*.variants', 'url:http,https'],
-            'routing_rules.*.variants.*.weight' => ['nullable', 'integer', 'min:1', 'max:1000000'],
-        ];
     }
 
     private function assertNoLoop(ShortLink $shortLink, string $destinationUrl, string $field): void

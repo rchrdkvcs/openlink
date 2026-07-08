@@ -25,7 +25,7 @@ import OptionChips from './OptionChips.vue';
 import OptionRow from './OptionRow.vue';
 import RoutingRulesEditor from './RoutingRulesEditor.vue';
 import ShortUrlComposer from './ShortUrlComposer.vue';
-import type { CreateLinkFormData, Domain, Folder } from './types';
+import type { CreateLinkFormData, Domain, Folder, RoutingSchema } from './types';
 
 const props = defineProps<{
     show: boolean;
@@ -33,6 +33,7 @@ const props = defineProps<{
     domains: Domain[];
     folders: Folder[];
     knownTags: { id: number; name: string }[];
+    routingSchema: RoutingSchema;
 }>();
 
 const emit = defineEmits<{ close: []; submit: [] }>();
@@ -180,7 +181,7 @@ watch(
                 <OptionChips :options="availableOptions" @add="addOption" />
                 </div>
 
-                <RoutingRulesEditor v-else v-model="form.routing_rules" :errors="form.errors" />
+                <RoutingRulesEditor v-else v-model="form.routing_rules" :errors="form.errors" :schema="routingSchema" />
             </div>
 
             <!-- Sticky footer with live preview -->

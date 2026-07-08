@@ -15,30 +15,20 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { ref } from 'vue';
-import type { RoutingCondition, RoutingRuleDraft, RoutingVariantDraft } from './types';
+import type { RoutingCondition, RoutingOption, RoutingRuleDraft, RoutingSchema, RoutingVariantDraft } from './types';
 
 const rules = defineModel<RoutingRuleDraft[]>({ required: true });
 
 const props = defineProps<{
     errors?: Record<string, string | undefined>;
+    schema: RoutingSchema;
 }>();
-
-type PresetKind = 'country' | 'device' | 'campaign' | 'time' | 'split' | 'custom';
 
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const openIndex = ref<number | null>(null);
 const menuOpen = ref(false);
 
-const presets: { kind: PresetKind; label: string; description: string }[] = [
-    { kind: 'country', label: 'Country', description: 'Send visitors to a destination by country.' },
-    { kind: 'device', label: 'Device', description: 'Route mobile, desktop, tablet, or bot traffic.' },
-    { kind: 'campaign', label: 'Campaign', description: 'Match UTM campaign parameters.' },
-    { kind: 'time', label: 'Time', description: 'Use a time window with an explicit timezone.' },
-    { kind: 'split', label: 'Split test', description: 'Split traffic between weighted variants.' },
-    { kind: 'custom', label: 'Custom', description: 'Start from a blank rule.' },
-];
-
-const presetIcons: Record<PresetKind, unknown> = {
+const presetIcons: Record<string, unknown> = {
     country: Globe2,
     device: MonitorSmartphone,
     campaign: Megaphone,
@@ -46,45 +36,6 @@ const presetIcons: Record<PresetKind, unknown> = {
     split: Shuffle,
     custom: Plus,
 };
-
-const conditionTypes = [
-    { value: 'country', label: 'Country' },
-    { value: 'language', label: 'Language' },
-    { value: 'device_type', label: 'Device' },
-    { value: 'browser', label: 'Browser' },
-    { value: 'operating_system', label: 'OS' },
-    { value: 'referrer_host', label: 'Referrer host' },
-    { value: 'referrer_channel', label: 'Referrer channel' },
-    { value: 'utm_source', label: 'UTM source' },
-    { value: 'utm_medium', label: 'UTM medium' },
-    { value: 'utm_campaign', label: 'UTM campaign' },
-    { value: 'utm_term', label: 'UTM term' },
-    { value: 'utm_content', label: 'UTM content' },
-    { value: 'date_time', label: 'Date/time' },
-    { value: 'day_of_week', label: 'Day' },
-    { value: 'time_of_day', label: 'Time' },
-];
-
-const scalarOperators = [
-    { value: 'is', label: 'is' },
-    { value: 'is_not', label: 'is not' },
-    { value: 'contains', label: 'contains' },
-    { value: 'does_not_contain', label: 'does not contain' },
-    { value: 'starts_with', label: 'starts with' },
-    { value: 'ends_with', label: 'ends with' },
-    { value: 'is_empty', label: 'is empty' },
-    { value: 'is_not_empty', label: 'is not empty' },
-];
-
-const timeOperators = [
-    { value: 'before', label: 'before' },
-    { value: 'after', label: 'after' },
-    { value: 'between', label: 'between' },
-];
-
-const dayOptions = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const deviceOptions = ['mobile', 'desktop', 'tablet', 'bot'];
-const channelOptions = ['direct', 'search', 'social', 'video', 'email', 'messaging', 'ai', 'referral'];
 
 function uid() {
     return Math.random().toString(36).slice(2, 10);
@@ -103,7 +54,7 @@ function newCondition(type = 'country'): RoutingCondition {
         return { type, operator: 'is', value: 'monday', timezone };
     }
 
-    return { type, operator: 'is', value: defaultValue(type) };
+    return { type, operator: 'is', value: props.schema.defaults[type] ?? '' };
 }
 
 function newVariant(name: string): RoutingVariantDraft {
@@ -129,16 +80,13 @@ function newRule(type: RoutingRuleDraft['type'], conditionType = 'country'): Rou
     };
 }
 
-function ruleFromKind(kind: PresetKind): RoutingRuleDraft {
-    if (kind === 'split') return newRule('split_test', 'custom');
-    if (kind === 'device') return newRule('conditional', 'device_type');
-    if (kind === 'campaign') return newRule('conditional', 'utm_campaign');
-    if (kind === 'time') return newRule('conditional', 'time_of_day');
-    if (kind === 'custom') return newRule('conditional', 'custom');
-    return newRule('conditional', 'country');
+function ruleFromKind(kind: string): RoutingRuleDraft {
+    const preset = props.schema.presets.find((entry) => entry.kind === kind) ?? props.schema.presets[0];
+
+    return newRule(preset.ruleType, preset.conditionType);
 }
 
-function addRule(kind: PresetKind) {
+function addRule(kind: string) {
     rules.value = [...rules.value, ruleFromKind(kind)];
     openIndex.value = rules.value.length - 1;
     menuOpen.value = false;
@@ -186,19 +134,11 @@ function onConditionTypeChange(condition: RoutingCondition) {
 }
 
 function operatorsFor(condition: RoutingCondition) {
-    return ['date_time', 'time_of_day'].includes(condition.type) ? timeOperators : scalarOperators;
-}
-
-function defaultValue(type: string) {
-    if (type === 'device_type') return 'mobile';
-    if (type === 'referrer_channel') return 'social';
-    if (type === 'country') return 'FR';
-    if (type === 'language') return 'fr';
-    return '';
+    return ['date_time', 'time_of_day'].includes(condition.type) ? props.schema.operators.time : props.schema.operators.scalar;
 }
 
 function labelFor(type: string) {
-    return conditionTypes.find((option) => option.value === type)?.label ?? type;
+    return props.schema.conditionTypes.find((option) => option.value === type)?.label ?? type;
 }
 
 function formatValue(condition: RoutingCondition) {
@@ -226,11 +166,8 @@ function hasValueInput(condition: RoutingCondition) {
     return condition.operator !== 'is_empty' && condition.operator !== 'is_not_empty';
 }
 
-function valueOptions(condition: RoutingCondition) {
-    if (condition.type === 'device_type') return deviceOptions;
-    if (condition.type === 'referrer_channel') return channelOptions;
-    if (condition.type === 'day_of_week') return dayOptions;
-    return null;
+function valueOptions(condition: RoutingCondition): RoutingOption[] | null {
+    return props.schema.valueOptions[condition.type] ?? null;
 }
 
 function rangeValue(condition: RoutingCondition): { from?: string; to?: string } {
@@ -261,13 +198,13 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
 
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <button
-                    v-for="preset in presets"
+                    v-for="preset in schema.presets"
                     :key="preset.kind"
                     type="button"
                     class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-elevated"
                     @click="addRule(preset.kind)"
                 >
-                    <component :is="presetIcons[preset.kind]" class="h-3.5 w-3.5 shrink-0 text-accent" />
+                        <component :is="presetIcons[preset.kind] ?? Plus" class="h-3.5 w-3.5 shrink-0 text-accent" />
                     <span class="text-[13px] font-medium text-foreground">{{ preset.label }}</span>
                 </button>
             </div>
@@ -282,13 +219,13 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
                 <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
                 <div v-if="menuOpen" class="absolute right-0 z-20 mt-1.5 w-64 rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer">
                     <button
-                        v-for="preset in presets"
+                        v-for="preset in schema.presets"
                         :key="preset.kind"
                         type="button"
                         class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-elevated"
                         @click="addRule(preset.kind)"
                     >
-                        <component :is="presetIcons[preset.kind]" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+                        <component :is="presetIcons[preset.kind] ?? Plus" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
                         <span class="min-w-0">
                             <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
                             <span class="block text-xs text-faint">{{ preset.description }}</span>
@@ -351,7 +288,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
                         class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[140px_140px_1fr_auto]"
                     >
                         <select v-model="condition.type" class="h-9" @change="onConditionTypeChange(condition)">
-                            <option v-for="option in conditionTypes" :key="option.value" :value="option.value">{{ option.label }}</option>
+                            <option v-for="option in schema.conditionTypes" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
                         <select v-model="condition.operator" class="h-9">
                             <option v-for="option in operatorsFor(condition)" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -363,7 +300,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
                                 <input v-model="rangeValue(condition).to" class="h-9" :type="condition.type === 'date_time' ? 'datetime-local' : 'time'" />
                             </div>
                             <select v-else-if="valueOptions(condition)" v-model="condition.value" class="h-9">
-                                <option v-for="option in valueOptions(condition)" :key="option" :value="option">{{ option }}</option>
+                                <option v-for="option in valueOptions(condition)" :key="option.value" :value="option.value">{{ option.label }}</option>
                             </select>
                             <input
                                 v-else

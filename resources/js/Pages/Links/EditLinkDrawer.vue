@@ -25,7 +25,7 @@ import OptionChips from './OptionChips.vue';
 import OptionRow from './OptionRow.vue';
 import RoutingRulesEditor from './RoutingRulesEditor.vue';
 import ShortUrlComposer from './ShortUrlComposer.vue';
-import type { Domain, EditLinkFormData, Folder, Qr, ShortLink } from './types';
+import type { Domain, EditLinkFormData, Folder, Qr, RoutingSchema, ShortLink } from './types';
 
 const props = defineProps<{
     link: ShortLink | null;
@@ -33,6 +33,7 @@ const props = defineProps<{
     qrForm: InertiaForm<{ name: string }>;
     domains: Domain[];
     folders: Folder[];
+    routingSchema: RoutingSchema;
 }>();
 
 const emit = defineEmits<{ close: []; submit: []; submitQr: [] }>();
@@ -189,7 +190,7 @@ function qrPreviewUrl(qr: Qr) {
             </form>
 
             <form v-if="tab === 'routing'" class="grid gap-5" @submit.prevent="emit('submit')">
-                <RoutingRulesEditor v-model="editForm.routing_rules" :errors="editForm.errors" />
+                <RoutingRulesEditor v-model="editForm.routing_rules" :errors="editForm.errors" :schema="routingSchema" />
 
                 <div class="flex justify-end">
                     <Button :loading="editForm.processing">Save changes</Button>

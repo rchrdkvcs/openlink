@@ -21,38 +21,35 @@ export type QrCodeRecord = {
     updated_at?: string | null;
 };
 
-export const PAYLOAD_DEFAULTS: Record<string, Record<string, any>> = {
-    url: { url: '' },
-    text: { text: '' },
-    email: { email: '', subject: '', body: '' },
-    phone: { phone: '' },
-    sms: { phone: '', message: '' },
-    wifi: { ssid: '', encryption: 'WPA', password: '', hidden: false },
-    vcard: { full_name: '', organization: '', title: '', phone: '', email: '', url: '', address: '' },
-    event: { title: '', starts_at: '', ends_at: '', location: '', description: '' },
-    location: { latitude: '', longitude: '', label: '' },
-    raw: { content: '' },
+export type PayloadDescriptor = {
+    label: string;
+    hint: string;
+    defaults: Record<string, any>;
 };
 
-export function payloadDefaults(type: string) {
-    return { ...(PAYLOAD_DEFAULTS[type] ?? PAYLOAD_DEFAULTS.raw) };
+export type PayloadDescriptors = Record<string, PayloadDescriptor>;
+
+const PAYLOAD_ICONS: Record<string, unknown> = {
+    url: Link2,
+    text: Type,
+    email: Mail,
+    phone: Phone,
+    sms: MessageSquare,
+    wifi: Wifi,
+    vcard: Contact,
+    event: CalendarDays,
+    location: MapPin,
+    raw: Code2,
+};
+
+export function payloadDefaults(type: string, descriptors: PayloadDescriptors) {
+    return { ...(descriptors[type]?.defaults ?? descriptors.raw?.defaults ?? { content: '' }) };
 }
 
-export type PayloadTypeMeta = { icon: unknown; hint: string };
+export function payloadHint(type: string, descriptors: PayloadDescriptors): string {
+    return descriptors[type]?.hint ?? descriptors.raw?.hint ?? '';
+}
 
-export const PAYLOAD_TYPE_META: Record<string, PayloadTypeMeta> = {
-    url: { icon: Link2, hint: 'Open a web page' },
-    text: { icon: Type, hint: 'Show plain text' },
-    email: { icon: Mail, hint: 'Compose an email' },
-    phone: { icon: Phone, hint: 'Start a phone call' },
-    sms: { icon: MessageSquare, hint: 'Prefill a text message' },
-    wifi: { icon: Wifi, hint: 'Join a Wi-Fi network' },
-    vcard: { icon: Contact, hint: 'Share a contact card' },
-    event: { icon: CalendarDays, hint: 'Add a calendar event' },
-    location: { icon: MapPin, hint: 'Open a map location' },
-    raw: { icon: Code2, hint: 'Any custom QR payload' },
-};
-
-export function payloadTypeMeta(type: string): PayloadTypeMeta {
-    return PAYLOAD_TYPE_META[type] ?? PAYLOAD_TYPE_META.raw;
+export function payloadIcon(type: string) {
+    return PAYLOAD_ICONS[type] ?? PAYLOAD_ICONS.raw;
 }

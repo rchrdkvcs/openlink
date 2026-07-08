@@ -8,6 +8,35 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workspace extends Model
 {
+    /** Icon keys the UI maps to Lucide icons. */
+    public const ICONS = [
+        'briefcase',
+        'rocket',
+        'globe',
+        'star',
+        'heart',
+        'zap',
+        'folder',
+        'users',
+        'megaphone',
+        'calendar',
+        'shopping-bag',
+        'graduation-cap',
+    ];
+
+    /** Preset color keys the UI maps to swatches. */
+    public const COLORS = [
+        'slate',
+        'red',
+        'orange',
+        'amber',
+        'green',
+        'teal',
+        'blue',
+        'violet',
+        'pink',
+    ];
+
     protected $guarded = [];
 
     protected function casts(): array

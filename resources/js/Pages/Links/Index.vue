@@ -9,6 +9,8 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     Archive,
     ChevronDown,
+    ChevronsDownUp,
+    ChevronsUpDown,
     ExternalLink,
     Folder as FolderIcon,
     Globe,
@@ -45,6 +47,8 @@ const {
     dragLinkId,
     dropGroupKey,
     toggleCollapse,
+    toggleAllCollapse,
+    allGroupsCollapsed,
     isCollapsed,
     onDrop,
 } = useLinkGroups(props, filters);
@@ -204,6 +208,10 @@ function markFaviconFailed(url: string) {
                 </select>
 
                 <span v-if="hasActiveFilters" class="text-[13px] tabular-nums text-faint">{{ totalMatching }} result{{ totalMatching === 1 ? '' : 's' }}</span>
+                <Button v-if="groups.length > 0 && !hasActiveFilters" variant="ghost" size="sm" type="button" @click="toggleAllCollapse">
+                    <component :is="allGroupsCollapsed ? ChevronsUpDown : ChevronsDownUp" class="h-3.5 w-3.5" />
+                    {{ allGroupsCollapsed ? 'Open all' : 'Close all' }}
+                </Button>
 
                 <div v-if="canEditWorkspace || canManageWorkspace" class="ml-auto flex items-center gap-2">
                     <template v-if="canManageWorkspace">

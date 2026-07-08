@@ -46,11 +46,21 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
 
     const collapsed = ref<Set<string>>(readCollapsed());
 
+    function persistCollapsed(next: Set<string>) {
+        collapsed.value = next;
+        localStorage.setItem(collapseStorageKey, JSON.stringify([...next]));
+    }
+
     function toggleCollapse(key: string) {
         const next = new Set(collapsed.value);
         next.has(key) ? next.delete(key) : next.add(key);
-        collapsed.value = next;
-        localStorage.setItem(collapseStorageKey, JSON.stringify([...next]));
+        persistCollapsed(next);
+    }
+
+    const allGroupsCollapsed = computed(() => groups.value.length > 0 && groups.value.every((group) => collapsed.value.has(group.key)));
+
+    function toggleAllCollapse() {
+        persistCollapsed(allGroupsCollapsed.value ? new Set() : new Set(groups.value.map((group) => group.key)));
     }
 
     function isCollapsed(key: string) {
@@ -85,6 +95,8 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
         dragLinkId,
         dropGroupKey,
         toggleCollapse,
+        toggleAllCollapse,
+        allGroupsCollapsed,
         isCollapsed,
         moveLink,
         onDrop,

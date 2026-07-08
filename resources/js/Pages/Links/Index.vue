@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     Archive,
-    Check,
     ChevronDown,
-    ChevronRight,
-    Copy,
     ExternalLink,
     Folder as FolderIcon,
     Globe,
@@ -251,7 +249,7 @@ function markFaviconFailed(url: string) {
                             :title="isCollapsed(group.key) ? 'Expand' : 'Collapse'"
                             @click="toggleCollapse(group.key)"
                         >
-                            <component :is="isCollapsed(group.key) ? ChevronRight : ChevronDown" class="h-4 w-4" />
+                            <ChevronDown class="h-4 w-4 transition-transform duration-200 ease-emphasized-out" :class="isCollapsed(group.key) ? '-rotate-90' : ''" />
                         </button>
                         <component :is="group.folder ? FolderIcon : Inbox" class="h-4 w-4 text-faint" />
 
@@ -275,9 +273,21 @@ function markFaviconFailed(url: string) {
                             >
                                 <MoreHorizontal class="h-4 w-4" />
                             </button>
-                            <template v-if="folderMenuFor === group.folder.id">
-                                <button class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="folderMenuFor = null" />
-                                <div class="absolute right-0 top-full z-30 mt-1 w-44 rounded-lg bg-overlay p-1 shadow-popover">
+                            <button
+                                v-if="folderMenuFor === group.folder.id"
+                                class="fixed inset-0 z-20 cursor-default"
+                                tabindex="-1"
+                                @click="folderMenuFor = null"
+                            />
+                            <Transition
+                                enter-active-class="transition ease-emphasized-out duration-150"
+                                enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
+                                enter-to-class="opacity-100 scale-100 translate-y-0"
+                                leave-active-class="transition ease-out duration-100"
+                                leave-from-class="opacity-100 scale-100"
+                                leave-to-class="opacity-0 scale-[0.97]"
+                            >
+                                <div v-if="folderMenuFor === group.folder.id" class="absolute right-0 top-full z-30 mt-1 w-44 origin-top-right rounded-lg bg-overlay p-1 shadow-popover">
                                     <button
                                         class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-muted transition-colors hover:bg-elevated hover:text-foreground"
                                         @click="startRenameFolder(group.folder)"
@@ -291,7 +301,7 @@ function markFaviconFailed(url: string) {
                                         <Trash2 class="h-3.5 w-3.5" /> Delete folder
                                     </button>
                                 </div>
-                            </template>
+                            </Transition>
                         </div>
                     </header>
 
@@ -318,8 +328,7 @@ function markFaviconFailed(url: string) {
                                     title="Copy short URL"
                                     @click="copyShortUrl(link)"
                                 >
-                                    <Check v-if="copiedLinkId === link.id" class="h-3.5 w-3.5 text-success" />
-                                    <Copy v-else class="h-3.5 w-3.5" />
+                                    <CopyCheckIcon :copied="copiedLinkId === link.id" />
                                 </button>
                             </div>
 

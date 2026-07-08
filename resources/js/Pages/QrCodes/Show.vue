@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Check, Copy, Download, ImageOff, ScanLine, Trash2, Upload } from '@lucide/vue';
+import { ArrowLeft, Download, ImageOff, ScanLine, Trash2, Upload } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { Qr, ShortLink } from '../Links/types';
 
@@ -166,8 +167,7 @@ async function copyPublicUrl() {
                             class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
                             @click="copyPublicUrl"
                         >
-                            <Check v-if="copied" class="h-3.5 w-3.5 text-success" />
-                            <Copy v-else class="h-3.5 w-3.5" />
+                            <CopyCheckIcon :copied="copied" />
                             {{ copied ? 'Copied' : 'Copy' }}
                         </button>
                     </div>

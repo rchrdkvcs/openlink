@@ -3,12 +3,13 @@ import Dropdown from '@/Components/Dropdown.vue';
 import Modal from '@/Components/Modal.vue';
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Copy, Crown, Link2, LogOut, Trash2, UserPlus, Users } from '@lucide/vue';
+import { Check, ChevronDown, Crown, Link2, LogOut, Trash2, UserPlus, Users } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 type Workspace = { id: number; name: string; slug: string };
@@ -324,8 +325,7 @@ const sortedMembers = computed(() =>
                                     </p>
                                 </div>
                                 <IconButton :title="copiedLinkId === link.id ? 'Copied' : 'Copy link'" @click="copyLink(link)">
-                                    <Check v-if="copiedLinkId === link.id" class="h-3.5 w-3.5 text-success" />
-                                    <Copy v-else class="h-3.5 w-3.5" />
+                                    <CopyCheckIcon :copied="copiedLinkId === link.id" />
                                 </IconButton>
                                 <IconButton variant="danger" title="Revoke link" @click="revokeLink(link)">
                                     <Trash2 class="h-3.5 w-3.5" />

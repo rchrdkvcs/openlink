@@ -56,10 +56,10 @@ const open = ref(false);
         <div v-show="open" class="fixed inset-0 z-40" @click="open = false"></div>
 
         <Transition
-            enter-active-class="transition ease-out duration-150"
+            enter-active-class="transition ease-emphasized-out duration-150"
             enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
             enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="transition ease-in duration-100"
+            leave-active-class="transition ease-out duration-100"
             leave-from-class="opacity-100 scale-100"
             leave-to-class="opacity-0 scale-[0.97]"
         >

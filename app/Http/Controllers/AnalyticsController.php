@@ -6,6 +6,8 @@ use App\Actions\Analytics\BuildAnalyticsReport;
 use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
+use App\Actions\Workspaces\WorkspaceView;
+use App\Actions\Workspaces\WorkspaceViewFactory;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
 use Illuminate\Http\Request;
@@ -15,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, BuildAnalyticsReport $reporter, WorkspaceShellPayload $shell): Response
+    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, WorkspaceViewFactory $views, BuildAnalyticsReport $reporter, WorkspaceShellPayload $shell): Response
     {
         $workspace = $access->requireCurrent($request);
 
@@ -27,7 +29,7 @@ class AnalyticsController extends Controller
             ...$shell->handle($workspace, $user),
             'report' => $reporter->report($workspace, $filters, $accessibleLinkIds),
             'filters' => $filters->toQuery() + ['range' => $filters->range],
-            'filterOptions' => $this->filterOptions($workspace, $accessibleLinkIds, $data, $user),
+            'filterOptions' => $this->filterOptions($workspace, $accessibleLinkIds, $data, $views->make($workspace, $user)),
         ]);
     }
 
@@ -60,7 +62,7 @@ class AnalyticsController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspacePayloads $data, $user): array
+    private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspacePayloads $data, WorkspaceView $view): array
     {
         $links = $workspace->shortLinks()
             ->with('domain:id,hostname')
@@ -83,7 +85,7 @@ class AnalyticsController extends Controller
         return [
             'links' => $links,
             'domains' => $workspace->domains()->orderBy('hostname')->get(['id', 'hostname']),
-            'folders' => $data->folders($workspace, $user)->map->only(['id', 'name'])->values(),
+            'folders' => $data->folders($view)->map->only(['id', 'name'])->values(),
             'tags' => $workspace->tags()->orderBy('name')->get(['id', 'name']),
             'routingRules' => $rules->map(fn ($rule) => ['id' => $rule->id, 'name' => $rule->name])->values(),
             'routingVariants' => $rules

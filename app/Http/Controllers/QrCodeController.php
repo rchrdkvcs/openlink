@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\QrCodes\CreateDirectQrCode;
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
 use App\Actions\QrCodes\QrCodeAppearance;
-use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
-use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\QrCode;
 use App\Models\ShortLink;
-use App\Services\QrCodeRenderer;
+use App\Services\QrCodes\QrCodeContent;
+use App\Services\QrCodes\QrCodeRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

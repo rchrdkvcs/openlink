@@ -6,7 +6,7 @@ use App\Models\QrCode;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
-use App\Services\QrCodeRenderer;
+use App\Services\QrCodes\QrCodeRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;

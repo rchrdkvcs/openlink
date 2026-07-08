@@ -4,6 +4,7 @@ namespace App\Actions\QrCodes;
 
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\QrCode;
+use App\Services\QrCodes\QrCodeContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 

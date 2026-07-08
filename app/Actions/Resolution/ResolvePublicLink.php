@@ -11,6 +11,7 @@ use App\Services\Analytics\Outcome;
 use App\Services\ResolutionContextFactory;
 use App\Services\ResolutionResult;
 use App\Services\ShortLinks\ShortLinkLifecycle;
+use App\Services\ShortLinks\SmartRouting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,7 +22,7 @@ class ResolvePublicLink
         private readonly ResolutionContextFactory $contexts,
         private readonly DomainLifecycle $domains,
         private readonly ShortLinkLifecycle $lifecycle,
-        private readonly ResolveSmartRouting $routing,
+        private readonly SmartRouting $routing,
     ) {}
 
     public function resolve(Request $request, string $slug, ?QrCode $qrCode = null): ResolutionResult

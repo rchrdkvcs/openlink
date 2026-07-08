@@ -8,7 +8,6 @@ use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\InviteLink;
 use App\Models\ShortLink;
-use App\Models\User;
 use App\Models\Workspace;
 use App\Services\ShortLinks\ShortLinkLifecycle;
 use Illuminate\Support\Collection;
@@ -16,23 +15,19 @@ use Illuminate\Support\Collection;
 class WorkspacePayloads
 {
     public function __construct(
-        private readonly WorkspaceAccess $access,
         private readonly DomainPayload $domainPayload,
         private readonly ShortLinkLifecycle $lifecycle,
     ) {}
 
     /** @return Collection<int, array<string, mixed>> */
-    public function links(Workspace $workspace, User $user): Collection
+    public function links(WorkspaceView $view): Collection
     {
-        $isManager = $this->access->canManageWorkspace($user, $workspace);
-        $accessibleFolderIds = $isManager ? collect() : $this->folders($workspace, $user)->pluck('id');
-
-        return $workspace->shortLinks()
+        return $view->workspace->shortLinks()
             ->with(['domain', 'folder', 'tags', 'routingRules.variants', 'qrCodes' => fn ($query) => $query->withCount([
                 'analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan'),
             ])])
             ->withCount($this->analyticsCounts())
-            ->when(! $isManager, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds)))
+            ->when(! $view->canManage, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $view->accessibleFolderIds())))
             ->latest()
             ->get()
             ->map(fn (ShortLink $link) => $this->linkPayload($link));
@@ -98,15 +93,9 @@ class WorkspacePayloads
     }
 
     /** @return Collection<int, Folder> */
-    public function folders(Workspace $workspace, User $user): Collection
+    public function folders(WorkspaceView $view): Collection
     {
-        $isManager = $this->access->canManageWorkspace($user, $workspace);
-
-        return $workspace->folders()
-            ->when(! $isManager, fn ($query) => $query->whereHas('permissions', fn ($query) => $query->where('user_id', $user->id)))
-            ->with('permissions.user:id,name,email')
-            ->orderBy('name')
-            ->get();
+        return $view->folders;
     }
 
     /** @return Collection<int, array<string, mixed>> */

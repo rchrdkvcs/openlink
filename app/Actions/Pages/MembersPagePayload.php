@@ -2,8 +2,8 @@
 
 namespace App\Actions\Pages;
 
-use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
+use App\Actions\Workspaces\WorkspaceViewFactory;
 use App\Models\User;
 use App\Models\Workspace;
 
@@ -11,14 +11,14 @@ class MembersPagePayload
 {
     public function __construct(
         private readonly WorkspaceShellPayload $shell,
-        private readonly WorkspaceAccess $access,
         private readonly WorkspacePayloads $workspacePayloads,
+        private readonly WorkspaceViewFactory $views,
     ) {}
 
     /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user): array
     {
-        $canManage = $this->access->canManageWorkspace($user, $workspace);
+        $view = $this->views->make($workspace, $user);
 
         return [
             ...$this->shell->handle($workspace, $user),
@@ -37,7 +37,7 @@ class MembersPagePayload
                         'profile_avatar_url' => $member->user->profileAvatarUrl(),
                     ],
                 ]),
-            'inviteLinks' => $canManage ? $this->workspacePayloads->inviteLinks($workspace) : [],
+            'inviteLinks' => $view->canManage ? $this->workspacePayloads->inviteLinks($workspace) : [],
         ];
     }
 }

@@ -223,7 +223,7 @@ async function copyPublicUrl() {
                             </select>
                         </Field>
 
-                        <PayloadFields v-model="form.payload" :type="form.payload_type" :errors="form.errors" />
+                        <PayloadFields v-model="form.payload" :type="form.payload_type" :descriptors="payloadDescriptors" :errors="form.errors" />
 
                         <div class="border-t pt-5">
                             <p class="mb-3 text-[13px] font-medium text-foreground">Appearance</p>

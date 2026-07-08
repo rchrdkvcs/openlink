@@ -25,9 +25,22 @@ export type PayloadDescriptor = {
     label: string;
     hint: string;
     defaults: Record<string, any>;
+    fields: PayloadField[];
 };
 
 export type PayloadDescriptors = Record<string, PayloadDescriptor>;
+
+export type PayloadField = {
+    key: string;
+    label: string;
+    control: 'text' | 'url' | 'email' | 'tel' | 'number' | 'datetime-local' | 'textarea' | 'select' | 'checkbox';
+    placeholder?: string;
+    rows?: number;
+    step?: string;
+    class?: string;
+    options?: { value: string; label: string }[];
+    disabledWhen?: { key: string; value: unknown };
+};
 
 const PAYLOAD_ICONS: Record<string, unknown> = {
     url: Link2,

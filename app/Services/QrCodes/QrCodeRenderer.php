@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\QrCodes;
 
 use App\Models\QrCode as OpenlinkQrCode;
 use BaconQrCode\Common\ErrorCorrectionLevel;
@@ -78,6 +78,10 @@ class QrCodeRenderer
 
     public function png(OpenlinkQrCode $qrCode, string $url, ?int $size = null): string
     {
+        if (! function_exists('imagecreatetruecolor')) {
+            return $this->pngWithoutGd($qrCode, $url, $size);
+        }
+
         $grid = $this->grid($qrCode, $url);
         $size = $size ?? (int) $qrCode->size;
         $modules = $grid['modules'];
@@ -380,5 +384,54 @@ class QrCodeRenderer
         $info = @getimagesizefromstring($contents);
 
         return $info['mime'] ?? null;
+    }
+
+    private function pngWithoutGd(OpenlinkQrCode $qrCode, string $url, ?int $size = null): string
+    {
+        $grid = $this->grid($qrCode, $url);
+        $size = $size ?? (int) $qrCode->size;
+        $modules = $grid['modules'];
+        $count = $grid['count'];
+        $total = $count + 2 * (int) $qrCode->margin;
+        $scale = $total > 0 ? $size / $total : 1;
+        $fg = $this->rgba($qrCode->foreground_color, 255);
+        $bg = $this->rgba($qrCode->background_color, $qrCode->background_transparent ? 0 : 255);
+        $raw = '';
+
+        for ($y = 0; $y < $size; $y++) {
+            $raw .= "\x00";
+
+            for ($x = 0; $x < $size; $x++) {
+                $column = (int) floor($x / $scale) - (int) $qrCode->margin;
+                $row = (int) floor($y / $scale) - (int) $qrCode->margin;
+                $on = $row >= 0
+                    && $row < $count
+                    && $column >= 0
+                    && $column < $count
+                    && ($modules[$row][$column] ?? 0) === 1;
+
+                $raw .= $on ? $fg : $bg;
+            }
+        }
+
+        return "\x89PNG\r\n\x1a\n"
+            .$this->pngChunk('IHDR', pack('NNCCCCC', $size, $size, 8, 6, 0, 0, 0))
+            .$this->pngChunk('IDAT', gzcompress($raw))
+            .$this->pngChunk('IEND', '');
+    }
+
+    private function rgba(string $hex, int $alpha): string
+    {
+        $hex = ltrim($hex, '#');
+
+        return chr((int) hexdec(substr($hex, 0, 2)))
+            .chr((int) hexdec(substr($hex, 2, 2)))
+            .chr((int) hexdec(substr($hex, 4, 2)))
+            .chr($alpha);
+    }
+
+    private function pngChunk(string $type, string $data): string
+    {
+        return pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
     }
 }

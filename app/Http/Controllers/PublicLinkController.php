@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\RecordAnalytics;
+use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\Resolution\ResolvePublicLink;
 use App\Models\QrCode;
 use App\Models\ShortLink;
@@ -26,8 +27,25 @@ class PublicLinkController extends Controller
         return $this->toResponse($request, $resolver->resolve($request, $slug), $settings);
     }
 
-    public function qr(Request $request, QrCode $qrCode, ResolvePublicLink $resolver, InstanceSettings $settings): Response
+    public function qr(Request $request, QrCode $qrCode, ResolvePublicLink $resolver, InstanceSettings $settings, QrCodeContent $content): Response
     {
+        if ($qrCode->hasDirectPayload()) {
+            if ($content->shouldRedirect($qrCode)) {
+                if ($request->header('X-Inertia')) {
+                    return Inertia::location($qrCode->content);
+                }
+
+                return redirect()->away($qrCode->content);
+            }
+
+            return Inertia::render('Public/QrCodePayload', [
+                'name' => $qrCode->name,
+                'payloadType' => $qrCode->payload_type,
+                'payloadTypeLabel' => QrCodeContent::types()[$qrCode->payload_type] ?? 'QR code',
+                'content' => $qrCode->content,
+            ])->toResponse($request);
+        }
+
         $qrCode->load('shortLink.domain');
 
         return $this->toResponse($request, $resolver->resolve($request, $qrCode->shortLink->slug, $qrCode), $settings);

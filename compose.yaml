@@ -1,0 +1,31 @@
+services:
+    postgres:
+        image: postgres:alpine
+        environment:
+            POSTGRES_USER: openlink
+            POSTGRES_PASSWORD: openlink
+            POSTGRES_DB: openlink_test
+        ports:
+            -   "5432:5432"
+        volumes:
+            - database:/var/lib/postgresql
+        healthcheck:
+            test: [ 'CMD-SHELL', 'pg_isready -U openlink -d openlink_test' ]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+    redis:
+        image: redis:alpine
+        ports:
+            -   "6379:6379"
+        volumes:
+            - redis-data:/data
+        healthcheck:
+            test: [ 'CMD', 'redis-cli', 'ping' ]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+volumes:
+    database:
+    redis-data:

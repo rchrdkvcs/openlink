@@ -9,6 +9,7 @@ use App\Actions\QrCodes\QrCodeAppearance;
 use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
+use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\QrCode;
@@ -22,7 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access): \Inertia\Response
+    public function index(Request $request, WorkspaceAccess $access, WorkspaceShellPayload $shell): \Inertia\Response
     {
         $workspace = $access->requireCurrent($request);
         $user = $request->user();
@@ -34,9 +35,7 @@ class QrCodeController extends Controller
             ->map(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
 
         return Inertia::render('QrCodes/Index', [
-            'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-            'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
-            'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),
+            ...$shell->handle($workspace, $user),
             'qrCodes' => $qrCodes,
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
@@ -57,15 +56,14 @@ class QrCodeController extends Controller
         return redirect()->route('qr-codes.show', $qrCode);
     }
 
-    public function show(Request $request, QrCode $qrCode, WorkspaceAccess $access, WorkspacePayloads $payloads): \Inertia\Response
+    public function show(Request $request, QrCode $qrCode, WorkspaceAccess $access, WorkspacePayloads $payloads, WorkspaceShellPayload $shell): \Inertia\Response
     {
         $workspace = $access->requireEditableQrCode($request, $qrCode);
         $user = $request->user();
 
         if ($qrCode->hasDirectPayload()) {
             return Inertia::render('QrCodes/DirectShow', [
-                'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-                'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+                ...$shell->handle($workspace, $user),
                 'qr' => QrCodePayload::make($qrCode),
                 'payloadTypes' => QrCodeContent::types(),
                 'payloadDescriptors' => QrCodeContent::descriptors(),
@@ -73,8 +71,7 @@ class QrCodeController extends Controller
         }
 
         return Inertia::render('QrCodes/Show', [
-            'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-            'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+            ...$shell->handle($workspace, $user),
             'qr' => QrCodePayload::make($qrCode),
             'link' => $payloads->linkPayload($qrCode->shortLink),
         ]);

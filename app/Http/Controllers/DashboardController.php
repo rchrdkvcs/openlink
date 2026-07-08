@@ -8,7 +8,6 @@ use App\Actions\Pages\DomainsPagePayload;
 use App\Actions\Pages\LinksPagePayload;
 use App\Actions\Pages\MembersPagePayload;
 use App\Actions\Pages\SettingsPagePayload;
-use App\Actions\Pages\WorkspacesPagePayload;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Services\Analytics\AnalyticsFilters;
 use Illuminate\Http\Request;
@@ -54,13 +53,6 @@ class DashboardController extends Controller
         $workspace = $access->requireCurrent($request);
 
         return Inertia::render('Members/Index', $payload->handle($workspace, $request->user()));
-    }
-
-    public function workspaces(Request $request, WorkspaceAccess $access, WorkspacesPagePayload $payload): Response
-    {
-        $workspace = $access->requireCurrent($request);
-
-        return Inertia::render('Workspaces/Index', $payload->handle($workspace, $request->user()));
     }
 
     public function settings(Request $request, WorkspaceAccess $access, SettingsPagePayload $payload): Response

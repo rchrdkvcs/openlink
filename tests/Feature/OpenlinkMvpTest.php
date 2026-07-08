@@ -569,7 +569,7 @@ class OpenlinkMvpTest extends TestCase
         $this->actingAs($user)
             ->withSession(['workspace_id' => $workspace->id])
             ->delete(route('workspaces.destroy', $workspace))
-            ->assertRedirect(route('workspaces.index'));
+            ->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseMissing('workspaces', ['id' => $workspace->id]);
         $this->assertSame($otherWorkspace->id, session('workspace_id'));

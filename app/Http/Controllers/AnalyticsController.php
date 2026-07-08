@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\BuildAnalyticsReport;
+use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\Workspace;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, BuildAnalyticsReport $reporter): Response
+    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, BuildAnalyticsReport $reporter, WorkspaceShellPayload $shell): Response
     {
         $workspace = $access->requireCurrent($request);
 
@@ -23,12 +24,7 @@ class AnalyticsController extends Controller
         $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $user);
 
         return Inertia::render('Analytics/Index', [
-            'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
-            'workspaces' => $user->workspaces()
-                ->orderBy('workspaces.created_at')
-                ->orderBy('workspaces.id')
-                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
-            'role' => $access->role($user, $workspace),
+            ...$shell->handle($workspace, $user),
             'report' => $reporter->report($workspace, $filters, $accessibleLinkIds),
             'filters' => $filters->toQuery() + ['range' => $filters->range],
             'filterOptions' => $this->filterOptions($workspace, $accessibleLinkIds, $data, $user),

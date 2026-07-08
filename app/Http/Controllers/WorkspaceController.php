@@ -86,7 +86,7 @@ class WorkspaceController extends Controller
             $request->session()->put('workspace_id', $nextWorkspace->id);
         }
 
-        return redirect()->route('workspaces.index');
+        return redirect()->route('dashboard');
     }
 
     /** @return array<string, array<int, mixed>> */

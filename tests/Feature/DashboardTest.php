@@ -35,7 +35,6 @@ class DashboardTest extends TestCase
             'links.index' => 'Links/Index',
             'domains.index' => 'Domains/Index',
             'members.index' => 'Members/Index',
-            'workspaces.index' => 'Workspaces/Index',
             'settings.index' => 'Settings/Index',
         ] as $route => $component) {
             $this->actingAs($user)

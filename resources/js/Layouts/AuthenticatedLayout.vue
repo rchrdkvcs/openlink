@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
+import CreateWorkspaceModal from '@/Components/Workspaces/CreateWorkspaceModal.vue';
+import WorkspaceSettingsModal from '@/Components/Workspaces/WorkspaceSettingsModal.vue';
+import WorkspaceSwitcher from '@/Components/Workspaces/WorkspaceSwitcher.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BarChart3, Boxes, Check, ChevronsUpDown, Globe2, LayoutDashboard, Link2, LogOut, Menu, QrCode, Settings, User, Users, X } from '@lucide/vue';
+import { BarChart3, ChevronsUpDown, Globe2, LayoutDashboard, Link2, LogOut, Menu, QrCode, Settings, User, Users, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
-type Workspace = { id: number; name: string; slug: string };
+type Workspace = { id: number; name: string; slug: string; icon?: string | null; color?: string | null };
 
 const mobileNavOpen = ref(false);
+const showCreateWorkspace = ref(false);
+const settingsWorkspaceId = ref<number | null>(null);
+const showWorkspaceSettings = ref(false);
+
 const page = usePage();
 const currentWorkspace = computed(() => page.props.currentWorkspace as Workspace | undefined);
-const workspaces = computed(() => (page.props.workspaces ?? []) as Workspace[]);
 
 const navItems = [
     { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
@@ -22,9 +29,19 @@ const navItems = [
 ];
 
 const accountItems = [
-    { label: 'Workspaces', href: route('workspaces.index'), active: route().current('workspaces.index'), icon: Boxes },
     { label: 'Settings', href: route('settings.index'), active: route().current('settings.index'), icon: Settings },
 ];
+
+function openWorkspaceSettings(workspaceId: number) {
+    settingsWorkspaceId.value = workspaceId;
+    showWorkspaceSettings.value = true;
+    mobileNavOpen.value = false;
+}
+
+function openCreateWorkspace() {
+    showCreateWorkspace.value = true;
+    mobileNavOpen.value = false;
+}
 
 function initial(name?: string) {
     return String(name ?? 'O').slice(0, 1).toUpperCase();
@@ -37,41 +54,7 @@ function initial(name?: string) {
         <aside class="card-sheen fixed bottom-3 left-3 top-3 z-30 hidden w-60 flex-col rounded-lg border bg-surface lg:flex">
             <!-- Workspace switcher -->
             <div class="px-2.5 pb-2 pt-2.5">
-                <Dropdown align="left" width="64" contentClasses="p-1">
-                    <template #trigger>
-                        <button
-                            class="flex h-10 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                        >
-                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
-                                {{ initial(currentWorkspace?.name) }}
-                            </span>
-                            <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
-                            <ChevronsUpDown class="h-3.5 w-3.5 shrink-0 text-faint" />
-                        </button>
-                    </template>
-
-                    <template #content>
-                        <p class="px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-faint">Workspaces</p>
-                        <Link
-                            v-for="workspace in workspaces"
-                            :key="workspace.id"
-                            :href="route('workspaces.switch', workspace.id)"
-                            method="post"
-                            as="button"
-                            class="flex w-full items-center gap-2.5 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-muted transition-colors duration-100 hover:bg-elevated hover:text-foreground"
-                        >
-                            <span class="grid h-5 w-5 shrink-0 place-items-center rounded bg-elevated text-[10px] font-semibold text-muted">
-                                {{ initial(workspace.name) }}
-                            </span>
-                            <span class="min-w-0 flex-1 truncate" :class="workspace.id === currentWorkspace?.id ? 'font-medium text-foreground' : ''">
-                                {{ workspace.name }}
-                            </span>
-                            <Check v-if="workspace.id === currentWorkspace?.id" class="h-3.5 w-3.5 shrink-0 text-accent" />
-                        </Link>
-                        <div class="mx-1 my-1 border-t" />
-                        <DropdownLink :href="route('workspaces.index')">Manage workspaces</DropdownLink>
-                    </template>
-                </Dropdown>
+                <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
             </div>
 
             <div class="mx-2.5 border-t" />
@@ -158,14 +141,14 @@ function initial(name?: string) {
                 leave-to-class="-translate-x-full"
             >
                 <aside v-if="mobileNavOpen" class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-overlay lg:hidden">
-                    <div class="flex h-14 items-center justify-between border-b px-4">
-                        <span class="inline-flex items-center gap-2.5">
-                            <span class="grid h-6 w-6 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
-                                {{ initial(currentWorkspace?.name) }}
-                            </span>
-                            <span class="text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
-                        </span>
-                        <button class="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-elevated hover:text-foreground" @click="mobileNavOpen = false">
+                    <div class="flex h-14 items-center gap-1 border-b px-2">
+                        <div class="min-w-0 flex-1">
+                            <WorkspaceSwitcher gear-visibility="always" @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
+                        </div>
+                        <button
+                            class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
+                            @click="mobileNavOpen = false"
+                        >
                             <X class="h-4 w-4" />
                         </button>
                     </div>
@@ -215,9 +198,7 @@ function initial(name?: string) {
                 </button>
 
                 <span class="inline-flex min-w-0 items-center gap-2.5">
-                    <span class="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border bg-elevated text-xs font-semibold text-foreground">
-                        {{ initial(currentWorkspace?.name) }}
-                    </span>
+                    <WorkspaceAvatar :name="currentWorkspace?.name" :icon="currentWorkspace?.icon" :color="currentWorkspace?.color" />
                     <span class="truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
                 </span>
             </header>
@@ -228,5 +209,8 @@ function initial(name?: string) {
                 </div>
             </main>
         </div>
+
+        <CreateWorkspaceModal :show="showCreateWorkspace" @close="showCreateWorkspace = false" />
+        <WorkspaceSettingsModal :show="showWorkspaceSettings" :workspace-id="settingsWorkspaceId" @close="showWorkspaceSettings = false" />
     </div>
 </template>

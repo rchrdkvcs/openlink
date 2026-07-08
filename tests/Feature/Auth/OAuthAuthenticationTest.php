@@ -259,6 +259,59 @@ class OAuthAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_authenticated_user_can_connect_provider_from_profile(): void
+    {
+        $this->configureGoogle();
+        $user = User::factory()->create(['email' => 'profile@example.com']);
+        $this->mockSocialiteUser('google', [
+            'id' => 'google-profile',
+            'email' => 'profile@example.com',
+            'email_verified' => true,
+            'avatar' => 'https://cdn.example.test/profile.png',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['oauth.context' => [
+                'provider' => 'google',
+                'intent' => 'link',
+                'invite_token' => null,
+                'url_intended' => null,
+                'user_id' => $user->id,
+            ]])
+            ->get(route('oauth.callback', ['provider' => 'google']))
+            ->assertRedirect(route('profile.edit', ['tab' => 'connected-identities']));
+
+        $account = SocialAccount::query()->where('provider_user_id', 'google-profile')->firstOrFail();
+
+        $this->assertSame($user->id, $account->user_id);
+        $this->assertSame($account->id, $user->refresh()->profile_avatar_social_account_id);
+    }
+
+    public function test_connecting_provider_from_profile_requires_matching_verified_email(): void
+    {
+        $this->configureGoogle();
+        $user = User::factory()->create(['email' => 'profile@example.com']);
+        $this->mockSocialiteUser('google', [
+            'id' => 'google-mismatch',
+            'email' => 'other@example.com',
+            'email_verified' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['oauth.context' => [
+                'provider' => 'google',
+                'intent' => 'link',
+                'invite_token' => null,
+                'url_intended' => null,
+                'user_id' => $user->id,
+            ]])
+            ->get(route('oauth.callback', ['provider' => 'google']))
+            ->assertRedirect(route('profile.edit', ['tab' => 'connected-identities']))
+            ->assertSessionHas('status', 'This provider email must match your Openlink email address.');
+
+        $this->assertDatabaseMissing('social_accounts', ['provider_user_id' => 'google-mismatch']);
+    }
+
     public function test_oauth_refuses_missing_or_unverified_provider_email(): void
     {
         User::factory()->create();

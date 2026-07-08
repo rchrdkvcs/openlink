@@ -156,6 +156,22 @@ _Avoid_: Account settings, organisation settings
 A user who belongs to a workspace.
 _Avoid_: Collaborator, teammate
 
+**Connected Identity**:
+An external OAuth identity linked to a user and used as a sign-in method when its verified provider email matches the user's verified email. A user must always retain at least one valid sign-in method when connected identities are removed.
+_Avoid_: Linked account, social account, OAuth account
+
+**Profile Avatar**:
+The user-selected image shown as the user's visual representation across Openlink. A profile avatar is chosen from a valid connected identity and follows that identity's current avatar.
+_Avoid_: Global avatar, account avatar, social avatar
+
+**Verified Email**:
+A user's confirmed email address. A user needs a verified email to use Openlink's main authenticated surfaces.
+_Avoid_: Validated email, confirmed account, active account
+
+**API Token**:
+A revocable user-owned credential used by external clients to access the Openlink API.
+_Avoid_: API key, access key, bearer key
+
 **Invite Link**:
 A revocable link created inside a workspace that lets anyone who opens it join that workspace with the link's role (Admin, Editor, or Viewer). An invite link can carry an optional expiration date and an optional usage limit, and a workspace can have several active invite links at once. Joining through an invite link cannot create a user account when the instance registration mode is closed.
 _Avoid_: Invitation, invite, invite code, access request

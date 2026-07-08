@@ -48,6 +48,19 @@ class ApiV1Test extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_token_issuance_requires_verified_email(): void
+    {
+        $user = User::factory()->unverified()->create(['password' => 'secret-password']);
+
+        $this->postJson('/api/v1/auth/token', [
+            'email' => $user->email,
+            'password' => 'secret-password',
+            'device_name' => 'browser-extension',
+        ])->assertUnprocessable()->assertJsonValidationErrors('email');
+
+        $this->assertSame(0, $user->tokens()->count());
+    }
+
     public function test_token_issuance_requires_two_factor_code_when_enabled(): void
     {
         $google2fa = new Google2FA;
@@ -92,6 +105,22 @@ class ApiV1Test extends TestCase
     {
         $this->getJson('/api/v1/links')->assertUnauthorized();
         $this->getJson('/api/v1/me')->assertUnauthorized();
+    }
+
+    public function test_main_api_routes_require_verified_email_but_profile_remains_available(): void
+    {
+        [$workspace, , $user] = $this->workspaceAndDomain();
+        $user->forceFill(['email_verified_at' => null])->save();
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/me')
+            ->assertOk()
+            ->assertJsonPath('workspaces.0.id', $workspace->id);
+
+        $this->getJson('/api/v1/links')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Verify your email address before using the API.');
     }
 
     public function test_links_can_be_created_and_listed_via_api(): void

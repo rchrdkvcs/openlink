@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import CreateWorkspaceModal from '@/Components/Workspaces/CreateWorkspaceModal.vue';
 import WorkspaceSettingsModal from '@/Components/Workspaces/WorkspaceSettingsModal.vue';
@@ -43,9 +44,6 @@ function openCreateWorkspace() {
     mobileNavOpen.value = false;
 }
 
-function initial(name?: string) {
-    return String(name ?? 'O').slice(0, 1).toUpperCase();
-}
 </script>
 
 <template>
@@ -92,9 +90,7 @@ function initial(name?: string) {
                         <button
                             class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         >
-                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border bg-elevated text-xs font-semibold text-foreground">
-                                {{ initial($page.props.auth.user.name) }}
-                            </span>
+                            <UserAvatar :name="$page.props.auth.user.name" :src="$page.props.auth.user.profile_avatar_url" size="sm" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-[13px] font-medium">{{ $page.props.auth.user.name }}</span>
                                 <span class="block truncate text-xs text-faint">{{ $page.props.auth.user.email }}</span>

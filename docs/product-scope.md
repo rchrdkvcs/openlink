@@ -18,7 +18,10 @@
 - Aggregated analytics for visits and scans.
 - Analytics retention defaults to 12 months for daily aggregates, while lifetime totals remain available while the related link or QR code exists.
 - Instance admin panel and workspace settings.
-- Email and password authentication with two-factor authentication.
+- Email and password authentication with email verification and two-factor authentication.
+- OAuth sign-in with connected identity management from the profile page.
+- Profile avatars selected from connected identity avatars.
+- Token-based public API access through user-owned API tokens.
 
 ## Resolution Order
 
@@ -32,8 +35,7 @@ When a short URL cannot resolve and no fallback URL is available, visitors see a
 
 - Smart destinations and app link presets.
 - Bulk import and export.
-- Public API.
 - Webhooks.
-- SSO and OAuth login.
+- SSO.
 - Alerts and monitoring.
 - SaaS billing and commercial plans.

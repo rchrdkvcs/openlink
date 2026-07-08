@@ -22,7 +22,21 @@ class MembersPagePayload
 
         return [
             ...$this->shell->handle($workspace, $user),
-            'members' => $workspace->members()->with('user:id,name,email')->orderBy('role')->get(),
+            'members' => $workspace->members()
+                ->with('user.profileAvatarSource')
+                ->orderBy('role')
+                ->get()
+                ->map(fn ($member) => [
+                    'id' => $member->id,
+                    'role' => $member->role,
+                    'created_at' => $member->created_at,
+                    'user' => [
+                        'id' => $member->user->id,
+                        'name' => $member->user->name,
+                        'email' => $member->user->email,
+                        'profile_avatar_url' => $member->user->profileAvatarUrl(),
+                    ],
+                ]),
             'inviteLinks' => $canManage ? $this->workspacePayloads->inviteLinks($workspace) : [],
         ];
     }

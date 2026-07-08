@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use PragmaRX\Google2FA\Google2FA;
+use Throwable;
 
 class ProfileController extends Controller
 {
@@ -50,7 +51,15 @@ class ProfileController extends Controller
         $request->user()->refreshProfileAvatarSource();
 
         if ($emailChanged && $request->user() instanceof MustVerifyEmail) {
-            $request->user()->sendEmailVerificationNotification();
+            $user = $request->user();
+
+            app()->terminating(function () use ($user): void {
+                try {
+                    $user->sendEmailVerificationNotification();
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
         }
 
         return response()->json([

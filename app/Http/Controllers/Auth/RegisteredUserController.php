@@ -20,6 +20,7 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class RegisteredUserController extends Controller
 {
@@ -106,11 +107,21 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        event(new Registered($user));
-
         Auth::login($user);
+        $this->sendRegisteredEventAfterResponse($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    private function sendRegisteredEventAfterResponse(User $user): void
+    {
+        app()->terminating(function () use ($user): void {
+            try {
+                event(new Registered($user));
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        });
     }
 
     private function usableInviteLink(?string $token): ?InviteLink

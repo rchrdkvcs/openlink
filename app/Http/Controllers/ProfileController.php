@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 use PragmaRX\Google2FA\Google2FA;
+use Throwable;
 
 class ProfileController extends Controller
 {
@@ -80,7 +81,15 @@ class ProfileController extends Controller
         $request->user()->refreshProfileAvatarSource();
 
         if ($emailChanged && $request->user() instanceof MustVerifyEmail) {
-            $request->user()->sendEmailVerificationNotification();
+            $user = $request->user();
+
+            app()->terminating(function () use ($user): void {
+                try {
+                    $user->sendEmailVerificationNotification();
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
         }
 
         return Redirect::route('profile.edit');

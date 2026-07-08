@@ -151,6 +151,10 @@
 }
 
 @layer utilities {
+    .ease-emphasized-out {
+        transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     /* Subtle top highlight for cards, à la Linear */
     .card-sheen {
         background-image: linear-gradient(

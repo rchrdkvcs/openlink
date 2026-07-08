@@ -150,7 +150,7 @@ function initial(name?: string) {
             </Transition>
 
             <Transition
-                enter-active-class="transition-transform ease-[cubic-bezier(0.16,1,0.3,1)] duration-300"
+                enter-active-class="transition-transform ease-emphasized-out duration-300"
                 enter-from-class="-translate-x-full"
                 enter-to-class="translate-x-0"
                 leave-active-class="transition-transform ease-in duration-200"

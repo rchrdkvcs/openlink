@@ -8,6 +8,7 @@ use App\Actions\ShortLinks\DeleteShortLink;
 use App\Actions\ShortLinks\MoveShortLink;
 use App\Actions\ShortLinks\UpdateShortLink;
 use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\ShortLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,12 +16,12 @@ use Illuminate\Validation\Rule;
 
 class ShortLinkController extends Controller
 {
-    public function store(Request $request, WorkspaceAccess $access, CreateShortLink $shortLinks): RedirectResponse
+    public function store(Request $request, WorkspaceAccess $access, CreateShortLink $shortLinks, WorkspacePayloads $workspaceData): RedirectResponse
     {
         $workspace = $access->requireEditableWorkspace($request);
 
         $data = $request->validate([
-            'domain_id' => ['required', 'integer'],
+            'domain_id' => ['nullable', 'integer'],
             'folder_id' => ['nullable', Rule::exists('folders', 'id')->where('workspace_id', $workspace->id)],
             'slug' => ['nullable', 'string', 'max:512'],
             'destination_url' => ['required', 'url:http,https'],
@@ -34,7 +35,10 @@ class ShortLinkController extends Controller
             'routing_rules' => ['nullable', 'array'],
         ]);
 
-        $shortLinks->handle($workspace, $request->user(), $data);
+        $fallbackDomain = $workspace->preferredDomain ?? $workspaceData->defaultDomain();
+        abort_unless(($data['domain_id'] ?? null) || $fallbackDomain, 422, 'No domain available for this workspace.');
+
+        $shortLinks->handle($workspace, $request->user(), $data, $fallbackDomain);
 
         return back();
     }

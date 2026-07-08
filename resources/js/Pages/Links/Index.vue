@@ -300,7 +300,7 @@ function markFaviconFailed(url: string) {
                         <article
                             v-for="link in group.links"
                             :key="link.id"
-                            class="group/r grid items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_150px_150px_minmax(90px,0.5fr)_168px]"
+                            class="group/r grid items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_190px_150px_minmax(90px,0.5fr)_168px]"
                             :class="[dragLinkId === link.id ? 'opacity-40' : '', canEditWorkspace ? 'cursor-grab active:cursor-grabbing' : '']"
                             :draggable="canEditWorkspace"
                             @dragstart="dragLinkId = link.id"
@@ -344,17 +344,17 @@ function markFaviconFailed(url: string) {
                                 <span class="min-w-0 truncate">{{ destinationHost(link.destination_url) }}</span>
                             </a>
 
-                            <div class="flex items-center gap-2">
+                            <div class="flex min-w-0 items-center gap-2">
                                 <Badge :variant="statusVariant(link.status)" dot>{{ link.status }}</Badge>
                                 <span
                                     v-if="countdownFor(link)"
-                                    class="inline-flex items-center gap-1 text-xs tabular-nums text-faint"
+                                    class="inline-flex w-20 shrink-0 items-center gap-1 whitespace-nowrap text-xs tabular-nums text-faint"
                                     :title="activationTitle(link)"
                                 >
-                                    <Timer class="h-3 w-3" />
+                                    <Timer class="h-3 w-3 shrink-0" />
                                     {{ countdownFor(link) }}
                                 </span>
-                                <Lock v-if="link.has_password" class="h-3.5 w-3.5 text-warning" />
+                                <Lock v-if="link.has_password" class="h-3.5 w-3.5 shrink-0 text-warning" />
                             </div>
 
                             <div class="text-[13px] tabular-nums text-muted">

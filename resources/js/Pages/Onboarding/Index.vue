@@ -36,11 +36,25 @@ function createWorkspace() {
     workspaceForm.post(route('onboarding.workspace'));
 }
 
+function firstDomainId() {
+    return props.domains[0]?.id ?? null;
+}
+
 const linkForm = useForm({
-    domain_id: props.domains[0]?.id ?? null,
+    domain_id: firstDomainId(),
     destination_url: '',
     slug: '',
 });
+
+watch(
+    () => props.domains,
+    () => {
+        if (!linkForm.domain_id) {
+            linkForm.domain_id = firstDomainId();
+        }
+    },
+    { immediate: true },
+);
 
 function createFirstLink() {
     linkForm.post(route('short-links.store'), {

@@ -6,7 +6,10 @@ use App\Models\QrCode;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
+use App\Services\QrCodeRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class QrCodeModuleTest extends TestCase
@@ -64,6 +67,30 @@ class QrCodeModuleTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'image/svg+xml')
             ->assertSee('<svg', false);
+    }
+
+    public function test_direct_qr_code_exports_encode_the_native_payload(): void
+    {
+        [$workspace, $user] = $this->workspace();
+        $qrCode = $workspace->qrCodes()->create([
+            'name' => 'Lobby Wi-Fi',
+            'token' => 'native-wifi-token',
+            'payload_type' => 'wifi',
+            'payload' => ['ssid' => 'Lobby', 'encryption' => 'WPA', 'password' => 'secret', 'hidden' => false],
+            'content' => 'WIFI:T:WPA;S:Lobby;P:secret;H:false;;',
+        ]);
+
+        $this->mock(QrCodeRenderer::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('svg')
+                ->once()
+                ->with(Mockery::type(QrCode::class), 'WIFI:T:WPA;S:Lobby;P:secret;H:false;;', null)
+                ->andReturn('<svg />');
+        });
+
+        $this->actingAs($user)
+            ->get(route('qr-codes.export', [$qrCode, 'svg']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml');
     }
 
     public function test_qr_code_content_can_change_without_changing_the_public_url(): void

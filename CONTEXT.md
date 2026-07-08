@@ -89,7 +89,7 @@ A successful resolution that starts from a QR code and sends a visitor to the de
 _Avoid_: QR click, QR hit
 
 **QR Code**:
-A named scannable entry point. A QR Code can be attached to a short link, where scans enter through the short link's domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported QR Code images encode a stable Openlink URL so their served content can be changed later without replacing the image.
+A named scannable entry point. A QR Code can be attached to a short link, where scans enter through the short link's domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported short-link QR Code images encode a stable Openlink URL so their served destination can be changed later without replacing the image. Exported direct-payload QR Code images encode the native payload so device scanners can handle the QR Code directly.
 _Avoid_: QR image, code
 
 **Protected Link**:

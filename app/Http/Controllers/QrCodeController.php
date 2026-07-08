@@ -102,8 +102,8 @@ class QrCodeController extends Controller
 
         $size = $request->validate(['size' => ['nullable', 'integer', 'min:128', 'max:4096']])['size'] ?? null;
 
-        $url = $qrCode->publicUrl();
-        $contents = $format === 'png' ? $renderer->png($qrCode, $url, $size) : $renderer->svg($qrCode, $url, $size);
+        $encodedContent = $qrCode->encodedContent();
+        $contents = $format === 'png' ? $renderer->png($qrCode, $encodedContent, $size) : $renderer->svg($qrCode, $encodedContent, $size);
         $filename = (Str::slug($qrCode->name) ?: $qrCode->token).'.'.$format;
 
         return response($contents, 200, [
@@ -127,7 +127,7 @@ class QrCodeController extends Controller
 
         $qrCode->fill($overrides->all());
 
-        return response($renderer->svg($qrCode, $qrCode->publicUrl()), 200, [
+        return response($renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
             'Content-Type' => 'image/svg+xml',
             'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
             'Cache-Control' => 'no-store',

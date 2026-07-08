@@ -115,6 +115,8 @@ A QR code is a named scannable entry point attached to a short link. Multiple QR
 
 Each QR code encodes a trackable entry URL on the short link's domain (`https://{domain}/qr/{token}`), never on the application host.
 
+A direct-payload QR code is a named QR code that carries a native payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported direct-payload QR code images encode that native payload directly so device scanners can act on it without opening an Openlink page.
+
 QR code features:
 
 - PNG export

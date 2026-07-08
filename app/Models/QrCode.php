@@ -58,9 +58,8 @@ class QrCode extends Model
     }
 
     /**
-     * The URL encoded in the QR image. Short Link QR Codes live on the short
-     * link's domain; QR Codes with a direct payload live on the application
-     * host and keep this URL stable while their content changes.
+     * The fallback public URL for opening this QR Code through Openlink.
+     * Short Link QR Codes also encode this URL so scans can be attributed.
      */
     public function publicUrl(): string
     {
@@ -71,6 +70,20 @@ class QrCode extends Model
         }
 
         return route('public.qr', $this, true);
+    }
+
+    /**
+     * The actual payload encoded in exported QR images. Direct payload QR Codes
+     * must scan as their native payload so device QR scanners can handle Wi-Fi,
+     * vCards, calendar events, and other non-URL formats directly.
+     */
+    public function encodedContent(): string
+    {
+        if ($this->hasDirectPayload()) {
+            return (string) $this->content;
+        }
+
+        return $this->publicUrl();
     }
 
     public function hasDirectPayload(): bool

@@ -156,7 +156,7 @@ async function copyPublicUrl() {
                         <div class="grid gap-5 p-5">
                             <div class="flex items-center justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate text-sm font-medium text-foreground">Stable public QR URL</p>
+                                    <p class="truncate text-sm font-medium text-foreground">Public payload URL</p>
                                     <p class="mt-0.5 truncate font-mono text-xs text-faint">{{ qr.public_url }}</p>
                                 </div>
                                 <LinkIcon class="h-4 w-4 shrink-0 text-faint" />
@@ -205,7 +205,7 @@ async function copyPublicUrl() {
                         </div>
                     </SectionCard>
 
-                    <SectionCard title="Current served payload">
+                    <SectionCard title="Encoded payload">
                         <pre class="max-h-80 overflow-auto whitespace-pre-wrap break-words p-5 font-mono text-xs text-muted">{{ qr.content }}</pre>
                     </SectionCard>
                 </div>

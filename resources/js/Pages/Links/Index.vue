@@ -243,14 +243,22 @@ function markFaviconFailed(url: string) {
                     @drop.prevent="onDrop(group)"
                 >
                     <!-- Group header -->
-                    <header class="group/h flex h-10 items-center gap-2 px-3" :class="isCollapsed(group.key) ? '' : 'border-b'">
-                        <button
-                            class="grid h-6 w-6 place-items-center rounded text-faint transition-colors hover:bg-elevated hover:text-foreground"
-                            :title="isCollapsed(group.key) ? 'Expand' : 'Collapse'"
-                            @click="toggleCollapse(group.key)"
+                    <header
+                        class="group/h flex h-10 cursor-pointer items-center gap-2 px-3 transition-colors hover:bg-elevated/40"
+                        :class="isCollapsed(group.key) ? '' : 'border-b'"
+                        :title="isCollapsed(group.key) ? 'Expand' : 'Collapse'"
+                        role="button"
+                        tabindex="0"
+                        @click="toggleCollapse(group.key)"
+                        @keydown.enter.prevent="toggleCollapse(group.key)"
+                        @keydown.space.prevent="toggleCollapse(group.key)"
+                    >
+                        <span
+                            class="pointer-events-none grid h-6 w-6 place-items-center rounded text-faint transition-colors group-hover/h:text-foreground"
+                            aria-hidden="true"
                         >
                             <ChevronDown class="h-4 w-4 transition-transform duration-200 ease-emphasized-out" :class="isCollapsed(group.key) ? '-rotate-90' : ''" />
-                        </button>
+                        </span>
                         <component :is="group.folder ? FolderIcon : Inbox" class="h-4 w-4 text-faint" />
 
                         <input
@@ -258,14 +266,19 @@ function markFaviconFailed(url: string) {
                             ref="renameInput"
                             v-model="renameValue"
                             class="h-7 w-64 px-2 text-[13px]"
-                            @keydown.enter="commitRenameFolder"
-                            @keydown.escape="renamingFolderId = null"
+                            @keydown.enter.stop="commitRenameFolder"
+                            @keydown.escape.stop="renamingFolderId = null"
                             @blur="commitRenameFolder"
+                            @click.stop
                         />
                         <span v-else class="text-[13px] font-semibold text-foreground">{{ group.folder?.name ?? 'Unfiled' }}</span>
                         <span class="text-xs tabular-nums text-faint">{{ group.links.length }}</span>
 
-                        <div v-if="group.folder && canManageWorkspace" class="relative ml-auto opacity-0 transition-opacity focus-within:opacity-100 group-hover/h:opacity-100">
+                        <div
+                            v-if="group.folder && canManageWorkspace"
+                            class="relative ml-auto opacity-0 transition-opacity focus-within:opacity-100 group-hover/h:opacity-100"
+                            @click.stop
+                        >
                             <button
                                 class="grid h-7 w-7 place-items-center rounded-md text-faint transition-colors hover:bg-elevated hover:text-foreground"
                                 title="Folder actions"

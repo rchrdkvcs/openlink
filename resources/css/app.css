@@ -72,12 +72,20 @@
     /* Collapse motion for users who opt out; spinners keep rotating
        so loading feedback survives. */
     @media (prefers-reduced-motion: reduce) {
+        /* Always collapse transitions (including on spinners), but keep the
+           `animate-spin` keyframes running for loading feedback. */
+        *,
+        *::before,
+        *::after {
+            transition-duration: 0.01ms !important;
+            transition-delay: 0ms !important;
+        }
+
         *:not(.animate-spin),
         *:not(.animate-spin)::before,
         *:not(.animate-spin)::after {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
         }
     }
 }

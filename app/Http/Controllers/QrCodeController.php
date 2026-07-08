@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\QrCodes\CreateDirectQrCode;
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
+use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
@@ -19,9 +21,36 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
+    public function index(Request $request, WorkspaceAccess $access): \Inertia\Response
+    {
+        $workspace = $access->requireCurrent($request);
+        $user = $request->user();
+
+        $qrCodes = $workspace->qrCodes()
+            ->whereNull('short_link_id')
+            ->latest()
+            ->get()
+            ->map(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
+
+        return Inertia::render('QrCodes/Index', [
+            'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
+            'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+            'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),
+            'qrCodes' => $qrCodes,
+            'payloadTypes' => QrCodeContent::types(),
+        ]);
+    }
+
     public function store(Request $request, ShortLink $shortLink, CreateQrCode $action): RedirectResponse
     {
         $qrCode = $action->handle($request, $shortLink, $request->validate(QrCodePayload::rules()));
+
+        return redirect()->route('qr-codes.show', $qrCode);
+    }
+
+    public function storeDirect(Request $request, CreateDirectQrCode $action): RedirectResponse
+    {
+        $qrCode = $action->handle($request, $request->validate(QrCodePayload::directRules()));
 
         return redirect()->route('qr-codes.show', $qrCode);
     }
@@ -30,6 +59,15 @@ class QrCodeController extends Controller
     {
         $workspace = $access->requireEditableQrCode($request, $qrCode);
         $user = $request->user();
+
+        if ($qrCode->hasDirectPayload()) {
+            return Inertia::render('QrCodes/DirectShow', [
+                'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
+                'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
+                'qr' => QrCodePayload::make($qrCode),
+                'payloadTypes' => QrCodeContent::types(),
+            ]);
+        }
 
         return Inertia::render('QrCodes/Show', [
             'currentWorkspace' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
@@ -41,7 +79,11 @@ class QrCodeController extends Controller
 
     public function update(Request $request, QrCode $qrCode, UpdateQrCode $action): RedirectResponse
     {
-        $action->handle($request, $qrCode, $request->validate(QrCodePayload::rules(creating: false)));
+        $rules = $qrCode->hasDirectPayload()
+            ? QrCodePayload::directRules(creating: false)
+            : QrCodePayload::rules(creating: false);
+
+        $action->handle($request, $qrCode, $request->validate($rules));
 
         return back();
     }
@@ -50,7 +92,7 @@ class QrCodeController extends Controller
     {
         $action->handle($request, $qrCode);
 
-        return redirect()->route('links.index');
+        return redirect()->route($qrCode->hasDirectPayload() ? 'qr-codes.index' : 'links.index');
     }
 
     public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
@@ -75,8 +117,12 @@ class QrCodeController extends Controller
         $access->requireEditableQrCode($request, $qrCode);
 
         // Query overrides let the studio page live-preview unsaved settings.
-        $overrides = collect($request->validate(QrCodePayload::rules(creating: false)))
-            ->except(['name', 'logo', 'remove_logo'])
+        $rules = $qrCode->hasDirectPayload()
+            ? QrCodePayload::directRules(creating: false)
+            : QrCodePayload::rules(creating: false);
+
+        $overrides = collect($request->validate($rules))
+            ->except(['name', 'payload_type', 'payload', 'logo', 'remove_logo'])
             ->filter(fn ($value) => $value !== null);
 
         $qrCode->fill($overrides->all());

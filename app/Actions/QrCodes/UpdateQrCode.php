@@ -9,7 +9,10 @@ use Illuminate\Support\Facades\Storage;
 
 class UpdateQrCode
 {
-    public function __construct(private readonly WorkspaceAccess $access) {}
+    public function __construct(
+        private readonly WorkspaceAccess $access,
+        private readonly QrCodeContent $content,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -17,6 +20,15 @@ class UpdateQrCode
     public function handle(Request $request, QrCode $qrCode, array $data): QrCode
     {
         $this->access->requireEditableQrCode($request, $qrCode);
+
+        if ($qrCode->hasDirectPayload() && (array_key_exists('payload_type', $data) || array_key_exists('payload', $data))) {
+            $type = (string) ($data['payload_type'] ?? $qrCode->payload_type);
+            $payload = $data['payload'] ?? $qrCode->payload;
+
+            $qrCode->payload_type = $type;
+            $qrCode->payload = $payload;
+            $qrCode->content = $this->content->normalize($type, $payload);
+        }
 
         $qrCode->fill(collect($data)->only([
             'name',

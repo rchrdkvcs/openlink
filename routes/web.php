@@ -38,6 +38,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
+        Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::get('/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/domains/new', [DomainController::class, 'create'])->name('domains.create');
         Route::get('/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
@@ -100,6 +101,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
         Route::get('/qr-codes/{qrCode}/preview', [QrCodeController::class, 'preview'])->name('qr-codes.preview');
         Route::get('/qr-codes/{qrCode}/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
+
+        Route::post('/qr-codes', [QrCodeController::class, 'storeDirect'])->name('qr-codes.store-direct');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
     });

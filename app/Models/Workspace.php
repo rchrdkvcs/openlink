@@ -56,4 +56,9 @@ class Workspace extends Model
     {
         return $this->hasMany(ShortLink::class);
     }
+
+    public function qrCodes(): HasMany
+    {
+        return $this->hasMany(QrCode::class);
+    }
 }

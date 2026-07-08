@@ -139,10 +139,17 @@ class WorkspaceAccess
 
     public function requireEditableQrCode(Request $request, QrCode $qrCode): Workspace
     {
-        $qrCode->load('shortLink.domain');
-        $qrCode->shortLink->loadMissing('workspace', 'folder.workspace');
+        if ($qrCode->short_link_id) {
+            $qrCode->load('shortLink.domain');
+            $qrCode->shortLink->loadMissing('workspace', 'folder.workspace');
 
-        return $this->requireEditableShortLink($request, $qrCode->shortLink);
+            return $this->requireEditableShortLink($request, $qrCode->shortLink);
+        }
+
+        $workspace = $this->requireEditableWorkspace($request);
+        abort_unless($qrCode->workspace_id === $workspace->id, 403);
+
+        return $workspace;
     }
 
     public function isMember(?User $user, Workspace $workspace): bool

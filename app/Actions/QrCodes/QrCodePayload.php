@@ -28,6 +28,18 @@ class QrCodePayload
         ];
     }
 
+    /**
+     * @return array<string, list<mixed>>
+     */
+    public static function directRules(bool $creating = true): array
+    {
+        return [
+            ...self::rules($creating),
+            'payload_type' => [$creating ? 'required' : 'sometimes', 'string', 'in:'.implode(',', QrCode::PAYLOAD_TYPES)],
+            'payload' => [$creating ? 'required' : 'sometimes', 'array'],
+        ];
+    }
+
     /** @return array<string, mixed> */
     public static function make(QrCode $qrCode): array
     {
@@ -36,6 +48,9 @@ class QrCodePayload
                 'id',
                 'name',
                 'token',
+                'payload_type',
+                'payload',
+                'content',
                 'size',
                 'foreground_color',
                 'background_color',
@@ -47,8 +62,10 @@ class QrCodePayload
             ]),
             'has_logo' => $qrCode->hasLogo(),
             'public_url' => $qrCode->publicUrl(),
-            'scans' => (int) ($qrCode->scans_count ?? $qrCode->analyticsEvents()->successful()->where('metric', 'scan')->count()),
+            'is_direct' => $qrCode->hasDirectPayload(),
+            'scans' => $qrCode->hasDirectPayload() ? 0 : (int) ($qrCode->scans_count ?? $qrCode->analyticsEvents()->successful()->where('metric', 'scan')->count()),
             'created_at' => $qrCode->created_at,
+            'updated_at' => $qrCode->updated_at,
         ];
     }
 }

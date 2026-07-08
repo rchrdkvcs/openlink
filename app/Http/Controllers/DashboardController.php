@@ -25,7 +25,7 @@ class DashboardController extends Controller
         $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $request->user());
 
         return Inertia::render('Dashboard', [
-            ...$payload->handle($workspace, $user),
+            ...$payload->handle($workspace, $request->user()),
             'analytics' => [
                 'range' => ['preset' => $filters->range, 'bucket' => $filters->bucketUnit()],
                 'summary' => $reporter->summary($workspace, $filters, $accessibleLinkIds),

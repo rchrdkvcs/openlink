@@ -19,6 +19,7 @@ import {
     MoreHorizontal,
     Pencil,
     Plus,
+    QrCode,
     Search,
     Settings2,
     Timer,
@@ -343,6 +344,14 @@ function markFaviconFailed(url: string) {
                                 >
                                     <CopyCheckIcon :copied="copiedLinkId === link.id" />
                                 </button>
+                                <span
+                                    v-if="link.qr_codes.length > 0"
+                                    class="grid h-5 w-5 shrink-0 place-items-center rounded text-accent"
+                                    :title="`${link.qr_codes.length} QR code${link.qr_codes.length === 1 ? '' : 's'} attached`"
+                                    :aria-label="`${link.qr_codes.length} QR code${link.qr_codes.length === 1 ? '' : 's'} attached`"
+                                >
+                                    <QrCode class="h-3.5 w-3.5" aria-hidden="true" />
+                                </span>
                             </div>
 
                             <a

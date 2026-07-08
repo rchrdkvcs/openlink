@@ -11,7 +11,7 @@ use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\QrCode;
 use App\Models\ShortLink;
-use App\Services\QrCodeRenderer;
+use App\Services\QrCodes\QrCodeRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

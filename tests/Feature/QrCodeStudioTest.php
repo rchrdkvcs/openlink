@@ -93,7 +93,7 @@ class QrCodeStudioTest extends TestCase
                 'style' => 'rounded',
                 'eye_style' => 'rounded',
                 'foreground_color' => '#123456',
-                'logo' => UploadedFile::fake()->image('logo.png', 300, 300),
+                'logo' => UploadedFile::fake()->createWithContent('logo.png', $this->tinyPng()),
             ])
             ->assertRedirect();
 
@@ -133,7 +133,7 @@ class QrCodeStudioTest extends TestCase
     {
         Storage::fake();
         [, , $user, $qrCode] = $this->linkWithQrCode();
-        $logoPath = UploadedFile::fake()->image('logo.png')->store('qr-logos');
+        $logoPath = UploadedFile::fake()->createWithContent('logo.png', $this->tinyPng())->store('qr-logos');
         $qrCode->update(['logo_path' => $logoPath]);
 
         $this->actingAs($user)
@@ -217,5 +217,10 @@ class QrCodeStudioTest extends TestCase
         ]);
 
         return [$workspace, $domain, $user, $qrCode->fresh(), $link];
+    }
+
+    private function tinyPng(): string
+    {
+        return base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=');
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\QrCodes;
+namespace App\Services\QrCodes;
 
 use App\Models\QrCode;
 use Illuminate\Support\Carbon;
@@ -15,20 +15,108 @@ class QrCodeContent
         return collect(self::descriptors())->map(fn (array $descriptor) => $descriptor['label'])->all();
     }
 
-    /** @return array<string, array{label: string, hint: string, defaults: array<string, mixed>}> */
+    /** @return array<string, array{label: string, hint: string, defaults: array<string, mixed>, fields: list<array<string, mixed>>}> */
     public static function descriptors(): array
     {
         return [
-            'url' => ['label' => 'URL', 'hint' => 'Open a web page', 'defaults' => ['url' => '']],
-            'text' => ['label' => 'Text', 'hint' => 'Show plain text', 'defaults' => ['text' => '']],
-            'email' => ['label' => 'Email', 'hint' => 'Compose an email', 'defaults' => ['email' => '', 'subject' => '', 'body' => '']],
-            'phone' => ['label' => 'Phone', 'hint' => 'Start a phone call', 'defaults' => ['phone' => '']],
-            'sms' => ['label' => 'SMS', 'hint' => 'Prefill a text message', 'defaults' => ['phone' => '', 'message' => '']],
-            'wifi' => ['label' => 'Wi-Fi', 'hint' => 'Join a Wi-Fi network', 'defaults' => ['ssid' => '', 'encryption' => 'WPA', 'password' => '', 'hidden' => false]],
-            'vcard' => ['label' => 'vCard', 'hint' => 'Share a contact card', 'defaults' => ['full_name' => '', 'organization' => '', 'title' => '', 'phone' => '', 'email' => '', 'url' => '', 'address' => '']],
-            'event' => ['label' => 'Calendar event', 'hint' => 'Add a calendar event', 'defaults' => ['title' => '', 'starts_at' => '', 'ends_at' => '', 'location' => '', 'description' => '']],
-            'location' => ['label' => 'Location', 'hint' => 'Open a map location', 'defaults' => ['latitude' => '', 'longitude' => '', 'label' => '']],
-            'raw' => ['label' => 'Raw payload', 'hint' => 'Any custom QR payload', 'defaults' => ['content' => '']],
+            'url' => [
+                'label' => 'URL',
+                'hint' => 'Open a web page',
+                'defaults' => ['url' => ''],
+                'fields' => [
+                    ['key' => 'url', 'label' => 'URL', 'control' => 'url', 'placeholder' => 'https://example.com'],
+                ],
+            ],
+            'text' => [
+                'label' => 'Text',
+                'hint' => 'Show plain text',
+                'defaults' => ['text' => ''],
+                'fields' => [
+                    ['key' => 'text', 'label' => 'Text', 'control' => 'textarea', 'rows' => 6, 'placeholder' => 'Plain text shown after scan'],
+                ],
+            ],
+            'email' => [
+                'label' => 'Email',
+                'hint' => 'Compose an email',
+                'defaults' => ['email' => '', 'subject' => '', 'body' => ''],
+                'fields' => [
+                    ['key' => 'email', 'label' => 'Email address', 'control' => 'email', 'placeholder' => 'hello@example.com'],
+                    ['key' => 'subject', 'label' => 'Subject', 'control' => 'text', 'placeholder' => 'Optional subject'],
+                    ['key' => 'body', 'label' => 'Body', 'control' => 'textarea', 'rows' => 4, 'placeholder' => 'Optional message body'],
+                ],
+            ],
+            'phone' => [
+                'label' => 'Phone',
+                'hint' => 'Start a phone call',
+                'defaults' => ['phone' => ''],
+                'fields' => [
+                    ['key' => 'phone', 'label' => 'Phone number', 'control' => 'tel', 'placeholder' => '+15551234567'],
+                ],
+            ],
+            'sms' => [
+                'label' => 'SMS',
+                'hint' => 'Prefill a text message',
+                'defaults' => ['phone' => '', 'message' => ''],
+                'fields' => [
+                    ['key' => 'phone', 'label' => 'Phone number', 'control' => 'tel', 'placeholder' => '+15551234567'],
+                    ['key' => 'message', 'label' => 'Message', 'control' => 'textarea', 'rows' => 4, 'placeholder' => 'Optional SMS body'],
+                ],
+            ],
+            'wifi' => [
+                'label' => 'Wi-Fi',
+                'hint' => 'Join a Wi-Fi network',
+                'defaults' => ['ssid' => '', 'encryption' => 'WPA', 'password' => '', 'hidden' => false],
+                'fields' => [
+                    ['key' => 'ssid', 'label' => 'Network name', 'control' => 'text', 'placeholder' => 'SSID'],
+                    ['key' => 'encryption', 'label' => 'Security', 'control' => 'select', 'options' => [['value' => 'WPA', 'label' => 'WPA/WPA2'], ['value' => 'WEP', 'label' => 'WEP'], ['value' => 'nopass', 'label' => 'No password']]],
+                    ['key' => 'password', 'label' => 'Password', 'control' => 'text', 'placeholder' => 'Network password', 'disabledWhen' => ['key' => 'encryption', 'value' => 'nopass']],
+                    ['key' => 'hidden', 'label' => 'Hidden network', 'control' => 'checkbox'],
+                ],
+            ],
+            'vcard' => [
+                'label' => 'vCard',
+                'hint' => 'Share a contact card',
+                'defaults' => ['full_name' => '', 'organization' => '', 'title' => '', 'phone' => '', 'email' => '', 'url' => '', 'address' => ''],
+                'fields' => [
+                    ['key' => 'full_name', 'label' => 'Full name', 'control' => 'text', 'placeholder' => 'Jane Doe'],
+                    ['key' => 'organization', 'label' => 'Organization', 'control' => 'text'],
+                    ['key' => 'title', 'label' => 'Title', 'control' => 'text'],
+                    ['key' => 'phone', 'label' => 'Phone', 'control' => 'tel'],
+                    ['key' => 'email', 'label' => 'Email', 'control' => 'email'],
+                    ['key' => 'url', 'label' => 'Website', 'control' => 'url', 'placeholder' => 'https://example.com'],
+                    ['key' => 'address', 'label' => 'Address', 'control' => 'textarea', 'rows' => 3],
+                ],
+            ],
+            'event' => [
+                'label' => 'Calendar event',
+                'hint' => 'Add a calendar event',
+                'defaults' => ['title' => '', 'starts_at' => '', 'ends_at' => '', 'location' => '', 'description' => ''],
+                'fields' => [
+                    ['key' => 'title', 'label' => 'Title', 'control' => 'text'],
+                    ['key' => 'starts_at', 'label' => 'Starts at', 'control' => 'datetime-local'],
+                    ['key' => 'ends_at', 'label' => 'Ends at', 'control' => 'datetime-local'],
+                    ['key' => 'location', 'label' => 'Location', 'control' => 'text'],
+                    ['key' => 'description', 'label' => 'Description', 'control' => 'textarea', 'rows' => 4],
+                ],
+            ],
+            'location' => [
+                'label' => 'Location',
+                'hint' => 'Open a map location',
+                'defaults' => ['latitude' => '', 'longitude' => '', 'label' => ''],
+                'fields' => [
+                    ['key' => 'latitude', 'label' => 'Latitude', 'control' => 'number', 'step' => 'any', 'placeholder' => '48.8584'],
+                    ['key' => 'longitude', 'label' => 'Longitude', 'control' => 'number', 'step' => 'any', 'placeholder' => '2.2945'],
+                    ['key' => 'label', 'label' => 'Label', 'control' => 'text', 'placeholder' => 'Optional place name'],
+                ],
+            ],
+            'raw' => [
+                'label' => 'Raw payload',
+                'hint' => 'Any custom QR payload',
+                'defaults' => ['content' => ''],
+                'fields' => [
+                    ['key' => 'content', 'label' => 'Raw QR payload', 'control' => 'textarea', 'rows' => 8, 'placeholder' => 'BEGIN:VCARD...', 'class' => 'font-mono text-[13px]'],
+                ],
+            ],
         ];
     }
 

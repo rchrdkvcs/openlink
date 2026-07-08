@@ -64,7 +64,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
                     </p>
                 </div>
 
-                <PayloadFields v-model="form.payload" :type="form.payload_type" :errors="form.errors" />
+                <PayloadFields v-model="form.payload" :type="form.payload_type" :descriptors="payloadDescriptors" :errors="form.errors" />
 
                 <Field label="Name" :error="form.errors.name">
                     <input v-model="form.name" class="h-9" placeholder="Wi-Fi lobby, business card, event…" />

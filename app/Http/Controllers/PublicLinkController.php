@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\RecordAnalytics;
-use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\Resolution\ResolvePublicLink;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\Analytics\Outcome;
 use App\Services\InstanceSettings;
+use App\Services\QrCodes\QrCodeContent;
 use App\Services\ResolutionResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Dropdown from '@/Components/Dropdown.vue';
 import Modal from '@/Components/Modal.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
@@ -13,7 +14,7 @@ import { Check, ChevronDown, Crown, Link2, LogOut, Trash2, UserPlus, Users } fro
 import { computed, ref } from 'vue';
 
 type Workspace = { id: number; name: string; slug: string };
-type Member = { id: number; role: string; created_at: string; user: { id: number; name: string; email: string } };
+type Member = { id: number; role: string; created_at: string; user: { id: number; name: string; email: string; profile_avatar_url?: string | null } };
 type InviteLink = {
     id: number;
     role: string;
@@ -147,10 +148,6 @@ const confirmText = computed(() => {
     };
 });
 
-function initial(name: string) {
-    return name.slice(0, 1).toUpperCase();
-}
-
 function formatDate(value: string) {
     return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
@@ -189,9 +186,7 @@ const sortedMembers = computed(() =>
                         <tr v-for="member in sortedMembers" :key="member.id" class="transition-colors duration-100 hover:bg-elevated/40">
                             <td class="px-4 py-3">
                                 <div class="flex min-w-0 items-center gap-3">
-                                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full border bg-elevated text-xs font-semibold text-foreground">
-                                        {{ initial(member.user.name) }}
-                                    </span>
+                                    <UserAvatar :name="member.user.name" :src="member.user.profile_avatar_url" />
                                     <div class="min-w-0">
                                         <p class="truncate font-medium text-foreground">
                                             {{ member.user.name }}

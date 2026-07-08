@@ -56,7 +56,18 @@ class OAuthSignIn
                     ]);
                 }
 
+                if (! hash_equals((string) $user->email, (string) $profile->email)) {
+                    throw ValidationException::withMessages([
+                        'oauth' => 'This sign-in method no longer matches this account email.',
+                    ]);
+                }
+
+                if (! $user->hasVerifiedEmail()) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
                 $this->syncSocialAccount($account, $profile);
+                $user->refreshProfileAvatarSource();
                 $this->joinViaInviteIfPresent($user, $inviteLink);
 
                 return $user;
@@ -68,7 +79,12 @@ class OAuthSignIn
                 ->first();
 
             if ($user) {
+                if (! $user->hasVerifiedEmail()) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
                 $this->createSocialAccount($user, $profile);
+                $user->refreshProfileAvatarSource();
                 $this->joinViaInviteIfPresent($user, $inviteLink);
 
                 return $user;

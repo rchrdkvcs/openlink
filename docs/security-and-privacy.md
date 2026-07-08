@@ -6,7 +6,13 @@ Openlink should be useful without becoming a visitor profiling system. Analytics
 
 ## Authentication
 
-Users authenticate with email and password. Two-factor authentication is available. Password reset uses email.
+Users authenticate with email and password or configured OAuth providers. Two-factor authentication is available. Password reset uses email.
+
+Verified email is required for the main authenticated web and API surfaces. The profile page remains available to unverified users so they can resend verification, change their email, manage their password, revoke tokens, or delete their account.
+
+Connected identities require a provider-verified email matching the user's verified email when linked from the profile page. Removing a connected identity must not leave the user without a valid sign-in method. Connected identities whose provider email no longer matches the user's verified email remain visible but are not valid sign-in methods.
+
+API tokens are user-owned credentials. They are shown in clear text only once after creation, can be revoked individually, and require a verified email to create or use.
 
 The first user created on an instance becomes an instance admin. The default registration mode is invite-only.
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -18,7 +19,10 @@ class ProfileController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'user' => $user->only(['id', 'name', 'email', 'email_verified_at', 'is_instance_admin']),
+            'user' => [
+                ...$user->only(['id', 'name', 'email', 'email_verified_at', 'is_instance_admin']),
+                'profile_avatar_url' => $user->profileAvatarUrl(),
+            ],
             'two_factor_enabled' => (bool) $user->two_factor_confirmed_at,
             'workspaces' => $user->workspaces()
                 ->orderBy('workspaces.created_at')
@@ -36,15 +40,24 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): JsonResponse
     {
         $request->user()->fill($request->validated());
+        $emailChanged = $request->user()->isDirty('email');
 
-        if ($request->user()->isDirty('email')) {
+        if ($emailChanged) {
             $request->user()->email_verified_at = null;
         }
 
         $request->user()->save();
+        $request->user()->refreshProfileAvatarSource();
+
+        if ($emailChanged && $request->user() instanceof MustVerifyEmail) {
+            $request->user()->sendEmailVerificationNotification();
+        }
 
         return response()->json([
-            'user' => $request->user()->only(['id', 'name', 'email', 'email_verified_at', 'is_instance_admin']),
+            'user' => [
+                ...$request->user()->only(['id', 'name', 'email', 'email_verified_at', 'is_instance_admin']),
+                'profile_avatar_url' => $request->user()->profileAvatarUrl(),
+            ],
         ]);
     }
 

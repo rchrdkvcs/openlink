@@ -10,7 +10,15 @@ The MVP should feel like a focused operational tool: fast lists, clear status in
 
 The first user created on an instance becomes an instance admin. The instance supports closed, invite-only, and open registration modes, with invite-only as the default.
 
-Users authenticate with email and password. Two-factor authentication is available for user accounts. Password reset is handled by email.
+Users authenticate with email and password or configured OAuth providers. Two-factor authentication is available for user accounts. Password reset is handled by email.
+
+Email and password registration sends a verification email immediately. Users with an unverified email can access the profile page to resend verification, change their email, manage their password, or delete their account, but they cannot use Openlink's main authenticated surfaces until their email is verified. OAuth-created users are treated as verified only when the provider returns a verified email. Changing the primary email makes the user unverified until the new email is confirmed.
+
+Users can manage connected identities from the profile page. A connected identity can be linked only when the provider returns a verified email matching the user's primary email, and it cannot be linked if that provider identity already belongs to another user. Users may unlink connected identities as long as they retain at least one valid sign-in method. If the user changes their primary email, connected identities with a provider email that no longer matches remain visible but stop being valid sign-in methods until reconnected with the verified primary email.
+
+Users can select their profile avatar from the avatars supplied by valid connected identities. If the selected connected identity is removed or becomes invalid, Openlink automatically selects another available valid connected identity avatar or falls back to initials.
+
+Users can create and revoke API tokens from the profile page. API tokens are user-owned credentials, are shown in clear text only once after creation, and act with the same workspace roles and folder permissions as the user. API tokens do not have configurable scopes in the MVP. Creating or using an API token requires a verified email.
 
 New users go through a short onboarding wizard: they name their first workspace (required when they have none), then can optionally create a first short link and generate an invite link for their team. Users who arrive through an invite link skip the wizard and land in the workspace they joined.
 
@@ -172,4 +180,4 @@ Secrets, database credentials, Redis credentials, mail credentials, storage cred
 
 ## Later Features
 
-Later features include smart destinations, app link presets, bulk import and export, public API, webhooks, SSO/OAuth login, advanced QR code design templates, QR code logos, alerts, monitoring, and SaaS billing.
+Later features include smart destinations, app link presets, bulk import and export, webhooks, SSO, advanced QR code design templates, QR code logos, alerts, monitoring, and SaaS billing.

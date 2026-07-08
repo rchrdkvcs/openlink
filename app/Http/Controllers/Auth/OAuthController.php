@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\ApplicationHost;
+use App\Services\OAuth\ConnectedIdentityManager;
 use App\Services\OAuth\OAuthProfile;
 use App\Services\OAuth\OAuthProviderRegistry;
 use App\Services\OAuth\OAuthSignIn;
@@ -30,12 +31,32 @@ class OAuthController extends Controller
             return $this->backToLogin('This sign-in method is not available.');
         }
 
-        $request->session()->put('oauth.context', [
+        $intent = match ($request->query('intent')) {
+            'register' => 'register',
+            'link' => 'link',
+            default => 'login',
+        };
+
+        if ($intent === 'link' && ! $request->user()) {
+            return $this->backToLogin('Sign in before connecting this provider.');
+        }
+
+        if ($intent !== 'link' && $request->user()) {
+            return redirect()->route('dashboard');
+        }
+
+        $context = [
             'provider' => $provider,
-            'intent' => $request->query('intent') === 'register' ? 'register' : 'login',
+            'intent' => $intent,
             'invite_token' => $request->query('invite'),
             'url_intended' => $request->session()->get('url.intended'),
-        ]);
+        ];
+
+        if ($intent === 'link') {
+            $context['user_id'] = $request->user()->id;
+        }
+
+        $request->session()->put('oauth.context', $context);
 
         return Socialite::driver($provider)
             ->scopes($providers->scopes($provider))
@@ -47,6 +68,7 @@ class OAuthController extends Controller
         string $provider,
         OAuthProviderRegistry $providers,
         OAuthSignIn $signIn,
+        ConnectedIdentityManager $identities,
         ApplicationHost $applicationHost,
     ): RedirectResponse {
         if (! $applicationHost->isApplicationHost($request->getHost())) {
@@ -63,9 +85,27 @@ class OAuthController extends Controller
             return $this->backToLogin('We could not complete sign-in with this provider.');
         }
 
+        if (($context['intent'] ?? null) !== 'link' && $request->user()) {
+            return redirect()->route('dashboard');
+        }
+
         try {
             $socialiteUser = Socialite::driver($provider)->user();
-            $user = $signIn->userFor(OAuthProfile::fromSocialiteUser($provider, $socialiteUser), $context);
+            $profile = OAuthProfile::fromSocialiteUser($provider, $socialiteUser);
+
+            if (($context['intent'] ?? null) === 'link') {
+                if (! $request->user() || ($context['user_id'] ?? null) !== $request->user()->id) {
+                    return $this->backToLogin('Sign in before connecting this provider.');
+                }
+
+                $identities->link($request->user(), $profile);
+
+                return redirect()
+                    ->route('profile.edit', ['tab' => 'connected-identities'])
+                    ->with('status', 'Connected identity added.');
+            }
+
+            $user = $signIn->userFor($profile, $context);
         } catch (Throwable $exception) {
             Log::warning('OAuth sign-in failed.', [
                 'provider' => $provider,
@@ -76,6 +116,12 @@ class OAuthController extends Controller
             $message = method_exists($exception, 'errors')
                 ? (collect($exception->errors())->flatten()->first() ?: 'We could not complete sign-in with this provider.')
                 : 'We could not complete sign-in with this provider.';
+
+            if (($context['intent'] ?? null) === 'link') {
+                return redirect()
+                    ->route('profile.edit', ['tab' => 'connected-identities'])
+                    ->with('status', (string) $message);
+            }
 
             return $this->backToLogin((string) $message);
         }

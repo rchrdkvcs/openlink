@@ -63,6 +63,14 @@ class AuthTokenController extends Controller
             }
         }
 
+        if (! $user->hasVerifiedEmail()) {
+            RateLimiter::hit($throttleKey);
+
+            throw ValidationException::withMessages([
+                'email' => 'Verify your email address before creating API tokens.',
+            ]);
+        }
+
         RateLimiter::clear($throttleKey);
 
         $token = $user->createToken($data['device_name']);

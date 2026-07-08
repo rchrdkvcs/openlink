@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -8,7 +9,7 @@ const props = defineProps<{
     status?: string;
 }>();
 
-const form = useForm({});
+const form = useForm<{ email?: string }>({});
 
 const submit = () => {
     form.post(route('verification.send'));
@@ -36,6 +37,7 @@ const verificationLinkSent = computed(
         </div>
 
         <form class="space-y-4" @submit.prevent="submit">
+            <InputError :message="form.errors.email" />
             <PrimaryButton class="w-full" :disabled="form.processing">Resend verification email</PrimaryButton>
         </form>
 

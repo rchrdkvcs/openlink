@@ -59,6 +59,7 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php -r \"foreach (['bootstrap/cache/packages.php', 'bootstrap/cache/services.php'] as \\$path) { if (is_file(\\$path)) unlink(\\$path); }\"",
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
@@ -78,7 +79,12 @@
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [
+                "laravel/breeze",
+                "laravel/pail",
+                "laravel/pao",
+                "nunomaduro/collision"
+            ]
         }
     },
     "config": {

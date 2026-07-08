@@ -12,6 +12,7 @@ class UpdateQrCode
     public function __construct(
         private readonly WorkspaceAccess $access,
         private readonly QrCodeContent $content,
+        private readonly QrCodeAppearance $appearance,
     ) {}
 
     /**
@@ -30,20 +31,7 @@ class UpdateQrCode
             $qrCode->content = $this->content->normalize($type, $payload);
         }
 
-        $qrCode->fill(collect($data)->only([
-            'name',
-            'size',
-            'foreground_color',
-            'background_color',
-            'margin',
-            'error_correction',
-            'style',
-            'eye_style',
-        ])->filter(fn ($value) => $value !== null)->all());
-
-        if (array_key_exists('background_transparent', $data) && $data['background_transparent'] !== null) {
-            $qrCode->background_transparent = (bool) $data['background_transparent'];
-        }
+        $this->appearance->fill($qrCode, $data);
 
         if ($request->hasFile('logo')) {
             $this->deleteLogo($qrCode);

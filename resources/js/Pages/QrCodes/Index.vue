@@ -7,12 +7,13 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Download, Plus, QrCode } from '@lucide/vue';
 import { ref } from 'vue';
 import CreateQrCodeDrawer from './CreateQrCodeDrawer.vue';
-import type { QrCodeRecord } from './types';
-import { payloadDefaults, payloadTypeMeta } from './types';
+import type { PayloadDescriptors, QrCodeRecord } from './types';
+import { payloadDefaults, payloadIcon } from './types';
 
-defineProps<{
+const props = defineProps<{
     qrCodes: QrCodeRecord[];
     payloadTypes: Record<string, string>;
+    payloadDescriptors: PayloadDescriptors;
     canEditWorkspace: boolean;
 }>();
 
@@ -21,7 +22,7 @@ const createOpen = ref(false);
 const form = useForm({
     name: '',
     payload_type: 'url',
-    payload: payloadDefaults('url'),
+    payload: payloadDefaults('url', props.payloadDescriptors),
 });
 
 function setPayloadType(type: string) {
@@ -29,7 +30,7 @@ function setPayloadType(type: string) {
         return;
     }
     form.payload_type = type;
-    form.payload = payloadDefaults(type);
+    form.payload = payloadDefaults(type, props.payloadDescriptors);
     form.clearErrors();
 }
 
@@ -38,7 +39,7 @@ function submit() {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
-            form.payload = payloadDefaults('url');
+            form.payload = payloadDefaults('url', props.payloadDescriptors);
             createOpen.value = false;
         },
     });
@@ -102,7 +103,7 @@ function submit() {
                         <div class="flex items-center justify-between gap-2">
                             <h2 class="truncate text-sm font-semibold text-foreground">{{ qr.name }}</h2>
                             <Badge class="inline-flex shrink-0 items-center gap-1">
-                                <component :is="payloadTypeMeta(qr.payload_type).icon" class="h-3 w-3" />
+                                <component :is="payloadIcon(qr.payload_type)" class="h-3 w-3" />
                                 {{ payloadTypes[qr.payload_type] ?? qr.payload_type }}
                             </Badge>
                         </div>
@@ -116,6 +117,7 @@ function submit() {
             :show="createOpen"
             :form="form"
             :payload-types="payloadTypes"
+            :payload-descriptors="payloadDescriptors"
             @close="createOpen = false"
             @set-type="setPayloadType"
             @submit="submit"

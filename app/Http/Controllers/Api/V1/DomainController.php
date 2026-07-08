@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Domains\CreateDomain;
 use App\Actions\Domains\DeleteDomain;
 use App\Actions\Domains\DisableDomain;
+use App\Actions\Domains\DomainLifecycle;
 use App\Actions\Domains\DomainPayload;
-use App\Actions\Domains\RunDomainChecks;
 use App\Actions\Domains\TransferDomain;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
@@ -35,10 +35,10 @@ class DomainController extends Controller
         return response()->json(['data' => $payload->handle($domain)], 201);
     }
 
-    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, RunDomainChecks $checks, DomainPayload $payload): JsonResponse
+    public function verify(Request $request, Domain $domain, WorkspaceAccess $access, DomainLifecycle $domains, DomainPayload $payload): JsonResponse
     {
         $access->requireManagedDomain($request, $domain);
-        $domain = $checks->handle($domain);
+        $domain = $domains->check($domain);
 
         return response()->json(['data' => $payload->handle($domain)]);
     }

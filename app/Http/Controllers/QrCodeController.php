@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\QrCodes\CreateDirectQrCode;
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
+use App\Actions\QrCodes\QrCodeAppearance;
 use App\Actions\QrCodes\QrCodeContent;
 use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
@@ -38,6 +39,7 @@ class QrCodeController extends Controller
             'canEditWorkspace' => $access->canEditWorkspace($user, $workspace),
             'qrCodes' => $qrCodes,
             'payloadTypes' => QrCodeContent::types(),
+            'payloadDescriptors' => QrCodeContent::descriptors(),
         ]);
     }
 
@@ -66,6 +68,7 @@ class QrCodeController extends Controller
                 'workspaces' => $user->workspaces()->orderBy('name')->get(['workspaces.id', 'workspaces.name', 'workspaces.slug']),
                 'qr' => QrCodePayload::make($qrCode),
                 'payloadTypes' => QrCodeContent::types(),
+                'payloadDescriptors' => QrCodeContent::descriptors(),
             ]);
         }
 
@@ -112,7 +115,7 @@ class QrCodeController extends Controller
         ]);
     }
 
-    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
+    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer, QrCodeAppearance $appearance): Response
     {
         $access->requireEditableQrCode($request, $qrCode);
 
@@ -121,11 +124,7 @@ class QrCodeController extends Controller
             ? QrCodePayload::directRules(creating: false)
             : QrCodePayload::rules(creating: false);
 
-        $overrides = collect($request->validate($rules))
-            ->except(['name', 'payload_type', 'payload', 'logo', 'remove_logo'])
-            ->filter(fn ($value) => $value !== null);
-
-        $qrCode->fill($overrides->all());
+        $qrCode->fill($appearance->previewOverrides($request->validate($rules)));
 
         return response($renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
             'Content-Type' => 'image/svg+xml',

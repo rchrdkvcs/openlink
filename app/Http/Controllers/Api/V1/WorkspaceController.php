@@ -11,6 +11,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WorkspaceController extends Controller
 {
@@ -20,11 +21,13 @@ class WorkspaceController extends Controller
             'data' => $request->user()->workspaces()
                 ->orderBy('workspaces.created_at')
                 ->orderBy('workspaces.id')
-                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug', 'workspaces.preferred_domain_id'])
+                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug', 'workspaces.icon', 'workspaces.color', 'workspaces.preferred_domain_id'])
                 ->map(fn ($workspace) => [
                     'id' => $workspace->id,
                     'name' => $workspace->name,
                     'slug' => $workspace->slug,
+                    'icon' => $workspace->icon,
+                    'color' => $workspace->color,
                     'preferred_domain_id' => $workspace->preferred_domain_id,
                     'role' => $workspace->pivot->role,
                 ]),
@@ -42,6 +45,8 @@ class WorkspaceController extends Controller
                 'id' => $workspace->id,
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,
+                'icon' => $workspace->icon,
+                'color' => $workspace->color,
                 'preferred_domain_id' => $workspace->preferred_domain_id,
                 'role' => $access->role($user, $workspace),
                 'can_manage' => $access->canManageWorkspace($user, $workspace),
@@ -52,30 +57,28 @@ class WorkspaceController extends Controller
 
     public function store(Request $request, CreateWorkspace $workspaces): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-        ]);
+        $data = $request->validate($this->rules());
 
-        $workspace = $workspaces->handle($request->user(), $data['name']);
+        $workspace = $workspaces->handle($request->user(), $data['name'], $data['icon'] ?? null, $data['color'] ?? null);
 
         return response()->json([
-            'data' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
+            'data' => $workspace->only(['id', 'name', 'slug', 'icon', 'color', 'preferred_domain_id']),
         ], 201);
     }
 
-    public function update(Request $request, WorkspaceAccess $access, UpdateWorkspace $workspaces): JsonResponse
+    public function update(Request $request, Workspace $workspace, WorkspaceAccess $access, UpdateWorkspace $workspaces): JsonResponse
     {
-        $workspace = $access->requireManagedWorkspace($request);
+        abort_unless($access->canManageWorkspace($request->user(), $workspace), 403);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            ...$this->rules(),
             'preferred_domain_id' => ['nullable', 'integer'],
         ]);
 
-        $workspace = $workspaces->handle($workspace, $data['name'], $data['preferred_domain_id'] ?? null);
+        $workspace = $workspaces->handle($workspace, $data['name'], $data['preferred_domain_id'] ?? null, $data['icon'] ?? null, $data['color'] ?? null);
 
         return response()->json([
-            'data' => $workspace->only(['id', 'name', 'slug', 'preferred_domain_id']),
+            'data' => $workspace->only(['id', 'name', 'slug', 'icon', 'color', 'preferred_domain_id']),
         ]);
     }
 
@@ -89,5 +92,15 @@ class WorkspaceController extends Controller
             'message' => 'Workspace deleted.',
             'next_workspace_id' => $nextWorkspace->id,
         ]);
+    }
+
+    /** @return array<string, array<int, mixed>> */
+    private function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:120'],
+            'icon' => ['nullable', 'string', Rule::in(Workspace::ICONS)],
+            'color' => ['nullable', 'string', Rule::in(Workspace::COLORS)],
+        ];
     }
 }

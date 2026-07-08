@@ -5,12 +5,14 @@ import Field from '@/Components/ui/Field.vue';
 import type { InertiaForm } from '@inertiajs/vue3';
 import { ArrowRight, QrCode } from '@lucide/vue';
 import PayloadFields from './PayloadFields.vue';
-import { payloadTypeMeta } from './types';
+import type { PayloadDescriptors } from './types';
+import { payloadHint, payloadIcon } from './types';
 
 defineProps<{
     show: boolean;
     form: InertiaForm<{ name: string; payload_type: string; payload: Record<string, any> }>;
     payloadTypes: Record<string, string>;
+    payloadDescriptors: PayloadDescriptors;
 }>();
 
 const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
@@ -50,7 +52,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
                             @click="emit('setType', type as string)"
                         >
                             <component
-                                :is="payloadTypeMeta(type as string).icon"
+                                :is="payloadIcon(type as string)"
                                 class="h-3.5 w-3.5"
                                 :class="form.payload_type === type ? 'text-accent' : ''"
                             />
@@ -58,7 +60,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
                         </button>
                     </div>
                     <p class="mt-2 text-xs" :class="form.errors.payload_type ? 'text-danger' : 'text-faint'">
-                        {{ form.errors.payload_type ?? payloadTypeMeta(form.payload_type).hint }}
+                        {{ form.errors.payload_type ?? payloadHint(form.payload_type, payloadDescriptors) }}
                     </p>
                 </div>
 

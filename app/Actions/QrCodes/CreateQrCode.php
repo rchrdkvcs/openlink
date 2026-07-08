@@ -10,7 +10,10 @@ use Illuminate\Support\Str;
 
 class CreateQrCode
 {
-    public function __construct(private readonly WorkspaceAccess $access) {}
+    public function __construct(
+        private readonly WorkspaceAccess $access,
+        private readonly QrCodeAppearance $appearance,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -22,14 +25,7 @@ class CreateQrCode
         return $shortLink->qrCodes()->create([
             'name' => $data['name'],
             'token' => Str::random(32),
-            'size' => $data['size'] ?? 1024,
-            'foreground_color' => $data['foreground_color'] ?? '#111827',
-            'background_color' => $data['background_color'] ?? '#ffffff',
-            'margin' => $data['margin'] ?? 2,
-            'error_correction' => $data['error_correction'] ?? 'medium',
-            'style' => $data['style'] ?? 'square',
-            'eye_style' => $data['eye_style'] ?? 'square',
-            'background_transparent' => (bool) ($data['background_transparent'] ?? false),
+            ...$this->appearance->defaults($data),
             'logo_path' => $request->hasFile('logo') ? $request->file('logo')->store('qr-logos') : null,
         ]);
     }

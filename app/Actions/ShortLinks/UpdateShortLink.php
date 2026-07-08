@@ -4,10 +4,9 @@ namespace App\Actions\ShortLinks;
 
 use App\Actions\Routing\SyncRoutingRules;
 use App\Actions\Workspaces\WorkspaceAccess;
-use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
-use App\Services\SlugService;
+use App\Services\ShortLinks\ShortUrlComposition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +15,7 @@ class UpdateShortLink
 {
     public function __construct(
         private readonly WorkspaceAccess $access,
-        private readonly SlugService $slugs,
+        private readonly ShortUrlComposition $shortUrls,
         private readonly SyncRoutingRules $routingRules,
     ) {}
 
@@ -35,21 +34,12 @@ class UpdateShortLink
         $domain = $shortLink->domain;
 
         if (isset($data['domain_id']) && (int) $data['domain_id'] !== $shortLink->domain_id) {
-            $domain = $this->domainForWorkspace((int) $data['domain_id'], $workspace->id);
-            abort_unless($domain, 422, 'Domain does not belong to this workspace.');
-            abort_unless($domain->isUsable(), 422, 'Domain is not active or is disabled.');
+            $domain = $this->shortUrls->requireUsableDomain($data['domain_id'], $workspace);
         }
 
-        // Re-validate the slug only when the short URL actually changes; a changed
-        // slug (or domain) can never collide with the link's own current address.
-        $slug = $shortLink->slug;
-        $submitted = trim((string) ($data['slug'] ?? $shortLink->slug), '/');
+        $slug = $this->shortUrls->slugForUpdate($shortLink, $domain, $data);
 
-        if ($submitted !== $shortLink->slug || $domain->id !== $shortLink->domain_id) {
-            $slug = $this->slugs->validateCustom($domain, $submitted);
-        }
-
-        $this->assertNoLoop($domain, $slug, $data['destination_url']);
+        $this->shortUrls->assertNoLoop($domain, $slug, $data['destination_url']);
 
         return DB::transaction(function () use ($shortLink, $folder, $domain, $slug, $data): ShortLink {
             $shortLink->fill([
@@ -80,18 +70,6 @@ class UpdateShortLink
         });
     }
 
-    private function domainForWorkspace(int $domainId, int $workspaceId): ?Domain
-    {
-        if ($domainId <= 0) {
-            return null;
-        }
-
-        return Domain::query()
-            ->whereKey($domainId)
-            ->where(fn ($query) => $query->where('workspace_id', $workspaceId)->orWhere('is_default', true))
-            ->first();
-    }
-
     private function folderForWorkspace(int $workspaceId, mixed $folderId): ?Folder
     {
         if (! filled($folderId)) {
@@ -102,15 +80,5 @@ class UpdateShortLink
             ->whereKey((int) $folderId)
             ->where('workspace_id', $workspaceId)
             ->firstOrFail();
-    }
-
-    private function assertNoLoop(Domain $domain, string $slug, string $destinationUrl): void
-    {
-        $targetHost = parse_url($destinationUrl, PHP_URL_HOST);
-        $targetPath = trim((string) parse_url($destinationUrl, PHP_URL_PATH), '/');
-
-        if ($targetHost === $domain->hostname && $targetPath === trim($slug, '/')) {
-            abort(422, 'Destination URL cannot point to the same short URL.');
-        }
     }
 }

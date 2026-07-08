@@ -9,12 +9,13 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Download, ImageOff, LinkIcon, Trash2, Upload } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import PayloadFields from './PayloadFields.vue';
-import type { QrCodeRecord } from './types';
+import type { PayloadDescriptors, QrCodeRecord } from './types';
 import { payloadDefaults } from './types';
 
 const props = defineProps<{
     qr: QrCodeRecord;
     payloadTypes: Record<string, string>;
+    payloadDescriptors: PayloadDescriptors;
 }>();
 
 const STYLES = [
@@ -35,7 +36,7 @@ const typeOptions = Object.entries(props.payloadTypes);
 const form = useForm({
     name: props.qr.name,
     payload_type: props.qr.payload_type,
-    payload: { ...payloadDefaults(props.qr.payload_type), ...props.qr.payload },
+    payload: { ...payloadDefaults(props.qr.payload_type, props.payloadDescriptors), ...props.qr.payload },
     size: props.qr.size,
     foreground_color: props.qr.foreground_color,
     background_color: props.qr.background_color,
@@ -73,7 +74,7 @@ const isDirty = computed(() => form.isDirty || form.logo !== null || form.remove
 
 function setPayloadType(type: string) {
     form.payload_type = type;
-    form.payload = payloadDefaults(type);
+    form.payload = payloadDefaults(type, props.payloadDescriptors);
 }
 
 function exportUrl(format: 'png' | 'svg') {

@@ -12,6 +12,7 @@ class CreateDirectQrCode
     public function __construct(
         private readonly WorkspaceAccess $access,
         private readonly QrCodeContent $content,
+        private readonly QrCodeAppearance $appearance,
     ) {}
 
     /**
@@ -29,14 +30,7 @@ class CreateDirectQrCode
             'payload_type' => $type,
             'payload' => $payload,
             'content' => $this->content->normalize($type, $payload),
-            'size' => $data['size'] ?? 1024,
-            'foreground_color' => $data['foreground_color'] ?? '#111827',
-            'background_color' => $data['background_color'] ?? '#ffffff',
-            'margin' => $data['margin'] ?? 2,
-            'error_correction' => $data['error_correction'] ?? 'medium',
-            'style' => $data['style'] ?? 'square',
-            'eye_style' => $data['eye_style'] ?? 'square',
-            'background_transparent' => (bool) ($data['background_transparent'] ?? false),
+            ...$this->appearance->defaults($data),
             'logo_path' => $request->hasFile('logo') ? $request->file('logo')->store('qr-logos') : null,
         ]);
     }

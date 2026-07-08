@@ -72,6 +72,27 @@ export type RoutingRuleDraft = {
     variants: RoutingVariantDraft[];
 };
 
+export type RoutingOption = { value: string; label: string };
+
+export type RoutingPreset = {
+    kind: string;
+    label: string;
+    description: string;
+    conditionType: string;
+    ruleType: RoutingRuleDraft['type'];
+};
+
+export type RoutingSchema = {
+    conditionTypes: RoutingOption[];
+    operators: {
+        scalar: RoutingOption[];
+        time: RoutingOption[];
+    };
+    valueOptions: Record<string, RoutingOption[]>;
+    defaults: Record<string, string>;
+    presets: RoutingPreset[];
+};
+
 export type CreateLinkFormData = {
     domain_id: number | string;
     folder_id: string;
@@ -113,4 +134,5 @@ export type LinksPageProps = {
     folders: Folder[];
     tags: { id: number; name: string }[];
     links: ShortLink[];
+    routingSchema: RoutingSchema;
 };

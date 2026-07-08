@@ -6,12 +6,15 @@ use App\Models\RoutingRule;
 use App\Models\RoutingVariant;
 use App\Models\ShortLink;
 use App\Services\ResolutionContext;
+use App\Services\Routing\SmartRoutingSchema;
 use App\Services\RoutingDecision;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 class ResolveSmartRouting
 {
+    public function __construct(private readonly SmartRoutingSchema $schema) {}
+
     public function resolve(ShortLink $shortLink, ResolutionContext $context): RoutingDecision
     {
         $shortLink->loadMissing(['routingRules.variants']);
@@ -64,15 +67,7 @@ class ResolveSmartRouting
             'date_time' => $this->dateTimeMatches($condition, $context),
             'day_of_week' => $this->dayOfWeekMatches($condition, $context),
             'time_of_day' => $this->timeOfDayMatches($condition, $context),
-            default => $this->scalarMatches($context->value($this->contextKey($type)), $operator, $condition['value'] ?? null),
-        };
-    }
-
-    private function contextKey(string $type): string
-    {
-        return match ($type) {
-            'operating_system' => 'os',
-            default => $type,
+            default => $this->scalarMatches($context->value($this->schema->contextKey($type)), $operator, $condition['value'] ?? null),
         };
     }
 

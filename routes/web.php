@@ -63,7 +63,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/profile/two-factor', [ProfileController::class, 'disableTwoFactor'])->name('profile.two-factor.disable');
 
         Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
-        Route::patch('/workspaces/current', [WorkspaceController::class, 'update'])->name('workspaces.update-current');
+        Route::get('/workspaces/{workspace}/manage', [WorkspaceController::class, 'manage'])->name('workspaces.manage');
+        Route::patch('/workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
         Route::post('/workspaces/{workspace}/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
         Route::delete('/workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 

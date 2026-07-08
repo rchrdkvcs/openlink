@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\Domains\RunDomainChecks;
+use App\Actions\Domains\DomainLifecycle;
 use App\Models\Domain;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -15,7 +15,7 @@ class VerifyPendingDomains extends Command
     /**
      * Execute the console command.
      */
-    public function handle(RunDomainChecks $checks): int
+    public function handle(DomainLifecycle $lifecycle): int
     {
         $limit = max(1, (int) $this->option('limit'));
         $domains = Domain::query()
@@ -25,7 +25,7 @@ class VerifyPendingDomains extends Command
             ->limit($limit)
             ->get();
 
-        $domains->each(fn (Domain $domain) => $checks->handle($domain));
+        $domains->each(fn (Domain $domain) => $lifecycle->check($domain));
 
         $this->info("Checked {$domains->count()} domains.");
 

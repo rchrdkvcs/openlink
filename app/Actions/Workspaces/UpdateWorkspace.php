@@ -7,7 +7,7 @@ use App\Models\Workspace;
 
 class UpdateWorkspace
 {
-    public function handle(Workspace $workspace, string $name, ?int $preferredDomainId): Workspace
+    public function handle(Workspace $workspace, string $name, ?int $preferredDomainId, ?string $icon = null, ?string $color = null): Workspace
     {
         $preferredDomainId = $preferredDomainId ?: null;
 
@@ -24,6 +24,8 @@ class UpdateWorkspace
         $workspace->update([
             'name' => $name,
             'preferred_domain_id' => $preferredDomainId,
+            'icon' => $icon,
+            'color' => $color,
         ]);
 
         return $workspace;

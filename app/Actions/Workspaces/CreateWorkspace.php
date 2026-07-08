@@ -10,9 +10,9 @@ use Illuminate\Support\Str;
 
 class CreateWorkspace
 {
-    public function handle(User $owner, string $name): Workspace
+    public function handle(User $owner, string $name, ?string $icon = null, ?string $color = null): Workspace
     {
-        return DB::transaction(function () use ($owner, $name) {
+        return DB::transaction(function () use ($owner, $name, $icon, $color) {
             $slug = Str::slug($name);
             $base = $slug ?: 'workspace';
             $i = 1;
@@ -25,6 +25,8 @@ class CreateWorkspace
                 'owner_id' => $owner->id,
                 'name' => $name,
                 'slug' => $slug,
+                'icon' => $icon,
+                'color' => $color,
                 'settings' => [],
             ]);
 

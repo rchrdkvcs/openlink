@@ -7,8 +7,8 @@
     "scripts": {
         "build": "vue-tsc && vite build",
         "dev": "vite",
-        "release": "semantic-release",
-        "release:dry": "semantic-release --dry-run"
+        "release": "node scripts/semantic-release.mjs",
+        "release:dry": "node scripts/semantic-release.mjs --dry-run"
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.1",

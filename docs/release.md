@@ -12,6 +12,15 @@ Openlink releases are generated from Conventional Commits with `semantic-release
 
 The release workflow only runs from `master` and tags releases as `vX.Y.Z`.
 
+## Deployment
+
+When `semantic-release` publishes a release, the release workflow immediately triggers Coolify. Configure these repository secrets before enabling deployment:
+
+- `COOLIFY_WEBHOOK`
+- `COOLIFY_TOKEN`
+
+The deploy step is part of the same workflow as `semantic-release`, so it does not rely on a separate `release.published` event. If a merge to `master` does not produce a semantic release, the deployment step is skipped.
+
 ## Version rules
 
 - `fix:` and `perf:` create a patch release.

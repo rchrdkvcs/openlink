@@ -1,0 +1,5 @@
+packages:
+  - .
+
+allowBuilds:
+  vue-demi: false

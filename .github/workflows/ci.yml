@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+  push:
+    branches:
+      - develop
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  PHP_VERSION: '8.4'
+  PNPM_VERSION: '11.7.0'
+
+jobs:
+  pr-title:
+    name: Validate PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
+
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: openlink_test
+          POSTGRES_USER: openlink
+          POSTGRES_PASSWORD: openlink
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U openlink -d openlink_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, ctype, curl, dom, fileinfo, mbstring, openssl, pcntl, pdo_pgsql, pgsql, tokenizer, xml
+          coverage: none
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Run backend test suite
+        run: composer run test
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend assets
+        run: pnpm run build

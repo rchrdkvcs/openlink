@@ -90,6 +90,7 @@ jobs:
       - name: Prepare application
         run: |
           cp .env.example .env
+          mkdir -p storage/framework/{cache,sessions,testing,views}
           php artisan key:generate --ansi
 
       - name: Run backend test suite

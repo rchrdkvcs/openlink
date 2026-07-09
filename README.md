@@ -9,6 +9,7 @@ Openlink is built for people and teams who need a clean alternative to Bitly or 
 ## Stack
 
 - Laravel
+- Laravel Octane with FrankenPHP
 - Inertia.js
 - Vue 3
 - TypeScript
@@ -37,19 +38,19 @@ Install dependencies and prepare the app:
 
 ```bash
 composer install
-npm install
+pnpm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
 ```
 
-Run the development server, queue worker, and Vite:
+Run the Octane development server, queue worker, and Vite:
 
 ```bash
 composer run dev
 ```
 
-The app runs at `http://127.0.0.1:8000`. Use `http://localhost:8000/<slug>` when testing links created on the default `localhost` domain.
+The app runs through Octane / FrankenPHP at `http://127.0.0.1:8000`. Use `http://localhost:8000/<slug>` when testing links created on the default `localhost` domain.
 
 Set `APP_HOST` to the hostname that should render the authenticated application UI. Domains added inside Openlink are redirect-only domains; they can point to the same Laravel app, but their paths are resolved as short URL slugs instead of app routes.
 
@@ -57,7 +58,7 @@ Run verification:
 
 ```bash
 php artisan test
-npm run build
+pnpm run build
 ```
 
 ## Status

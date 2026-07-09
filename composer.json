@@ -10,6 +10,7 @@
         "bacon/bacon-qr-code": "^3.1",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^13.8",
+        "laravel/octane": "^2.17",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.28",
         "laravel/tinker": "^3.0",
@@ -47,12 +48,12 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
-            "npm install --ignore-scripts",
-            "npm run build"
+            "pnpm install --ignore-scripts",
+            "pnpm run build"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"npm run dev\" --names=server,queue,vite --kill-others"
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan octane:frankenphp --host=127.0.0.1 --port=8000 --workers=1 --max-requests=1\" \"php artisan queue:listen --tries=1 --timeout=0\" \"pnpm run dev\" --names=octane,queue,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",

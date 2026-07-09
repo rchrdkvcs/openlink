@@ -2,6 +2,7 @@
     "$schema": "https://www.schemastore.org/package.json",
     "name": "openlink",
     "private": true,
+    "packageManager": "pnpm@11.7.0",
     "type": "module",
     "scripts": {
         "build": "vue-tsc && vite build",

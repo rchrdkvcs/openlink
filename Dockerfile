@@ -25,15 +25,17 @@ FROM node:24-alpine AS assets
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY app ./app
 COPY --from=vendor /app/vendor/tightenco/ziggy ./vendor/tightenco/ziggy
 COPY resources ./resources
 COPY public ./public
 COPY components.json postcss.config.js tailwind.config.js tsconfig.json vite.config.js ./
-RUN npm run build
+RUN pnpm run build
 
 
 FROM dunglas/frankenphp:1-php8.4-alpine AS production
@@ -73,6 +75,9 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 USER www-data
 
 EXPOSE 8080
+
+ENTRYPOINT ["php", "artisan", "octane:frankenphp"]
+CMD ["--host=0.0.0.0", "--port=8080"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD wget -qO- http://127.0.0.1:8080/up || exit 1

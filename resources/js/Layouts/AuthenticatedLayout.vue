@@ -6,6 +6,7 @@ import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import CreateWorkspaceModal from '@/Components/Workspaces/CreateWorkspaceModal.vue';
 import WorkspaceSettingsModal from '@/Components/Workspaces/WorkspaceSettingsModal.vue';
 import WorkspaceSwitcher from '@/Components/Workspaces/WorkspaceSwitcher.vue';
+import type { PageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { BarChart3, ChevronsUpDown, Globe2, LayoutDashboard, Link2, LogOut, Menu, QrCode, Settings, User, Users, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -17,8 +18,9 @@ const showCreateWorkspace = ref(false);
 const settingsWorkspaceId = ref<number | null>(null);
 const showWorkspaceSettings = ref(false);
 
-const page = usePage();
+const page = usePage<PageProps>();
 const currentWorkspace = computed(() => page.props.currentWorkspace as Workspace | undefined);
+const user = computed(() => page.props.auth.user);
 
 const navItems = [
     { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
@@ -90,10 +92,10 @@ function openCreateWorkspace() {
                         <button
                             class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         >
-                            <UserAvatar :name="$page.props.auth.user.name" :src="$page.props.auth.user.profile_avatar_url" size="sm" />
+                            <UserAvatar :name="user.name" :src="user.profile_avatar_url" size="sm" />
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-[13px] font-medium">{{ $page.props.auth.user.name }}</span>
-                                <span class="block truncate text-xs text-faint">{{ $page.props.auth.user.email }}</span>
+                                <span class="block truncate text-[13px] font-medium">{{ user.name }}</span>
+                                <span class="block truncate text-xs text-faint">{{ user.email }}</span>
                             </span>
                             <ChevronsUpDown class="h-3.5 w-3.5 shrink-0 text-faint" />
                         </button>

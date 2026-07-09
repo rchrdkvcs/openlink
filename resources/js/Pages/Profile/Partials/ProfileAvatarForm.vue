@@ -2,6 +2,7 @@
 import UserAvatar from '@/Components/UserAvatar.vue';
 import Button from '@/Components/ui/Button.vue';
 import Badge from '@/Components/ui/Badge.vue';
+import type { PageProps } from '@/types';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
 
@@ -19,7 +20,7 @@ const props = defineProps<{
     profileAvatar: { url: string | null; source_id: number | null };
 }>();
 
-const user = usePage().props.auth.user;
+const user = usePage<PageProps>().props.auth.user;
 const form = useForm({
     profile_avatar_social_account_id: props.profileAvatar.source_id as number | null,
 });

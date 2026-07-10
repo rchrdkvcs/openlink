@@ -31,9 +31,11 @@ const navItems = [
     { label: 'Members', href: route('members.index'), active: route().current('members.index'), icon: Users },
 ];
 
-const accountItems = [
-    { label: 'Settings', href: route('settings.index'), active: route().current('settings.index'), icon: Settings },
-];
+const accountItems = computed(() =>
+    user.value.is_instance_admin
+        ? [{ label: 'Settings', href: route('settings.index'), active: route().current('settings.index'), icon: Settings }]
+        : [],
+);
 
 function openWorkspaceSettings(workspaceId: number) {
     settingsWorkspaceId.value = workspaceId;
@@ -72,7 +74,7 @@ function openCreateWorkspace() {
                     <span>{{ item.label }}</span>
                 </Link>
 
-                <p class="px-2 pb-1 pt-5 text-[11px] font-medium uppercase tracking-wide text-faint">Manage</p>
+                <p v-if="accountItems.length" class="px-2 pb-1 pt-5 text-[11px] font-medium uppercase tracking-wide text-faint">Manage</p>
                 <Link
                     v-for="item in accountItems"
                     :key="item.label"
@@ -105,7 +107,7 @@ function openCreateWorkspace() {
                         <DropdownLink :href="route('profile.edit')">
                             <span class="inline-flex items-center gap-2"><User class="h-3.5 w-3.5" /> Profile</span>
                         </DropdownLink>
-                        <DropdownLink :href="route('settings.index')">
+                        <DropdownLink v-if="user.is_instance_admin" :href="route('settings.index')">
                             <span class="inline-flex items-center gap-2"><Settings class="h-3.5 w-3.5" /> Settings</span>
                         </DropdownLink>
                         <div class="mx-1 my-1 border-t" />

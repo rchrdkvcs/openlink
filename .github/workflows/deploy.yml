@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  workflow_call:
+    secrets:
+      COOLIFY_WEBHOOK:
+        required: true
+      COOLIFY_TOKEN:
+        required: true
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Coolify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl --fail --silent --show-error --location "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"

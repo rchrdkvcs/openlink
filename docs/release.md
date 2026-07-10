@@ -14,12 +14,14 @@ The release workflow only runs from `master` and tags releases as `vX.Y.Z`.
 
 ## Deployment
 
-When `semantic-release` publishes a release, the release workflow immediately triggers Coolify. Configure these repository secrets before enabling deployment:
+Deployment is handled by the separate, reusable `deploy.yml` workflow. When `semantic-release` publishes a release, the release workflow calls the deployment workflow, which triggers Coolify. Configure these repository secrets before enabling deployment:
 
 - `COOLIFY_WEBHOOK`
 - `COOLIFY_TOKEN`
 
-The deploy step is part of the same workflow as `semantic-release`, so it does not rely on a separate `release.published` event. If a merge to `master` does not produce a semantic release, the deployment step is skipped.
+The release workflow calls the reusable deployment workflow directly, so it does not rely on a separate `release.published` event. If a merge to `master` does not produce a semantic release, deployment is skipped.
+
+To redeploy the current Coolify source without creating another release, open the **Deploy** workflow in GitHub Actions and select **Run workflow**. Manual and release-triggered deployments share a concurrency group, so Coolify deployment requests are sent one at a time.
 
 ## Version rules
 

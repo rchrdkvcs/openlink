@@ -27,7 +27,7 @@ Openlink is built for people and teams who need a clean alternative to Bitly or 
 - [Technical specification](./docs/technical-spec.md)
 - [Security and privacy](./docs/security-and-privacy.md)
 - [HTTP API](./docs/api.md)
-- [Release process](./docs/release.md)
+- [Deployment](./docs/deployment.md)
 - [Roadmap](./docs/roadmap.md)
 - [Architecture decisions](./docs/adr)
 

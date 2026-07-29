@@ -1,15 +1,11 @@
 name: Deploy
 
 on:
-  workflow_call:
-    secrets:
-      COOLIFY_WEBHOOK:
-        required: true
-      COOLIFY_TOKEN:
-        required: true
-  workflow_dispatch:
+  release:
+    types: [published]
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: production-deployment
@@ -18,13 +14,23 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to Coolify
+    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Coolify deployment
+      - name: Deploy latest release to Coolify
         env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ github.event.release.id }}
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
+          latest_release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.id')"
+
+          if [ "$RELEASE_ID" != "$latest_release_id" ]; then
+            echo "Skipping release $RELEASE_ID because the latest release is $latest_release_id."
+            exit 0
+          fi
+
           curl --fail --silent --show-error --location "$COOLIFY_WEBHOOK" \
             --header "Authorization: Bearer $COOLIFY_TOKEN"

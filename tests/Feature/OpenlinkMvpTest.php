@@ -16,7 +16,6 @@ use App\Services\SlugService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;

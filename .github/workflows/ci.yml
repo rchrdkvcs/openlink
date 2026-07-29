@@ -64,6 +64,9 @@ jobs:
           mkdir -p storage/framework/{cache,sessions,testing,views}
           php artisan key:generate --ansi
 
+      - name: Check PHP formatting
+        run: composer run lint
+
       - name: Run backend test suite
         run: composer run test
 
@@ -97,6 +100,9 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check frontend code
+        run: pnpm run check
 
       - name: Build frontend assets
         run: pnpm run build

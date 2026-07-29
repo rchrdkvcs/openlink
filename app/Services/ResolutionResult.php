@@ -13,6 +13,5 @@ class ResolutionResult
         public readonly ?QrCode $qrCode = null,
         public readonly ?string $redirectUrl = null,
         public readonly bool $requiresPassword = false,
-    ) {
-    }
+    ) {}
 }

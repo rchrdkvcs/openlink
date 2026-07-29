@@ -59,6 +59,8 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "format": "@php vendor/bin/pint",
+        "lint": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php -r \"foreach (['bootstrap/cache/packages.php', 'bootstrap/cache/services.php'] as \\$path) { if (is_file(\\$path)) unlink(\\$path); }\"",

@@ -1,36 +1,33 @@
-name: Deploy
+name: Deploy to Coolify
 
 on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-
-concurrency:
-  group: production-deployment
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    name: Deploy to Coolify
-    if: github.event.release.prerelease == false
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy latest release to Coolify
+      - name: Deploy
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_ID: ${{ github.event.release.id }}
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
         run: |
-          latest_release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.id')"
-
-          if [ "$RELEASE_ID" != "$latest_release_id" ]; then
-            echo "Skipping release $RELEASE_ID because the latest release is $latest_release_id."
-            exit 0
+          if [[ -z "$COOLIFY_WEBHOOK" ]]; then
+            echo "::error title=Missing Coolify webhook::Configure the COOLIFY_WEBHOOK repository secret."
+            exit 1
           fi
 
-          curl --fail --silent --show-error --location "$COOLIFY_WEBHOOK" \
+          if [[ -z "$COOLIFY_TOKEN" ]]; then
+            echo "::error title=Missing Coolify token::Configure the COOLIFY_TOKEN repository secret."
+            exit 1
+          fi
+
+          if [[ ! "$COOLIFY_WEBHOOK" =~ ^https?:// ]]; then
+            echo "::error title=Invalid Coolify webhook::COOLIFY_WEBHOOK must be an HTTP or HTTPS URL."
+            exit 1
+          fi
+
+          curl --fail-with-body --show-error --location --request GET "$COOLIFY_WEBHOOK" \
             --header "Authorization: Bearer $COOLIFY_TOKEN"

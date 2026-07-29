@@ -9,14 +9,14 @@ import { Link } from '@inertiajs/vue3';
         <div class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.12),transparent_65%)]" />
 
         <div class="relative w-full max-w-sm animate-slide-up">
-            <div class="mb-8 flex flex-col items-center gap-3">
+            <div class="mb-8 flex justify-center">
                 <Link
                     href="/"
-                    class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent/60 text-white shadow-lg shadow-accent/20"
+                    aria-label="Openlink"
+                    class="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                 >
-                    <ApplicationLogo class="h-5 w-5" />
+                    <ApplicationLogo class="h-4 w-auto" />
                 </Link>
-                <span class="text-sm font-semibold tracking-wide text-foreground">Openlink</span>
             </div>
 
             <div class="card-sheen rounded-xl border bg-surface p-6 shadow-2xl shadow-black/30">

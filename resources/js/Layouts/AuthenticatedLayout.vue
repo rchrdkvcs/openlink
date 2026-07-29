@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
@@ -54,6 +55,18 @@ function openCreateWorkspace() {
     <div class="min-h-screen bg-background text-foreground">
         <!-- Sidebar (desktop) — floating card -->
         <aside class="card-sheen fixed bottom-3 left-3 top-3 z-30 hidden w-60 flex-col rounded-lg border bg-surface lg:flex">
+            <div class="flex h-12 shrink-0 items-center px-4">
+                <Link
+                    :href="route('dashboard')"
+                    aria-label="Openlink"
+                    class="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                    <ApplicationLogo class="h-4 w-auto" />
+                </Link>
+            </div>
+
+            <div class="mx-2.5 border-t" />
+
             <!-- Workspace switcher -->
             <div class="px-2.5 pb-2 pt-2.5">
                 <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
@@ -201,6 +214,14 @@ function openCreateWorkspace() {
                     <WorkspaceAvatar :name="currentWorkspace?.name" :icon="currentWorkspace?.icon" :color="currentWorkspace?.color" />
                     <span class="truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
                 </span>
+
+                <Link
+                    :href="route('dashboard')"
+                    aria-label="Openlink"
+                    class="ml-auto shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                    <ApplicationLogo class="h-4 w-auto" />
+                </Link>
             </header>
 
             <main class="flex-1">

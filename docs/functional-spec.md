@@ -1,10 +1,10 @@
-# Functional Specification
+# Functional Reference
 
 ## Product Shape
 
 Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, permissions, and settings. Every short link belongs to exactly one workspace.
 
-The MVP should feel like a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
+The product is a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
 
 ## Users and Access
 
@@ -18,7 +18,7 @@ Users can manage connected identities from the profile page. A connected identit
 
 Users can select their profile avatar from the avatars supplied by valid connected identities. If the selected connected identity is removed or becomes invalid, Openlink automatically selects another available valid connected identity avatar or falls back to initials.
 
-Users can create and revoke API tokens from the profile page. API tokens are user-owned credentials, are shown in clear text only once after creation, and act with the same workspace roles and folder permissions as the user. API tokens do not have configurable scopes in the MVP. Creating or using an API token requires a verified email.
+Users can create and revoke API tokens from the profile page. API tokens are user-owned credentials, are shown in clear text only once after creation, and act with the same workspace roles and folder permissions as the user. API tokens do not have configurable scopes. Creating or using an API token requires a verified email.
 
 New users go through a short onboarding wizard: they name their first workspace (required when they have none), then can optionally create a first short link and generate an invite link for their team. Users who arrive through an invite link skip the wizard and land in the workspace they joined.
 
@@ -145,7 +145,7 @@ Each QR code has a dedicated studio page with a live preview of unsaved settings
 
 Analytics are aggregated and do not identify individual visitors.
 
-The MVP tracks:
+Openlink tracks:
 
 - Lifetime visits and scans
 - Visits and scans over time (hourly, daily, or monthly depending on the selected range)
@@ -165,7 +165,7 @@ Analytics events are retained for 12 months by default; retention is configurabl
 
 The instance admin panel manages product settings for the whole installation. It does not manage infrastructure secrets or boot-time server configuration.
 
-MVP instance settings include:
+Instance settings include:
 
 - Instance name and branding basics
 - Registration mode
@@ -177,7 +177,3 @@ MVP instance settings include:
 - Public unavailable page basics
 
 Secrets, database credentials, Redis credentials, mail credentials, storage credentials, and boot-time Laravel configuration remain outside the panel.
-
-## Later Features
-
-Later features include smart destinations, app link presets, bulk import and export, webhooks, SSO, advanced QR code design templates, QR code logos, alerts, monitoring, and SaaS billing.

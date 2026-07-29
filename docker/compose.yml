@@ -1,0 +1,127 @@
+name: openlink
+
+x-app-image: &app-image
+  build:
+    context: ..
+    dockerfile: Dockerfile
+  image: openlink:local
+
+x-app-environment: &app-environment
+  APP_ENV: production
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${APP_KEY:?Set APP_KEY in docker/.env}
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  APP_HOST: ${APP_HOST:-localhost}
+  LOG_CHANNEL: stderr
+  LOG_STACK: stderr
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${POSTGRES_DB:-openlink}
+  DB_USERNAME: ${POSTGRES_USER:-openlink}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-openlink}
+  REDIS_CLIENT: predis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  MAIL_MAILER: log
+
+services:
+  app:
+    <<: *app-image
+    environment: *app-environment
+    ports:
+      - "8080:8080"
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    <<: *app-image
+    entrypoint: ["php", "artisan"]
+    command: ["queue:work", "--sleep=3", "--tries=3", "--timeout=90"]
+    environment: *app-environment
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  scheduler:
+    <<: *app-image
+    entrypoint: ["php", "artisan"]
+    command: ["schedule:work"]
+    environment: *app-environment
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  migrate:
+    <<: *app-image
+    entrypoint: ["php", "artisan"]
+    command: ["migrate", "--force", "--no-interaction"]
+    environment: *app-environment
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+    healthcheck:
+      disable: true
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-openlink}
+      POSTGRES_USER: ${POSTGRES_USER:-openlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openlink}
+    ports:
+      - "5432:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openlink} -d ${POSTGRES_DB:-openlink}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  app-storage:
+  database:
+  redis-data:

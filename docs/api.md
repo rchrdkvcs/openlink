@@ -4,7 +4,7 @@ Openlink exposes a token-based JSON API under `/api/v1` that mirrors the functio
 
 ## Authentication
 
-The API uses [Laravel Sanctum](https://laravel.com/docs/sanctum) personal access tokens. API tokens are user-owned credentials with the same permissions as the user and no separate scopes in the MVP. Exchange the user's credentials for a token, or create one from the profile page, then send it as a bearer token on every request:
+The API uses [Laravel Sanctum](https://laravel.com/docs/sanctum) personal access tokens. API tokens are user-owned credentials with the same permissions as the user and no separate scopes. Exchange the user's credentials for a token, or create one from the profile page, then send it as a bearer token on every request:
 
 ```
 POST /api/v1/auth/token

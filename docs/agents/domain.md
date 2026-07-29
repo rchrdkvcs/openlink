@@ -6,7 +6,7 @@ This repo is a single-context Openlink codebase.
 
 - `CONTEXT.md` at the repo root for domain language.
 - Relevant ADRs in `docs/adr/` for architectural decisions.
-- Product and implementation docs in `docs/` when the task touches product scope, behavior, security, or roadmap.
+- Product and implementation docs in `docs/` when the task touches product scope, behavior, security, or deployment.
 
 If a file does not exist, proceed silently. Do not create domain docs upfront; producer skills create them lazily when terms or decisions are resolved.
 
@@ -21,7 +21,7 @@ If a file does not exist, proceed silently. Do not create domain docs upfront; p
 │   ├── functional-spec.md
 │   ├── technical-spec.md
 │   ├── security-and-privacy.md
-│   └── roadmap.md
+│   └── deployment.md
 └── src/
 ```
 

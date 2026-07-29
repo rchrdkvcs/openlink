@@ -2,9 +2,18 @@
 
 Openlink is a self-hosted URL management application for personal and team use. It manages short links, domains, QR codes, access rules, and analytics across multiple workspaces in one installation.
 
-## Product Direction
+> [!NOTE]
+> Openlink is under active development and does not have a stable release yet.
 
-Openlink is built for people and teams who need a clean alternative to Bitly or TinyURL while keeping control of their own domains and data. The first version focuses on reliable short link management, verified domains, QR code tracking, folder-based permissions, and useful aggregated analytics.
+## Features
+
+- Short links on the instance domain or verified custom domains
+- Workspaces, members, folders, tags, and folder-level permissions
+- Scheduled, expiring, password-protected, and visit-limited links
+- Customizable, trackable QR codes
+- Privacy-conscious link and QR code analytics
+- Email/password and two-factor authentication, with optional Google and Discord sign-in
+- User API tokens and an HTTP API
 
 ## Stack
 
@@ -28,8 +37,21 @@ Openlink is built for people and teams who need a clean alternative to Bitly or 
 - [Security and privacy](./docs/security-and-privacy.md)
 - [HTTP API](./docs/api.md)
 - [Deployment](./docs/deployment.md)
-- [Roadmap](./docs/roadmap.md)
 - [Architecture decisions](./docs/adr)
+
+## Quick Start with Docker
+
+The example Compose stack runs Openlink, PostgreSQL, Redis, and a queue worker:
+
+```bash
+cp docker/.env.example docker/.env
+key="base64:$(openssl rand -base64 32)"
+sed -i.bak "s|^APP_KEY=.*|APP_KEY=$key|" docker/.env && rm docker/.env.bak
+
+docker compose --env-file docker/.env -f docker/compose.yml up --build
+```
+
+Open `http://localhost:8080`. See [`docker/README.md`](./docker/README.md) for configuration and operational commands.
 
 ## Local Development
 
@@ -58,10 +80,16 @@ Set `APP_HOST` to the hostname that should render the authenticated application 
 Run verification:
 
 ```bash
-php artisan test
+composer run lint
+composer run test
+pnpm run check
 pnpm run build
 ```
 
-## Status
+## Contributing
 
-Openlink has an initial Laravel/Inertia MVP implementation in progress, including workspaces, domains, short links, public resolution, protected links, QR code export, aggregated analytics, and 2FA.
+Contributions are welcome. Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) before opening an issue or pull request. Security issues must be reported according to [`SECURITY.md`](./SECURITY.md).
+
+## License
+
+Openlink is released under the [MIT License](./LICENSE).

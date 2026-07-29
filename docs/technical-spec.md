@@ -1,4 +1,4 @@
-# Technical Specification
+# Technical Reference
 
 ## Architecture
 
@@ -17,9 +17,9 @@ The configured application host is the only hostname that serves the authenticat
 - Optional queue workers for analytics writes, DNS verification tasks, and background maintenance.
 - Scheduler for repeated DNS checks, analytics retention, and cleanup.
 
-## Suggested Domains in Code
+## Application Areas
 
-The codebase should stay modular without over-engineering. Suggested Laravel areas:
+The codebase stays modular without over-engineering. Its main Laravel areas are:
 
 - Auth
 - Workspaces
@@ -32,11 +32,11 @@ The codebase should stay modular without over-engineering. Suggested Laravel are
 - Analytics
 - InstanceSettings
 
-Each area should own its actions, policies, requests, and tests where practical.
+Each area owns its actions, policies, requests, and tests where practical.
 
 ## Core Data Model
 
-Expected primary records:
+Primary records:
 
 - users
 - workspaces
@@ -51,8 +51,6 @@ Expected primary records:
 - qr_codes
 - analytics_events
 - instance_settings
-
-The exact schema can evolve during implementation, but these concepts should remain visible.
 
 ## Short Link Constraints
 

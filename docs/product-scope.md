@@ -1,6 +1,9 @@
-# Product Scope
+# Product
 
-## MVP
+Openlink is a self-hosted URL management application for individuals and teams
+that want to retain control of their domains and data.
+
+## Features
 
 - Workspaces with members and workspace roles.
 - Folders with folder permissions.
@@ -30,12 +33,3 @@ When a visitor opens a short URL, Openlink resolves it by finding the domain and
 ## Public Unavailable Pages
 
 When a short URL cannot resolve and no fallback URL is available, visitors see a neutral unavailable page. Detailed reasons such as disabled, expired, scheduled, or visit limit reached remain visible only in the dashboard and analytics.
-
-## Later
-
-- Smart destinations and app link presets.
-- Bulk import and export.
-- Webhooks.
-- SSO.
-- Alerts and monitoring.
-- SaaS billing and commercial plans.

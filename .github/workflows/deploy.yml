@@ -4,13 +4,22 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
     steps:
       - name: Deploy
         env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ github.event.release.id }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
         run: |
@@ -27,6 +36,13 @@ jobs:
           if [[ ! "$COOLIFY_WEBHOOK" =~ ^https?:// ]]; then
             echo "::error title=Invalid Coolify webhook::COOLIFY_WEBHOOK must be an HTTP or HTTPS URL."
             exit 1
+          fi
+
+          latest_release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.id')"
+
+          if [ "$RELEASE_ID" != "$latest_release_id" ]; then
+            echo "Skipping release $RELEASE_ID because the latest release is $latest_release_id."
+            exit 0
           fi
 
           curl --fail-with-body --show-error --location --request GET "$COOLIFY_WEBHOOK" \

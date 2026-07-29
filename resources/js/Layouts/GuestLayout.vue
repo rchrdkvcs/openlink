@@ -15,7 +15,7 @@ import { Link } from '@inertiajs/vue3';
                     aria-label="Openlink"
                     class="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                 >
-                    <ApplicationLogo class="h-4 w-auto" />
+                    <ApplicationLogo class="h-10 w-auto" />
                 </Link>
             </div>
 

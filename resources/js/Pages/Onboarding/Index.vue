@@ -99,7 +99,7 @@ const steps = [
 
         <div class="relative w-full max-w-md animate-slide-up">
             <div class="mb-8 flex justify-center">
-                <ApplicationLogo class="h-4 w-auto" />
+                <ApplicationLogo class="h-10 w-auto" />
             </div>
 
             <div class="mb-6 flex items-center justify-center gap-2">
@@ -126,7 +126,8 @@ const steps = [
                     </p>
                     <form class="mt-5 space-y-4" @submit.prevent="createWorkspace">
                         <Field label="Workspace name" :error="workspaceForm.errors.name">
-                            <input v-model="workspaceForm.name" class="h-9" placeholder="Acme, Marketing, Personal…" autofocus required />
+                            <input v-model="workspaceForm.name" class="h-9" placeholder="Acme, Marketing, Personal…"
+                                   autofocus required />
                         </Field>
                         <Button class="w-full" :loading="workspaceForm.processing">Create workspace</Button>
                     </form>
@@ -151,13 +152,13 @@ const steps = [
                                 <option v-for="domain in domains" :key="domain.id" :value="domain.id">{{ domain.hostname }}</option>
                             </select>
                         </Field>
-                        <Button class="w-full" :loading="linkForm.processing">Create link</Button>
-                    </form>
 
-                    <div class="mt-4 flex justify-between">
-                        <Button variant="ghost" size="sm" type="button" @click="step = 3">Skip for now</Button>
-                        <Button v-if="hasLink" size="sm" type="button" @click="step = 3">Continue</Button>
-                    </div>
+                        <div class="flex flex-col gap-2">
+                            <Button class="w-full" :loading="linkForm.processing">Create link</Button>
+                            <Button v-if="hasLink" size="sm" type="button" @click="step = 3">Continue</Button>
+                            <Button v-else variant="ghost" size="sm" type="button" @click="step = 3">Skip for now</Button>
+                        </div>
+                    </form>
                 </template>
 
                 <template v-else>

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openlink-config
+  namespace: openlink
+data:
+  APP_NAME: Openlink
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: https://openlink.kvcs.me
+  APP_HOST: openlink.kvcs.me
+
+  LOG_CHANNEL: stderr
+  LOG_STACK: stderr
+  LOG_LEVEL: debug
+
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: "5432"
+
+  REDIS_CLIENT: predis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+
+  MAIL_MAILER: log

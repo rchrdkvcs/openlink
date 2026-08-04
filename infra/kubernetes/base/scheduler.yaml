@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openlink-scheduler
+  namespace: openlink
+spec:
+  replicas: 1
+
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: openlink
+      component: scheduler
+
+  template:
+    metadata:
+      labels:
+        app: openlink
+        component: scheduler
+
+    spec:
+      containers:
+        - name: scheduler
+          image: openlink:local
+          imagePullPolicy: Never
+
+          command:
+            - php
+            - artisan
+            - schedule:work
+
+          envFrom:
+            - configMapRef:
+                name: openlink-config
+
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: APP_KEY
+
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_DB
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_USER
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_PASSWORD
+
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+
+            limits:
+              cpu: 250m
+              memory: 256Mi

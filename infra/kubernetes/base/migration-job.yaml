@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openlink-migrate
+  namespace: openlink
+spec:
+  backoffLimit: 5
+
+  template:
+    metadata:
+      labels:
+        app: openlink
+        component: migrate
+
+    spec:
+      restartPolicy: OnFailure
+
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:18-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -p 5432; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis ping; do
+                echo "Waiting for Redis..."
+                sleep 2
+              done
+
+      containers:
+        - name: migrate
+          image: openlink:local
+          imagePullPolicy: Never
+
+          command:
+            - php
+            - artisan
+            - migrate
+            - --force
+            - --no-interaction
+
+          envFrom:
+            - configMapRef:
+                name: openlink-config
+
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: APP_KEY
+
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_DB
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_USER
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openlink-secrets
+                  key: POSTGRES_PASSWORD

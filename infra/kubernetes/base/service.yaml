@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openlink
+  namespace: openlink
+spec:
+  type: ClusterIP
+
+  selector:
+    app: openlink
+    component: api
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

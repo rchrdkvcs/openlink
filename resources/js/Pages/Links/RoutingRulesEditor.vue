@@ -235,24 +235,33 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
           <Plus class="h-3.5 w-3.5" />Add rule<ChevronDown class="h-3 w-3 text-faint" />
         </Button>
         <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
-        <div
-          v-if="menuOpen"
-          class="absolute right-0 z-20 mt-1.5 w-64 rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer"
+        <Transition
+          enter-active-class="transition ease-emphasized-out duration-150"
+          enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
+          enter-to-class="opacity-100 scale-100 translate-y-0"
+          leave-active-class="transition ease-out duration-100"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-[0.97] -translate-y-0.5"
         >
-          <button
-            v-for="preset in schema.presets"
-            :key="preset.kind"
-            type="button"
-            class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-elevated"
-            @click="addRule(preset.kind)"
+          <div
+            v-if="menuOpen"
+            class="absolute right-0 z-20 mt-1.5 w-64 origin-top-right rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer"
           >
-            <component :is="presetIcons[preset.kind] ?? Plus" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
-            <span class="min-w-0">
-              <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
-              <span class="block text-xs text-faint">{{ preset.description }}</span>
-            </span>
-          </button>
-        </div>
+            <button
+              v-for="preset in schema.presets"
+              :key="preset.kind"
+              type="button"
+              class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-elevated"
+              @click="addRule(preset.kind)"
+            >
+              <component :is="presetIcons[preset.kind] ?? Plus" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+              <span class="min-w-0">
+                <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
+                <span class="block text-xs text-faint">{{ preset.description }}</span>
+              </span>
+            </button>
+          </div>
+        </Transition>
       </div>
     </div>
 

@@ -124,104 +124,119 @@ const steps = [
       </div>
 
       <div class="card-sheen rounded-xl border bg-surface p-6 shadow-2xl shadow-black/30">
-        <template v-if="step === 1">
-          <h1 class="text-lg font-semibold text-foreground">Create your workspace</h1>
-          <p class="mt-1 text-sm text-muted">
-            A workspace groups your links, domains, and team. You can create more later.
-          </p>
-          <form class="mt-5 space-y-4" @submit.prevent="createWorkspace">
-            <Field label="Workspace name" :error="workspaceForm.errors.name">
-              <input
-                v-model="workspaceForm.name"
-                class="h-9"
-                placeholder="Acme, Marketing, Personal…"
-                autofocus
-                required
-              />
-            </Field>
-            <Button class="w-full" :loading="workspaceForm.processing">Create workspace</Button>
-          </form>
-        </template>
+        <Transition
+          mode="out-in"
+          enter-active-class="transition duration-200 ease-emphasized-out"
+          enter-from-class="opacity-0 translate-y-1.5"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-out"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-1.5"
+        >
+          <div :key="step">
+            <template v-if="step === 1">
+              <h1 class="text-lg font-semibold text-foreground">Create your workspace</h1>
+              <p class="mt-1 text-sm text-muted">
+                A workspace groups your links, domains, and team. You can create more later.
+              </p>
+              <form class="mt-5 space-y-4" @submit.prevent="createWorkspace">
+                <Field label="Workspace name" :error="workspaceForm.errors.name">
+                  <input
+                    v-model="workspaceForm.name"
+                    class="h-9"
+                    placeholder="Acme, Marketing, Personal…"
+                    autofocus
+                    required
+                  />
+                </Field>
+                <Button class="w-full" :loading="workspaceForm.processing">Create workspace</Button>
+              </form>
+            </template>
 
-        <template v-else-if="step === 2">
-          <div class="flex items-center gap-2">
-            <Link2 class="h-4 w-4 text-faint" />
-            <h1 class="text-lg font-semibold text-foreground">Create your first short link</h1>
+            <template v-else-if="step === 2">
+              <div class="flex items-center gap-2">
+                <Link2 class="h-4 w-4 text-faint" />
+                <h1 class="text-lg font-semibold text-foreground">Create your first short link</h1>
+              </div>
+              <p class="mt-1 text-sm text-muted">Paste a destination URL — we'll generate the short link for you.</p>
+
+              <div
+                v-if="hasLink"
+                class="mt-5 rounded-md border border-success/25 bg-success/10 px-3 py-2.5 text-sm text-foreground"
+              >
+                Your first link is ready. You can manage it from the dashboard.
+              </div>
+              <form v-else class="mt-5 space-y-4" @submit.prevent="createFirstLink">
+                <Field label="Destination URL" :error="linkForm.errors.destination_url">
+                  <input
+                    v-model="linkForm.destination_url"
+                    type="url"
+                    class="h-9"
+                    placeholder="https://example.com/some/long/url"
+                    required
+                  />
+                </Field>
+                <Field v-if="domains.length > 1" label="Domain" :error="linkForm.errors.domain_id">
+                  <select v-model="linkForm.domain_id" class="h-9">
+                    <option v-for="domain in domains" :key="domain.id" :value="domain.id">
+                      {{ domain.hostname }}
+                    </option>
+                  </select>
+                </Field>
+
+                <div class="flex flex-col gap-2">
+                  <Button class="w-full" :loading="linkForm.processing">Create link</Button>
+                  <Button v-if="hasLink" size="sm" type="button" @click="step = 3">Continue</Button>
+                  <Button v-else variant="ghost" size="sm" type="button" @click="step = 3">Skip for now</Button>
+                </div>
+              </form>
+            </template>
+
+            <template v-else>
+              <div class="flex items-center gap-2">
+                <Users class="h-4 w-4 text-faint" />
+                <h1 class="text-lg font-semibold text-foreground">Invite your team</h1>
+              </div>
+              <p class="mt-1 text-sm text-muted">
+                Share an invite link — anyone who opens it joins <strong>{{ workspace?.name }}</strong> with the role
+                you pick.
+              </p>
+
+              <div v-if="teamInviteLink" class="mt-5 space-y-3">
+                <div class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2.5">
+                  <code class="min-w-0 flex-1 truncate text-xs text-muted">{{ teamInviteLink.url }}</code>
+                  <Button variant="secondary" size="sm" type="button" @click="copyInviteLink">
+                    <CopyCheckIcon :copied="copied" />
+                    {{ copied ? 'Copied' : 'Copy' }}
+                  </Button>
+                </div>
+                <p class="text-xs text-faint">
+                  Joins as <span class="capitalize">{{ teamInviteLink.role }}</span> · manage links from the Members
+                  page.
+                </p>
+              </div>
+              <form v-else class="mt-5 space-y-4" @submit.prevent="createInviteLink">
+                <Field label="New members join as" :error="inviteForm.errors.role">
+                  <select v-model="inviteForm.role" class="h-9">
+                    <option value="admin">Admin</option>
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </Field>
+                <Button class="w-full" variant="secondary" :loading="inviteForm.processing">
+                  <Link2 class="h-4 w-4" /> Generate invite link
+                </Button>
+              </form>
+
+              <div class="mt-6 flex justify-between">
+                <Button variant="ghost" size="sm" type="button" @click="step = 2">Back</Button>
+                <Button size="sm" type="button" @click="finish">{{
+                  teamInviteLink ? 'Finish' : 'Skip and finish'
+                }}</Button>
+              </div>
+            </template>
           </div>
-          <p class="mt-1 text-sm text-muted">Paste a destination URL — we'll generate the short link for you.</p>
-
-          <div
-            v-if="hasLink"
-            class="mt-5 rounded-md border border-success/25 bg-success/10 px-3 py-2.5 text-sm text-foreground"
-          >
-            Your first link is ready. You can manage it from the dashboard.
-          </div>
-          <form v-else class="mt-5 space-y-4" @submit.prevent="createFirstLink">
-            <Field label="Destination URL" :error="linkForm.errors.destination_url">
-              <input
-                v-model="linkForm.destination_url"
-                type="url"
-                class="h-9"
-                placeholder="https://example.com/some/long/url"
-                required
-              />
-            </Field>
-            <Field v-if="domains.length > 1" label="Domain" :error="linkForm.errors.domain_id">
-              <select v-model="linkForm.domain_id" class="h-9">
-                <option v-for="domain in domains" :key="domain.id" :value="domain.id">
-                  {{ domain.hostname }}
-                </option>
-              </select>
-            </Field>
-
-            <div class="flex flex-col gap-2">
-              <Button class="w-full" :loading="linkForm.processing">Create link</Button>
-              <Button v-if="hasLink" size="sm" type="button" @click="step = 3">Continue</Button>
-              <Button v-else variant="ghost" size="sm" type="button" @click="step = 3">Skip for now</Button>
-            </div>
-          </form>
-        </template>
-
-        <template v-else>
-          <div class="flex items-center gap-2">
-            <Users class="h-4 w-4 text-faint" />
-            <h1 class="text-lg font-semibold text-foreground">Invite your team</h1>
-          </div>
-          <p class="mt-1 text-sm text-muted">
-            Share an invite link — anyone who opens it joins <strong>{{ workspace?.name }}</strong> with the role you
-            pick.
-          </p>
-
-          <div v-if="teamInviteLink" class="mt-5 space-y-3">
-            <div class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2.5">
-              <code class="min-w-0 flex-1 truncate text-xs text-muted">{{ teamInviteLink.url }}</code>
-              <Button variant="secondary" size="sm" type="button" @click="copyInviteLink">
-                <CopyCheckIcon :copied="copied" />
-                {{ copied ? 'Copied' : 'Copy' }}
-              </Button>
-            </div>
-            <p class="text-xs text-faint">
-              Joins as <span class="capitalize">{{ teamInviteLink.role }}</span> · manage links from the Members page.
-            </p>
-          </div>
-          <form v-else class="mt-5 space-y-4" @submit.prevent="createInviteLink">
-            <Field label="New members join as" :error="inviteForm.errors.role">
-              <select v-model="inviteForm.role" class="h-9">
-                <option value="admin">Admin</option>
-                <option value="editor">Editor</option>
-                <option value="viewer">Viewer</option>
-              </select>
-            </Field>
-            <Button class="w-full" variant="secondary" :loading="inviteForm.processing">
-              <Link2 class="h-4 w-4" /> Generate invite link
-            </Button>
-          </form>
-
-          <div class="mt-6 flex justify-between">
-            <Button variant="ghost" size="sm" type="button" @click="step = 2">Back</Button>
-            <Button size="sm" type="button" @click="finish">{{ teamInviteLink ? 'Finish' : 'Skip and finish' }}</Button>
-          </div>
-        </template>
+        </Transition>
       </div>
 
       <p v-if="step === 1" class="mt-6 text-center text-xs text-faint">

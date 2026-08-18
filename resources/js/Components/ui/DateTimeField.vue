@@ -76,11 +76,19 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
       <CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />
     </button>
 
-    <template v-if="open">
-      <button type="button" class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="open = false" />
+    <button v-if="open" type="button" class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="open = false" />
+    <Transition
+      enter-active-class="transition ease-emphasized-out duration-150"
+      enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
+      enter-to-class="opacity-100 scale-100 translate-y-0"
+      leave-active-class="transition ease-out duration-100"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-[0.97] -translate-y-0.5"
+    >
       <div
+        v-if="open"
         class="absolute z-30 mt-2 w-[19rem] max-w-[calc(100vw-2rem)] rounded-xl bg-overlay p-3 shadow-popover"
-        :class="align === 'end' ? 'right-0' : 'left-0'"
+        :class="align === 'end' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'"
       >
         <div class="mb-2 flex flex-wrap gap-1.5">
           <button
@@ -157,6 +165,6 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
           </div>
         </div>
       </div>
-    </template>
+    </Transition>
   </div>
 </template>

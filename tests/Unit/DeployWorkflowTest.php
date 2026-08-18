@@ -42,6 +42,11 @@ class DeployWorkflowTest extends TestCase
             'Authorization: Bearer $COOLIFY_TOKEN',
             $workflow,
         );
+        $this->assertStringContainsString(
+            '--request POST "$COOLIFY_WEBHOOK"',
+            $workflow,
+        );
+        $this->assertStringNotContainsString('--request GET', $workflow);
         $this->assertStringNotContainsString('workflow_call:', $workflow);
         $this->assertStringNotContainsString('workflow_dispatch:', $workflow);
     }

@@ -14,7 +14,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@lucide/vue": "^1.23.0",
+    "@lucide/vue": "^1.31.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "radix-vue": "^1.9.17",
@@ -22,21 +22,21 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@inertiajs/vue3": "^2.0.0",
-    "@tailwindcss/forms": "^0.5.3",
-    "@tailwindcss/vite": "^4.0.0",
-    "@vitejs/plugin-vue": "^6.0.0",
-    "autoprefixer": "^10.4.12",
-    "concurrently": "^9.0.1",
-    "laravel-vite-plugin": "^3.1",
+    "@inertiajs/vue3": "^2.3.27",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "autoprefixer": "^10.5.4",
+    "concurrently": "^9.2.4",
+    "laravel-vite-plugin": "^3.2.0",
     "oxfmt": "^0.61.0",
-    "oxlint": "^1.76.0",
-    "postcss": "^8.5.18",
-    "tailwindcss": "^3.2.1",
-    "typescript": "^5.6.3",
-    "vite": "^8.0.0",
-    "vue": "^3.4.0",
-    "vue-tsc": "^2.0.24"
+    "oxlint": "^1.78.0",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.1",
+    "vue": "^3.5.41",
+    "vue-tsc": "^2.2.12"
   },
   "packageManager": "pnpm@11.7.0"
 }

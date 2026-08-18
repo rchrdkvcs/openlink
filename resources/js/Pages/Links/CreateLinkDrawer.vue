@@ -136,10 +136,14 @@ watch(
 
           <!-- Active option rows -->
           <TransitionGroup
-            v-if="activeOptions.length"
             tag="div"
-            class="space-y-3"
-            enter-active-class="animate-slide-up"
+            class="space-y-3 empty:hidden"
+            enter-active-class="transition duration-200 ease-emphasized-out"
+            enter-from-class="opacity-0 translate-y-1.5"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-out"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-1.5"
           >
             <OptionRow
               v-for="key in activeOptions"

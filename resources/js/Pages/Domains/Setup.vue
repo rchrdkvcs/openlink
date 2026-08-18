@@ -238,10 +238,17 @@ const records = computed(() => {
 
         <!-- Step 3: done -->
         <template v-else-if="domain">
-          <div class="flex flex-col items-center py-4 text-center">
-            <span class="grid h-12 w-12 place-items-center rounded-full bg-success/15 text-success">
-              <Check class="h-6 w-6" />
-            </span>
+          <div class="flex animate-slide-up flex-col items-center py-4 text-center">
+            <Transition
+              appear
+              enter-active-class="transition duration-200 ease-emphasized-out"
+              enter-from-class="opacity-0 scale-[0.97]"
+              enter-to-class="opacity-100 scale-100"
+            >
+              <span class="grid h-12 w-12 place-items-center rounded-full bg-success/15 text-success">
+                <Check class="h-6 w-6" />
+              </span>
+            </Transition>
             <h1 class="mt-4 text-lg font-semibold text-foreground">{{ domain.hostname }} is ready</h1>
             <p class="mt-1 max-w-sm text-sm text-muted">
               Your domain is verified and pointing to this server. You can now create short links on it. HTTPS may take

@@ -3,3 +3,6 @@ packages:
 
 allowBuilds:
   vue-demi: false
+
+overrides:
+  brace-expansion: ^2.1.4

@@ -20,7 +20,7 @@ import {
   Trash2,
   Upload,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 
 import BioElementList from '@/Components/BioPages/BioElementList.vue';
 import BioPagePreview from '@/Components/BioPages/BioPagePreview.vue';
@@ -153,14 +153,19 @@ const saveLabel = computed(
 );
 
 function payload() {
+  // Draft values are JSON data. Serializing them also removes every nested Vue
+  // Proxy, including proxies introduced later by child component edits.
+  const elements = JSON.parse(JSON.stringify(draft.elements)) as BioElement[];
+  const theme = JSON.parse(JSON.stringify(draft.theme)) as BioDraft['theme'];
+
   return {
     domainId: draft.domainId,
     slug: draft.slug,
     displayName: draft.displayName,
     publicHandle: draft.publicHandle,
     biography: draft.biography,
-    elements: structuredClone(toRaw(draft.elements)),
-    theme: structuredClone(toRaw(draft.theme)),
+    elements,
+    theme,
     shareTitle: draft.shareTitle,
     shareDescription: draft.shareDescription,
     isIndexable: draft.isIndexable,

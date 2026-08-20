@@ -20,6 +20,8 @@ class TimeSeriesSection
             ->selectRaw("{$expression} as bucket")
             ->selectRaw("sum(case when metric = 'visit' then 1 else 0 end) as visits")
             ->selectRaw("sum(case when metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw("sum(case when metric = 'bio_view' then 1 else 0 end) as bio_views")
+            ->selectRaw("sum(case when metric = 'bio_activation' then 1 else 0 end) as bio_activations")
             ->selectRaw('count(distinct visitor_hash) as visitors')
             ->groupBy('bucket')
             ->get()
@@ -41,6 +43,8 @@ class TimeSeriesSection
                 'bucket' => $bucket,
                 'visits' => (int) ($row->visits ?? 0),
                 'scans' => (int) ($row->scans ?? 0),
+                'bio_views' => (int) ($row->bio_views ?? 0),
+                'bio_activations' => (int) ($row->bio_activations ?? 0),
                 'visitors' => (int) ($row->visitors ?? 0),
                 'blocked' => (int) ($blocked[$bucket] ?? 0),
             ];

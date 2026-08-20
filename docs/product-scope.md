@@ -25,6 +25,14 @@ that want to retain control of their domains and data.
 - OAuth sign-in with connected identity management from the profile page.
 - Profile avatars selected from connected identity avatars.
 - Token-based public API access through user-owned API tokens.
+- Workspace-owned Bio Pages with shared Domain and Slug addressing, draft and published versions, profile-style content, ordered destinations, controlled visual customization, and aggregated analytics.
+- Named QR codes attached to Bio Pages.
+
+## Bio Pages
+
+A workspace can own multiple Bio Pages, managed independently from Folders in a dedicated dashboard area. A Bio Page combines a profile header with ordered destination, social destination, section-heading, and short-text elements. Destinations can reference a Short Link or use a direct external destination.
+
+A Bio URL uses a Domain and Slug from the same namespace as Short URLs. A Bio Page has an editable Draft Version and, after explicit publication, a Published Version. Draft changes do not affect visitors until published. Bio Pages support uploaded profile and background images, a controlled theme system, public sharing metadata, optional search indexing, and optional Openlink branding.
 
 ## Resolution Order
 

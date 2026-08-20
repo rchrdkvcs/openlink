@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PublicSlugRegistry;
 use App\Services\ShortLinks\ShortUrlCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -75,11 +76,15 @@ class ShortLink extends Model
 
     protected static function booted(): void
     {
-        $forget = function (ShortLink $shortLink): void {
+        $saved = function (ShortLink $shortLink): void {
             app(ShortUrlCache::class)->forgetForShortLink($shortLink);
+            app(PublicSlugRegistry::class)->syncShortLink($shortLink);
         };
 
-        static::saved($forget);
-        static::deleted($forget);
+        static::saved($saved);
+        static::deleted(function (ShortLink $shortLink): void {
+            app(ShortUrlCache::class)->forgetForShortLink($shortLink);
+            app(PublicSlugRegistry::class)->forget(PublicSlug::TYPE_SHORT_LINK, $shortLink->id);
+        });
     }
 }

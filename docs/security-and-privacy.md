@@ -22,6 +22,8 @@ Workspace roles and folder permissions protect dashboard access. Tags are never 
 
 Members without access to a folder should not see that the folder exists. Owners and admins can see all folders in their workspace.
 
+Bio Pages do not belong to Folders. Owner and Admin roles control publication, unpublication, and deletion; Editors can create and edit Draft Versions; Viewers have read-only dashboard access. Draft content and uploaded draft media must never be exposed through a public Bio URL.
+
 ## Protected Links
 
 Visitor passwords protect public resolution only. They do not affect dashboard permissions.
@@ -32,11 +34,13 @@ Visitor passwords must be hashed and never displayed in clear text after creatio
 
 Destination URLs must use HTTP or HTTPS. Dangerous URL schemes are rejected. Obvious loops where a short URL targets itself are rejected.
 
-Unavailable public pages are neutral. They should not reveal whether a private or expired link exists unless the visitor is in an explicit password flow.
+Direct Bio Page destinations accept HTTP and HTTPS, plus validated dedicated email and telephone destination types. Arbitrary schemes, HTML, Markdown, embeds, and scripts are rejected. Uploaded images must be validated as images, size-limited, re-encoded where practical, served with safe content types, and isolated from executable uploads.
+
+Unavailable public pages are neutral. They should not reveal whether a private or expired Short Link, unpublished Bio Page, or draft-only Bio Page exists unless the visitor is in an explicit password flow.
 
 ## Analytics Privacy
 
-Analytics are aggregated by link and QR code. They can include referrer, approximate country, device type, browser, operating system, daily counts, lifetime totals, and resolution outcomes.
+Analytics are aggregated by Short Link, Bio Page, and QR Code. They can include referrer, approximate country, device type, browser, operating system, daily counts, lifetime totals, and resolution outcomes. Bio Views, Bio Activations, Scans, and Visits remain distinct measurements.
 
 Openlink does not create visitor profiles. IP addresses should not be stored long term in raw form. If request metadata is needed for anti-abuse, rate limiting, or deduplication, it should be temporary and minimal.
 

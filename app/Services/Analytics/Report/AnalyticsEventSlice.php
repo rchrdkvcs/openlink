@@ -31,6 +31,7 @@ class AnalyticsEventSlice
             ->when($this->accessibleLinkIds !== null, fn (Builder $query) => $query->whereIn('short_link_id', $this->accessibleLinkIds))
             ->when($this->filters->shortLinkId, fn (Builder $query, int $id) => $query->where('short_link_id', $id))
             ->when($this->filters->qrCodeId, fn (Builder $query, int $id) => $query->where('qr_code_id', $id))
+            ->when($this->filters->bioPageId, fn (Builder $query, int $id) => $query->where('bio_page_id', $id))
             ->when($this->filters->domainId, fn (Builder $query, int $id) => $query->where('domain_id', $id))
             ->when($this->filters->routingRuleId, fn (Builder $query, int $id) => $query->where('routing_rule_id', $id))
             ->when($this->filters->routingVariantId, fn (Builder $query, int $id) => $query->where('routing_variant_id', $id))

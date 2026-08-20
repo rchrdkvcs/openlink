@@ -21,6 +21,7 @@ class AnalyticsFilters
         public readonly CarbonImmutable $to,
         public readonly ?int $shortLinkId = null,
         public readonly ?int $qrCodeId = null,
+        public readonly ?int $bioPageId = null,
         public readonly ?int $domainId = null,
         public readonly ?int $folderId = null,
         public readonly ?int $tagId = null,
@@ -52,12 +53,29 @@ class AnalyticsFilters
             to: $to,
             shortLinkId: self::id($request, 'link'),
             qrCodeId: self::id($request, 'qr'),
+            bioPageId: self::id($request, 'bio'),
             domainId: self::id($request, 'domain'),
             folderId: self::id($request, 'folder'),
             tagId: self::id($request, 'tag'),
             routingRuleId: self::id($request, 'rule'),
             routingVariantId: self::id($request, 'variant'),
-            metric: in_array($metric, [RecordAnalytics::METRIC_VISIT, RecordAnalytics::METRIC_SCAN], true) ? $metric : null,
+            metric: in_array($metric, [
+                RecordAnalytics::METRIC_VISIT,
+                RecordAnalytics::METRIC_SCAN,
+                RecordAnalytics::METRIC_BIO_VIEW,
+                RecordAnalytics::METRIC_BIO_ACTIVATION,
+            ], true) ? $metric : null,
+        );
+    }
+
+    public function forBioPage(int $bioPageId): self
+    {
+        return new self(
+            range: $this->range,
+            from: $this->from,
+            to: $this->to,
+            bioPageId: $bioPageId,
+            metric: $this->metric,
         );
     }
 
@@ -72,6 +90,7 @@ class AnalyticsFilters
             to: $this->from,
             shortLinkId: $this->shortLinkId,
             qrCodeId: $this->qrCodeId,
+            bioPageId: $this->bioPageId,
             domainId: $this->domainId,
             folderId: $this->folderId,
             tagId: $this->tagId,
@@ -102,6 +121,7 @@ class AnalyticsFilters
             'to' => $this->range === 'custom' ? $this->to->toDateString() : null,
             'link' => $this->shortLinkId,
             'qr' => $this->qrCodeId,
+            'bio' => $this->bioPageId,
             'domain' => $this->domainId,
             'folder' => $this->folderId,
             'tag' => $this->tagId,

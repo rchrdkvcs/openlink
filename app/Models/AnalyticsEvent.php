@@ -35,6 +35,16 @@ class AnalyticsEvent extends Model
         return $this->belongsTo(QrCode::class);
     }
 
+    public function bioPage(): BelongsTo
+    {
+        return $this->belongsTo(BioPage::class);
+    }
+
+    public function bioElement(): BelongsTo
+    {
+        return $this->belongsTo(BioElement::class);
+    }
+
     public function domain(): BelongsTo
     {
         return $this->belongsTo(Domain::class);

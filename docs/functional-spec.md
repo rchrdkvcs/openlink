@@ -2,7 +2,7 @@
 
 ## Product Shape
 
-Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, permissions, and settings. Every short link belongs to exactly one workspace.
+Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, Bio Pages, QR codes, permissions, and settings. Every short link and Bio Page belongs to exactly one workspace.
 
 The product is a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
 
@@ -26,8 +26,8 @@ Workspace members have one workspace role:
 
 - Owner: controls all workspace data, settings, members, domains, and ownership-level actions.
 - Admin: manages members, domains, folders, links, QR codes, and settings without owning the workspace.
-- Editor: creates and edits links and QR codes in accessible folders.
-- Viewer: reads links, QR codes, and analytics in accessible folders.
+- Editor: creates and edits links and QR codes in accessible folders, and creates and edits Bio Page Draft Versions without publishing them.
+- Viewer: reads links, Bio Pages, QR codes, and analytics available to the workspace.
 
 Folder permissions are Can view, Can edit, and Can manage. Members do not see folders they cannot access, except Owner and Admin roles, which can see all folders in the workspace.
 
@@ -105,6 +105,28 @@ Availability rules run before password validation. If a link is expired, disable
 
 When a short URL cannot resolve and no fallback URL is available, visitors see a neutral unavailable page. Detailed reasons remain visible only in the dashboard and analytics.
 
+## Bio Pages
+
+A workspace can own multiple Bio Pages. They are managed in a flat `/biopages` area and never belong to Folders. Owner and Admin roles can create, edit, publish, unpublish, and permanently delete them. Editors can create and edit Draft Versions but cannot publish, unpublish, or delete. Viewers have read-only dashboard access.
+
+Each Bio Page has a Bio URL composed from a Domain and Slug. Bio URLs and Short URLs share one uniqueness boundary per Domain. A Bio URL can be changed, but the change belongs to the Draft Version and takes effect atomically on publication; the old address then becomes unavailable without an automatic redirect. Permanent deletion releases the Slug.
+
+A Bio Page contains a display name, optional public handle, optional biography, optional uploaded profile image, and up to 50 ordered Bio Elements. Profile images fall back to initials. Bio Element types are destination, social destination, section heading, and short text. Destinations may reference a Short Link or directly use HTTP, HTTPS, email, or telephone through validated dedicated types. Social services are detected from an integrated list and can be corrected manually. Social destinations can appear as compact icons or full destination buttons. Content is plain text only; HTML, Markdown, embeds, and scripts are not accepted.
+
+The Draft Version autosaves and drives a live mobile or desktop preview in a two-panel editor. Bio Elements are reordered through drag and drop, including an accessible keyboard drag interaction. The latest successful save wins when members edit concurrently; the editor warns when another member is present but does not lock editing. Failed saves remain visibly failed, preserve recoverable local changes, and prevent publication.
+
+Publishing explicitly replaces the Published Version. A page can have a Published Version and later draft changes at the same time. Unpublish removes public availability while retaining the Draft Version and reserving the Slug. There is no scheduled publication, password protection, shared external draft preview, duplication, version history, rollback, import, export, or public API management in the first version.
+
+Publication requires a display name, a valid Bio URL on an active Domain, at least one visible usable Bio Element, valid destinations, and accessible color contrast. Drafts can be prepared on inactive Domains. If a Domain later becomes inactive, the Published Version remains published but unavailable until the Domain is active again. Unavailable Bio URLs use the neutral public unavailable page; deleted pages may return HTTP 410 while retained as tombstones, otherwise HTTP 404.
+
+Themes are controlled rather than free-form: light, dark, or automatic appearance; color or gradient background; optional uploaded background image with fallback and readability overlay; text and destination colors; destination treatment and radius; optional shadow; profile-image shape; and a small set of self-hosted fonts. Critical contrast failures block publication and offer a conforming nearby color. Custom CSS, custom fonts, video, and animated backgrounds are not supported.
+
+Published pages include native sharing with copy fallback, generated Open Graph metadata, adjustable share title and description, and search indexing enabled by default but configurable per page. Open Graph imagery is generated from the profile content and theme. Openlink branding is shown by default and can be disabled. Destinations open in the same tab by default and can opt into an accessibly announced new tab.
+
+Hidden Bio Elements are absent from public HTML and public analytics. A destination referencing an unavailable Short Link remains visible and lets that Short Link apply its normal lifecycle and fallback behavior. Direct destinations pass through a lean Openlink activation route before redirecting. Email and telephone activations record intent only, not whether communication occurred.
+
+Display names and destination labels are limited to 80 characters, public handles to 30, biographies to 160, section headings to 80, and short text elements to 300. A Bio Page has one editorial language; Openlink does not translate its content automatically.
+
 ## Protected Links
 
 A protected link requires a visitor password before resolution. The password protects public resolution only; it does not affect workspace member access in the dashboard.
@@ -119,9 +141,9 @@ When the visit limit is reached, the link becomes expired.
 
 ## QR Codes
 
-A QR code is a named scannable entry point attached to a short link. Multiple QR codes can point to the same short link, and each QR code has its own scan analytics.
+A QR code is a named scannable entry point attached to a Short Link or Bio Page. Multiple QR codes can point to the same resource, and each QR code has its own scan analytics.
 
-Each QR code encodes a trackable entry URL on the short link's domain (`https://{domain}/qr/{token}`), never on the application host.
+Each attached QR code encodes a trackable entry URL on its Short Link or Bio Page Domain (`https://{domain}/qr/{token}`), never on the application host.
 
 A direct-payload QR code is a named QR code that carries a native payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported direct-payload QR code images encode that native payload directly so device scanners can act on it without opening an Openlink page.
 
@@ -156,6 +178,9 @@ Openlink tracks:
 - Device type, browser, and operating system
 - Bot and crawler traffic, flagged and excluded from headline figures
 - Resolution outcome
+- Bio Views and Bio Activations, kept distinct from Scans and Visits
+
+A Bio Page dashboard reports its aggregated Bio Views and Bio Activations. Opening a Bio Page through its QR Code records a Scan and a Bio View. Following a Bio Element records a Bio Activation. If that element references a Short Link, its successful resolution separately records a Visit. Public pages never display analytics counters. Permanently deleting a Bio Page deletes its Bio Page analytics but does not delete Visits belonging to referenced Short Links.
 
 Resolution outcomes include success, password failed, expired, disabled, scheduled, not found, domain unavailable, and visit limit reached.
 

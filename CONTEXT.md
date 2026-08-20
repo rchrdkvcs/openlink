@@ -32,8 +32,36 @@ _Avoid_: Alias, key, code
 The public URL made from a domain and slug.
 _Avoid_: Shortened URL, public link
 
+**Bio Page**:
+A workspace-owned, profile-style public page that presents an identity through an image, display name, optional public handle, short biography, and an ordered set of destinations. A workspace can own multiple Bio Pages. Bio Pages are managed independently from Folders.
+_Avoid_: Link in bio, profile page, landing page, microsite
+
+**Bio URL**:
+The public URL of a Bio Page, made from a domain and slug. A Bio URL and a Short URL cannot use the same slug on the same domain.
+_Avoid_: Bio link, profile URL, page URL
+
+**Bio Element**:
+An ordered item on a Bio Page, such as a destination, social destination, section heading, or short text. A destination can reference a Short Link or use an external URL directly.
+_Avoid_: Block, widget, card
+
+**Draft Version**:
+The editable version of a Bio Page. It can be previewed but does not affect what visitors see until it is explicitly published.
+_Avoid_: Draft page, unpublished page
+
+**Published Version**:
+The most recently published version of a Bio Page, served to visitors at its Bio URL. It can coexist with a Draft Version containing later changes.
+_Avoid_: Published page, live page
+
+**Bio View**:
+A visitor loading the Published Version of a Bio Page.
+_Avoid_: Page visit, impression, view event
+
+**Bio Activation**:
+A visitor following a destination from a Published Version. When the destination references a Short Link, the Bio Activation remains distinct from the Short Link's resulting Visit.
+_Avoid_: Bio click, link click, engagement
+
 **Domain**:
-A workspace-owned hostname used to publish short URLs. A domain must be active before it can serve short links: ownership is proven with a DNS TXT record, and the domain becomes active once its DNS points to the server — confirmed by an IP check or by real traffic reaching the server on that hostname.
+A workspace-owned hostname used to publish Short URLs and Bio URLs. A Domain must be active before it can serve public resources: ownership is proven with a DNS TXT record, and the Domain becomes active once its DNS points to the server — confirmed by an IP check or by real traffic reaching the server on that hostname.
 _Avoid_: Custom domain, host, hostname
 
 **DNS Target**:
@@ -41,11 +69,11 @@ The instance-level IP address or hostname that workspace domains must point to. 
 _Avoid_: Server address, origin
 
 **Default Domain**:
-The instance-level domain available for creating short URLs without adding a workspace-owned domain.
+The instance-level Domain available for creating Short URLs and Bio URLs without adding a workspace-owned Domain.
 _Avoid_: Primary domain, system domain
 
 **Preferred Domain**:
-The workspace-selected domain used by default when creating new short links in that workspace.
+The workspace-selected Domain used by default when creating new Short Links and Bio Pages in that Workspace.
 _Avoid_: Default workspace domain, primary workspace domain
 
 **Fallback URL**:
@@ -85,11 +113,11 @@ The maximum number of successful visits a short link allows before it becomes ex
 _Avoid_: Click limit, visitor maximum, max clicks
 
 **Scan**:
-A successful resolution that starts from a QR code and sends a visitor to the destination URL.
+A successful resolution that starts from a QR Code and opens its attached Short Link or Bio Page. A direct-payload QR Code does not create a Scan because it does not resolve through Openlink.
 _Avoid_: QR click, QR hit
 
 **QR Code**:
-A named scannable entry point. A QR Code can be attached to a short link, where scans enter through the short link's domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported short-link QR Code images encode a stable Openlink URL so their served destination can be changed later without replacing the image. Exported direct-payload QR Code images encode the native payload so device scanners can handle the QR Code directly.
+A named scannable entry point. A QR Code can be attached to a Short Link or Bio Page, where scans enter through a stable Openlink URL and have their own Scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported direct-payload QR Code images encode the native payload so device scanners can handle the QR Code directly.
 _Avoid_: QR image, code
 
 **Protected Link**:
@@ -177,5 +205,5 @@ A revocable link created inside a workspace that lets anyone who opens it join t
 _Avoid_: Invitation, invite, invite code, access request
 
 **Analytics**:
-Aggregated measurements about visits, scans, referrers, approximate geography, device types, browsers, operating systems, and resolution outcomes. Analytics do not identify individual visitors.
+Aggregated measurements about Visits, Scans, Bio Views, Bio Activations, referrers, approximate geography, device types, browsers, operating systems, and resolution outcomes. Analytics do not identify individual visitors.
 _Avoid_: Tracking, visitor profile, user tracking

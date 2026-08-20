@@ -15,6 +15,7 @@ import type { Qr, ShortLink } from '../Links/types';
 const props = defineProps<{
   qr: Qr;
   link: ShortLink;
+  bioPage?: { id: number; displayName: string };
 }>();
 
 const STYLES = [
@@ -134,10 +135,10 @@ async function copyPublicUrl() {
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6">
         <Link
-          :href="route('links.index')"
+          :href="bioPage ? route('bio-pages.show', bioPage.id) : route('links.index')"
           class="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-foreground"
         >
-          <ArrowLeft class="h-3.5 w-3.5" /> Back to links
+          <ArrowLeft class="h-3.5 w-3.5" /> {{ bioPage ? 'Back to Bio Page' : 'Back to links' }}
         </Link>
         <h1 class="mt-2 text-xl font-semibold tracking-tight">QR code — {{ qr.name }}</h1>
       </div>

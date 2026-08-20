@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\BioActivationController;
+use App\Http\Controllers\BioPageAnalyticsController;
+use App\Http\Controllers\BioPageController;
+use App\Http\Controllers\BioPageOpenGraphController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FaviconController;
@@ -26,6 +30,9 @@ use App\Services\ApplicationHost;
 use Illuminate\Support\Facades\Route;
 
 Route::domain(app(ApplicationHost::class)->host())->group(function () {
+    Route::get('/bio-pages/{bioPage}/open-graph.png', BioPageOpenGraphController::class)
+        ->name('public.bio.open-graph');
+
     Route::get('/', function () {
         if (auth()->check()) {
             return redirect()->route('dashboard');
@@ -40,6 +47,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'overview'])->name('dashboard');
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
+        Route::get('/biopages', [BioPageController::class, 'index'])->name('bio-pages.index');
+        Route::get('/biopages/{bioPage}', [BioPageController::class, 'show'])->name('bio-pages.show');
+        Route::get('/bio-pages/{bioPage}/analytics', BioPageAnalyticsController::class)->name('bio-pages.analytics');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::get('/domains', [DashboardController::class, 'domains'])->name('domains.index');
@@ -57,6 +67,16 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
+        Route::post('/biopages', [BioPageController::class, 'store'])->name('bio-pages.store');
+        Route::patch('/biopages/{bioPage}', [BioPageController::class, 'update'])->name('bio-pages.update');
+        Route::post('/biopages/{bioPage}/presence', [BioPageController::class, 'presence'])->name('bio-pages.presence');
+        Route::post('/biopages/{bioPage}/publish', [BioPageController::class, 'publish'])->name('bio-pages.publish');
+        Route::post('/biopages/{bioPage}/unpublish', [BioPageController::class, 'unpublish'])->name('bio-pages.unpublish');
+        Route::delete('/biopages/{bioPage}', [BioPageController::class, 'destroy'])->name('bio-pages.destroy');
+        Route::post('/biopages/{bioPage}/media', [BioPageController::class, 'storeMedia'])->name('bio-pages.media.store');
+        Route::delete('/biopages/{bioPage}/media/{type}', [BioPageController::class, 'destroyMedia'])->name('bio-pages.media.destroy');
+        Route::post('/biopages/{bioPage}/qr-codes', [QrCodeController::class, 'storeBioPage'])->name('bio-pages.qr-codes.store');
+
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -121,6 +141,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
 
 Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');
 Route::get('/qr/{qrCode}', [PublicLinkController::class, 'qr'])->middleware('throttle:public-resolution')->name('public.qr');
+Route::get('/bio/{bioPage}/{bioElement}/activate', BioActivationController::class)
+    ->middleware('throttle:public-resolution')
+    ->name('public.bio.activate');
 Route::post('/password/{shortLink}', [PublicLinkController::class, 'password'])->middleware('throttle:public-resolution')->name('public.password');
 Route::get('/{slug}', [PublicLinkController::class, 'show'])
     ->middleware('throttle:public-resolution')

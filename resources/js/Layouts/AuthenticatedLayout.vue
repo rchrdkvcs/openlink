@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
   BarChart3,
   ChevronsUpDown,
+  ContactRound,
   Globe2,
   LayoutDashboard,
   Link2,
@@ -40,6 +41,7 @@ const user = computed(() => page.props.auth.user);
 const navItems = [
   { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
   { label: 'Links', href: route('links.index'), active: route().current('links.index'), icon: Link2 },
+  { label: 'Bio Pages', href: route('bio-pages.index'), active: route().current('bio-pages.*'), icon: ContactRound },
   { label: 'QR Codes', href: route('qr-codes.index'), active: route().current('qr-codes.*'), icon: QrCode },
   { label: 'Analytics', href: route('analytics.index'), active: route().current('analytics.index'), icon: BarChart3 },
   { label: 'Domains', href: route('domains.index'), active: route().current('domains.index'), icon: Globe2 },

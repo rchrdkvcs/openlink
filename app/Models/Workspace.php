@@ -178,6 +178,11 @@ class Workspace extends Model
         return $this->hasMany(Domain::class);
     }
 
+    public function bioPages(): HasMany
+    {
+        return $this->hasMany(BioPage::class);
+    }
+
     public function folders(): HasMany
     {
         return $this->hasMany(Folder::class);

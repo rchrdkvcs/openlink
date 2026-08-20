@@ -47,6 +47,11 @@ class QrCode extends Model
         return $this->belongsTo(ShortLink::class);
     }
 
+    public function bioPage(): BelongsTo
+    {
+        return $this->belongsTo(BioPage::class);
+    }
+
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
@@ -63,10 +68,17 @@ class QrCode extends Model
      */
     public function publicUrl(): string
     {
-        if ($this->short_link_id) {
-            $this->loadMissing('shortLink.domain');
+        if ($this->short_link_id || $this->bio_page_id) {
+            $this->loadMissing('shortLink.domain', 'bioPage.publishedDomain', 'bioPage.draftDomain');
 
-            return 'https://'.$this->shortLink->domain->hostname.'/qr/'.$this->token;
+            $hostname = $this->shortLink?->domain?->hostname
+                ?? $this->bioPage?->publishedDomain?->hostname;
+
+            $hostname ??= $this->bioPage?->draftDomain?->hostname;
+
+            if ($hostname) {
+                return 'https://'.$hostname.'/qr/'.$this->token;
+            }
         }
 
         return route('public.qr', $this, true);
@@ -88,7 +100,7 @@ class QrCode extends Model
 
     public function hasDirectPayload(): bool
     {
-        return ! $this->short_link_id;
+        return ! $this->short_link_id && ! $this->bio_page_id;
     }
 
     public function hasLogo(): bool

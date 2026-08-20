@@ -2,6 +2,7 @@
 
 namespace App\Services\Analytics\Report;
 
+use App\Models\BioElement;
 use App\Models\QrCode;
 use App\Models\RoutingRule;
 use App\Models\RoutingVariant;
@@ -9,6 +10,35 @@ use App\Models\ShortLink;
 
 class EntityRankingSection
 {
+    /** @return list<array<string, mixed>> */
+    public function topBioElements(AnalyticsEventSlice $slice, int $limit = 50): array
+    {
+        $rows = $slice->query()
+            ->successful()
+            ->where('metric', 'bio_activation')
+            ->whereNotNull('bio_element_id')
+            ->selectRaw('bio_element_id, count(*) as activations, count(distinct visitor_hash) as visitors')
+            ->groupBy('bio_element_id')
+            ->orderByDesc('activations')
+            ->limit($limit)
+            ->get();
+
+        $elements = BioElement::query()->findMany($rows->pluck('bio_element_id'))->keyBy('id');
+
+        return $rows->map(function ($row) use ($elements) {
+            $element = $elements->get($row->bio_element_id);
+            $published = $element?->published ?? [];
+
+            return [
+                'id' => (int) $row->bio_element_id,
+                'label' => $published['label'] ?? '(deleted destination)',
+                'type' => $published['type'] ?? null,
+                'activations' => (int) $row->activations,
+                'visitors' => (int) $row->visitors,
+            ];
+        })->all();
+    }
+
     /** @return list<array<string, mixed>> */
     public function topLinks(AnalyticsEventSlice $slice, int $limit = 10): array
     {

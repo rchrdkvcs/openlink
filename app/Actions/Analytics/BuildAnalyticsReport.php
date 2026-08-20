@@ -60,6 +60,7 @@ class BuildAnalyticsReport
             'routing' => $this->rankings->routingPerformance($slice),
             'top_links' => $this->rankings->topLinks($slice),
             'top_qr_codes' => $this->rankings->topQrCodes($slice),
+            'top_bio_elements' => $this->rankings->topBioElements($slice),
         ];
     }
 
@@ -100,6 +101,12 @@ class BuildAnalyticsReport
     public function topQrCodes(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null, int $limit = 10): array
     {
         return $this->rankings->topQrCodes($this->slice($workspace, $filters, $accessibleLinkIds), $limit);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function topBioElements(Workspace $workspace, AnalyticsFilters $filters, int $limit = 50): array
+    {
+        return $this->rankings->topBioElements($this->slice($workspace, $filters, null), $limit);
     }
 
     /** @return list<array<string, mixed>> */

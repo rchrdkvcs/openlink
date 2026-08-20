@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\RecordAnalytics;
+use App\Actions\BioPages\BioPagePayload;
+use App\Actions\BioPages\ResolvePublicBioPage;
 use App\Actions\Resolution\ResolvePublicLink;
 use App\Models\QrCode;
 use App\Models\ShortLink;
@@ -22,13 +24,62 @@ class PublicLinkController extends Controller
         return $this->toResponse($request, new ResolutionResult(Outcome::NOT_FOUND), $settings);
     }
 
-    public function show(Request $request, string $slug, ResolvePublicLink $resolver, InstanceSettings $settings): Response
-    {
+    public function show(
+        Request $request,
+        string $slug,
+        ResolvePublicLink $resolver,
+        ResolvePublicBioPage $bioPages,
+        BioPagePayload $bioPagePayload,
+        InstanceSettings $settings,
+    ): Response {
+        if ($bioPage = $bioPages->resolve($request, $slug)) {
+            $published = $bioPagePayload->published($bioPage);
+            $response = Inertia::render('Public/BioPage', [
+                'bioPage' => $published,
+                'bioUrl' => 'https://'.$bioPage->publishedDomain->hostname.'/'.$bioPage->published_slug,
+                'shareTitle' => $published['shareTitle'] ?: $published['displayName'],
+                'shareDescription' => $published['shareDescription'] ?: $published['biography'],
+                'openGraphImageUrl' => $published['profileImageUrl'] ?: route('public.bio.open-graph', [
+                    'bioPage' => $bioPage,
+                    'v' => $bioPage->published_at?->timestamp,
+                ]),
+            ])->toResponse($request);
+
+            if (! $published['isIndexable']) {
+                $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+            }
+
+            return $response;
+        }
+
         return $this->toResponse($request, $resolver->resolve($request, $slug), $settings);
     }
 
-    public function qr(Request $request, QrCode $qrCode, ResolvePublicLink $resolver, InstanceSettings $settings, QrCodeContent $content): Response
+    public function qr(Request $request, QrCode $qrCode, ResolvePublicLink $resolver, RecordAnalytics $analytics, InstanceSettings $settings, QrCodeContent $content): Response
     {
+        if ($qrCode->bio_page_id) {
+            $qrCode->loadMissing('bioPage.publishedDomain');
+            $bioPage = $qrCode->bioPage;
+
+            if (! $bioPage?->isPublished() || ! $bioPage->publishedDomain?->isUsable()) {
+                return $this->toResponse($request, new ResolutionResult(Outcome::NOT_FOUND), $settings);
+            }
+
+            $analytics->recordBio(
+                $request,
+                $bioPage,
+                RecordAnalytics::METRIC_SCAN,
+                Outcome::SUCCESS,
+                qrCode: $qrCode,
+            );
+
+            $bioUrl = 'https://'.$bioPage->publishedDomain->hostname.'/'.$bioPage->published_slug;
+
+            return $request->header('X-Inertia')
+                ? Inertia::location($bioUrl)
+                : redirect()->away($bioUrl);
+        }
+
         if ($qrCode->hasDirectPayload()) {
             if ($content->shouldRedirect($qrCode)) {
                 if ($request->header('X-Inertia')) {

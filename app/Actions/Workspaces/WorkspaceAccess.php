@@ -146,6 +146,18 @@ class WorkspaceAccess
             return $this->requireEditableShortLink($request, $qrCode->shortLink);
         }
 
+        if ($qrCode->bio_page_id) {
+            $workspace = $this->requireCurrent($request);
+            $qrCode->loadMissing('bioPage.workspace');
+            abort_unless(
+                $qrCode->bioPage?->workspace_id === $workspace->id
+                && $this->canEditWorkspace($request->user(), $workspace),
+                403,
+            );
+
+            return $workspace;
+        }
+
         $workspace = $this->requireEditableWorkspace($request);
         abort_unless($qrCode->workspace_id === $workspace->id, 403);
 

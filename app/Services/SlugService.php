@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Domain;
-use App\Models\ShortLink;
+use App\Models\PublicSlug;
 use Illuminate\Validation\ValidationException;
 
 class SlugService
@@ -28,7 +28,7 @@ class SlugService
         return $slug;
     }
 
-    public function validateCustom(Domain $domain, string $slug): string
+    public function validateCustom(Domain $domain, string $slug, ?string $resourceType = null, ?int $resourceId = null): string
     {
         $slug = trim($slug, "/ \t\n\r\0\x0B");
 
@@ -44,7 +44,7 @@ class SlugService
             ]);
         }
 
-        if ($this->existsForDomain($domain, $slug)) {
+        if ($this->existsForDomain($domain, $slug, $resourceType, $resourceId)) {
             throw ValidationException::withMessages([
                 'slug' => __('openlink.validation.slug_duplicate'),
             ]);
@@ -78,11 +78,15 @@ class SlugService
         return $this->applicationHost->isApplicationDomain($domain) && $this->isReserved($slug);
     }
 
-    private function existsForDomain(Domain $domain, string $slug): bool
+    private function existsForDomain(Domain $domain, string $slug, ?string $resourceType = null, ?int $resourceId = null): bool
     {
-        return ShortLink::query()
+        return PublicSlug::query()
             ->where('domain_id', $domain->id)
             ->where('slug', $slug)
+            ->when($resourceType && $resourceId, function ($query) use ($resourceType, $resourceId): void {
+                $column = $resourceType === PublicSlug::TYPE_BIO_PAGE ? 'bio_page_id' : 'short_link_id';
+                $query->where(fn ($query) => $query->whereNull($column)->orWhere($column, '!=', $resourceId));
+            })
             ->exists();
     }
 }

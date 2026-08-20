@@ -4,6 +4,8 @@ namespace App\Actions\Analytics;
 
 use App\Jobs\RecordAnalyticsEvent;
 use App\Models\AnalyticsEvent;
+use App\Models\BioElement;
+use App\Models\BioPage;
 use App\Models\QrCode;
 use App\Models\RoutingRule;
 use App\Models\RoutingVariant;
@@ -24,6 +26,10 @@ class RecordAnalytics
 
     public const METRIC_SCAN = 'scan';
 
+    public const METRIC_BIO_VIEW = 'bio_view';
+
+    public const METRIC_BIO_ACTIVATION = 'bio_activation';
+
     public function __construct(private readonly ResolutionContextFactory $contexts) {}
 
     public function record(
@@ -42,11 +48,48 @@ class RecordAnalytics
             return;
         }
 
-        $job = new RecordAnalyticsEvent($event);
+        $this->dispatch($event);
+    }
 
-        config('openlink.analytics.via_queue')
-            ? dispatch($job)
-            : dispatch($job)->afterResponse();
+    public function recordBio(
+        Request $request,
+        BioPage $bioPage,
+        string $metric,
+        string $outcome,
+        ?BioElement $bioElement = null,
+        ?QrCode $qrCode = null,
+        ?ResolutionContext $context = null,
+    ): void {
+        $context ??= $this->contexts->fromRequest($request);
+        $dimensions = $context->analyticsDimensions();
+
+        $this->dispatch([
+            'workspace_id' => $bioPage->workspace_id,
+            'short_link_id' => null,
+            'qr_code_id' => $qrCode?->id,
+            'bio_page_id' => $bioPage->id,
+            'bio_element_id' => $bioElement?->id,
+            'domain_id' => $bioPage->published_domain_id,
+            'routing_rule_id' => null,
+            'routing_variant_id' => null,
+            'occurred_at' => $context->occurredAt->toDateTimeString(),
+            'metric' => $metric,
+            'outcome' => $outcome,
+            'is_bot' => $dimensions['is_bot'],
+            'visitor_hash' => $context->visitorHash,
+            'referrer_host' => $dimensions['referrer_host'],
+            'referrer_channel' => $dimensions['referrer_channel'],
+            'country' => $dimensions['country'],
+            'language' => $dimensions['language'],
+            'device_type' => $dimensions['device_type'],
+            'browser' => $dimensions['browser'],
+            'os' => $dimensions['os'],
+            'utm_source' => $dimensions['utm_source'],
+            'utm_medium' => $dimensions['utm_medium'],
+            'utm_campaign' => $dimensions['utm_campaign'],
+            'utm_term' => $dimensions['utm_term'],
+            'utm_content' => $dimensions['utm_content'],
+        ]);
     }
 
     /**
@@ -109,5 +152,15 @@ class RecordAnalytics
             'utm_term' => $dimensions['utm_term'],
             'utm_content' => $dimensions['utm_content'],
         ];
+    }
+
+    /** @param array<string, mixed> $event */
+    private function dispatch(array $event): void
+    {
+        $job = new RecordAnalyticsEvent($event);
+
+        config('openlink.analytics.via_queue')
+            ? dispatch($job)
+            : dispatch($job)->afterResponse();
     }
 }

@@ -42,6 +42,16 @@ class Domain extends Model
         return $this->hasMany(ShortLink::class);
     }
 
+    public function draftBioPages(): HasMany
+    {
+        return $this->hasMany(BioPage::class, 'draft_domain_id');
+    }
+
+    public function publishedBioPages(): HasMany
+    {
+        return $this->hasMany(BioPage::class, 'published_domain_id');
+    }
+
     public function isUsable(): bool
     {
         return $this->status === self::STATUS_ACTIVE && $this->disabled_at === null;

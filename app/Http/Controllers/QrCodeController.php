@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Pages\WorkspaceShellPayload;
+use App\Actions\QrCodes\CreateBioPageQrCode;
 use App\Actions\QrCodes\CreateDirectQrCode;
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
@@ -11,6 +12,7 @@ use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Actions\Workspaces\WorkspacePayloads;
+use App\Models\BioPage;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\QrCodes\QrCodeContent;
@@ -30,6 +32,7 @@ class QrCodeController extends Controller
 
         $qrCodes = $workspace->qrCodes()
             ->whereNull('short_link_id')
+            ->whereNull('bio_page_id')
             ->latest()
             ->get()
             ->map(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
@@ -56,6 +59,13 @@ class QrCodeController extends Controller
         return redirect()->route('qr-codes.show', $qrCode);
     }
 
+    public function storeBioPage(Request $request, BioPage $bioPage, CreateBioPageQrCode $action): RedirectResponse
+    {
+        $qrCode = $action->handle($request, $bioPage, $request->validate(QrCodePayload::rules()));
+
+        return redirect()->route('qr-codes.show', $qrCode);
+    }
+
     public function show(Request $request, QrCode $qrCode, WorkspaceAccess $access, WorkspacePayloads $payloads, WorkspaceShellPayload $shell): \Inertia\Response
     {
         $workspace = $access->requireEditableQrCode($request, $qrCode);
@@ -67,6 +77,23 @@ class QrCodeController extends Controller
                 'qr' => QrCodePayload::make($qrCode),
                 'payloadTypes' => QrCodeContent::types(),
                 'payloadDescriptors' => QrCodeContent::descriptors(),
+            ]);
+        }
+
+        if ($qrCode->bio_page_id) {
+            $qrCode->loadMissing('bioPage.publishedDomain');
+            $bioPage = $qrCode->bioPage;
+            $domain = $bioPage->publishedDomain ?? $bioPage->draftDomain;
+            $slug = $bioPage->published_slug ?? $bioPage->draft_slug;
+
+            return Inertia::render('QrCodes/Show', [
+                ...$shell->handle($workspace, $user),
+                'qr' => QrCodePayload::make($qrCode),
+                'link' => [
+                    'short_url' => $domain ? 'https://'.$domain->hostname.'/'.$slug : null,
+                    'destination_url' => 'Bio Page',
+                ],
+                'bioPage' => ['id' => $bioPage->id, 'displayName' => $bioPage->draft['displayName'] ?? 'Bio Page'],
             ]);
         }
 
@@ -92,7 +119,11 @@ class QrCodeController extends Controller
     {
         $action->handle($request, $qrCode);
 
-        return redirect()->route($qrCode->hasDirectPayload() ? 'qr-codes.index' : 'links.index');
+        return redirect()->route(match (true) {
+            $qrCode->hasDirectPayload() => 'qr-codes.index',
+            filled($qrCode->bio_page_id) => 'bio-pages.show',
+            default => 'links.index',
+        }, filled($qrCode->bio_page_id) ? $qrCode->bio_page_id : []);
     }
 
     public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response

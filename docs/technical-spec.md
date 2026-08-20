@@ -6,7 +6,7 @@ Openlink is a Laravel application using Inertia.js for the primary authenticated
 
 The application is self-hosted first. It runs as a single Laravel application with PostgreSQL and Redis. Production deployment uses a Docker image for the application; PostgreSQL, Redis, HTTPS, and reverse proxy concerns are provided by the deployment platform.
 
-The configured application host is the only hostname that serves the authenticated application, auth screens, workspace management, QR code management, and instance settings. Domains added inside Openlink are redirect-only domains: they may route to the same Laravel process at the reverse proxy layer, but Laravel treats their request paths as public short URL slugs rather than application UI routes.
+The configured application host is the only hostname that serves the authenticated application, auth screens, workspace management, QR code management, and instance settings. Domains added inside Openlink serve public resolution only: Laravel treats their request paths as a shared namespace for Short URLs and Bio URLs, and can therefore return either a redirect or a rendered Published Version without exposing authenticated application routes.
 
 ## Main Runtime Components
 
@@ -27,6 +27,7 @@ The codebase stays modular without over-engineering. Its main Laravel areas are:
 - Folders
 - Domains
 - ShortLinks
+- BioPages
 - QrCodes
 - Resolution
 - Analytics
@@ -46,15 +47,16 @@ Primary records:
 - folder_permissions
 - tags
 - short_links
+- bio_pages and their draft and published content
 - short_link_tags
 - domains
 - qr_codes
 - analytics_events
 - instance_settings
 
-## Short Link Constraints
+## Public Slug Constraints
 
-The slug uniqueness boundary is domain plus slug. Slugs remain reserved until permanent deletion of the short link.
+The slug uniqueness boundary is Domain plus Slug across Short Links and Bio Pages. Slugs remain reserved until permanent deletion of the owning resource. Enforce this shared namespace transactionally rather than relying on independent uniqueness constraints on separate resource tables.
 
 Use database constraints for domain and slug uniqueness. Application validation should mirror the constraint so users get friendly errors before a database exception.
 
@@ -73,11 +75,13 @@ Public resolution should be a lean path. The resolver should:
 
 Cache entries should be invalidated when domains, short links, lifecycle fields, passwords, fallback URLs, or QR code routing metadata change.
 
+Bio URL resolution reads only the immutable Published Version. Publishing atomically swaps the public Domain, Slug, content, theme, and metadata while preserving the previous public result until the transaction succeeds. Draft autosaves never invalidate or alter the public version. Bio Activation routes record the element attribution and then redirect directly or continue through Short Link resolution.
+
 ## Analytics Pipeline
 
 The public request captures every analytics dimension synchronously (headers are gone once the response is sent) and writes one row to analytics_events after the response is flushed, so recording works on every deployment without a queue worker. Instances that run a worker can set OPENLINK_ANALYTICS_VIA_QUEUE=true to move the write onto the queue instead.
 
-Each event stores the metric (visit or scan), the resolution outcome, referrer host and channel, approximate country, language, device type, browser, operating system, UTM parameters, a bot flag, and a privacy-preserving visitor hash whose salt rotates daily. Reports aggregate these rows on demand with covering indexes; unique visitors are counted as distinct daily hashes.
+Each event stores the metric (Visit, Scan, Bio View, or Bio Activation), the resolution outcome, referrer host and channel, approximate country, language, device type, browser, operating system, UTM parameters, a bot flag, and a privacy-preserving visitor hash whose salt rotates daily. Reports aggregate these rows on demand with covering indexes; unique visitors are counted as distinct daily hashes.
 
 The system should track resolution outcomes even when no visit is counted. Visit limits are consumed only for successful resolutions to the destination URL.
 
@@ -93,7 +97,7 @@ Traffic routing records such as CNAME or A are deployment-specific and separate 
 
 ## Authorization
 
-Use Laravel policies for workspace, folder, domain, short link, QR code, and analytics access.
+Use Laravel policies for workspace, folder, domain, short link, Bio Page, QR code, and analytics access.
 
 Workspace roles define baseline access. Folder permissions constrain access to folder-contained links for Editor and Viewer roles. Tags must never be used for authorization.
 
@@ -113,6 +117,7 @@ The authenticated app should prioritize dense, clear workflows:
 - Links list with filters, search, status, folder, tags, domain, and analytics summary
 - Link create/edit form
 - Link detail with analytics and QR codes
+- Bio Page list, editor, publication controls, availability, analytics, and QR codes
 - QR code create/edit/export flow
 - Domain management and verification screen
 - Folder permissions screen
@@ -137,5 +142,10 @@ Start with feature tests for the domain rules:
 - Fallback behavior
 - QR scan attribution
 - Analytics aggregation
+- Shared Short URL and Bio URL namespace
+- Draft autosave and atomic publication without leaking draft content
+- Bio Page role authorization
+- Bio Activation attribution and separation from Visits
+- Bio Page QR Scan and Bio View attribution
 
 Add browser-level coverage for the most important Inertia workflows once the UI exists.

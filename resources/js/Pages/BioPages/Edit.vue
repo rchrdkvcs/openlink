@@ -20,7 +20,7 @@ import {
   Trash2,
   Upload,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue';
 
 import BioElementList from '@/Components/BioPages/BioElementList.vue';
 import BioPagePreview from '@/Components/BioPages/BioPagePreview.vue';
@@ -159,8 +159,8 @@ function payload() {
     displayName: draft.displayName,
     publicHandle: draft.publicHandle,
     biography: draft.biography,
-    elements: structuredClone(draft.elements),
-    theme: structuredClone(draft.theme),
+    elements: structuredClone(toRaw(draft.elements)),
+    theme: structuredClone(toRaw(draft.theme)),
     shareTitle: draft.shareTitle,
     shareDescription: draft.shareDescription,
     isIndexable: draft.isIndexable,

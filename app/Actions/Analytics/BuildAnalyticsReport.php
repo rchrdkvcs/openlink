@@ -111,7 +111,7 @@ class BuildAnalyticsReport
     /** @return list<int>|null */
     public function accessibleLinkIds(Workspace $workspace, User $user): ?array
     {
-        if ($this->access->canManageWorkspace($user, $workspace)) {
+        if ($this->access->canEditWorkspace($user, $workspace)) {
             return null;
         }
 

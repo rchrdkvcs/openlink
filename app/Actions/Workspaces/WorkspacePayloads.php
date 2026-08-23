@@ -27,7 +27,7 @@ class WorkspacePayloads
                 'analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan'),
             ])])
             ->withCount($this->analyticsCounts())
-            ->when(! $view->canManage, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $view->accessibleFolderIds())))
+            ->when(! $view->canEdit, fn ($query) => $query->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $view->accessibleFolderIds())))
             ->latest()
             ->get()
             ->map(fn (ShortLink $link) => $this->linkPayload($link));

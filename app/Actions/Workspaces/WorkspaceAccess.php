@@ -194,7 +194,7 @@ class WorkspaceAccess
     {
         $role = $this->role($user, $folder->workspace);
 
-        if (in_array($role, [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_ADMIN], true)) {
+        if (in_array($role, [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_EDITOR], true)) {
             return true;
         }
 
@@ -208,19 +208,11 @@ class WorkspaceAccess
     {
         $role = $this->role($user, $folder->workspace);
 
-        if (in_array($role, [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_ADMIN], true)) {
+        if (in_array($role, [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_EDITOR], true)) {
             return true;
         }
 
-        if ($role !== WorkspaceMember::ROLE_EDITOR) {
-            return false;
-        }
-
-        return FolderPermission::query()
-            ->where('folder_id', $folder->id)
-            ->where('user_id', $user?->id)
-            ->whereIn('permission', [FolderPermission::CAN_EDIT, FolderPermission::CAN_MANAGE])
-            ->exists();
+        return false;
     }
 
     public function canViewShortLink(?User $user, ShortLink $shortLink): bool

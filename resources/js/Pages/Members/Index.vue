@@ -34,7 +34,7 @@ type InviteLink = {
 
 const props = defineProps<{
   currentWorkspace: Workspace;
-  canManageWorkspace: boolean;
+  canManageMembers: boolean;
   role: string;
   members: Member[];
   inviteLinks: InviteLink[];
@@ -95,7 +95,7 @@ function linkMeta(link: InviteLink) {
 // --- Member management ---
 
 function canEditMember(member: Member) {
-  return props.canManageWorkspace && member.role !== 'owner' && member.user.id !== me.value.id;
+  return props.canManageMembers && member.role !== 'owner' && member.user.id !== me.value.id;
 }
 
 function changeRole(member: Member, role: string) {
@@ -173,7 +173,7 @@ const sortedMembers = computed(() =>
           <h1 class="text-xl font-semibold tracking-tight">Members</h1>
           <p class="mt-1 text-sm text-muted">People with access to {{ currentWorkspace.name }}.</p>
         </div>
-        <Button v-if="canManageWorkspace" type="button" @click="showInviteModal = true">
+        <Button v-if="canManageMembers" type="button" @click="showInviteModal = true">
           <UserPlus class="h-4 w-4" /> Invite members
         </Button>
       </div>

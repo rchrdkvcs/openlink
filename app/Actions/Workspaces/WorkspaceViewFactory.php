@@ -12,10 +12,16 @@ class WorkspaceViewFactory
 
     public function make(Workspace $workspace, User $user): WorkspaceView
     {
+        $role = $this->access->role($user, $workspace);
         $canManage = $this->access->canManageWorkspace($user, $workspace);
+        $canEdit = in_array($role, [
+            WorkspaceMember::ROLE_OWNER,
+            WorkspaceMember::ROLE_ADMIN,
+            WorkspaceMember::ROLE_EDITOR,
+        ], true);
 
         $folders = $workspace->folders()
-            ->when(! $canManage, fn ($query) => $query->whereHas('permissions', fn ($query) => $query->where('user_id', $user->id)))
+            ->when(! $canEdit, fn ($query) => $query->whereHas('permissions', fn ($query) => $query->where('user_id', $user->id)))
             ->with('permissions.user:id,name,email')
             ->orderBy('name')
             ->get();
@@ -23,13 +29,9 @@ class WorkspaceViewFactory
         return new WorkspaceView(
             workspace: $workspace,
             user: $user,
-            role: $this->access->role($user, $workspace),
+            role: $role,
             canManage: $canManage,
-            canEdit: in_array($this->access->role($user, $workspace), [
-                WorkspaceMember::ROLE_OWNER,
-                WorkspaceMember::ROLE_ADMIN,
-                WorkspaceMember::ROLE_EDITOR,
-            ], true),
+            canEdit: $canEdit,
             folders: $folders,
         );
     }

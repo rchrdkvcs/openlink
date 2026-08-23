@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\Folder;
-use App\Models\FolderPermission;
 use App\Models\InviteLink;
 use App\Models\ShortLink;
 use App\Models\User;
@@ -362,7 +361,7 @@ class OpenlinkMvpTest extends TestCase
         $this->assertSame(1, $link->fresh()->uses);
     }
 
-    public function test_editor_cannot_create_link_inside_folder_without_edit_permission(): void
+    public function test_editor_can_see_and_edit_links_in_folders_without_managing_the_folders(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();
         $editor = User::factory()->create();
@@ -371,39 +370,40 @@ class OpenlinkMvpTest extends TestCase
             'user_id' => $editor->id,
             'role' => WorkspaceMember::ROLE_EDITOR,
         ]);
-        $folder = Folder::create([
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaigns']);
+        $link = ShortLink::create([
             'workspace_id' => $workspace->id,
-            'name' => 'Private Campaign',
+            'domain_id' => $domain->id,
+            'folder_id' => $folder->id,
+            'slug' => 'campaign',
+            'destination_url' => 'https://example.com/campaign',
         ]);
 
         $this->actingAs($editor)
             ->withSession(['workspace_id' => $workspace->id])
-            ->post(route('short-links.store'), [
-                'domain_id' => $domain->id,
-                'folder_id' => $folder->id,
-                'slug' => 'private',
-                'destination_url' => 'https://example.com/private',
-            ])->assertForbidden();
-
-        FolderPermission::create([
-            'folder_id' => $folder->id,
-            'user_id' => $editor->id,
-            'permission' => FolderPermission::CAN_EDIT,
-        ]);
+            ->get(route('links.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('folders', 1)
+                ->where('folders.0.id', $folder->id)
+                ->has('links', 1)
+                ->where('links.0.id', $link->id));
 
         $this->actingAs($editor)
             ->withSession(['workspace_id' => $workspace->id])
-            ->post(route('short-links.store'), [
+            ->patch(route('short-links.update', $link), [
+                'destination_url' => 'https://example.com/updated',
                 'domain_id' => $domain->id,
+                'slug' => $link->slug,
                 'folder_id' => $folder->id,
-                'slug' => 'private',
-                'destination_url' => 'https://example.com/private',
-            ])->assertRedirect();
+                'is_enabled' => true,
+            ])
+            ->assertRedirect();
 
-        $this->assertDatabaseHas('short_links', [
-            'folder_id' => $folder->id,
-            'slug' => 'private',
-        ]);
+        $this->actingAs($editor)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->patch(route('folders.update', $folder), ['name' => 'Renamed'])
+            ->assertForbidden();
     }
 
     public function test_analytics_retention_command_prunes_old_events_only(): void

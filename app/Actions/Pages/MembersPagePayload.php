@@ -22,6 +22,7 @@ class MembersPagePayload
 
         return [
             ...$this->shell->handle($workspace, $user),
+            'canManageMembers' => $view->canManage,
             'members' => $workspace->members()
                 ->with('user.profileAvatarSource')
                 ->orderBy('role')

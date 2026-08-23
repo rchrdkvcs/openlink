@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Domain;
-use App\Models\Folder;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
@@ -256,28 +255,6 @@ class ApiV1Test extends TestCase
         $this->postJson('/api/v1/links', [
             'domain_id' => $domain->id,
             'destination_url' => 'https://example.com/forbidden',
-        ])->assertForbidden();
-    }
-
-    public function test_editor_cannot_create_link_in_folder_without_permission(): void
-    {
-        [$workspace, $domain] = $this->workspaceAndDomain();
-
-        $editor = User::factory()->create();
-        WorkspaceMember::create([
-            'workspace_id' => $workspace->id,
-            'user_id' => $editor->id,
-            'role' => WorkspaceMember::ROLE_EDITOR,
-        ]);
-
-        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Locked']);
-
-        Sanctum::actingAs($editor);
-
-        $this->postJson('/api/v1/links', [
-            'domain_id' => $domain->id,
-            'folder_id' => $folder->id,
-            'destination_url' => 'https://example.com/locked',
         ])->assertForbidden();
     }
 

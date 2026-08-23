@@ -29,6 +29,20 @@ class MemberManagementTest extends TestCase
         $this->assertSame(WorkspaceMember::ROLE_EDITOR, $membership->fresh()->role);
     }
 
+    public function test_admin_members_page_exposes_member_management_controls(): void
+    {
+        [$workspace] = $this->workspaceWithOwner();
+        $admin = $this->member($workspace, WorkspaceMember::ROLE_ADMIN);
+
+        $this->actingAs($admin)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->get(route('members.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('canManageMembers', true)
+                ->has('members', 2));
+    }
+
     public function test_owner_role_cannot_be_changed_or_removed(): void
     {
         [$workspace, $owner] = $this->workspaceWithOwner();

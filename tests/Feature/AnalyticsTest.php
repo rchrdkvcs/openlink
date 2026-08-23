@@ -208,6 +208,30 @@ class AnalyticsTest extends TestCase
                 ->has('filterOptions.links', 1));
     }
 
+    public function test_editor_overview_displays_workspace_link_statistics(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $editor = User::factory()->create();
+        WorkspaceMember::create([
+            'workspace_id' => $workspace->id,
+            'user_id' => $editor->id,
+            'role' => WorkspaceMember::ROLE_EDITOR,
+        ]);
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaigns']);
+        $link = $this->link($workspace, $domain, 'editor-stats', ['folder_id' => $folder->id]);
+        $this->event($workspace, $link);
+
+        $this->actingAs($editor)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->withHeader('Host', 'localhost')
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('analytics.summary.visits', 1)
+                ->has('analytics.timeseries')
+                ->has('analytics.top_links', 1));
+    }
+
     public function test_csv_export_streams_filtered_events(): void
     {
         [$workspace, $domain, $owner] = $this->workspaceAndDomain();

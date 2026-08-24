@@ -6,7 +6,7 @@ that want to retain control of their domains and data.
 ## Features
 
 - Workspaces with members and workspace roles.
-- Folders with folder permissions.
+- Folders for organising links.
 - Short links with generated or custom slugs.
 - Generated slugs use a readable non-ambiguous alphabet, are random rather than incremental, and default to 6 characters. Custom slugs may contain path separators as part of the slug.
 - Openlink maintains configurable reserved slugs and reserved slug prefixes that cannot be used as short URLs.

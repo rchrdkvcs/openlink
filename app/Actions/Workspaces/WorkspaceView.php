@@ -20,10 +20,4 @@ class WorkspaceView
         public readonly bool $canEdit,
         public readonly Collection $folders,
     ) {}
-
-    /** @return Collection<int, int> */
-    public function accessibleFolderIds(): Collection
-    {
-        return $this->folders->pluck('id');
-    }
 }

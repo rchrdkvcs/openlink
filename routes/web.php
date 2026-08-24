@@ -5,7 +5,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
-use App\Http\Controllers\FolderPermissionController;
 use App\Http\Controllers\InstanceSettingsController;
 use App\Http\Controllers\InviteLinkController;
 use App\Http\Controllers\JoinController;
@@ -83,7 +82,6 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
         Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
-        Route::post('/folders/{folder}/permissions', [FolderPermissionController::class, 'store'])->name('folder-permissions.store');
         Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
 
         Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');

@@ -58,7 +58,7 @@ class QrCodeController extends Controller
 
     public function show(Request $request, QrCode $qrCode, WorkspaceAccess $access, WorkspacePayloads $payloads, WorkspaceShellPayload $shell): \Inertia\Response
     {
-        $workspace = $access->requireEditableQrCode($request, $qrCode);
+        $workspace = $access->requireViewableQrCode($request, $qrCode);
         $user = $request->user();
 
         if ($qrCode->hasDirectPayload()) {
@@ -97,7 +97,7 @@ class QrCodeController extends Controller
 
     public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
     {
-        $access->requireEditableQrCode($request, $qrCode);
+        $access->requireViewableQrCode($request, $qrCode);
         abort_unless(in_array($format, ['png', 'svg'], true), 404);
 
         $size = $request->validate(['size' => ['nullable', 'integer', 'min:128', 'max:4096']])['size'] ?? null;
@@ -114,7 +114,7 @@ class QrCodeController extends Controller
 
     public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer, QrCodeAppearance $appearance): Response
     {
-        $access->requireEditableQrCode($request, $qrCode);
+        $access->requireViewableQrCode($request, $qrCode);
 
         // Query overrides let the studio page live-preview unsaved settings.
         $rules = $qrCode->hasDirectPayload()

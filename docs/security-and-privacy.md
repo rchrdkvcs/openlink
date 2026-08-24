@@ -18,9 +18,9 @@ The first user created on an instance becomes an instance admin. The default reg
 
 ## Authorization
 
-Workspace roles and folder permissions protect dashboard access. Tags are never an access boundary.
+Workspace roles protect dashboard access. A Viewer can read every folder, short link, QR code, and analytics report in the workspace, and cannot create or change them. Folders and tags are never an access boundary.
 
-Members without access to a folder should not see that the folder exists. Owners and admins can see all folders in their workspace.
+Owner, Admin, Editor, and Viewer can see all folders in their workspace.
 
 ## Protected Links
 

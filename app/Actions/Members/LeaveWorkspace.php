@@ -21,7 +21,7 @@ class LeaveWorkspace
 
         abort_if($member->role === WorkspaceMember::ROLE_OWNER, 403);
 
-        RemoveWorkspaceMember::detach($member, $workspace);
+        RemoveWorkspaceMember::detach($member);
 
         if ($request->hasSession()) {
             $request->session()->forget('workspace_id');

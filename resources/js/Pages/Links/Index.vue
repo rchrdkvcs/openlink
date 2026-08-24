@@ -457,7 +457,7 @@ function markFaviconFailed(url: string) {
                   <ExternalLink class="h-4 w-4" />
                 </a>
 
-                <IconButton title="Edit" @click="selectedLink = link">
+                <IconButton :title="canEditWorkspace ? 'Edit' : 'View'" @click="selectedLink = link">
                   <Settings2 class="h-4 w-4" />
                 </IconButton>
                 <IconButton v-if="canEditWorkspace" title="Archive" @click="archiveLink(link)">
@@ -521,6 +521,7 @@ function markFaviconFailed(url: string) {
       :domains="usableDomains"
       :folders="folders"
       :routing-schema="routingSchema"
+      :can-edit-workspace="canEditWorkspace"
       @close="selectedLink = null"
       @submit="updateLink"
       @submit-qr="submitQr"

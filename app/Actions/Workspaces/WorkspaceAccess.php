@@ -4,7 +4,6 @@ namespace App\Actions\Workspaces;
 
 use App\Models\Domain;
 use App\Models\Folder;
-use App\Models\FolderPermission;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Models\User;
@@ -137,6 +136,21 @@ class WorkspaceAccess
         return $workspace;
     }
 
+    public function requireViewableQrCode(Request $request, QrCode $qrCode): Workspace
+    {
+        if ($qrCode->short_link_id) {
+            $qrCode->load('shortLink.domain');
+            $qrCode->shortLink->loadMissing('workspace', 'folder.workspace');
+
+            return $this->requireViewableShortLink($request, $qrCode->shortLink);
+        }
+
+        $workspace = $this->requireCurrent($request);
+        abort_unless($qrCode->workspace_id === $workspace->id, 403);
+
+        return $workspace;
+    }
+
     public function requireEditableQrCode(Request $request, QrCode $qrCode): Workspace
     {
         if ($qrCode->short_link_id) {
@@ -192,16 +206,7 @@ class WorkspaceAccess
 
     public function canViewFolder(?User $user, Folder $folder): bool
     {
-        $role = $this->role($user, $folder->workspace);
-
-        if (in_array($role, [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_EDITOR], true)) {
-            return true;
-        }
-
-        return FolderPermission::query()
-            ->where('folder_id', $folder->id)
-            ->where('user_id', $user?->id)
-            ->exists();
+        return $this->isMember($user, $folder->workspace);
     }
 
     public function canEditFolder(?User $user, Folder $folder): bool
@@ -217,11 +222,7 @@ class WorkspaceAccess
 
     public function canViewShortLink(?User $user, ShortLink $shortLink): bool
     {
-        if (! $shortLink->folder) {
-            return $this->isMember($user, $shortLink->workspace);
-        }
-
-        return $this->canViewFolder($user, $shortLink->folder);
+        return $this->isMember($user, $shortLink->workspace);
     }
 
     public function canEditShortLink(?User $user, ShortLink $shortLink): bool

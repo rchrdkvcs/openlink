@@ -3,7 +3,6 @@
 namespace App\Actions\Analytics;
 
 use App\Actions\Workspaces\WorkspaceAccess;
-use App\Actions\Workspaces\WorkspaceViewFactory;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
@@ -19,7 +18,6 @@ class BuildAnalyticsReport
 {
     public function __construct(
         private readonly WorkspaceAccess $access,
-        private readonly WorkspaceViewFactory $views,
         private readonly SummarySection $summary,
         private readonly TimeSeriesSection $timeSeries,
         private readonly BreakdownSection $breakdowns,
@@ -111,16 +109,7 @@ class BuildAnalyticsReport
     /** @return list<int>|null */
     public function accessibleLinkIds(Workspace $workspace, User $user): ?array
     {
-        if ($this->access->canEditWorkspace($user, $workspace)) {
-            return null;
-        }
-
-        $accessibleFolderIds = $this->views->make($workspace, $user)->accessibleFolderIds();
-
-        return $workspace->shortLinks()
-            ->where(fn ($query) => $query->whereNull('folder_id')->orWhereIn('folder_id', $accessibleFolderIds))
-            ->pluck('id')
-            ->all();
+        return $this->access->isMember($user, $workspace) ? null : [];
     }
 
     /** @return Generator<int, list<string|null>, void, void> */

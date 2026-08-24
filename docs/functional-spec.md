@@ -2,7 +2,7 @@
 
 ## Product Shape
 
-Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, permissions, and settings. Every short link belongs to exactly one workspace.
+Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, and settings. Every short link belongs to exactly one workspace.
 
 The product is a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
 
@@ -18,7 +18,7 @@ Users can manage connected identities from the profile page. A connected identit
 
 Users can select their profile avatar from the avatars supplied by valid connected identities. If the selected connected identity is removed or becomes invalid, Openlink automatically selects another available valid connected identity avatar or falls back to initials.
 
-Users can create and revoke API tokens from the profile page. API tokens are user-owned credentials, are shown in clear text only once after creation, and act with the same workspace roles and folder permissions as the user. API tokens do not have configurable scopes. Creating or using an API token requires a verified email.
+Users can create and revoke API tokens from the profile page. API tokens are user-owned credentials, are shown in clear text only once after creation, and act with the same workspace roles as the user. API tokens do not have configurable scopes. Creating or using an API token requires a verified email.
 
 New users go through a short onboarding wizard: they name their first workspace (required when they have none), then can optionally create a first short link and generate an invite link for their team. Users who arrive through an invite link skip the wizard and land in the workspace they joined.
 
@@ -26,16 +26,16 @@ Workspace members have one workspace role:
 
 - Owner: controls all workspace data, settings, members, domains, and ownership-level actions.
 - Admin: manages members, domains, folders, links, QR codes, and settings without owning the workspace.
-- Editor: creates and edits links and QR codes in accessible folders.
-- Viewer: reads links, QR codes, and analytics in accessible folders.
+- Editor: creates and edits links and QR codes.
+- Viewer: reads all links, QR codes, and analytics in the workspace. Cannot create or change them.
 
-Folder permissions are Can view, Can edit, and Can manage. Members do not see folders they cannot access, except Owner and Admin roles, which can see all folders in the workspace.
+Access is the workspace role. Folders organise links and do not grant or restrict access.
 
 ### Members and invite links
 
 People join a workspace through invite links (see ADR 0008). Owners and admins create invite links, each carrying a role (Admin, Editor, or Viewer), an optional expiration date, and an optional usage limit; several links can be active at once and each can be revoked individually. Anyone who opens a usable link can join the workspace with the link's role — signed-in users join directly, and new visitors create an account first unless the instance registration mode is closed. Existing members who open a link keep their current role.
 
-Owners and admins manage members: they can change any member's role and remove any member, except the Owner, who can only be changed through an explicit ownership transfer (the previous owner becomes an Admin). Any member except the Owner can leave a workspace. Removing a member revokes their folder permissions but keeps the links they created, which belong to the workspace.
+Owners and admins manage members: they can change any member's role and remove any member, except the Owner, who can only be changed through an explicit ownership transfer (the previous owner becomes an Admin). Any member except the Owner can leave a workspace. Removing a member keeps the links they created, which belong to the workspace.
 
 ## Workspaces
 
@@ -45,7 +45,7 @@ Workspace settings include defaults for new links, the preferred domain, member 
 
 ## Folders and Tags
 
-Folders organise links and control access. A short link can belong to a folder and inherits access from that folder.
+Folders organise links. A short link can belong to a folder. Folders do not grant or restrict access.
 
 Tags classify links for filtering and search. Tags do not grant access and must not be used as a permission boundary.
 

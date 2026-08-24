@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Folder;
-use App\Models\FolderPermission;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
@@ -73,25 +72,20 @@ class MemberManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_removing_a_member_purges_their_folder_permissions(): void
+    public function test_removing_a_member_keeps_workspace_folders(): void
     {
         [$workspace, $owner] = $this->workspaceWithOwner();
         $editor = $this->member($workspace, WorkspaceMember::ROLE_EDITOR);
         $membership = $this->membership($workspace, $editor);
 
         $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaigns']);
-        FolderPermission::create([
-            'folder_id' => $folder->id,
-            'user_id' => $editor->id,
-            'permission' => FolderPermission::CAN_EDIT,
-        ]);
 
         $this->actingAs($owner)
             ->delete(route('members.destroy', $membership))
             ->assertRedirect();
 
         $this->assertDatabaseMissing('workspace_members', ['id' => $membership->id]);
-        $this->assertDatabaseMissing('folder_permissions', ['user_id' => $editor->id, 'folder_id' => $folder->id]);
+        $this->assertDatabaseHas('folders', ['id' => $folder->id]);
     }
 
     public function test_admin_cannot_remove_themselves(): void

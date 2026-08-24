@@ -3,11 +3,8 @@
 namespace App\Actions\Members;
 
 use App\Actions\Workspaces\WorkspaceAccess;
-use App\Models\FolderPermission;
-use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class RemoveWorkspaceMember
 {
@@ -20,18 +17,11 @@ class RemoveWorkspaceMember
         abort_if($member->role === WorkspaceMember::ROLE_OWNER, 403);
         abort_if($member->user_id === $request->user()->id, 403);
 
-        self::detach($member, $workspace);
+        self::detach($member);
     }
 
-    public static function detach(WorkspaceMember $member, Workspace $workspace): void
+    public static function detach(WorkspaceMember $member): void
     {
-        DB::transaction(function () use ($member, $workspace) {
-            FolderPermission::query()
-                ->where('user_id', $member->user_id)
-                ->whereIn('folder_id', $workspace->folders()->select('id'))
-                ->delete();
-
-            $member->delete();
-        });
+        $member->delete();
     }
 }

@@ -4,13 +4,13 @@
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Workspace** | An owned space that groups links, domains, QR codes, members, permissions, and settings for a personal or team context. | Account, organisation, tenant |
+| **Workspace** | An owned space that groups links, domains, QR codes, members, and settings for a personal or team context. | Account, organisation, tenant |
 | **Member** | A user who belongs to a workspace. | Collaborator, teammate |
 | **Workspace Role** | A member's baseline permission level within a workspace. | User role, account role |
 | **Owner** | The workspace role that controls all workspace data, settings, members, domains, and ownership-level actions. | Super admin, creator |
 | **Admin** | The workspace role that manages members, domains, folders, links, QR codes, and settings without owning the workspace. | Manager, administrator |
-| **Editor** | The workspace role that creates and changes links and QR codes in accessible folders. | Contributor, member |
-| **Viewer** | The workspace role that reads links, QR codes, and analytics in accessible folders. | Reader, guest |
+| **Editor** | The workspace role that creates and changes links and QR codes. | Contributor, member |
+| **Viewer** | The workspace role that reads all links, QR codes, and analytics in the workspace without creating or changing them. | Reader, guest |
 | **Workspace Settings** | Settings that affect one workspace and the links, domains, members, and defaults inside it. | Account settings, organisation settings |
 | **Instance Admin** | A user who administers the whole Openlink installation. | Super admin, system admin |
 | **Instance Admin Panel** | The administrative area for product settings that affect the whole Openlink installation. | System settings, global admin |
@@ -19,8 +19,7 @@
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Folder** | A shareable container used to organise links and control member access within a workspace. | Directory, collection, project |
-| **Folder Permission** | A member's access level for a folder. | Sharing permission, folder role |
+| **Folder** | A container used to organise links within a workspace. Folders do not grant or restrict access. | Directory, collection, project, permission group |
 | **Tag** | A label used to classify and find links without granting access to them. | Category, label |
 | **Invite Link** | A revocable link that lets anyone who opens it join a workspace with the link's role while the link is usable. | Invitation, invite, invite code, access request |
 
@@ -92,7 +91,7 @@
 - A **Short Link** combines exactly one **Domain** and exactly one **Slug** into one **Short URL**.
 - A **Short Link** has exactly one primary **Destination URL** and may have zero or one **Fallback URL**.
 - A **Short Link** may belong to zero or one **Folder** and may have zero or more **Tags**.
-- A **Folder** controls access through **Folder Permissions**; a **Tag** never grants access.
+- A **Folder** organises **Short Links** and does not grant access; a **Tag** never grants access. Access comes from **Workspace Role**.
 - A **QR Code** may attach to exactly one **Short Link** or carry one direct payload.
 - A **Scan** is a kind of successful **Visit** that starts from a **QR Code**.
 - **Smart Routing** belongs to a **Short Link**, and a **QR Code** attached to that short link inherits it.
@@ -108,7 +107,7 @@
 > **Dev:** "If the **Short Link** has **Smart Routing**, can a **QR Code** choose a different routing setup?"
 > **Domain expert:** "No. **Smart Routing** belongs to the **Short Link**. A **QR Code** is a named scannable entry point and inherits the short link's routing while keeping separate **Scan** analytics."
 > **Dev:** "Should a **Tag** restrict who can see that short link?"
-> **Domain expert:** "No. A **Folder** and its **Folder Permissions** control access. A **Tag** is only for classification and discovery."
+> **Domain expert:** "No. **Workspace Role** controls access. A **Folder** only organises links. A **Tag** is only for classification and discovery."
 > **Dev:** "Can a **Connected Identity** remain visible after the user changes email?"
 > **Domain expert:** "Yes, but it stops being a valid sign-in method until its provider email matches the user's **Verified Email** again."
 
@@ -119,7 +118,7 @@
 - "Redirect URL" is ambiguous. Use **Destination URL** for the successful target and **Fallback URL** for the unavailable-link target.
 - "Click" is not the canonical analytics term. Use **Visit** for successful short link resolution and **Scan** for successful QR-code-started resolution.
 - "Custom domain" should not be used as the canonical product term. Use **Domain** for a workspace-owned hostname, **Default Domain** for the instance-level fallback, and **Preferred Domain** for the workspace default.
-- "Role" is overloaded. Use **Workspace Role** for Owner/Admin/Editor/Viewer and **Folder Permission** for Can view/Can edit/Can manage.
+- "Role" is overloaded. Use **Workspace Role** for Owner/Admin/Editor/Viewer. Folders do not have their own access levels.
 - "Owner" is a workspace role, not the same concept as **Instance Admin**.
 - "Social account" and "OAuth account" should not name the product concept. Use **Connected Identity**; implementation details may still use legacy table names where already recorded.
 - "Tracking" can imply visitor identification. Use **Analytics** and keep the definition tied to aggregate, non-identifying measurements.

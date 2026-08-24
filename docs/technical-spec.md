@@ -43,7 +43,6 @@ Primary records:
 - workspace_members
 - invite_links
 - folders
-- folder_permissions
 - tags
 - short_links
 - short_link_tags
@@ -95,9 +94,9 @@ Traffic routing records such as CNAME or A are deployment-specific and separate 
 
 Use Laravel policies for workspace, folder, domain, short link, QR code, and analytics access.
 
-Workspace roles define baseline access. Folder permissions constrain access to folder-contained links for Editor and Viewer roles. Tags must never be used for authorization.
+Workspace roles define access. A Viewer can read every folder, short link, QR code, and analytics report in the workspace, and cannot create or change them. Folders organise links and are not an authorization boundary. Tags must never be used for authorization.
 
-Owner and Admin can see all folders in a workspace. Other members only see folders granted to them.
+Owner, Admin, Editor, and Viewer can see all folders in a workspace.
 
 ## Settings
 
@@ -115,7 +114,6 @@ The authenticated app should prioritize dense, clear workflows:
 - Link detail with analytics and QR codes
 - QR code create/edit/export flow
 - Domain management and verification screen
-- Folder permissions screen
 - Workspace members and invite links
 - Workspace settings
 - Instance admin panel
@@ -127,7 +125,6 @@ Avoid a marketing-style landing page as the primary product surface. The first s
 Start with feature tests for the domain rules:
 
 - Workspace membership and role authorization
-- Folder permissions and invisibility
 - Domain verification gating
 - Slug uniqueness per domain
 - Reserved slugs and prefixes

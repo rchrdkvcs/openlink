@@ -8,7 +8,7 @@ Openlink is a self-hosted URL management application for personal and team use. 
 ## Features
 
 - Short links on the instance domain or verified custom domains
-- Workspaces, members, folders, tags, and folder-level permissions
+- Workspaces, members, folders, and tags
 - Scheduled, expiring, password-protected, and visit-limited links
 - Customizable, trackable QR codes
 - Privacy-conscious link and QR code analytics

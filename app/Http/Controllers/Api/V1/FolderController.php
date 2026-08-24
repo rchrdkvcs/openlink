@@ -7,10 +7,8 @@ use App\Actions\Workspaces\WorkspacePayloads;
 use App\Actions\Workspaces\WorkspaceViewFactory;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
-use App\Models\FolderPermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class FolderController extends Controller
 {
@@ -58,26 +56,5 @@ class FolderController extends Controller
         $folder->delete();
 
         return response()->json(['message' => 'Folder deleted.']);
-    }
-
-    public function storePermission(Request $request, Folder $folder, WorkspaceAccess $access): JsonResponse
-    {
-        $workspace = $access->requireManagedFolder($request, $folder);
-
-        $data = $request->validate([
-            'user_id' => ['required', Rule::exists('workspace_members', 'user_id')->where('workspace_id', $workspace->id)],
-            'permission' => ['required', Rule::in([
-                FolderPermission::CAN_VIEW,
-                FolderPermission::CAN_EDIT,
-                FolderPermission::CAN_MANAGE,
-            ])],
-        ]);
-
-        $permission = FolderPermission::query()->updateOrCreate([
-            'folder_id' => $folder->id,
-            'user_id' => $data['user_id'],
-        ], ['permission' => $data['permission']]);
-
-        return response()->json(['data' => $permission], 201);
     }
 }

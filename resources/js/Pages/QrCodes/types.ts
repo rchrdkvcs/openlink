@@ -4,9 +4,13 @@ export type QrCodeRecord = {
   id: number;
   name: string;
   token: string;
-  payload_type: string;
-  payload: Record<string, any>;
-  content: string;
+  payload_type: string | null;
+  payload: Record<string, any> | null;
+  content: string | null;
+  is_direct: boolean;
+  short_link_id: number | null;
+  short_link: ShortLinkOption | null;
+  scans: number;
   size: number;
   foreground_color: string;
   background_color: string;
@@ -20,6 +24,8 @@ export type QrCodeRecord = {
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+export type ShortLinkOption = { id: number; short_url: string; destination_url: string };
 
 export type PayloadDescriptor = {
   label: string;

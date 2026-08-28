@@ -56,7 +56,7 @@
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **QR Code** | A named scannable entry point that either attaches to a short link or carries a direct payload. | QR image, code |
+| **QR Code** | A Workspace-owned named scannable entry point that either links to a Short Link or carries a direct payload. | QR image, code |
 | **Scan** | A successful resolution that starts from a QR code and sends a visitor to the destination URL. | QR click, QR hit |
 | **Smart Routing** | The short link capability that chooses a destination URL from ordered routing rules. | Conditional redirects, routing engine, dynamic rules |
 | **Routing Rule** | An ordered condition attached to a short link that can send matching visitors to a specific destination URL. | Rule, redirect rule, target rule |

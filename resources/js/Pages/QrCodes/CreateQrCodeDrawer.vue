@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import { ArrowRight, QrCode } from '@lucide/vue';
+import { ArrowRight, Link2, QrCode } from '@lucide/vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
 import Field from '@/Components/ui/Field.vue';
 
 import PayloadFields from './PayloadFields.vue';
-import type { PayloadDescriptors } from './types';
+import type { PayloadDescriptors, ShortLinkOption } from './types';
 import { payloadHint, payloadIcon } from './types';
 
 defineProps<{
   show: boolean;
-  form: InertiaForm<{ name: string; payload_type: string; payload: Record<string, any> }>;
+  form: InertiaForm<{
+    name: string;
+    target_type: string;
+    short_link_id: string | number;
+    payload_type: string;
+    payload: Record<string, any>;
+  }>;
   payloadTypes: Record<string, string>;
   payloadDescriptors: PayloadDescriptors;
+  shortLinks: ShortLinkOption[];
 }>();
 
 const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
@@ -40,14 +47,28 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
           <p class="mb-2 text-[13px] font-medium text-foreground">Type</p>
           <div class="flex flex-wrap gap-1.5" role="radiogroup" aria-label="QR code type">
             <button
+              type="button"
+              role="radio"
+              :aria-checked="form.target_type === 'short_link'"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] transition-colors"
+              :class="
+                form.target_type === 'short_link'
+                  ? 'border-accent/60 bg-accent/15 font-medium text-foreground'
+                  : 'text-muted hover:border-accent/40 hover:bg-accent/5 hover:text-foreground'
+              "
+              @click="emit('setType', 'short_link')"
+            >
+              <Link2 class="h-3.5 w-3.5" /> Short Link
+            </button>
+            <button
               v-for="(label, type) in payloadTypes"
               :key="type"
               type="button"
               role="radio"
-              :aria-checked="form.payload_type === type"
+              :aria-checked="form.target_type === 'direct' && form.payload_type === type"
               class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] transition-colors"
               :class="
-                form.payload_type === type
+                form.target_type === 'direct' && form.payload_type === type
                   ? 'border-accent/60 bg-accent/15 font-medium text-foreground'
                   : 'text-muted hover:border-accent/40 hover:bg-accent/5 hover:text-foreground'
               "
@@ -56,17 +77,33 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
               <component
                 :is="payloadIcon(type as string)"
                 class="h-3.5 w-3.5"
-                :class="form.payload_type === type ? 'text-accent' : ''"
+                :class="form.target_type === 'direct' && form.payload_type === type ? 'text-accent' : ''"
               />
               {{ label }}
             </button>
           </div>
           <p class="mt-2 text-xs" :class="form.errors.payload_type ? 'text-danger' : 'text-faint'">
-            {{ form.errors.payload_type ?? payloadHint(form.payload_type, payloadDescriptors) }}
+            {{
+              form.errors.short_link_id ??
+              form.errors.payload_type ??
+              (form.target_type === 'short_link'
+                ? 'Scans use the Short Link lifecycle, routing and analytics.'
+                : payloadHint(form.payload_type, payloadDescriptors))
+            }}
           </p>
         </div>
 
+        <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
+          <select v-model="form.short_link_id" class="h-9">
+            <option value="">Select a Short Link…</option>
+            <option v-for="link in shortLinks" :key="link.id" :value="link.id">
+              {{ link.short_url }} → {{ link.destination_url }}
+            </option>
+          </select>
+        </Field>
+
         <PayloadFields
+          v-if="form.target_type === 'direct'"
           v-model="form.payload"
           :type="form.payload_type"
           :descriptors="payloadDescriptors"

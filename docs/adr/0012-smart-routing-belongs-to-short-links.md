@@ -1,6 +1,6 @@
 # Smart routing belongs to short links
 
-Smart Routing is a capability of a Short Link, not of an individual QR Code: QR codes remain named scannable entry points that inherit the short link's routing while keeping scan attribution. Routing Rules are ordered and the first matching enabled rule chooses the Destination URL; split tests are rules with weighted variants, assigned from the daily visitor hash so the experience is stable within a day without creating a long-term visitor profile. Routing conditions are stored as versioned JSON and evaluated from the same resolution context captured for analytics, so routing decisions and analytics dimensions cannot drift apart.
+Smart Routing is a capability of a Short Link, not of an individual QR Code: QR Codes linked from the dedicated QR Codes area inherit the Short Link's routing while keeping scan attribution. Routing Rules are ordered and the first matching enabled rule chooses the Destination URL; split tests are rules with weighted variants, assigned from the daily visitor hash so the experience is stable within a day without creating a long-term visitor profile. Routing conditions are stored as versioned JSON and evaluated from the same resolution context captured for analytics, so routing decisions and analytics dimensions cannot drift apart.
 
 **Consequences**
 

@@ -119,9 +119,9 @@ When the visit limit is reached, the link becomes expired.
 
 ## QR Codes
 
-A QR code is a named scannable entry point attached to a short link. Multiple QR codes can point to the same short link, and each QR code has its own scan analytics.
+A QR Code is a Workspace-owned named scannable entry point managed from the QR Codes area. It can link to one Short Link or carry a native direct payload. Multiple QR Codes can link to the same Short Link, and each linked QR Code has its own scan analytics.
 
-Each QR code encodes a trackable entry URL on the short link's domain (`https://{domain}/qr/{token}`), never on the application host.
+Each linked QR Code encodes a trackable entry URL on the Short Link's Domain (`https://{domain}/qr/{token}`). Direct-payload QR Codes encode their native payload and must be re-exported after their content changes.
 
 A direct-payload QR code is a named QR code that carries a native payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported direct-payload QR code images encode that native payload directly so device scanners can act on it without opening an Openlink page.
 

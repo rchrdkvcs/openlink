@@ -100,14 +100,12 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
 
-        Route::post('/short-links/{shortLink}/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
+        Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
         Route::get('/qr-codes/{qrCode}', [QrCodeController::class, 'show'])->name('qr-codes.show');
         Route::patch('/qr-codes/{qrCode}', [QrCodeController::class, 'update'])->name('qr-codes.update');
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
         Route::get('/qr-codes/{qrCode}/preview', [QrCodeController::class, 'preview'])->name('qr-codes.preview');
         Route::get('/qr-codes/{qrCode}/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
-
-        Route::post('/qr-codes', [QrCodeController::class, 'storeDirect'])->name('qr-codes.store-direct');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
     });

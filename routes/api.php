@@ -74,7 +74,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('links.archive');
             Route::delete('/links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('links.destroy');
 
-            Route::post('/links/{shortLink}/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
+            Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
             Route::patch('/qr-codes/{qrCode}', [QrCodeController::class, 'update'])->name('qr-codes.update');
             Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
             Route::get('/qr-codes/{qrCode}/preview', [QrCodeController::class, 'preview'])->name('qr-codes.preview');

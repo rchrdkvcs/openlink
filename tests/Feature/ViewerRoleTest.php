@@ -71,7 +71,7 @@ class ViewerRoleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('QrCodes/Show')
                 ->where('qr.token', 'viewer-qr')
-                ->where('link.slug', 'campaign'));
+                ->where('qr.short_link.slug', 'campaign'));
 
         $this->actingAsViewer($viewer, $workspace)
             ->get(route('qr-codes.export', [$qrCode, 'svg']))

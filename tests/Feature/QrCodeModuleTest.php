@@ -42,7 +42,7 @@ class QrCodeModuleTest extends TestCase
         [, $user] = $this->workspace();
 
         $this->actingAs($user)
-            ->post(route('qr-codes.store-direct'), [
+            ->post(route('qr-codes.store'), [
                 'name' => 'Support email',
                 'payload_type' => 'email',
                 'payload' => [

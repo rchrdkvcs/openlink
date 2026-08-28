@@ -5,12 +5,12 @@ Openlink is a URL management product for creating, organising, sharing, and trac
 ## Language
 
 **Workspace**:
-An owned space that groups links, domains, QR codes, members, permissions, and settings for a personal or team context. Every short link belongs to exactly one workspace.
+An owned space that groups links, domains, QR codes, members, and settings for a personal or team context. Every short link belongs to exactly one workspace.
 _Avoid_: Account, organisation, tenant
 
 **Folder**:
-A shareable container used to organise links and control member access within a workspace. Links inherit access from their folder.
-_Avoid_: Directory, collection, project
+A container used to organise links within a workspace. Folders do not grant or restrict access.
+_Avoid_: Directory, collection, project, permission group
 
 **Tag**:
 A label used to classify and find links without granting access to them.
@@ -129,16 +129,12 @@ The workspace role that manages members, domains, folders, links, QR codes, and 
 _Avoid_: Manager, administrator
 
 **Editor**:
-The workspace role that creates and changes links and QR codes in accessible folders.
+The workspace role that creates and changes links and QR codes.
 _Avoid_: Contributor, member
 
 **Viewer**:
-The workspace role that reads links, QR codes, and analytics in accessible folders.
+The workspace role that reads all links, QR codes, and analytics in the workspace without creating or changing them.
 _Avoid_: Reader, guest
-
-**Folder Permission**:
-A member's access level for a folder. Folder permissions are Can view, Can edit, and Can manage.
-_Avoid_: Sharing permission, folder role
 
 **Instance Admin Panel**:
 The administrative area for product settings that affect the whole Openlink installation.

@@ -18,6 +18,7 @@ const props = defineProps<{
   qr: QrCodeRecord;
   payloadTypes: Record<string, string>;
   payloadDescriptors: PayloadDescriptors;
+  canEditWorkspace: boolean;
 }>();
 
 const STYLES = [
@@ -84,6 +85,10 @@ function exportUrl(format: 'png' | 'svg') {
 }
 
 function save() {
+  if (!props.canEditWorkspace) {
+    return;
+  }
+
   form
     .transform((data) => ({
       ...data,
@@ -368,7 +373,7 @@ async function copyPublicUrl() {
               </div>
             </div>
 
-            <div class="flex items-center justify-between border-t pt-4">
+            <div v-if="canEditWorkspace" class="flex items-center justify-between border-t pt-4">
               <Button variant="danger" type="button" size="sm" @click="destroy">
                 <Trash2 class="h-3.5 w-3.5" /> Delete
               </Button>

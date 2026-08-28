@@ -21,8 +21,6 @@ class WorkspaceViewFactory
         ], true);
 
         $folders = $workspace->folders()
-            ->when(! $canEdit, fn ($query) => $query->whereHas('permissions', fn ($query) => $query->where('user_id', $user->id)))
-            ->with('permissions.user:id,name,email')
             ->orderBy('name')
             ->get();
 

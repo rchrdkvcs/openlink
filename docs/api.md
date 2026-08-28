@@ -63,7 +63,7 @@ X-Workspace-Id: 42
 
 ## Endpoints
 
-All routes below require `Authorization: Bearer <token>` and a verified email unless explicitly noted. Workspace routes operate in the workspace selected by `X-Workspace-Id`. Permissions match the web interface exactly (workspace roles Owner/Admin/Editor/Viewer plus folder permissions).
+All routes below require `Authorization: Bearer <token>` and a verified email unless explicitly noted. Workspace routes operate in the workspace selected by `X-Workspace-Id`. Permissions match the web interface exactly (workspace roles Owner/Admin/Editor/Viewer).
 
 ### Profile
 
@@ -132,15 +132,14 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 
 Domain `status` is one of `pending_verification`, `failed_verification`, `ownership_verified` (TXT found, DNS not yet pointing to the server), `active` (serves short links), or `disabled`. An `ownership_verified` domain also becomes `active` when a real request reaches the server on that hostname. Payloads include `dns_record` (`type` + `value` the domain should point to, from the instance `dns_target` setting, falling back to the default domain) and `dns_check_error` when the pointing check fails.
 
-### Folders, tags, permissions
+### Folders and tags
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/v1/folders` | List accessible folders (with permissions) |
+| `GET` | `/api/v1/folders` | List folders |
 | `POST` | `/api/v1/folders` | Create a folder (`name`) |
 | `PATCH` | `/api/v1/folders/{id}` | Rename |
 | `DELETE` | `/api/v1/folders/{id}` | Delete (links become unfiled) |
-| `POST` | `/api/v1/folders/{id}/permissions` | Grant a member access (`user_id`, `permission`: `can_view`/`can_edit`/`can_manage`) |
 | `GET` | `/api/v1/tags` | List tags |
 | `POST` | `/api/v1/tags` | Create a tag (`name`) |
 
@@ -186,7 +185,7 @@ The QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through 
 Responses follow Laravel conventions, always as JSON on `/api/*`:
 
 - `401` missing or invalid token
-- `403` no accessible workspace, insufficient role, or folder permission denied
+- `403` no accessible workspace, or insufficient role
 - `404` unknown resource (or resource outside the active workspace)
 - `410` invite link expired, revoked, or out of uses
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`

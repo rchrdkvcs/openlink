@@ -36,6 +36,7 @@ const props = defineProps<{
   domains: Domain[];
   folders: Folder[];
   routingSchema: RoutingSchema;
+  canEditWorkspace: boolean;
 }>();
 
 const emit = defineEmits<{ close: []; submit: []; submitQr: [] }>();
@@ -110,7 +111,7 @@ function qrPreviewUrl(qr: Qr) {
         </button>
       </div>
 
-      <form v-if="tab === 'link'" class="grid gap-5" @submit.prevent="emit('submit')">
+      <form v-if="tab === 'link'" class="grid gap-5" @submit.prevent="canEditWorkspace && emit('submit')">
         <div>
           <p class="mb-1.5 text-[13px] font-medium text-foreground">Destination URL</p>
           <DestinationUrlField v-model="editForm.destination_url" :error="editForm.errors.destination_url" />
@@ -199,23 +200,27 @@ function qrPreviewUrl(qr: Qr) {
           </OptionRow>
         </TransitionGroup>
 
-        <OptionChips :options="availableOptions" @add="addOption" />
+        <OptionChips v-if="canEditWorkspace" :options="availableOptions" @add="addOption" />
 
-        <div class="flex justify-end">
+        <div v-if="canEditWorkspace" class="flex justify-end">
           <Button :loading="editForm.processing">Save changes</Button>
         </div>
       </form>
 
-      <form v-if="tab === 'routing'" class="grid gap-5" @submit.prevent="emit('submit')">
+      <form v-if="tab === 'routing'" class="grid gap-5" @submit.prevent="canEditWorkspace && emit('submit')">
         <RoutingRulesEditor v-model="editForm.routing_rules" :errors="editForm.errors" :schema="routingSchema" />
 
-        <div class="flex justify-end">
+        <div v-if="canEditWorkspace" class="flex justify-end">
           <Button :loading="editForm.processing">Save changes</Button>
         </div>
       </form>
 
       <div v-if="tab === 'qr'" class="grid gap-5">
-        <form class="flex items-end gap-2 rounded-xl border bg-surface p-3" @submit.prevent="emit('submitQr')">
+        <form
+          v-if="canEditWorkspace"
+          class="flex items-end gap-2 rounded-xl border bg-surface p-3"
+          @submit.prevent="emit('submitQr')"
+        >
           <Field label="New QR code" :error="qrForm.errors.name" class="flex-1">
             <input v-model="qrForm.name" class="h-9" placeholder="Poster, badge, flyer…" />
           </Field>
@@ -243,7 +248,7 @@ function qrPreviewUrl(qr: Qr) {
                   :href="route('qr-codes.show', qr.token)"
                   class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated"
                 >
-                  <Settings2 class="h-3 w-3" /> Customize
+                  <Settings2 class="h-3 w-3" /> {{ canEditWorkspace ? 'Customize' : 'View' }}
                 </Link>
                 <a
                   :href="route('qr-codes.export', [qr.token, 'svg'])"

@@ -15,11 +15,6 @@ class Folder extends Model
         return $this->belongsTo(Workspace::class);
     }
 
-    public function permissions(): HasMany
-    {
-        return $this->hasMany(FolderPermission::class);
-    }
-
     public function shortLinks(): HasMany
     {
         return $this->hasMany(ShortLink::class);

@@ -15,6 +15,7 @@ import type { Qr, ShortLink } from '../Links/types';
 const props = defineProps<{
   qr: Qr;
   link: ShortLink;
+  canEditWorkspace: boolean;
 }>();
 
 const STYLES = [
@@ -73,6 +74,10 @@ function exportUrl(format: 'png' | 'svg') {
 }
 
 function save() {
+  if (!props.canEditWorkspace) {
+    return;
+  }
+
   form
     .transform((data) => ({
       ...data,
@@ -319,7 +324,7 @@ async function copyPublicUrl() {
               </Field>
             </div>
 
-            <div class="flex items-center justify-between border-t pt-4">
+            <div v-if="canEditWorkspace" class="flex items-center justify-between border-t pt-4">
               <Button variant="danger" type="button" size="sm" @click="destroy">
                 <Trash2 class="h-3.5 w-3.5" /> Delete
               </Button>

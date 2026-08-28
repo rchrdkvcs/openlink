@@ -6,7 +6,6 @@ use App\Actions\Analytics\BuildAnalyticsReport;
 use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\Folder;
-use App\Models\FolderPermission;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Models\User;
@@ -166,9 +165,9 @@ class AnalyticsTest extends TestCase
         $this->assertSame(1, $byMetric['scans']);
     }
 
-    public function test_folder_scoped_member_only_sees_accessible_link_analytics(): void
+    public function test_viewer_sees_analytics_for_links_in_folders(): void
     {
-        [$workspace, $domain, $owner] = $this->workspaceAndDomain();
+        [$workspace, $domain] = $this->workspaceAndDomain();
         $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Private']);
         $secretLink = $this->link($workspace, $domain, 'secret', ['folder_id' => $folder->id]);
         $openLink = $this->link($workspace, $domain, 'open');
@@ -179,16 +178,14 @@ class AnalyticsTest extends TestCase
         $viewer = User::factory()->create();
         WorkspaceMember::create(['workspace_id' => $workspace->id, 'user_id' => $viewer->id, 'role' => WorkspaceMember::ROLE_VIEWER]);
 
-        $response = $this->actingAs($viewer)->withHeader('Host', 'localhost')->get('/analytics');
-
-        $response->assertOk();
-        $summary = $response->viewData('page')['props']['report']['summary'];
-        $this->assertSame(1, $summary['visits']);
-
-        FolderPermission::create(['folder_id' => $folder->id, 'user_id' => $viewer->id, 'permission' => 'view']);
-
-        $response = $this->actingAs($viewer)->withHeader('Host', 'localhost')->get('/analytics');
-        $this->assertSame(2, $response->viewData('page')['props']['report']['summary']['visits']);
+        $this->actingAs($viewer)
+            ->withHeader('Host', 'localhost')
+            ->get('/analytics')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('report.summary.visits', 2)
+                ->has('filterOptions.links', 2)
+                ->has('filterOptions.folders', 1));
     }
 
     public function test_analytics_page_renders_with_report_and_filter_options(): void

@@ -62,7 +62,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
             Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
             Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
-            Route::post('/folders/{folder}/permissions', [FolderController::class, 'storePermission'])->name('folder-permissions.store');
 
             Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
             Route::post('/tags', [TagController::class, 'store'])->name('tags.store');

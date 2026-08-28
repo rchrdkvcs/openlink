@@ -36,6 +36,19 @@ const gearClass = computed(() =>
 function canManage(workspace: Workspace) {
   return ['owner', 'admin'].includes(workspace.pivot?.role ?? '');
 }
+
+const switchDestination = computed(() => {
+  const sections = [
+    ['links.*', 'links.index'],
+    ['qr-codes.*', 'qr-codes.index'],
+    ['analytics.*', 'analytics.index'],
+    ['domains.*', 'domains.index'],
+    ['members.*', 'members.index'],
+    ['settings.*', 'settings.index'],
+  ];
+
+  return sections.find(([pattern]) => route().current(pattern))?.[1] ?? 'dashboard';
+});
 </script>
 
 <template>
@@ -65,6 +78,8 @@ function canManage(workspace: Workspace) {
           :href="route('workspaces.switch', workspace.id)"
           method="post"
           as="button"
+          :data="{ destination: switchDestination }"
+          :preserve-state="false"
           class="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 text-left text-[13px] text-muted hover:text-foreground"
         >
           <WorkspaceAvatar :name="workspace.name" :icon="workspace.icon" :color="workspace.color" size="sm" />

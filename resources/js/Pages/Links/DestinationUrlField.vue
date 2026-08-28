@@ -2,7 +2,7 @@
 import { Globe } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
-import { isLikelyUrl } from '@/lib/links';
+import { isLikelyUrl, originOf } from '@/lib/links';
 
 const props = defineProps<{
   modelValue: string;
@@ -18,9 +18,13 @@ watch(
   () => (faviconFailed.value = false),
 );
 
-const faviconSrc = computed(() =>
-  isLikelyUrl(props.modelValue) && !faviconFailed.value ? route('favicons.show', { url: props.modelValue }) : null,
-);
+const faviconSrc = computed(() => {
+  const origin = originOf(props.modelValue);
+
+  return isLikelyUrl(props.modelValue) && origin && !faviconFailed.value
+    ? route('favicons.show', { url: origin })
+    : null;
+});
 </script>
 
 <template>

@@ -31,3 +31,13 @@ export function hostOf(value: string): string {
     return '';
   }
 }
+
+export function originOf(value: string): string | null {
+  try {
+    const url = new URL(value);
+
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : null;
+  } catch {
+    return null;
+  }
+}

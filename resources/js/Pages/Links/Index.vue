@@ -29,6 +29,7 @@ import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { originOf } from '@/lib/links';
 
 import CreateLinkDrawer from './CreateLinkDrawer.vue';
 import EditLinkDrawer from './EditLinkDrawer.vue';
@@ -158,7 +159,9 @@ function destinationHost(url: string) {
 }
 
 function faviconUrl(url: string) {
-  return route('favicons.show', { url });
+  const origin = originOf(url);
+
+  return origin ? route('favicons.show', { url: origin }) : null;
 }
 
 function hasFavicon(url: string) {

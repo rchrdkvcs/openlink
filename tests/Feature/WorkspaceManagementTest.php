@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class WorkspaceManagementTest extends TestCase
@@ -124,6 +125,29 @@ class WorkspaceManagementTest extends TestCase
         $this->assertSame('megaphone', $workspace->icon);
         $this->assertSame('teal', $workspace->color);
         $this->assertSame($workspace->id, session('workspace_id'));
+    }
+
+    public function test_switching_workspace_leaves_a_resource_page_and_refreshes_following_pages(): void
+    {
+        $user = User::factory()->create();
+        $current = $this->workspaceFor($user, 'Current', 'current');
+        $other = $this->workspaceFor($user, 'Other', 'other');
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $current->id])
+            ->from('/qr-codes/old-workspace-code')
+            ->post(route('workspaces.switch', $other), ['destination' => 'qr-codes.index'])
+            ->assertRedirect(route('qr-codes.index'));
+
+        $this->assertSame($other->id, session('workspace_id'));
+
+        foreach (['dashboard', 'links.index', 'qr-codes.index', 'analytics.index', 'domains.index', 'members.index'] as $route) {
+            $this->get(route($route))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('currentWorkspace.id', $other->id)
+                    ->where('currentWorkspace.name', 'Other'));
+        }
     }
 
     public function test_deleting_a_non_current_workspace_keeps_the_current_selection(): void

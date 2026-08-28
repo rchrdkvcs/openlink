@@ -29,9 +29,21 @@ class WorkspaceController extends Controller
 
     public function switch(Request $request, Workspace $workspace, WorkspaceAccess $access): RedirectResponse
     {
+        $data = $request->validate([
+            'destination' => ['nullable', 'string', Rule::in([
+                'dashboard',
+                'links.index',
+                'qr-codes.index',
+                'analytics.index',
+                'domains.index',
+                'members.index',
+                'settings.index',
+            ])],
+        ]);
+
         $access->selectCurrent($request, $workspace);
 
-        return back();
+        return redirect()->route($data['destination'] ?? 'dashboard');
     }
 
     public function manage(Request $request, Workspace $workspace, WorkspaceAccess $access): JsonResponse

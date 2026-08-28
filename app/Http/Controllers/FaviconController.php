@@ -2,14 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
 class FaviconController extends Controller
 {
+    private const POSITIVE_CACHE_SECONDS = 604800;
+
+    private const NEGATIVE_CACHE_SECONDS = 3600;
+
     private const STANDARD_PATHS = [
         '/favicon.ico',
         '/favicon.png',
@@ -39,15 +45,79 @@ class FaviconController extends Controller
             abort(404);
         }
 
-        $response = $this->firstImageResponse($data['url']);
+        $origin = $this->originUrl($data['url']);
 
-        if (! $response || ! $response->ok() || ! $this->isImage($response)) {
-            abort(404);
+        if (! $origin) {
+            return $this->notFoundResponse();
         }
 
-        return response($response->body(), 200, [
-            'Cache-Control' => 'private, max-age=86400',
-            'Content-Type' => $this->contentType($response),
+        $favicon = $this->cachedFavicon($origin, $data['url']);
+
+        if (! $favicon['found']) {
+            return $this->notFoundResponse();
+        }
+
+        return response($favicon['body'], 200, [
+            'Cache-Control' => 'private, max-age='.self::POSITIVE_CACHE_SECONDS,
+            'Content-Type' => $favicon['content_type'],
+        ]);
+    }
+
+    /** @return array{found: bool, body?: string, content_type?: string} */
+    private function cachedFavicon(string $origin, string $destinationUrl): array
+    {
+        $key = 'favicons:v1:'.hash('sha256', $origin);
+        $cached = Cache::get($key);
+
+        if (is_array($cached) && isset($cached['found'])) {
+            return $cached;
+        }
+
+        try {
+            return Cache::lock($key.':lock', 30)->block(5, function () use ($key, $destinationUrl): array {
+                $cached = Cache::get($key);
+
+                if (is_array($cached) && isset($cached['found'])) {
+                    return $cached;
+                }
+
+                return $this->resolveAndCache($key, $destinationUrl);
+            });
+        } catch (LockTimeoutException) {
+            $cached = Cache::get($key);
+
+            return is_array($cached) && isset($cached['found'])
+                ? $cached
+                : $this->resolveAndCache($key, $destinationUrl);
+        }
+    }
+
+    /** @return array{found: bool, body?: string, content_type?: string} */
+    private function resolveAndCache(string $key, string $destinationUrl): array
+    {
+        $response = $this->firstImageResponse($destinationUrl);
+
+        if (! $response || ! $response->ok() || ! $this->isImage($response)) {
+            $favicon = ['found' => false];
+            Cache::put($key, $favicon, self::NEGATIVE_CACHE_SECONDS);
+
+            return $favicon;
+        }
+
+        $favicon = [
+            'found' => true,
+            'body' => $response->body(),
+            'content_type' => $this->contentType($response),
+        ];
+        Cache::put($key, $favicon, self::POSITIVE_CACHE_SECONDS);
+
+        return $favicon;
+    }
+
+    private function notFoundResponse(): Response
+    {
+        return response('', 404, [
+            'Cache-Control' => 'private, max-age='.self::NEGATIVE_CACHE_SECONDS,
         ]);
     }
 
@@ -300,7 +370,13 @@ class FaviconController extends Controller
 
         $parts = parse_url($url);
 
-        return strtolower((string) $parts['scheme']).'://'.$parts['host'];
+        $origin = strtolower((string) $parts['scheme']).'://'.strtolower((string) $parts['host']);
+
+        if (isset($parts['port'])) {
+            $origin .= ':'.$parts['port'];
+        }
+
+        return $origin;
     }
 
     private function isAllowedUrl(string $url): bool

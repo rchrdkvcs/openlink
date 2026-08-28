@@ -37,10 +37,6 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
     routing_rules: [] as RoutingRuleDraft[],
   });
 
-  const qrForm = useForm({
-    name: '',
-  });
-
   watch(selectedLink, (link) => {
     if (!link) {
       return;
@@ -60,7 +56,6 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
       routing_rules: cloneRoutingRules(link.routing_rules ?? []),
     });
     editForm.reset();
-    qrForm.reset();
   });
 
   watch(
@@ -102,15 +97,6 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
       .patch(route('short-links.update', selectedLink.value.id), { preserveScroll: true });
   }
 
-  function submitQr() {
-    if (!selectedLink.value) {
-      return;
-    }
-
-    // The server redirects to the QR studio page for customization.
-    qrForm.post(route('qr-codes.store', selectedLink.value.id));
-  }
-
   function archiveLink(link: ShortLink) {
     useForm({}).post(route('short-links.archive', link.id), { preserveScroll: true });
   }
@@ -148,10 +134,8 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
     usableDomains,
     linkForm,
     editForm,
-    qrForm,
     submitLink,
     updateLink,
-    submitQr,
     archiveLink,
     deleteLink,
     copyShortUrl,

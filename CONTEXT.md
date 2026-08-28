@@ -89,7 +89,7 @@ A successful resolution that starts from a QR code and sends a visitor to the de
 _Avoid_: QR click, QR hit
 
 **QR Code**:
-A named scannable entry point. A QR Code can be attached to a short link, where scans enter through the short link's domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported short-link QR Code images encode a stable Openlink URL so their served destination can be changed later without replacing the image. Exported direct-payload QR Code images encode the native payload so device scanners can handle the QR Code directly.
+A Workspace-owned, named scannable entry point managed from the QR Codes area. A QR Code can be linked to a Short Link, where scans enter through the Short Link's Domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported linked QR Codes encode a stable Openlink URL so their served destination can be changed later without replacing the image. Exported direct-payload QR Codes encode the native payload so device scanners can handle them directly; changing such a payload requires re-exporting existing images.
 _Avoid_: QR image, code
 
 **Protected Link**:
@@ -97,7 +97,7 @@ A short link that requires a visitor to provide a password before it can resolve
 _Avoid_: Locked link, private link, password link
 
 **Smart Routing**:
-The short link capability that chooses a destination URL from ordered routing rules when a visitor resolves the short link. QR codes attached to the short link inherit its smart routing.
+The short link capability that chooses a destination URL from ordered routing rules when a visitor resolves the short link. QR Codes linked to the Short Link inherit its Smart Routing.
 _Avoid_: Conditional redirects, routing engine, dynamic rules
 
 **Routing Rule**:

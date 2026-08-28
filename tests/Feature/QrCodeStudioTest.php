@@ -54,7 +54,8 @@ class QrCodeStudioTest extends TestCase
         [, , $user, , $link] = $this->linkWithQrCode();
 
         $this->actingAs($user)
-            ->post(route('qr-codes.store', $link), [
+            ->post(route('qr-codes.store'), [
+                'short_link_id' => $link->id,
                 'name' => 'Booth banner',
                 'style' => 'dot',
                 'eye_style' => 'circle',
@@ -79,7 +80,8 @@ class QrCodeStudioTest extends TestCase
                 ->component('QrCodes/Show')
                 ->where('qr.token', $qrCode->token)
                 ->where('qr.public_url', 'https://go.example.test/qr/'.$qrCode->token)
-                ->has('link.short_url'));
+                ->where('qr.short_link.short_url', 'https://go.example.test/promo')
+                ->has('shortLinks'));
     }
 
     public function test_update_changes_settings_and_manages_the_logo(): void
@@ -138,7 +140,7 @@ class QrCodeStudioTest extends TestCase
 
         $this->actingAs($user)
             ->delete(route('qr-codes.destroy', $qrCode))
-            ->assertRedirect(route('links.index'));
+            ->assertRedirect(route('qr-codes.index'));
 
         $this->assertDatabaseMissing('qr_codes', ['id' => $qrCode->id]);
         Storage::assertMissing($logoPath);
@@ -163,6 +165,61 @@ class QrCodeStudioTest extends TestCase
 
         $this->get('/qr/'.$qrCode->token)
             ->assertRedirect('https://example.com/destination');
+    }
+
+    public function test_qr_code_can_switch_between_a_short_link_and_a_direct_payload(): void
+    {
+        [$workspace, , $user, $qrCode, $link] = $this->linkWithQrCode();
+        $token = $qrCode->token;
+
+        $this->actingAs($user)->patch(route('qr-codes.update', $qrCode), [
+            'short_link_id' => null,
+            'payload_type' => 'url',
+            'payload' => ['url' => 'https://example.com/direct'],
+        ])->assertRedirect();
+
+        $qrCode->refresh();
+        $this->assertNull($qrCode->short_link_id);
+        $this->assertSame($workspace->id, $qrCode->workspace_id);
+        $this->assertSame('https://example.com/direct', $qrCode->content);
+        $this->assertSame($token, $qrCode->token);
+
+        $this->actingAs($user)->patch(route('qr-codes.update', $qrCode), [
+            'short_link_id' => $link->id,
+        ])->assertRedirect();
+
+        $qrCode->refresh();
+        $this->assertSame($link->id, $qrCode->short_link_id);
+        $this->assertNull($qrCode->payload_type);
+        $this->assertNull($qrCode->payload);
+        $this->assertNull($qrCode->content);
+        $this->assertSame($token, $qrCode->token);
+    }
+
+    public function test_qr_code_cannot_link_to_a_short_link_from_another_workspace(): void
+    {
+        [, , $user, $qrCode] = $this->linkWithQrCode();
+        $otherOwner = User::factory()->create();
+        $otherWorkspace = Workspace::create(['owner_id' => $otherOwner->id, 'name' => 'Other', 'slug' => 'other-target', 'settings' => []]);
+        $otherDomain = Domain::create([
+            'workspace_id' => $otherWorkspace->id,
+            'hostname' => 'other.example.test',
+            'status' => Domain::STATUS_ACTIVE,
+            'verification_token' => 'other-token',
+            'verified_at' => now(),
+        ]);
+        $otherLink = ShortLink::create([
+            'workspace_id' => $otherWorkspace->id,
+            'domain_id' => $otherDomain->id,
+            'slug' => 'private',
+            'destination_url' => 'https://example.com/private',
+        ]);
+
+        $this->actingAs($user)->patch(route('qr-codes.update', $qrCode), [
+            'short_link_id' => $otherLink->id,
+        ])->assertSessionHasErrors('short_link_id');
+
+        $this->assertNotSame($otherLink->id, $qrCode->fresh()->short_link_id);
     }
 
     public function test_api_update_and_destroy_mirror_the_web_flow(): void
@@ -212,6 +269,7 @@ class QrCodeStudioTest extends TestCase
             'destination_url' => 'https://example.com/destination',
         ]);
         $qrCode = $link->qrCodes()->create([
+            'workspace_id' => $workspace->id,
             'name' => 'Poster',
             'token' => 'studio-qr-token',
         ]);

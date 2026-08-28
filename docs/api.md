@@ -147,13 +147,13 @@ Domain `status` is one of `pending_verification`, `failed_verification`, `owners
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/api/v1/links/{id}/qr-codes` | Create a QR code for a link (`name`, optional `size`, `foreground_color`, `background_color`, `margin`, `error_correction`, `style` (`square`/`rounded`/`dot`), `eye_style` (`square`/`rounded`/`circle`), `background_transparent`, `logo` file upload) |
-| `PATCH` | `/api/v1/qr-codes/{token}` | Update a QR code (same fields as create, plus `remove_logo`) |
+| `POST` | `/api/v1/qr-codes` | Create a QR Code with `name` and exactly one target: `short_link_id`, or `payload_type` plus `payload`; accepts optional appearance fields |
+| `PATCH` | `/api/v1/qr-codes/{token}` | Update appearance or replace the target using `short_link_id`, or `payload_type` plus `payload` (`remove_logo` is also accepted) |
 | `DELETE` | `/api/v1/qr-codes/{token}` | Delete a QR code and its logo |
 | `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview; accepts the customization fields as query overrides for live previews |
 | `GET` | `/api/v1/qr-codes/{token}/export/{png\|svg}` | Download the QR code; accepts a `size` query override |
 
-The QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the domain selected for the link. When a logo is set, the effective error correction level is raised to at least quartile.
+A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the Domain selected for the Short Link. Direct-payload images encode their native content. When a logo is set, the effective error correction level is raised to at least quartile.
 
 ### Members and invite links
 

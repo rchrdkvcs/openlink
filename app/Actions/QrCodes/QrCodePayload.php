@@ -15,6 +15,7 @@ class QrCodePayload
     {
         return [
             'name' => [$creating ? 'required' : 'sometimes', 'string', 'max:120'],
+            'short_link_id' => ['sometimes', 'nullable', 'integer'],
             'size' => ['nullable', 'integer', 'min:128', 'max:4096'],
             'foreground_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'background_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
@@ -37,6 +38,16 @@ class QrCodePayload
             ...self::rules($creating),
             'payload_type' => [$creating ? 'required' : 'sometimes', 'string', 'in:'.implode(',', QrCode::PAYLOAD_TYPES)],
             'payload' => [$creating ? 'required' : 'sometimes', 'array'],
+        ];
+    }
+
+    /** Validation rules for the unified QR Code target. */
+    public static function unifiedRules(bool $creating = true): array
+    {
+        return [
+            ...self::rules($creating),
+            'payload_type' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', QrCode::PAYLOAD_TYPES)],
+            'payload' => ['sometimes', 'nullable', 'array'],
         ];
     }
 
@@ -63,6 +74,13 @@ class QrCodePayload
             'has_logo' => $qrCode->hasLogo(),
             'public_url' => $qrCode->publicUrl(),
             'is_direct' => $qrCode->hasDirectPayload(),
+            'short_link_id' => $qrCode->short_link_id,
+            'short_link' => $qrCode->shortLink ? [
+                'id' => $qrCode->shortLink->id,
+                'slug' => $qrCode->shortLink->slug,
+                'short_url' => 'https://'.$qrCode->shortLink->domain->hostname.'/'.$qrCode->shortLink->slug,
+                'destination_url' => $qrCode->shortLink->destination_url,
+            ] : null,
             'scans' => $qrCode->hasDirectPayload() ? 0 : (int) ($qrCode->scans_count ?? $qrCode->analyticsEvents()->successful()->where('metric', 'scan')->count()),
             'created_at' => $qrCode->created_at,
             'updated_at' => $qrCode->updated_at,

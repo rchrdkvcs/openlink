@@ -1,17 +1,6 @@
 <script setup lang="ts">
-import { Link, type InertiaForm } from '@inertiajs/vue3';
-import {
-  CalendarClock,
-  CalendarOff,
-  Folder as FolderIcon,
-  Gauge,
-  LifeBuoy,
-  Link2,
-  Lock,
-  QrCode,
-  Route,
-  Settings2,
-} from '@lucide/vue';
+import { type InertiaForm } from '@inertiajs/vue3';
+import { CalendarClock, CalendarOff, Folder as FolderIcon, Gauge, LifeBuoy, Link2, Lock, Route } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
@@ -27,21 +16,20 @@ import OptionChips from './OptionChips.vue';
 import OptionRow from './OptionRow.vue';
 import RoutingRulesEditor from './RoutingRulesEditor.vue';
 import ShortUrlComposer from './ShortUrlComposer.vue';
-import type { Domain, EditLinkFormData, Folder, Qr, RoutingSchema, ShortLink } from './types';
+import type { Domain, EditLinkFormData, Folder, RoutingSchema, ShortLink } from './types';
 
 const props = defineProps<{
   link: ShortLink | null;
   editForm: InertiaForm<EditLinkFormData>;
-  qrForm: InertiaForm<{ name: string }>;
   domains: Domain[];
   folders: Folder[];
   routingSchema: RoutingSchema;
   canEditWorkspace: boolean;
 }>();
 
-const emit = defineEmits<{ close: []; submit: []; submitQr: [] }>();
+const emit = defineEmits<{ close: []; submit: [] }>();
 
-const tab = ref<'link' | 'routing' | 'qr'>('link');
+const tab = ref<'link' | 'routing'>('link');
 
 // ── Progressive options — settings already on the link open expanded, the rest are chips ──
 type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url';
@@ -84,21 +72,16 @@ const shortUrlChanged = computed(
     Boolean(props.link) &&
     (props.editForm.slug !== props.link!.slug || Number(props.editForm.domain_id) !== props.link!.domain.id),
 );
-
-function qrPreviewUrl(qr: Qr) {
-  return route('qr-codes.preview', qr.token);
-}
 </script>
 
 <template>
   <Drawer :show="Boolean(link)" eyebrow="Link settings" :title="link?.short_url" @close="emit('close')">
     <div v-if="link" class="space-y-5 p-5">
-      <div class="grid grid-cols-3 rounded-lg border bg-elevated/30 p-1">
+      <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
         <button
           v-for="entry in [
             { key: 'link' as const, label: 'Link', icon: Link2 },
             { key: 'routing' as const, label: 'Routing', icon: Route },
-            { key: 'qr' as const, label: 'QR code', icon: QrCode },
           ]"
           :key="entry.key"
           type="button"
@@ -214,63 +197,6 @@ function qrPreviewUrl(qr: Qr) {
           <Button :loading="editForm.processing">Save changes</Button>
         </div>
       </form>
-
-      <div v-if="tab === 'qr'" class="grid gap-5">
-        <form
-          v-if="canEditWorkspace"
-          class="flex items-end gap-2 rounded-xl border bg-surface p-3"
-          @submit.prevent="emit('submitQr')"
-        >
-          <Field label="New QR code" :error="qrForm.errors.name" class="flex-1">
-            <input v-model="qrForm.name" class="h-9" placeholder="Poster, badge, flyer…" />
-          </Field>
-          <Button variant="secondary" :loading="qrForm.processing">Create &amp; customize</Button>
-        </form>
-
-        <div class="grid gap-3">
-          <article
-            v-for="qr in link.qr_codes"
-            :key="qr.id"
-            class="card-sheen grid gap-4 rounded-xl border bg-surface p-3 transition-colors hover:border-border-strong sm:grid-cols-[104px_1fr]"
-          >
-            <Link :href="route('qr-codes.show', qr.token)" class="justify-self-center sm:justify-self-auto">
-              <img
-                :src="qrPreviewUrl(qr)"
-                :alt="`${qr.name} QR code`"
-                class="h-24 w-24 rounded-lg bg-white p-1.5 transition-opacity hover:opacity-80"
-              />
-            </Link>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium text-foreground">{{ qr.name }}</p>
-              <p class="mt-1 text-xs tabular-nums text-faint">{{ qr.scans }} scans · tracked separately from visits.</p>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <Link
-                  :href="route('qr-codes.show', qr.token)"
-                  class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated"
-                >
-                  <Settings2 class="h-3 w-3" /> {{ canEditWorkspace ? 'Customize' : 'View' }}
-                </Link>
-                <a
-                  :href="route('qr-codes.export', [qr.token, 'svg'])"
-                  class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                >
-                  SVG
-                </a>
-                <a
-                  :href="route('qr-codes.export', [qr.token, 'png'])"
-                  class="rounded-md border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                >
-                  PNG
-                </a>
-              </div>
-            </div>
-          </article>
-          <div v-if="link.qr_codes.length === 0" class="rounded-xl border border-dashed px-4 py-8 text-center">
-            <QrCode class="mx-auto h-5 w-5 text-faint" />
-            <p class="mt-2 text-[13px] text-faint">No QR code yet for this link.</p>
-          </div>
-        </div>
-      </div>
     </div>
   </Drawer>
 </template>

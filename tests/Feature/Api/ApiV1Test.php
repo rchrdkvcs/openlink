@@ -331,7 +331,7 @@ class ApiV1Test extends TestCase
             'is_enabled' => true,
         ]);
 
-        $create = $this->postJson('/api/v1/links/'.$link->id.'/qr-codes', ['name' => 'Poster']);
+        $create = $this->postJson('/api/v1/qr-codes', ['name' => 'Poster', 'short_link_id' => $link->id]);
         $create->assertCreated()->assertJsonStructure(['data' => ['id', 'name', 'token', 'public_url']]);
 
         $token = $create->json('data.token');

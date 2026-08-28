@@ -61,10 +61,8 @@ const {
   usableDomains,
   linkForm,
   editForm,
-  qrForm,
   submitLink,
   updateLink,
-  submitQr,
   archiveLink,
   deleteLink,
   copyShortUrl,
@@ -387,10 +385,10 @@ function markFaviconFailed(url: string) {
                   <CopyCheckIcon :copied="copiedLinkId === link.id" />
                 </button>
                 <span
-                  v-if="link.qr_codes.length > 0"
+                  v-if="link.qr_code_count > 0"
                   class="grid h-5 w-5 shrink-0 place-items-center rounded text-accent"
-                  :title="`${link.qr_codes.length} QR code${link.qr_codes.length === 1 ? '' : 's'} attached`"
-                  :aria-label="`${link.qr_codes.length} QR code${link.qr_codes.length === 1 ? '' : 's'} attached`"
+                  :title="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
+                  :aria-label="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
                 >
                   <QrCode class="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
@@ -517,14 +515,12 @@ function markFaviconFailed(url: string) {
     <EditLinkDrawer
       :link="selectedLink"
       :edit-form="editForm"
-      :qr-form="qrForm"
       :domains="usableDomains"
       :folders="folders"
       :routing-schema="routingSchema"
       :can-edit-workspace="canEditWorkspace"
       @close="selectedLink = null"
       @submit="updateLink"
-      @submit-qr="submitQr"
     />
   </AuthenticatedLayout>
 </template>

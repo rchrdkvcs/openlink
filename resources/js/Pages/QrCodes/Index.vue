@@ -9,13 +9,14 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 import CreateQrCodeDrawer from './CreateQrCodeDrawer.vue';
-import type { PayloadDescriptors, QrCodeRecord } from './types';
+import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
 import { payloadDefaults, payloadIcon } from './types';
 
 const props = defineProps<{
   qrCodes: QrCodeRecord[];
   payloadTypes: Record<string, string>;
   payloadDescriptors: PayloadDescriptors;
+  shortLinks: ShortLinkOption[];
   canEditWorkspace: boolean;
 }>();
 
@@ -23,11 +24,19 @@ const createOpen = ref(false);
 
 const form = useForm({
   name: '',
+  target_type: 'short_link',
+  short_link_id: '' as string | number,
   payload_type: 'url',
   payload: payloadDefaults('url', props.payloadDescriptors),
 });
 
 function setPayloadType(type: string) {
+  if (type === 'short_link') {
+    form.target_type = 'short_link';
+    form.clearErrors();
+    return;
+  }
+  form.target_type = 'direct';
   if (type === form.payload_type) {
     return;
   }
@@ -37,14 +46,21 @@ function setPayloadType(type: string) {
 }
 
 function submit() {
-  form.post(route('qr-codes.store-direct'), {
-    preserveScroll: true,
-    onSuccess: () => {
-      form.reset();
-      form.payload = payloadDefaults('url', props.payloadDescriptors);
-      createOpen.value = false;
-    },
-  });
+  form
+    .transform((data) =>
+      data.target_type === 'short_link'
+        ? { name: data.name, short_link_id: data.short_link_id }
+        : { name: data.name, payload_type: data.payload_type, payload: data.payload },
+    )
+    .post(route('qr-codes.store'), {
+      preserveScroll: true,
+      onSuccess: () => {
+        form.reset();
+        form.payload = payloadDefaults('url', props.payloadDescriptors);
+        form.target_type = 'short_link';
+        createOpen.value = false;
+      },
+    });
 }
 </script>
 
@@ -69,7 +85,7 @@ function submit() {
       <EmptyState
         v-if="qrCodes.length === 0"
         title="No QR Codes yet"
-        description="Create your first code — the exported image keeps working even when you change what it points to."
+        description="Create a tracked QR Code for a Short Link or encode a native payload such as Wi-Fi or a contact card."
       >
         <template #icon><QrCode class="h-5 w-5 text-faint" /></template>
         <template v-if="canEditWorkspace" #action>
@@ -112,11 +128,12 @@ function submit() {
             <div class="flex items-center justify-between gap-2">
               <h2 class="truncate text-sm font-semibold text-foreground">{{ qr.name }}</h2>
               <Badge class="inline-flex shrink-0 items-center gap-1">
-                <component :is="payloadIcon(qr.payload_type)" class="h-3 w-3" />
-                {{ payloadTypes[qr.payload_type] ?? qr.payload_type }}
+                <QrCode v-if="!qr.is_direct" class="h-3 w-3" />
+                <component v-else :is="payloadIcon(qr.payload_type ?? 'raw')" class="h-3 w-3" />
+                {{ qr.is_direct ? (payloadTypes[qr.payload_type ?? ''] ?? qr.payload_type) : 'Short Link' }}
               </Badge>
             </div>
-            <p class="truncate font-mono text-xs text-faint">{{ qr.content }}</p>
+            <p class="truncate font-mono text-xs text-faint">{{ qr.short_link?.short_url ?? qr.content }}</p>
           </div>
         </Link>
       </div>
@@ -127,6 +144,7 @@ function submit() {
       :form="form"
       :payload-types="payloadTypes"
       :payload-descriptors="payloadDescriptors"
+      :short-links="shortLinks"
       @close="createOpen = false"
       @set-type="setPayloadType"
       @submit="submit"

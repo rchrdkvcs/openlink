@@ -16,7 +16,7 @@ that want to retain control of their domains and data.
 - Enabled and disabled links.
 - Activation dates, expiration dates, visit limits, and fallback URLs.
 - Protected links with visitor passwords.
-- Named QR codes attached to short links.
+- Workspace-owned QR Codes linked to Short Links or carrying native direct payloads.
 - QR codes can be exported as PNG and SVG with configurable size, foreground color, background color, margin (quiet zone in modules), error correction level, module style (squares, rounded, dots), eye style (square, rounded, circle), transparent background, and an optional centered logo.
 - Aggregated analytics for visits and scans.
 - Analytics retention defaults to 12 months for daily aggregates, while lifetime totals remain available while the related link or QR code exists.

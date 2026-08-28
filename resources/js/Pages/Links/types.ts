@@ -4,24 +4,6 @@ export type Domain = { id: number; hostname: string; status: string; is_default:
 
 export type Folder = { id: number; name: string };
 
-export type Qr = {
-  id: number;
-  name: string;
-  token: string;
-  size: number;
-  foreground_color: string;
-  background_color: string;
-  margin: number;
-  error_correction: string;
-  style: string;
-  eye_style: string;
-  background_transparent: boolean;
-  has_logo: boolean;
-  public_url: string;
-  scans: number;
-  created_at?: string | null;
-};
-
 export type ShortLink = {
   id: number;
   slug: string;
@@ -32,7 +14,7 @@ export type ShortLink = {
   domain: Domain;
   folder?: Folder | null;
   tags: { id: number; name: string }[];
-  qr_codes: Qr[];
+  qr_code_count: number;
   visits: number;
   scans: number;
   is_enabled: boolean;

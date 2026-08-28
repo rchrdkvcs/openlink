@@ -95,4 +95,13 @@ class QrCode extends Model
     {
         return filled($this->logo_path);
     }
+
+    protected static function booted(): void
+    {
+        static::creating(function (QrCode $qrCode): void {
+            if (! $qrCode->workspace_id && $qrCode->short_link_id) {
+                $qrCode->workspace_id = ShortLink::query()->whereKey($qrCode->short_link_id)->value('workspace_id');
+            }
+        });
+    }
 }

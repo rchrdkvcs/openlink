@@ -10,7 +10,6 @@ use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\QrCode;
-use App\Models\ShortLink;
 use App\Services\QrCodes\QrCodeRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,16 +18,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
-    public function store(Request $request, ShortLink $shortLink, CreateQrCode $action): JsonResponse
+    public function store(Request $request, CreateQrCode $action): JsonResponse
     {
-        $qrCode = $action->handle($request, $shortLink, $request->validate(QrCodePayload::rules()));
+        $qrCode = $action->handle($request, $request->validate(QrCodePayload::unifiedRules()));
 
         return response()->json(['data' => QrCodePayload::make($qrCode)], 201);
     }
 
     public function update(Request $request, QrCode $qrCode, UpdateQrCode $action): JsonResponse
     {
-        $qrCode = $action->handle($request, $qrCode, $request->validate(QrCodePayload::rules(creating: false)));
+        $qrCode = $action->handle($request, $qrCode, $request->validate(QrCodePayload::unifiedRules(creating: false)));
 
         return response()->json(['data' => QrCodePayload::make($qrCode)]);
     }

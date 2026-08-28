@@ -3,7 +3,6 @@
 namespace App\Actions\Workspaces;
 
 use App\Actions\Domains\DomainPayload;
-use App\Actions\QrCodes\QrCodePayload;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\InviteLink;
@@ -23,9 +22,8 @@ class WorkspacePayloads
     public function links(WorkspaceView $view): Collection
     {
         return $view->workspace->shortLinks()
-            ->with(['domain', 'folder', 'tags', 'routingRules.variants', 'qrCodes' => fn ($query) => $query->withCount([
-                'analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan'),
-            ])])
+            ->with(['domain', 'folder', 'tags', 'routingRules.variants'])
+            ->withCount('qrCodes')
             ->withCount($this->analyticsCounts())
             ->latest()
             ->get()
@@ -44,7 +42,10 @@ class WorkspacePayloads
     /** @return array<string, mixed> */
     public function linkPayload(ShortLink $link): array
     {
-        $link->loadMissing(['domain', 'folder', 'tags', 'routingRules.variants', 'qrCodes']);
+        $link->loadMissing(['domain', 'folder', 'tags', 'routingRules.variants']);
+        if (! isset($link->qr_codes_count)) {
+            $link->loadCount('qrCodes');
+        }
 
         if (! isset($link->visits_count) || ! isset($link->scans_count)) {
             $link->loadCount($this->analyticsCounts());
@@ -60,7 +61,7 @@ class WorkspacePayloads
             'domain' => $link->domain?->only(['id', 'hostname', 'status', 'is_default']),
             'folder' => $link->folder?->only(['id', 'name']),
             'tags' => $link->tags->map->only(['id', 'name'])->values(),
-            'qr_codes' => $link->qrCodes->map(fn ($qrCode) => QrCodePayload::make($qrCode->setRelation('shortLink', $link)))->values(),
+            'qr_code_count' => (int) $link->qr_codes_count,
             'visits' => (int) $link->visits_count,
             'scans' => (int) $link->scans_count,
             'is_enabled' => $link->is_enabled,

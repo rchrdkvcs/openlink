@@ -86,7 +86,7 @@ watch(
 </script>
 
 <template>
-  <Drawer :show="show" @close="emit('close')">
+  <Drawer :wide="tab === 'routing'" :show="show" @close="emit('close')">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">
@@ -200,7 +200,13 @@ watch(
           <OptionChips :options="availableOptions" @add="addOption" />
         </div>
 
-        <RoutingRulesEditor v-else v-model="form.routing_rules" :errors="form.errors" :schema="routingSchema" />
+        <RoutingRulesEditor
+          v-else
+          v-model="form.routing_rules"
+          :errors="form.errors"
+          :schema="routingSchema"
+          :default-destination="form.destination_url"
+        />
       </div>
 
       <!-- Sticky footer with live preview -->

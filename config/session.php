@@ -20,6 +20,13 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
+    // Requests save the entire session, including read-only QR previews. Lock
+    // all session requests so a slow response cannot undo a workspace switch.
+    'block' => true,
+    'block_store' => env('SESSION_BLOCK_STORE'),
+    'block_lock_seconds' => 60,
+    'block_wait_seconds' => 60,
+
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

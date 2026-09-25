@@ -28,9 +28,9 @@ const deltaClass = computed(() => {
 </script>
 
 <template>
-  <div class="card-sheen rounded-lg border bg-surface p-4 transition-colors duration-150 hover:border-border-strong">
+  <div class="min-w-0 rounded-2xl border bg-surface p-5 shadow-sm">
     <div class="flex items-center justify-between gap-2 text-faint">
-      <span class="truncate text-xs font-medium uppercase tracking-wide">{{ label }}</span>
+      <span class="truncate text-sm font-medium">{{ label }}</span>
       <span
         v-if="change !== null"
         class="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium tabular-nums"
@@ -41,7 +41,7 @@ const deltaClass = computed(() => {
         {{ Math.abs(change) }}%
       </span>
     </div>
-    <p class="mt-3 text-2xl font-semibold tracking-tight text-foreground" :title="exact">{{ display }}</p>
+    <p class="mt-3 text-3xl font-medium tabular-nums tracking-tight text-foreground" :title="exact">{{ display }}</p>
     <p v-if="detail" class="mt-1 truncate text-[13px] text-muted">{{ detail }}</p>
   </div>
 </template>

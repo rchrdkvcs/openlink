@@ -7,7 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <label class="grid content-start gap-1.5">
+  <label class="grid min-w-0 content-start gap-1.5">
     <span v-if="label" class="text-[13px] font-medium text-foreground">{{ label }}</span>
     <slot />
     <span v-if="error" class="text-xs text-danger">{{ error }}</span>

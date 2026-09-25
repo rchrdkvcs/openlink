@@ -14,6 +14,15 @@ import {
   Users,
   X,
 } from '@lucide/vue';
+import {
+  DialogClose,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+} from 'radix-vue';
 import { computed, ref } from 'vue';
 
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
@@ -37,14 +46,18 @@ const page = usePage<PageProps>();
 const currentWorkspace = computed(() => page.props.currentWorkspace as Workspace | undefined);
 const user = computed(() => page.props.auth.user);
 
-const navItems = [
-  { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
-  { label: 'Links', href: route('links.index'), active: route().current('links.index'), icon: Link2 },
-  { label: 'QR Codes', href: route('qr-codes.index'), active: route().current('qr-codes.*'), icon: QrCode },
-  { label: 'Analytics', href: route('analytics.index'), active: route().current('analytics.index'), icon: BarChart3 },
-  { label: 'Domains', href: route('domains.index'), active: route().current('domains.index'), icon: Globe2 },
-  { label: 'Members', href: route('members.index'), active: route().current('members.index'), icon: Users },
-];
+const navItems = computed(() => {
+  // Track Inertia navigation even when the layout is preserved.
+  void page.url;
+  return [
+    { label: 'Overview', href: route('dashboard'), active: route().current('dashboard'), icon: LayoutDashboard },
+    { label: 'Links', href: route('links.index'), active: route().current('links.index'), icon: Link2 },
+    { label: 'QR Codes', href: route('qr-codes.index'), active: route().current('qr-codes.*'), icon: QrCode },
+    { label: 'Analytics', href: route('analytics.index'), active: route().current('analytics.index'), icon: BarChart3 },
+    { label: 'Domains', href: route('domains.index'), active: route().current('domains.*'), icon: Globe2 },
+    { label: 'Members', href: route('members.index'), active: route().current('members.index'), icon: Users },
+  ];
+});
 
 const accountItems = computed(() =>
   user.value.is_instance_admin
@@ -72,46 +85,34 @@ function openCreateWorkspace() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
-    <!-- Sidebar (desktop) — floating card -->
-    <aside
-      class="card-sheen fixed bottom-3 left-3 top-3 z-30 hidden w-60 flex-col rounded-lg border bg-surface lg:flex"
+  <div class="min-h-dvh bg-background text-foreground">
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
+      >Skip to content</a
     >
-      <div class="flex h-12 shrink-0 items-center px-4">
-        <Link
-          :href="route('dashboard')"
-          aria-label="Openlink"
-          class="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-        >
-          <ApplicationLogo class="h-5 w-auto" />
-        </Link>
-      </div>
-
-      <div class="mx-2.5 border-t" />
-
-      <!-- Workspace switcher -->
-      <div class="px-2.5 pb-2 pt-2.5">
-        <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
-      </div>
-
-      <div class="mx-2.5 border-t" />
+    <!-- Quiet navigation, with the workspace as the primary anchor. -->
+    <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col px-5 py-8 lg:flex">
+      <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
 
       <!-- Navigation -->
-      <nav class="flex-1 space-y-0.5 overflow-y-auto px-2.5 py-2.5">
+      <nav class="my-auto space-y-2 overflow-y-auto py-10">
         <Link
           v-for="item in navItems"
           :key="item.label"
           :href="item.href"
-          class="group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-100"
+          :aria-current="item.active ? 'page' : undefined"
+          class="group flex min-h-11 w-fit max-w-full items-center gap-3 rounded-full px-4 py-2 text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           :class="
             item.active
-              ? 'bg-elevated text-foreground ring-1 ring-inset ring-border'
+              ? 'bg-elevated font-medium text-foreground'
               : 'text-muted hover:bg-elevated/60 hover:text-foreground'
           "
         >
           <component
             :is="item.icon"
-            class="h-4 w-4 shrink-0"
+            class="h-[18px] w-[18px] shrink-0"
+            :stroke-width="1.5"
             :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'"
           />
           <span>{{ item.label }}</span>
@@ -124,16 +125,18 @@ function openCreateWorkspace() {
           v-for="item in accountItems"
           :key="item.label"
           :href="item.href"
-          class="group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-100"
+          :aria-current="item.active ? 'page' : undefined"
+          class="group flex min-h-11 w-fit max-w-full items-center gap-3 rounded-full px-4 py-2 text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           :class="
             item.active
-              ? 'bg-elevated text-foreground ring-1 ring-inset ring-border'
+              ? 'bg-elevated font-medium text-foreground'
               : 'text-muted hover:bg-elevated/60 hover:text-foreground'
           "
         >
           <component
             :is="item.icon"
-            class="h-4 w-4 shrink-0"
+            class="h-[18px] w-[18px] shrink-0"
+            :stroke-width="1.5"
             :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'"
           />
           <span>{{ item.label }}</span>
@@ -141,11 +144,11 @@ function openCreateWorkspace() {
       </nav>
 
       <!-- User menu -->
-      <div class="border-t p-2">
+      <div class="shrink-0">
         <Dropdown align="left" width="64" placement="top" contentClasses="p-1">
           <template #trigger>
             <button
-              class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              class="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               <UserAvatar :name="user.name" :src="user.profile_avatar_url" size="sm" />
               <span class="min-w-0 flex-1">
@@ -172,35 +175,14 @@ function openCreateWorkspace() {
       </div>
     </aside>
 
-    <!-- Mobile nav overlay -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition-opacity ease-out duration-200"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity ease-out duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="mobileNavOpen"
-          class="fixed inset-0 z-40 bg-background/70 backdrop-blur-[2px] lg:hidden"
-          @click="mobileNavOpen = false"
-        />
-      </Transition>
-
-      <Transition
-        enter-active-class="transition-transform ease-emphasized-out duration-300"
-        enter-from-class="-translate-x-full"
-        enter-to-class="translate-x-0"
-        leave-active-class="transition-transform ease-drawer duration-200"
-        leave-from-class="translate-x-0"
-        leave-to-class="-translate-x-full"
-      >
-        <aside
-          v-if="mobileNavOpen"
-          class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-overlay lg:hidden"
+    <DialogRoot v-model:open="mobileNavOpen">
+      <DialogPortal>
+        <DialogOverlay class="fixed inset-0 z-40 bg-background/75 backdrop-blur-sm" />
+        <DialogContent
+          :aria-describedby="undefined"
+          class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col bg-overlay p-3 shadow-drawer"
         >
+          <DialogTitle class="sr-only">Navigation</DialogTitle>
           <div class="flex h-14 items-center gap-1 border-b px-2">
             <div class="min-w-0 flex-1">
               <WorkspaceSwitcher
@@ -209,19 +191,20 @@ function openCreateWorkspace() {
                 @create="openCreateWorkspace"
               />
             </div>
-            <button
-              class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted hover:bg-elevated hover:text-foreground"
-              @click="mobileNavOpen = false"
+            <DialogClose
+              aria-label="Close navigation"
+              class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:bg-elevated"
             >
               <X class="h-4 w-4" />
-            </button>
+            </DialogClose>
           </div>
           <nav class="flex-1 space-y-0.5 overflow-y-auto p-3">
             <Link
               v-for="item in [...navItems, ...accountItems]"
               :key="item.label"
               :href="item.href"
-              class="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium transition-colors duration-100"
+              :aria-current="item.active ? 'page' : undefined"
+              class="flex min-h-11 items-center gap-2.5 rounded-full px-3 text-sm font-medium transition-colors duration-100"
               :class="
                 item.active ? 'bg-elevated text-foreground' : 'text-muted hover:bg-elevated/60 hover:text-foreground'
               "
@@ -234,7 +217,7 @@ function openCreateWorkspace() {
           <div class="space-y-0.5 border-t p-3">
             <Link
               :href="route('profile.edit')"
-              class="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted hover:bg-elevated hover:text-foreground"
+              class="flex min-h-11 items-center gap-2.5 rounded-full px-3 text-sm text-muted hover:bg-elevated hover:text-foreground"
               @click="mobileNavOpen = false"
             >
               <User class="h-4 w-4" /> Profile
@@ -243,52 +226,51 @@ function openCreateWorkspace() {
               :href="route('logout')"
               method="post"
               as="button"
-              class="flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm text-muted hover:bg-elevated hover:text-foreground"
+              class="flex min-h-11 w-full items-center gap-2.5 rounded-full px-3 text-sm text-muted hover:bg-elevated hover:text-foreground"
             >
               <LogOut class="h-4 w-4" /> Log out
             </Link>
           </div>
-        </aside>
-      </Transition>
-    </Teleport>
+        </DialogContent>
+      </DialogPortal>
 
-    <!-- Main column — no desktop top bar -->
-    <div class="flex min-h-screen flex-col lg:pl-[16.5rem]">
-      <header
-        class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden"
-      >
-        <button
-          type="button"
-          class="grid h-8 w-8 place-items-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-foreground"
-          @click="mobileNavOpen = true"
+      <!-- Main column — no desktop top bar -->
+      <div class="flex min-h-dvh min-w-0 flex-col lg:pl-64">
+        <header
+          class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden"
         >
-          <Menu class="h-4 w-4" />
-        </button>
+          <DialogTrigger
+            aria-label="Open navigation"
+            class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-elevated hover:text-foreground"
+          >
+            <Menu class="h-5 w-5" />
+          </DialogTrigger>
 
-        <span class="inline-flex min-w-0 items-center gap-2.5">
-          <WorkspaceAvatar
-            :name="currentWorkspace?.name"
-            :icon="currentWorkspace?.icon"
-            :color="currentWorkspace?.color"
-          />
-          <span class="truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
-        </span>
+          <span class="inline-flex min-w-0 items-center gap-2.5">
+            <WorkspaceAvatar
+              :name="currentWorkspace?.name"
+              :icon="currentWorkspace?.icon"
+              :color="currentWorkspace?.color"
+            />
+            <span class="truncate text-sm font-medium">{{ currentWorkspace?.name ?? 'Openlink' }}</span>
+          </span>
 
-        <Link
-          :href="route('dashboard')"
-          aria-label="Openlink"
-          class="ml-auto shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-        >
-          <ApplicationLogo class="h-4 w-auto" />
-        </Link>
-      </header>
+          <Link
+            :href="route('dashboard')"
+            aria-label="Openlink"
+            class="ml-auto shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            <ApplicationLogo class="h-4 w-auto" />
+          </Link>
+        </header>
 
-      <main class="flex-1">
-        <div class="animate-slide-up">
-          <slot />
-        </div>
-      </main>
-    </div>
+        <main id="main-content" tabindex="-1" class="min-w-0 flex-1 outline-none">
+          <div class="mx-auto w-full max-w-[1600px]">
+            <slot />
+          </div>
+        </main>
+      </div>
+    </DialogRoot>
 
     <CreateWorkspaceModal :show="showCreateWorkspace" @close="showCreateWorkspace = false" />
     <WorkspaceSettingsModal

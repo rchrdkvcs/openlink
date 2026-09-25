@@ -187,7 +187,7 @@ function markFaviconFailed(url: string) {
   <AuthenticatedLayout>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6">
-        <h1 class="text-xl font-semibold tracking-tight">Links</h1>
+        <h1 class="text-2xl font-semibold tracking-tight">Links</h1>
         <p class="mt-1 text-sm text-muted">Short URLs grouped by folder. Drag a link onto a folder to move it.</p>
       </div>
 
@@ -261,7 +261,7 @@ function markFaviconFailed(url: string) {
         <section
           v-for="group in groups"
           :key="group.key"
-          class="card-sheen rounded-lg border bg-surface transition-shadow"
+          class="min-w-0 rounded-2xl border bg-surface shadow-sm transition-shadow"
           :class="dropGroupKey === group.key && dragLinkId !== null ? 'ring-1 ring-accent' : ''"
           @dragover.prevent="dropGroupKey = group.key"
           @dragleave="dropGroupKey = null"
@@ -350,7 +350,7 @@ function markFaviconFailed(url: string) {
           </header>
 
           <!-- Rows (rounded + clipped here so the folder menu can overflow the card) -->
-          <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60 overflow-hidden rounded-b-lg">
+          <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60 overflow-hidden rounded-b-2xl">
             <article
               v-for="link in group.links"
               :key="link.id"
@@ -479,7 +479,7 @@ function markFaviconFailed(url: string) {
         <!-- Global empty state -->
         <section
           v-if="groups.length === 0 || (links.length === 0 && !hasActiveFilters)"
-          class="card-sheen rounded-lg border bg-surface"
+          class="min-w-0 rounded-2xl border bg-surface shadow-sm"
         >
           <EmptyState
             :title="hasActiveFilters ? 'No links match' : 'No links yet'"

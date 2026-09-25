@@ -71,7 +71,7 @@ function submit() {
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">QR Codes</h1>
+          <h1 class="text-2xl font-semibold tracking-tight">QR Codes</h1>
           <p class="mt-1 max-w-2xl text-sm text-muted">
             Scannable codes for web pages, Wi-Fi, contact cards, events and more.
           </p>
@@ -97,11 +97,10 @@ function submit() {
       </EmptyState>
 
       <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        <Link
+        <article
           v-for="qr in qrCodes"
           :key="qr.id"
-          :href="route('qr-codes.show', qr.token)"
-          class="card-sheen group grid gap-0 overflow-hidden rounded-lg border bg-surface transition-colors hover:border-border-strong"
+          class="group relative grid min-w-0 overflow-hidden rounded-2xl border bg-surface shadow-sm transition-colors hover:border-border-strong"
         >
           <div class="relative grid place-items-center border-b bg-white p-6">
             <img
@@ -111,22 +110,28 @@ function submit() {
               loading="lazy"
             />
             <div
-              class="absolute inset-x-0 bottom-0 flex justify-center gap-1.5 bg-gradient-to-t from-black/40 to-transparent p-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+              class="absolute inset-x-0 bottom-0 z-10 flex justify-center gap-1.5 bg-gradient-to-t from-black/40 to-transparent p-2 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
             >
               <a
                 v-for="format in ['svg', 'png']"
                 :key="format"
                 :href="route('qr-codes.export', [qr.token, format])"
-                class="inline-flex h-7 items-center gap-1 rounded-md bg-white/90 px-2 text-xs font-medium text-zinc-900 shadow hover:bg-white"
-                @click.stop
+                class="inline-flex min-h-10 items-center gap-1 rounded-md bg-white/90 px-2 text-xs font-medium text-zinc-900 shadow hover:bg-white"
+                :aria-label="`Download ${qr.name} as ${format.toUpperCase()}`"
               >
                 <Download class="h-3 w-3" /> {{ format.toUpperCase() }}
               </a>
             </div>
           </div>
-          <div class="grid gap-1.5 p-4">
-            <div class="flex items-center justify-between gap-2">
-              <h2 class="truncate text-sm font-semibold text-foreground">{{ qr.name }}</h2>
+          <div class="grid min-w-0 gap-2 p-5">
+            <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <h2 class="min-w-0 text-sm font-semibold text-foreground">
+                <Link
+                  :href="route('qr-codes.show', qr.token)"
+                  class="block truncate after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent"
+                  >{{ qr.name }}</Link
+                >
+              </h2>
               <Badge class="inline-flex shrink-0 items-center gap-1">
                 <QrCode v-if="!qr.is_direct" class="h-3 w-3" />
                 <component v-else :is="payloadIcon(qr.payload_type ?? 'raw')" class="h-3 w-3" />
@@ -135,7 +140,7 @@ function submit() {
             </div>
             <p class="truncate font-mono text-xs text-faint">{{ qr.short_link?.short_url ?? qr.content }}</p>
           </div>
-        </Link>
+        </article>
       </div>
     </div>
 

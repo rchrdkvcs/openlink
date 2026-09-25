@@ -97,7 +97,7 @@ function targetWorkspaces() {
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-end justify-between gap-3">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
+          <h1 class="text-2xl font-semibold tracking-tight">Domains</h1>
           <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
         </div>
         <Link v-if="canManageWorkspace" :href="route('domains.create')">
@@ -105,7 +105,7 @@ function targetWorkspaces() {
         </Link>
       </div>
 
-      <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
+      <section class="min-w-0 overflow-hidden rounded-2xl border bg-surface shadow-sm">
         <div
           class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
         >

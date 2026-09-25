@@ -174,17 +174,19 @@ async function copyPublicUrl() {
           <ArrowLeft class="h-3.5 w-3.5" /> Back to QR Codes
         </Link>
         <div class="mt-2 flex flex-wrap items-center gap-2">
-          <h1 class="text-xl font-semibold tracking-tight">QR Code — {{ qr.name }}</h1>
+          <h1 class="min-w-0 break-words text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">
+            QR Code — {{ qr.name }}
+          </h1>
           <Badge>{{
             form.target_type === 'short_link' ? 'Short Link' : (payloadTypes[form.payload_type] ?? form.payload_type)
           }}</Badge>
         </div>
       </div>
 
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <div class="grid content-start gap-6">
+      <div class="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
+        <div class="grid min-w-0 grid-cols-1 content-start gap-6">
           <SectionCard>
-            <div class="grid gap-5 p-5">
+            <div class="grid min-w-0 grid-cols-1 gap-5 p-4 sm:p-6">
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                   <p class="truncate text-sm font-medium text-foreground">
@@ -225,7 +227,7 @@ async function copyPublicUrl() {
               </div>
 
               <div class="flex flex-wrap items-center justify-center gap-2 border-t pt-4">
-                <select v-model="exportSize" class="h-9 w-28">
+                <select v-model="exportSize" aria-label="Export size" class="h-10 w-28">
                   <option v-for="size in EXPORT_SIZES" :key="size" :value="size">{{ size }} px</option>
                 </select>
                 <a
@@ -246,7 +248,7 @@ async function copyPublicUrl() {
 
           <SectionCard :title="form.target_type === 'short_link' ? 'Linked Short Link' : 'Encoded payload'">
             <div v-if="form.target_type === 'short_link'" class="p-5 text-sm">
-              <p class="font-medium text-foreground">
+              <p class="break-words font-medium text-foreground [overflow-wrap:anywhere]">
                 {{
                   shortLinks.find((link) => link.id === Number(form.short_link_id))?.short_url ?? 'Select a Short Link'
                 }}
@@ -257,13 +259,13 @@ async function copyPublicUrl() {
             </div>
             <pre
               v-else
-              class="max-h-80 overflow-auto whitespace-pre-wrap break-words p-5 font-mono text-xs text-muted"
+              class="max-h-80 overflow-auto whitespace-pre-wrap break-words p-5 font-mono text-xs text-muted [overflow-wrap:anywhere]"
               >{{ qr.content }}</pre>
           </SectionCard>
         </div>
 
         <SectionCard>
-          <form class="grid gap-5 p-5" @submit.prevent="save">
+          <form class="grid min-w-0 grid-cols-1 gap-5 p-4 sm:p-6" @submit.prevent="save">
             <Field label="Name" :error="form.errors.name">
               <input v-model="form.name" class="h-9" />
             </Field>
@@ -388,14 +390,14 @@ async function copyPublicUrl() {
                   hint="PNG, JPG or WebP, 2 MB max. Error correction is raised automatically."
                   :error="form.errors.logo"
                 >
-                  <div class="flex items-center gap-2">
+                  <div class="flex min-w-0 flex-wrap items-center gap-2">
                     <label
-                      class="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+                      class="inline-flex min-h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
                     >
                       <Upload class="h-3.5 w-3.5" />
-                      {{
+                      <span class="truncate">{{
                         form.logo ? form.logo.name : qr.has_logo && !form.remove_logo ? 'Replace logo' : 'Upload logo'
-                      }}
+                      }}</span>
                       <input
                         ref="logoInput"
                         type="file"
@@ -434,7 +436,7 @@ async function copyPublicUrl() {
               </div>
             </div>
 
-            <div v-if="canEditWorkspace" class="flex items-center justify-between border-t pt-4">
+            <div v-if="canEditWorkspace" class="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
               <Button variant="danger" type="button" size="sm" @click="destroy">
                 <Trash2 class="h-3.5 w-3.5" /> Delete
               </Button>

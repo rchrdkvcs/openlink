@@ -30,7 +30,9 @@ const currentWorkspace = computed(() => page.props.currentWorkspace as Workspace
 const workspaces = computed(() => (page.props.workspaces ?? []) as Workspace[]);
 
 const gearClass = computed(() =>
-  props.gearVisibility === 'hover' ? 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100' : '',
+  props.gearVisibility === 'hover'
+    ? '[@media(hover:hover)]:opacity-0 focus-visible:opacity-100 group-hover:opacity-100'
+    : '',
 );
 
 function canManage(workspace: Workspace) {
@@ -38,6 +40,7 @@ function canManage(workspace: Workspace) {
 }
 
 const switchDestination = computed(() => {
+  void page.url;
   const sections = [
     ['links.*', 'links.index'],
     ['qr-codes.*', 'qr-codes.index'],
@@ -55,7 +58,7 @@ const switchDestination = computed(() => {
   <Dropdown align="left" width="64" contentClasses="p-1">
     <template #trigger>
       <button
-        class="flex h-10 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        class="flex min-h-12 w-full items-center gap-2.5 rounded-full border bg-surface px-3.5 py-2 text-left shadow-sm transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <WorkspaceAvatar
           :name="currentWorkspace?.name"
@@ -80,7 +83,7 @@ const switchDestination = computed(() => {
           as="button"
           :data="{ destination: switchDestination }"
           :preserve-state="false"
-          class="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 text-left text-[13px] text-muted hover:text-foreground"
+          class="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2.5 text-left text-[13px] text-muted hover:text-foreground"
         >
           <WorkspaceAvatar :name="workspace.name" :icon="workspace.icon" :color="workspace.color" size="sm" />
           <span
@@ -94,8 +97,9 @@ const switchDestination = computed(() => {
         <button
           v-if="canManage(workspace)"
           type="button"
+          :aria-label="`Settings for ${workspace.name}`"
           title="Workspace settings"
-          class="mr-1 grid h-6 w-6 shrink-0 place-items-center rounded text-faint transition-opacity duration-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          class="mr-1 grid h-9 w-9 shrink-0 place-items-center rounded text-faint transition-opacity duration-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           :class="gearClass"
           @click="emit('openSettings', workspace.id)"
         >
@@ -105,7 +109,7 @@ const switchDestination = computed(() => {
       <div class="mx-1 my-1 border-t" />
       <button
         type="button"
-        class="block w-full rounded-[5px] px-2.5 py-1.5 text-start text-[13px] text-muted transition-colors duration-100 hover:bg-elevated hover:text-foreground focus:bg-elevated focus:text-foreground focus:outline-none"
+        class="block w-full rounded-[5px] px-2.5 py-2.5 text-start text-[13px] text-muted transition-colors duration-100 hover:bg-elevated hover:text-foreground focus:bg-elevated focus:text-foreground focus:outline-none"
         @click="emit('create')"
       >
         <span class="inline-flex items-center gap-2"><Plus class="h-3.5 w-3.5" /> Create workspace</span>

@@ -193,7 +193,7 @@ const outcomeRows = computed(() =>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Analytics</h1>
+          <h1 class="text-2xl font-semibold tracking-tight">Analytics</h1>
           <p class="mt-1 text-sm text-muted">
             Visits, scans, and audience across this workspace. Bots are excluded from every figure.
           </p>

@@ -44,7 +44,9 @@ const deleteForm = useForm({});
 
 watch(
   () => [props.show, props.workspaceId] as const,
-  async ([show, workspaceId]) => {
+  async ([show, workspaceId], _previous, onCleanup) => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());
     if (!show || !workspaceId) {
       return;
     }
@@ -53,25 +55,29 @@ watch(
     loadError.value = false;
     confirmingDelete.value = false;
     form.clearErrors();
+    deleteForm.clearErrors();
     loading.value = true;
 
     try {
-      const payload = await fetchJson<ManagePayload>(route('workspaces.manage', workspaceId));
+      const payload = await fetchJson<ManagePayload>(route('workspaces.manage', workspaceId), {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       manage.value = payload;
       form.name = payload.name;
       form.icon = payload.icon ?? '';
       form.color = payload.color ?? '';
       form.preferred_domain_id = payload.preferred_domain_id ?? '';
     } catch {
-      loadError.value = true;
+      if (!controller.signal.aborted) loadError.value = true;
     } finally {
-      loading.value = false;
+      if (!controller.signal.aborted) loading.value = false;
     }
   },
 );
 
 function submit() {
-  if (!props.workspaceId) return;
+  if (!props.workspaceId || manage.value?.id !== props.workspaceId || loading.value) return;
 
   form
     .transform((data) => ({
@@ -84,7 +90,7 @@ function submit() {
 }
 
 function destroy() {
-  if (!props.workspaceId) return;
+  if (!props.workspaceId || manage.value?.id !== props.workspaceId || loading.value) return;
 
   deleteForm.delete(route('workspaces.destroy', props.workspaceId), {
     preserveScroll: true,
@@ -184,7 +190,10 @@ function destroy() {
               Links, domains, folders, members, and analytics in this workspace will be permanently deleted. This cannot
               be undone.
             </p>
-            <div class="mt-3 flex justify-end gap-3">
+            <p v-if="Object.keys(deleteForm.errors).length" role="alert" class="mt-3 text-sm text-danger">
+              {{ Object.values(deleteForm.errors)[0] }}
+            </p>
+            <div class="mt-3 flex flex-wrap justify-end gap-3">
               <Button variant="secondary" type="button" @click="confirmingDelete = false">Cancel</Button>
               <Button variant="danger" type="button" :loading="deleteForm.processing" @click="destroy">
                 <Trash2 class="h-4 w-4" /> Delete workspace

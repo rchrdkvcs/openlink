@@ -39,7 +39,7 @@ const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Overview</h1>
+          <h1 class="text-2xl font-semibold tracking-tight">Overview</h1>
           <p class="mt-1 text-sm text-muted">Traffic across this workspace over the last 30 days.</p>
         </div>
         <Link

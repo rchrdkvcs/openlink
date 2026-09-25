@@ -44,12 +44,9 @@ const close = () => {
 };
 
 const closeOnEscape = (e: KeyboardEvent) => {
-  if (e.key === 'Escape') {
+  if (props.show && e.key === 'Escape') {
     e.preventDefault();
-
-    if (props.show) {
-      close();
-    }
+    close();
   }
 };
 

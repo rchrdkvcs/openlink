@@ -170,7 +170,7 @@ const sortedMembers = computed(() =>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Members</h1>
+          <h1 class="text-2xl font-semibold tracking-tight">Members</h1>
           <p class="mt-1 text-sm text-muted">People with access to {{ currentWorkspace.name }}.</p>
         </div>
         <Button v-if="canManageMembers" type="button" @click="showInviteModal = true">
@@ -178,7 +178,7 @@ const sortedMembers = computed(() =>
         </Button>
       </div>
 
-      <section class="card-sheen rounded-lg border bg-surface">
+      <section class="min-w-0 rounded-2xl border bg-surface shadow-sm">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b text-left text-[11px] font-medium uppercase tracking-wide text-faint">

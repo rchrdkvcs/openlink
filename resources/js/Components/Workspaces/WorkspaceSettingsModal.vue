@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { Loader2, Trash2 } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import Modal from '@/Components/Modal.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
 import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import WorkspaceColorPicker from '@/Components/Workspaces/WorkspaceColorPicker.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
+import type { SelectOption } from '@/lib/controls';
 import { fetchJson } from '@/lib/http';
 
 type ManagePayload = {
@@ -41,6 +44,11 @@ const form = useForm({
   preferred_domain_id: '' as number | '',
 });
 const deleteForm = useForm({});
+
+const domainOptions = computed<SelectOption<number | ''>[]>(() => [
+  { value: '', label: 'No preferred domain' },
+  ...(manage.value?.domains ?? []).map((domain) => ({ value: domain.id, label: domain.hostname })),
+]);
 
 watch(
   () => [props.show, props.workspaceId] as const,
@@ -126,7 +134,7 @@ function destroy() {
       <template v-else-if="manage">
         <form class="mt-6 grid gap-5" @submit.prevent="submit">
           <Field label="Name" :error="form.errors.name">
-            <input v-model="form.name" class="h-9" placeholder="Acme Events" />
+            <Input v-model="form.name" placeholder="Acme Events" />
           </Field>
 
           <WorkspaceColorPicker v-model:color="form.color" :name="form.name" />
@@ -139,12 +147,7 @@ function destroy() {
             hint="Used as the default domain when creating new short links."
             :error="form.errors.preferred_domain_id"
           >
-            <select v-model="form.preferred_domain_id" class="h-9">
-              <option value="">No preferred domain</option>
-              <option v-for="domain in manage.domains" :key="domain.id" :value="domain.id">
-                {{ domain.hostname }}
-              </option>
-            </select>
+            <Select v-model="form.preferred_domain_id" :options="domainOptions" />
           </Field>
 
           <div class="flex items-center gap-3">

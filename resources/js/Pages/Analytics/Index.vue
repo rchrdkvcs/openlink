@@ -8,7 +8,9 @@ import BreakdownCard from '@/Components/analytics/BreakdownCard.vue';
 import KpiCard from '@/Components/analytics/KpiCard.vue';
 import TimeSeriesChart from '@/Components/analytics/TimeSeriesChart.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import Input from '@/Components/ui/Input.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
+import Select from '@/Components/ui/Select.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import {
   CHANNEL_LABELS,
@@ -23,6 +25,7 @@ import {
   type RangePreset,
   type Report,
 } from '@/lib/analytics';
+import type { SelectOption } from '@/lib/controls';
 
 type Option = { id: number; name?: string; slug?: string; hostname?: string };
 
@@ -49,6 +52,35 @@ const RANGES: { key: RangePreset; label: string }[] = [
   { key: '12m', label: '12m' },
   { key: 'custom', label: 'Custom' },
 ];
+
+const METRIC_OPTIONS: SelectOption[] = [
+  { value: '', label: 'Visits + scans' },
+  { value: 'visit', label: 'Visits only' },
+  { value: 'scan', label: 'Scans only' },
+];
+
+function withAll(allLabel: string, items: Option[], label: (item: Option) => string | undefined): SelectOption[] {
+  return [
+    { value: '', label: allLabel },
+    ...items.map((item) => ({ value: String(item.id), label: label(item) ?? '' })),
+  ];
+}
+
+const linkOptions = computed<SelectOption[]>(() => [
+  { value: '', label: 'All links' },
+  ...props.filterOptions.links.map((link) => ({
+    value: String(link.id),
+    label: `${link.hostname ? `${link.hostname}/` : '/'}${link.slug}`,
+  })),
+]);
+
+const domainOptions = computed(() => withAll('All domains', props.filterOptions.domains, (domain) => domain.hostname));
+const folderOptions = computed(() => withAll('All folders', props.filterOptions.folders, (folder) => folder.name));
+const tagOptions = computed(() => withAll('All tags', props.filterOptions.tags, (tag) => tag.name));
+const ruleOptions = computed(() => withAll('All rules', props.filterOptions.routingRules, (rule) => rule.name));
+const variantOptions = computed(() =>
+  withAll('All variants', props.filterOptions.routingVariants, (variant) => variant.name),
+);
 
 const state = reactive({
   range: String(props.filters.range ?? '30d') as RangePreset,
@@ -222,58 +254,49 @@ const outcomeRows = computed(() =>
         </div>
 
         <template v-if="state.range === 'custom'">
-          <input v-model="state.from" type="date" class="h-9 w-auto" @change="applyCustomRange" />
+          <Input v-model="state.from" type="date" class="w-auto" @change="applyCustomRange" />
           <span class="text-xs text-faint">to</span>
-          <input v-model="state.to" type="date" class="h-9 w-auto" @change="applyCustomRange" />
+          <Input v-model="state.to" type="date" class="w-auto" @change="applyCustomRange" />
         </template>
 
-        <select v-model="state.link" class="h-9 w-auto min-w-36 max-w-56">
-          <option value="">All links</option>
-          <option v-for="link in filterOptions.links" :key="link.id" :value="String(link.id)">
-            {{ link.hostname ? `${link.hostname}/` : '/' }}{{ link.slug }}
-          </option>
-        </select>
+        <Select v-model="state.link" :options="linkOptions" class="w-auto min-w-36 max-w-56" />
 
-        <select v-if="filterOptions.domains.length > 0" v-model="state.domain" class="h-9 w-auto min-w-32">
-          <option value="">All domains</option>
-          <option v-for="domain in filterOptions.domains" :key="domain.id" :value="String(domain.id)">
-            {{ domain.hostname }}
-          </option>
-        </select>
+        <Select
+          v-if="filterOptions.domains.length > 0"
+          v-model="state.domain"
+          :options="domainOptions"
+          class="w-auto min-w-32"
+        />
 
-        <select v-if="filterOptions.folders.length > 0" v-model="state.folder" class="h-9 w-auto min-w-32">
-          <option value="">All folders</option>
-          <option v-for="folder in filterOptions.folders" :key="folder.id" :value="String(folder.id)">
-            {{ folder.name }}
-          </option>
-        </select>
+        <Select
+          v-if="filterOptions.folders.length > 0"
+          v-model="state.folder"
+          :options="folderOptions"
+          class="w-auto min-w-32"
+        />
 
-        <select v-if="filterOptions.tags.length > 0" v-model="state.tag" class="h-9 w-auto min-w-28">
-          <option value="">All tags</option>
-          <option v-for="tag in filterOptions.tags" :key="tag.id" :value="String(tag.id)">
-            {{ tag.name }}
-          </option>
-        </select>
+        <Select
+          v-if="filterOptions.tags.length > 0"
+          v-model="state.tag"
+          :options="tagOptions"
+          class="w-auto min-w-28"
+        />
 
-        <select v-if="filterOptions.routingRules.length > 0" v-model="state.rule" class="h-9 w-auto min-w-32">
-          <option value="">All rules</option>
-          <option v-for="rule in filterOptions.routingRules" :key="rule.id" :value="String(rule.id)">
-            {{ rule.name }}
-          </option>
-        </select>
+        <Select
+          v-if="filterOptions.routingRules.length > 0"
+          v-model="state.rule"
+          :options="ruleOptions"
+          class="w-auto min-w-32"
+        />
 
-        <select v-if="filterOptions.routingVariants.length > 0" v-model="state.variant" class="h-9 w-auto min-w-32">
-          <option value="">All variants</option>
-          <option v-for="variant in filterOptions.routingVariants" :key="variant.id" :value="String(variant.id)">
-            {{ variant.name }}
-          </option>
-        </select>
+        <Select
+          v-if="filterOptions.routingVariants.length > 0"
+          v-model="state.variant"
+          :options="variantOptions"
+          class="w-auto min-w-32"
+        />
 
-        <select v-model="state.metric" class="h-9 w-auto min-w-28">
-          <option value="">Visits + scans</option>
-          <option value="visit">Visits only</option>
-          <option value="scan">Scans only</option>
-        </select>
+        <Select v-model="state.metric" :options="METRIC_OPTIONS" class="w-auto min-w-28" />
       </div>
 
       <!-- Refetch keeps the frame: previous render held at reduced opacity -->

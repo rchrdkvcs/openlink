@@ -2,11 +2,10 @@
 import { useForm } from '@inertiajs/vue3';
 
 import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 
 defineProps<{
   twoFactor: {
@@ -69,16 +68,9 @@ function disable() {
         </div>
 
         <form class="flex max-w-sm items-end gap-3" @submit.prevent="confirm">
-          <div class="flex-1">
-            <InputLabel for="two_factor_code" value="Authentication code" />
-            <TextInput
-              id="two_factor_code"
-              v-model="confirmForm.code"
-              class="mt-1.5 block w-full"
-              inputmode="numeric"
-            />
-            <InputError :message="confirmForm.errors.code" class="mt-2" />
-          </div>
+          <Field label="Authentication code" :error="confirmForm.errors.code" class="flex-1">
+            <Input id="two_factor_code" v-model="confirmForm.code" inputmode="numeric" />
+          </Field>
           <PrimaryButton :disabled="confirmForm.processing">Confirm</PrimaryButton>
         </form>
       </div>
@@ -88,16 +80,9 @@ function disable() {
       </div>
 
       <form v-if="twoFactor.enabled" class="flex max-w-sm items-end gap-3" @submit.prevent="disable">
-        <div class="flex-1">
-          <InputLabel for="disable_two_factor_password" value="Current password" />
-          <TextInput
-            id="disable_two_factor_password"
-            v-model="disableForm.password"
-            type="password"
-            class="mt-1.5 block w-full"
-          />
-          <InputError :message="disableForm.errors.password" class="mt-2" />
-        </div>
+        <Field label="Current password" :error="disableForm.errors.password" class="flex-1">
+          <Input id="disable_two_factor_password" v-model="disableForm.password" type="password" />
+        </Field>
         <DangerButton :disabled="disableForm.processing">Disable</DangerButton>
       </form>
     </div>

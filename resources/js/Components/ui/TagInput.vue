@@ -2,6 +2,9 @@
 import { X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
+import { controlVariants } from '@/lib/controls';
+import { cn } from '@/lib/utils';
+
 const props = withDefaults(
   defineProps<{
     /** Comma-separated tag list — the wire format the backend accepts. */
@@ -58,7 +61,12 @@ function popLast() {
 <template>
   <div>
     <div
-      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border bg-surface px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
+      :class="
+        cn(
+          controlVariants(),
+          'flex h-auto min-h-9 flex-wrap items-center gap-1.5 px-2 py-1.5 focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25',
+        )
+      "
     >
       <span
         v-for="tag in pills"
@@ -72,7 +80,7 @@ function popLast() {
       </span>
       <input
         v-model="draft"
-        class="h-6 min-w-24 flex-1 !border-0 !bg-transparent !p-0 !text-[13px] !shadow-none !ring-0"
+        class="h-6 min-w-24 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-faint"
         :placeholder="pills.length ? '' : placeholder"
         @keydown.enter.prevent="commit"
         @keydown="onKeydown"

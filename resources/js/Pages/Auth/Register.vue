@@ -2,10 +2,9 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const props = defineProps<{
@@ -49,66 +48,27 @@ const submit = () => {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <div>
-        <InputLabel for="name" value="Name" />
+      <Field label="Name" :error="form.errors.name">
+        <Input id="name" type="text" v-model="form.name" required autofocus autocomplete="name" />
+      </Field>
 
-        <TextInput
-          id="name"
-          type="text"
-          class="mt-1.5 block w-full"
-          v-model="form.name"
-          required
-          autofocus
-          autocomplete="name"
-        />
+      <Field label="Email" :error="form.errors.email">
+        <Input id="email" type="email" v-model="form.email" required autocomplete="username" />
+      </Field>
 
-        <InputError class="mt-2" :message="form.errors.name" />
-      </div>
+      <Field label="Password" :error="form.errors.password">
+        <Input id="password" type="password" v-model="form.password" required autocomplete="new-password" />
+      </Field>
 
-      <div>
-        <InputLabel for="email" value="Email" />
-
-        <TextInput
-          id="email"
-          type="email"
-          class="mt-1.5 block w-full"
-          v-model="form.email"
-          required
-          autocomplete="username"
-        />
-
-        <InputError class="mt-2" :message="form.errors.email" />
-      </div>
-
-      <div>
-        <InputLabel for="password" value="Password" />
-
-        <TextInput
-          id="password"
-          type="password"
-          class="mt-1.5 block w-full"
-          v-model="form.password"
-          required
-          autocomplete="new-password"
-        />
-
-        <InputError class="mt-2" :message="form.errors.password" />
-      </div>
-
-      <div>
-        <InputLabel for="password_confirmation" value="Confirm Password" />
-
-        <TextInput
+      <Field label="Confirm Password" :error="form.errors.password_confirmation">
+        <Input
           id="password_confirmation"
           type="password"
-          class="mt-1.5 block w-full"
           v-model="form.password_confirmation"
           required
           autocomplete="new-password"
         />
-
-        <InputError class="mt-2" :message="form.errors.password_confirmation" />
-      </div>
+      </Field>
 
       <PrimaryButton class="w-full" :disabled="form.processing">Register</PrimaryButton>
     </form>

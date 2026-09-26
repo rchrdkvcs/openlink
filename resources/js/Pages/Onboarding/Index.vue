@@ -7,6 +7,8 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
 
 type Domain = { id: number; hostname: string; is_default: boolean };
 type InviteLink = { id: number; role: string; url: string };
@@ -42,6 +44,8 @@ function firstDomainId() {
   return props.domains[0]?.id ?? null;
 }
 
+const domainOptions = computed(() => props.domains.map((domain) => ({ value: domain.id, label: domain.hostname })));
+
 const linkForm = useForm({
   domain_id: firstDomainId(),
   destination_url: '',
@@ -64,6 +68,12 @@ function createFirstLink() {
     onSuccess: () => (step.value = 3),
   });
 }
+
+const roleOptions = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
+];
 
 const inviteForm = useForm({ role: 'editor', expires_in_days: null, max_uses: null });
 
@@ -141,13 +151,7 @@ const steps = [
               </p>
               <form class="mt-5 space-y-4" @submit.prevent="createWorkspace">
                 <Field label="Workspace name" :error="workspaceForm.errors.name">
-                  <input
-                    v-model="workspaceForm.name"
-                    class="h-9"
-                    placeholder="Acme, Marketing, Personal…"
-                    autofocus
-                    required
-                  />
+                  <Input v-model="workspaceForm.name" placeholder="Acme, Marketing, Personal…" autofocus required />
                 </Field>
                 <Button class="w-full" :loading="workspaceForm.processing">Create workspace</Button>
               </form>
@@ -168,20 +172,15 @@ const steps = [
               </div>
               <form v-else class="mt-5 space-y-4" @submit.prevent="createFirstLink">
                 <Field label="Destination URL" :error="linkForm.errors.destination_url">
-                  <input
+                  <Input
                     v-model="linkForm.destination_url"
                     type="url"
-                    class="h-9"
                     placeholder="https://example.com/some/long/url"
                     required
                   />
                 </Field>
                 <Field v-if="domains.length > 1" label="Domain" :error="linkForm.errors.domain_id">
-                  <select v-model="linkForm.domain_id" class="h-9">
-                    <option v-for="domain in domains" :key="domain.id" :value="domain.id">
-                      {{ domain.hostname }}
-                    </option>
-                  </select>
+                  <Select v-model="linkForm.domain_id" :options="domainOptions" />
                 </Field>
 
                 <div class="flex flex-col gap-2">
@@ -217,11 +216,7 @@ const steps = [
               </div>
               <form v-else class="mt-5 space-y-4" @submit.prevent="createInviteLink">
                 <Field label="New members join as" :error="inviteForm.errors.role">
-                  <select v-model="inviteForm.role" class="h-9">
-                    <option value="admin">Admin</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
+                  <Select v-model="inviteForm.role" :options="roleOptions" />
                 </Field>
                 <Button class="w-full" variant="secondary" :loading="inviteForm.processing">
                   <Link2 class="h-4 w-4" /> Generate invite link

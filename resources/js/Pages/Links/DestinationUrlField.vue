@@ -42,7 +42,7 @@ const faviconSrc = computed(() => {
       <Globe v-else class="h-5 w-5 shrink-0 text-faint" />
       <input
         :value="modelValue"
-        class="h-12 flex-1 !border-0 !bg-transparent !p-0 !text-[15px] !shadow-none !ring-0"
+        class="h-12 min-w-0 flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-faint"
         placeholder="Paste the destination URL…"
         :autofocus="autofocus"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"

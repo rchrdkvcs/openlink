@@ -7,6 +7,7 @@ import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 type Domain = {
@@ -144,7 +145,7 @@ const records = computed(() => {
           </p>
           <form class="mt-5 space-y-4" @submit.prevent="submitHostname">
             <Field label="Domain" :error="hostnameForm.errors.hostname">
-              <input v-model="hostnameForm.hostname" class="h-9" placeholder="go.example.com" autofocus required />
+              <Input v-model="hostnameForm.hostname" placeholder="go.example.com" autofocus required />
             </Field>
             <Button class="w-full" :loading="hostnameForm.processing">Continue</Button>
           </form>

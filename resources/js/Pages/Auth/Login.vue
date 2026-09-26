@@ -2,11 +2,10 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
-import Checkbox from '@/Components/Checkbox.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Checkbox from '@/Components/ui/Checkbox.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps<{
@@ -44,25 +43,13 @@ const submit = () => {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <div>
-        <InputLabel for="email" value="Email" />
+      <Field label="Email" :error="form.errors.email">
+        <Input id="email" type="email" v-model="form.email" required autofocus autocomplete="username" />
+      </Field>
 
-        <TextInput
-          id="email"
-          type="email"
-          class="mt-1.5 block w-full"
-          v-model="form.email"
-          required
-          autofocus
-          autocomplete="username"
-        />
-
-        <InputError class="mt-2" :message="form.errors.email" />
-      </div>
-
-      <div>
+      <div class="grid gap-1.5">
         <div class="flex items-center justify-between">
-          <InputLabel for="password" value="Password" />
+          <label for="password" class="text-[13px] font-medium text-foreground">Password</label>
           <Link
             v-if="canResetPassword"
             :href="route('password.request')"
@@ -72,20 +59,13 @@ const submit = () => {
           </Link>
         </div>
 
-        <TextInput
-          id="password"
-          type="password"
-          class="mt-1.5 block w-full"
-          v-model="form.password"
-          required
-          autocomplete="current-password"
-        />
+        <Input id="password" type="password" v-model="form.password" required autocomplete="current-password" />
 
-        <InputError class="mt-2" :message="form.errors.password" />
+        <p v-if="form.errors.password" class="text-xs text-danger">{{ form.errors.password }}</p>
       </div>
 
       <label class="flex items-center gap-2">
-        <Checkbox name="remember" v-model:checked="form.remember" />
+        <Checkbox name="remember" v-model="form.remember" />
         <span class="text-sm text-muted">Remember me</span>
       </label>
 

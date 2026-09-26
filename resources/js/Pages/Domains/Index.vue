@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Select from '@/Components/ui/Select.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 type Workspace = { id: number; name: string; slug: string };
@@ -29,7 +30,7 @@ const props = defineProps<{
 }>();
 
 const transferMenuFor = ref<number | null>(null);
-const transferForm = useForm({ workspace_id: '' });
+const transferForm = useForm({ workspace_id: '' as number | '' });
 
 function verifyDomain(domain: Domain) {
   useForm({}).post(route('domains.verify', domain.id), { preserveScroll: true });
@@ -85,9 +86,11 @@ function needsSetup(domain: Domain) {
   return !domain.is_default && domain.status !== 'active' && domain.status !== 'disabled';
 }
 
-function targetWorkspaces() {
-  return props.workspaces.filter((workspace) => workspace.id !== props.currentWorkspace.id);
-}
+const targetWorkspaceOptions = computed(() =>
+  props.workspaces
+    .filter((workspace) => workspace.id !== props.currentWorkspace.id)
+    .map((workspace) => ({ value: workspace.id, label: workspace.name })),
+);
 </script>
 
 <template>
@@ -105,7 +108,8 @@ function targetWorkspaces() {
         </Link>
       </div>
 
-      <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
+      <!-- No overflow-hidden: the transfer popover must be able to overflow the card. -->
+      <section class="card-sheen rounded-lg border bg-surface">
         <div
           class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
         >
@@ -119,7 +123,7 @@ function targetWorkspaces() {
           <article
             v-for="domain in domains"
             :key="domain.id"
-            class="grid gap-3 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] lg:items-start"
+            class="grid gap-3 px-4 py-3.5 transition-colors duration-100 last:rounded-b-lg hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] lg:items-start"
           >
             <div>
               <p class="truncate text-sm font-medium text-foreground">{{ domain.hostname }}</p>
@@ -160,12 +164,11 @@ function targetWorkspaces() {
                     @submit.prevent="transferDomain(domain)"
                   >
                     <Field label="Transfer to" :error="transferForm.errors.workspace_id">
-                      <select v-model="transferForm.workspace_id" class="h-9">
-                        <option value="">Choose workspace</option>
-                        <option v-for="workspace in targetWorkspaces()" :key="workspace.id" :value="workspace.id">
-                          {{ workspace.name }}
-                        </option>
-                      </select>
+                      <Select
+                        v-model="transferForm.workspace_id"
+                        :options="targetWorkspaceOptions"
+                        placeholder="Choose workspace"
+                      />
                     </Field>
                     <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id"
                       >Transfer</Button

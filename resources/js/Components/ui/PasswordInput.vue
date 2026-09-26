@@ -2,6 +2,8 @@
 import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
 
+import Input from '@/Components/ui/Input.vue';
+
 defineProps<{
   modelValue: string;
   placeholder?: string;
@@ -14,13 +16,13 @@ const show = ref(false);
 
 <template>
   <div class="relative">
-    <input
-      :value="modelValue"
+    <Input
+      :model-value="modelValue"
       :type="show ? 'text' : 'password'"
-      class="h-9 !pr-10"
+      class="pr-10"
       :placeholder="placeholder"
       autocomplete="new-password"
-      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @update:model-value="emit('update:modelValue', String($event ?? ''))"
     />
     <button
       type="button"

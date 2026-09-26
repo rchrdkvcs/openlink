@@ -2,7 +2,6 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
@@ -39,7 +38,7 @@ const verificationLinkSent = computed(() => props.status === 'verification-link-
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <InputError :message="form.errors.email" />
+      <p v-if="form.errors.email" class="text-xs text-danger">{{ form.errors.email }}</p>
       <PrimaryButton class="w-full" :disabled="form.processing">Resend verification email</PrimaryButton>
     </form>
 

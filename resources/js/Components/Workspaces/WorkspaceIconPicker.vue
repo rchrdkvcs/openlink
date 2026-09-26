@@ -2,6 +2,7 @@
 import { Search } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
+import Input from '@/Components/ui/Input.vue';
 import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import { WORKSPACE_ICON_CATEGORIES } from '@/lib/workspaces';
 
@@ -14,7 +15,7 @@ const icon = defineModel<string>('icon', { default: '' });
 
 const open = ref(false);
 const query = ref('');
-const searchInput = ref<HTMLInputElement | null>(null);
+const searchInput = ref<InstanceType<typeof Input> | null>(null);
 
 const filteredCategories = computed(() => {
   const needle = query.value.trim().toLowerCase();
@@ -88,13 +89,7 @@ onUnmounted(() => document.removeEventListener('keydown', closeOnEscape, { captu
         <div class="flex items-center gap-2 border-b p-2">
           <div class="relative min-w-0 flex-1">
             <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
-            <input
-              ref="searchInput"
-              v-model="query"
-              type="search"
-              class="h-8 w-full pl-8 text-[13px]"
-              placeholder="Search icons…"
-            />
+            <Input ref="searchInput" v-model="query" type="search" size="sm" class="pl-8" placeholder="Search icons…" />
           </div>
           <button
             v-if="icon"

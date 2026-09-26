@@ -3,7 +3,10 @@ import { CalendarClock, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import Select from '@/Components/ui/Select.vue';
+import { controlVariants } from '@/lib/controls';
 import { addDays, fromInputValue, humanize, monthGrid, monthLabel, toInputValue, WEEKDAYS } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
 
 const props = withDefaults(
   defineProps<{
@@ -45,10 +48,10 @@ function pickDay(day: Date) {
   emit('update:modelValue', toInputValue(next));
 }
 
-function setTime(part: 'hours' | 'minutes', raw: string) {
+function setTime(part: 'hours' | 'minutes', value: number) {
   const next = new Date(selected.value ?? new Date());
-  if (part === 'hours') next.setHours(Number(raw));
-  else next.setMinutes(Number(raw));
+  if (part === 'hours') next.setHours(value);
+  else next.setMinutes(value);
   emit('update:modelValue', toInputValue(next));
 }
 
@@ -59,8 +62,9 @@ function applyPreset(days: number) {
   view.value = d;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
+const pad = (n: number) => String(n).padStart(2, '0');
+const HOURS = Array.from({ length: 24 }, (_, i) => ({ value: i, label: pad(i) }));
+const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad(i * 5) }));
 </script>
 
 <template>
@@ -68,8 +72,9 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
   <div class="relative" @keydown.escape.stop="open = false">
     <button
       type="button"
-      class="flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-surface px-3 text-sm transition-colors hover:border-border-strong focus-visible:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-      :class="modelValue ? 'text-foreground' : 'text-faint'"
+      :class="
+        cn(controlVariants(), 'flex items-center justify-between gap-2', modelValue ? 'text-foreground' : 'text-faint')
+      "
       @click="toggle"
     >
       <span class="truncate">{{ modelValue ? humanize(modelValue) : placeholder }}</span>
@@ -143,21 +148,23 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
         <div class="mt-2 flex items-center justify-between border-t pt-2">
           <div class="flex items-center gap-1">
-            <select
-              class="h-8 w-auto !py-0 !pr-7 text-[13px] tabular-nums"
-              :value="selected?.getHours() ?? 9"
-              @change="setTime('hours', ($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="h in HOURS" :key="h" :value="h">{{ String(h).padStart(2, '0') }}</option>
-            </select>
+            <Select
+              :model-value="selected?.getHours() ?? 9"
+              :options="HOURS"
+              size="sm"
+              class="w-16 tabular-nums"
+              aria-label="Hour"
+              @update:model-value="setTime('hours', $event)"
+            />
             <span class="text-sm text-faint">:</span>
-            <select
-              class="h-8 w-auto !py-0 !pr-7 text-[13px] tabular-nums"
-              :value="selected?.getMinutes() ?? 0"
-              @change="setTime('minutes', ($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="m in MINUTES" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
-            </select>
+            <Select
+              :model-value="selected?.getMinutes() ?? 0"
+              :options="MINUTES"
+              size="sm"
+              class="w-16 tabular-nums"
+              aria-label="Minutes"
+              @update:model-value="setTime('minutes', $event)"
+            />
           </div>
           <div class="flex gap-1">
             <Button variant="ghost" size="sm" type="button" @click="emit('update:modelValue', '')">Clear</Button>

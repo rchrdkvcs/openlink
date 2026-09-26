@@ -2,10 +2,9 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { KeyRound, Trash2 } from '@lucide/vue';
 
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
 import Button from '@/Components/ui/Button.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 
 type ApiToken = {
   id: number;
@@ -55,15 +54,9 @@ function formatDate(value: string | null) {
 
     <form class="mt-6 flex max-w-md items-end gap-3" @submit.prevent="createToken">
       <div class="flex-1">
-        <InputLabel for="token_name" value="Token name" />
-        <TextInput
-          id="token_name"
-          v-model="form.name"
-          class="mt-1.5 block w-full"
-          placeholder="Browser extension"
-          :disabled="!canCreate"
-        />
-        <InputError :message="form.errors.name" class="mt-2" />
+        <Field label="Token name" :error="form.errors.name">
+          <Input id="token_name" v-model="form.name" placeholder="Browser extension" :disabled="!canCreate" />
+        </Field>
         <p v-if="!canCreate" class="mt-2 text-xs text-warning">Verify your email before creating API tokens.</p>
       </div>
       <Button :loading="form.processing" :disabled="!canCreate"> <KeyRound class="h-4 w-4" /> Create </Button>

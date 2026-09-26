@@ -17,7 +17,9 @@ import { computed, ref, watch } from 'vue';
 import Button from '@/Components/ui/Button.vue';
 import DateTimeField from '@/Components/ui/DateTimeField.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
+import Input from '@/Components/ui/Input.vue';
 import PasswordInput from '@/Components/ui/PasswordInput.vue';
+import Select from '@/Components/ui/Select.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
 import { isLikelyUrl } from '@/lib/links';
@@ -41,6 +43,10 @@ const props = defineProps<{
 const emit = defineEmits<{ close: []; submit: [] }>();
 
 const tab = ref<'link' | 'routing'>('link');
+const folderOptions = computed(() => [
+  { value: '', label: 'No folder' },
+  ...props.folders.map((folder) => ({ value: String(folder.id), label: folder.name })),
+]);
 const destinationValid = computed(() => isLikelyUrl(props.form.destination_url));
 
 // ── Short URL segment control ────────────────────────────────────────────────
@@ -172,19 +178,14 @@ watch(
               </template>
 
               <template v-else-if="key === 'folder_id'">
-                <select v-model="form.folder_id" class="h-9">
-                  <option value="">No folder</option>
-                  <option v-for="folder in folders" :key="folder.id" :value="folder.id">
-                    {{ folder.name }}
-                  </option>
-                </select>
+                <Select v-model="form.folder_id" :options="folderOptions" />
                 <p v-if="form.errors.folder_id" class="mt-1.5 text-xs text-danger">
                   {{ form.errors.folder_id }}
                 </p>
               </template>
 
               <template v-else-if="key === 'fallback_url'">
-                <input v-model="form.fallback_url" class="h-9" placeholder="https://fallback.example" />
+                <Input v-model="form.fallback_url" placeholder="https://fallback.example" />
                 <p class="mt-1.5 text-xs" :class="form.errors.fallback_url ? 'text-danger' : 'text-faint'">
                   {{ form.errors.fallback_url ?? 'Shown when the link is expired or unavailable.' }}
                 </p>

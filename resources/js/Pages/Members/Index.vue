@@ -11,6 +11,8 @@ import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
@@ -54,6 +56,13 @@ const roleOptions = [
 // --- Invite modal ---
 
 const showInviteModal = ref(false);
+
+const expiryOptions = [
+  { value: '', label: 'Never' },
+  { value: '1', label: 'In 1 day' },
+  { value: '7', label: 'In 7 days' },
+  { value: '30', label: 'In 30 days' },
+];
 
 const linkForm = useForm({ role: 'editor', expires_in_days: '' as string, max_uses: '' as string });
 
@@ -299,22 +308,13 @@ const sortedMembers = computed(() =>
           <form class="mt-5 rounded-lg border bg-elevated/30 p-4" @submit.prevent="createInviteLink">
             <div class="grid gap-3 sm:grid-cols-3">
               <Field label="Role" :error="linkForm.errors.role">
-                <select v-model="linkForm.role" class="h-9">
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                <Select v-model="linkForm.role" :options="roleOptions" />
               </Field>
               <Field label="Expires" :error="linkForm.errors.expires_in_days">
-                <select v-model="linkForm.expires_in_days" class="h-9">
-                  <option value="">Never</option>
-                  <option value="1">In 1 day</option>
-                  <option value="7">In 7 days</option>
-                  <option value="30">In 30 days</option>
-                </select>
+                <Select v-model="linkForm.expires_in_days" :options="expiryOptions" />
               </Field>
               <Field label="Max uses" :error="linkForm.errors.max_uses">
-                <input v-model="linkForm.max_uses" type="number" min="1" class="h-9" placeholder="Unlimited" />
+                <Input v-model="linkForm.max_uses" type="number" min="1" placeholder="Unlimited" />
               </Field>
             </div>
             <Button class="mt-3 w-full" :loading="linkForm.processing">

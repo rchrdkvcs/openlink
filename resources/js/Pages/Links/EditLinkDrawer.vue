@@ -7,7 +7,9 @@ import Button from '@/Components/ui/Button.vue';
 import DateTimeField from '@/Components/ui/DateTimeField.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import PasswordInput from '@/Components/ui/PasswordInput.vue';
+import Select from '@/Components/ui/Select.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
@@ -30,6 +32,10 @@ const props = defineProps<{
 const emit = defineEmits<{ close: []; submit: [] }>();
 
 const tab = ref<'link' | 'routing'>('link');
+const folderOptions = computed(() => [
+  { value: '', label: 'No folder' },
+  ...props.folders.map((folder) => ({ value: String(folder.id), label: folder.name })),
+]);
 
 // ── Progressive options — settings already on the link open expanded, the rest are chips ──
 type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url';
@@ -163,19 +169,14 @@ const shortUrlChanged = computed(
             </template>
 
             <template v-else-if="key === 'folder_id'">
-              <select v-model="editForm.folder_id" class="h-9">
-                <option value="">No folder</option>
-                <option v-for="folder in folders" :key="folder.id" :value="folder.id">
-                  {{ folder.name }}
-                </option>
-              </select>
+              <Select v-model="editForm.folder_id" :options="folderOptions" />
               <p v-if="editForm.errors.folder_id" class="mt-1.5 text-xs text-danger">
                 {{ editForm.errors.folder_id }}
               </p>
             </template>
 
             <template v-else-if="key === 'fallback_url'">
-              <input v-model="editForm.fallback_url" class="h-9" placeholder="https://fallback.example" />
+              <Input v-model="editForm.fallback_url" placeholder="https://fallback.example" />
               <p class="mt-1.5 text-xs" :class="editForm.errors.fallback_url ? 'text-danger' : 'text-faint'">
                 {{ editForm.errors.fallback_url ?? 'Shown when the link is expired or unavailable.' }}
               </p>

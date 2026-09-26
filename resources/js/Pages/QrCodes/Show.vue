@@ -5,10 +5,14 @@ import { computed, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import Checkbox from '@/Components/ui/Checkbox.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
+import Select from '@/Components/ui/Select.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import type { SelectOption } from '@/lib/controls';
 
 import PayloadFields from './PayloadFields.vue';
 import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
@@ -35,7 +39,21 @@ const EYE_STYLES = [
 ];
 
 const EXPORT_SIZES = [512, 1024, 2048, 4096];
-const typeOptions = Object.entries(props.payloadTypes);
+const EXPORT_SIZE_OPTIONS: SelectOption<number>[] = EXPORT_SIZES.map((size) => ({ value: size, label: `${size} px` }));
+
+const TARGET_OPTIONS: SelectOption[] = [
+  { value: 'short_link', label: 'Short Link' },
+  { value: 'direct', label: 'Direct payload' },
+];
+
+const ERROR_CORRECTION_OPTIONS: SelectOption[] = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'quartile', label: 'Quartile' },
+  { value: 'high', label: 'High' },
+];
+
+const typeOptions: SelectOption[] = Object.entries(props.payloadTypes).map(([value, label]) => ({ value, label }));
 const originalWasDirect = props.qr.is_direct;
 
 const form = useForm({
@@ -60,6 +78,10 @@ const form = useForm({
 });
 
 const exportSize = ref(props.qr.size);
+
+const shortLinkOptions = computed<SelectOption<number>[]>(() =>
+  props.shortLinks.map((link) => ({ value: link.id, label: `${link.short_url} → ${link.destination_url}` })),
+);
 const copied = ref(false);
 const previewVersion = ref(0);
 const logoInput = ref<HTMLInputElement | null>(null);
@@ -225,9 +247,7 @@ async function copyPublicUrl() {
               </div>
 
               <div class="flex flex-wrap items-center justify-center gap-2 border-t pt-4">
-                <select v-model="exportSize" class="h-9 w-28">
-                  <option v-for="size in EXPORT_SIZES" :key="size" :value="size">{{ size }} px</option>
-                </select>
+                <Select v-model="exportSize" :options="EXPORT_SIZE_OPTIONS" class="w-28" />
                 <a
                   :href="exportUrl('png')"
                   class="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
@@ -265,23 +285,15 @@ async function copyPublicUrl() {
         <SectionCard>
           <form class="grid grid-cols-1 gap-5 p-5" @submit.prevent="save">
             <Field label="Name" :error="form.errors.name">
-              <input v-model="form.name" class="h-9" />
+              <Input v-model="form.name" />
             </Field>
 
             <Field label="Target" :error="form.errors.short_link_id">
-              <select v-model="form.target_type" class="h-9">
-                <option value="short_link">Short Link</option>
-                <option value="direct">Direct payload</option>
-              </select>
+              <Select v-model="form.target_type" :options="TARGET_OPTIONS" />
             </Field>
 
             <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
-              <select v-model="form.short_link_id" class="h-9">
-                <option value="">Select a Short Link…</option>
-                <option v-for="link in shortLinks" :key="link.id" :value="link.id">
-                  {{ link.short_url }} → {{ link.destination_url }}
-                </option>
-              </select>
+              <Select v-model="form.short_link_id" :options="shortLinkOptions" placeholder="Select a Short Link…" />
             </Field>
 
             <div
@@ -296,15 +308,7 @@ async function copyPublicUrl() {
             </div>
 
             <Field v-if="form.target_type === 'direct'" label="Type" :error="form.errors.payload_type">
-              <select
-                :value="form.payload_type"
-                class="h-9"
-                @change="setPayloadType(($event.target as HTMLSelectElement).value)"
-              >
-                <option v-for="[value, label] in typeOptions" :key="value" :value="value">
-                  {{ label }}
-                </option>
-              </select>
+              <Select :model-value="form.payload_type" :options="typeOptions" @update:model-value="setPayloadType" />
             </Field>
 
             <PayloadFields
@@ -380,7 +384,7 @@ async function copyPublicUrl() {
                     <span class="block text-[13px] font-medium text-foreground">Transparent background</span>
                     <span class="block text-xs text-faint">PNG and SVG exports keep the background see-through.</span>
                   </span>
-                  <input v-model="form.background_transparent" type="checkbox" class="h-4 w-4 rounded" />
+                  <Checkbox v-model="form.background_transparent" />
                 </label>
 
                 <Field
@@ -417,18 +421,13 @@ async function copyPublicUrl() {
 
                 <div class="grid gap-4 sm:grid-cols-3">
                   <Field label="Margin" hint="Quiet zone." :error="form.errors.margin">
-                    <input v-model="form.margin" type="number" min="0" max="16" class="h-9" />
+                    <Input v-model="form.margin" type="number" min="0" max="16" />
                   </Field>
                   <Field label="Error correction" :error="form.errors.error_correction">
-                    <select v-model="form.error_correction" class="h-9">
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="quartile">Quartile</option>
-                      <option value="high">High</option>
-                    </select>
+                    <Select v-model="form.error_correction" :options="ERROR_CORRECTION_OPTIONS" />
                   </Field>
                   <Field label="Default size" :error="form.errors.size">
-                    <input v-model="form.size" type="number" min="128" max="4096" class="h-9" />
+                    <Input v-model="form.size" type="number" min="128" max="4096" />
                   </Field>
                 </div>
               </div>

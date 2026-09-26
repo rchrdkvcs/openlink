@@ -27,6 +27,7 @@ import { ref, useId } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
@@ -375,9 +376,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
           <!-- Rule body: one flat surface, sentence-like rows sharing a single content edge -->
           <div v-if="openIndex === index" :id="`${editorId}-rule-${index}`" class="grid gap-5 border-t p-4">
             <div class="grid gap-3 min-[480px]:grid-cols-[minmax(0,1fr)_160px]">
-              <Field label="Rule name"
-                ><input v-model="rule.name" class="h-9" placeholder="e.g. French visitors"
-              /></Field>
+              <Field label="Rule name"><Input v-model="rule.name" placeholder="e.g. French visitors" /></Field>
               <div class="grid gap-1.5">
                 <label :for="`${editorId}-type-${index}`" class="text-[13px] font-medium">Action</label
                 ><Select
@@ -425,15 +424,13 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                         v-if="condition.operator === 'between'"
                         class="grid min-w-0 grid-cols-2 gap-2 [grid-area:value]"
                       >
-                        <input
+                        <Input
                           v-model="rangeValue(condition).from"
-                          class="h-9 min-w-0"
                           :type="condition.type === 'date_time' ? 'datetime-local' : 'time'"
                           :aria-label="`Condition ${conditionIndex + 1} start`"
                         />
-                        <input
+                        <Input
                           v-model="rangeValue(condition).to"
-                          class="h-9 min-w-0"
                           :type="condition.type === 'date_time' ? 'datetime-local' : 'time'"
                           :aria-label="`Condition ${conditionIndex + 1} end`"
                         />
@@ -446,10 +443,10 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                         :aria-label="`Condition ${conditionIndex + 1} value`"
                         @update:model-value="condition.value = $event"
                       />
-                      <input
+                      <Input
                         v-else
-                        :value="scalarValue(condition)"
-                        class="h-9 min-w-0 [grid-area:value]"
+                        :model-value="scalarValue(condition)"
+                        class="[grid-area:value]"
                         :type="
                           condition.type === 'date_time'
                             ? 'datetime-local'
@@ -465,7 +462,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                               : 'Enter a value'
                         "
                         :aria-label="`Condition ${conditionIndex + 1} value`"
-                        @input="condition.value = ($event.target as HTMLInputElement).value"
+                        @update:model-value="condition.value = String($event ?? '')"
                       />
                     </template>
                     <span v-else class="self-center px-1 text-xs text-faint [grid-area:value]">No value needed</span>
@@ -481,9 +478,10 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                     <label
                       v-if="['date_time', 'day_of_week', 'time_of_day'].includes(condition.type)"
                       class="condition-extra flex min-w-0 items-center gap-2 text-xs text-muted"
-                      ><CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />Timezone<input
+                      ><CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />Timezone<Input
                         v-model="condition.timezone"
-                        class="h-8 min-w-0 flex-1 text-xs"
+                        size="sm"
+                        class="flex-1 text-xs"
                         placeholder="Europe/Paris"
                     /></label>
                   </div>
@@ -514,18 +512,19 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                       { value: 'any', label: 'any condition' },
                     ]"
                     aria-label="Condition matching mode"
-                    class="h-8 w-auto min-w-36"
+                    size="sm"
+                    class="w-auto min-w-36"
                 /></label>
               </div>
 
               <!-- Then -->
               <template v-if="rule.type === 'conditional'">
                 <label :for="`${editorId}-destination-${index}`" class="sentence-word mt-3">Then</label>
-                <input
+                <Input
                   :id="`${editorId}-destination-${index}`"
                   v-model="rule.destination_url"
                   type="url"
-                  class="mt-3 h-9"
+                  class="mt-3"
                   placeholder="Redirect to https://example.com/landing"
                 />
               </template>
@@ -547,21 +546,21 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                     class="variant-row"
                     :class="!variant.is_enabled && 'opacity-60'"
                   >
-                    <input
+                    <Input
                       v-model="variant.name"
-                      class="h-9 min-w-0 [grid-area:name]"
+                      class="[grid-area:name]"
                       :aria-label="`Variant ${variantIndex + 1} name`"
                     />
-                    <input
+                    <Input
                       v-model="variant.destination_url"
                       type="url"
-                      class="h-9 min-w-0 [grid-area:url]"
+                      class="[grid-area:url]"
                       placeholder="https://example.com/variant"
                       :aria-label="`Variant ${variant.name} destination URL`"
                     />
-                    <input
+                    <Input
                       v-model="variant.weight"
-                      class="h-9 min-w-0 [grid-area:weight]"
+                      class="[grid-area:weight]"
                       type="number"
                       min="1"
                       step="1"

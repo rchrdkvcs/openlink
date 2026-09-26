@@ -4,10 +4,13 @@ import { BarChart3, CheckCircle2, CircleAlert, Globe2, Link2, Lock, Mail, UserPl
 import { computed } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import Checkbox from '@/Components/ui/Checkbox.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
+import Textarea from '@/Components/ui/Textarea.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps<{
@@ -143,7 +146,7 @@ function discardChanges() {
           >
             <template #icon><Mail class="h-4 w-4 text-faint" /></template>
             <label class="flex cursor-pointer items-start gap-3 p-5">
-              <input v-model="settingsForm.require_email_verification" type="checkbox" class="mt-0.5" />
+              <Checkbox v-model="settingsForm.require_email_verification" class="mt-0.5" />
               <span>
                 <span class="block text-sm font-medium text-foreground">Require email verification</span>
                 <span class="mt-1 block text-xs text-muted"
@@ -166,14 +169,14 @@ function discardChanges() {
                 hint="Available to every workspace for short URLs, without DNS setup."
                 :error="settingsForm.errors.default_domain"
               >
-                <input v-model="settingsForm.default_domain" class="h-9" placeholder="localhost" />
+                <Input v-model="settingsForm.default_domain" placeholder="localhost" />
               </Field>
               <Field
                 label="DNS target"
                 hint="Where workspace domains should point. Leave empty to use the default domain."
                 :error="settingsForm.errors.dns_target"
               >
-                <input v-model="settingsForm.dns_target" class="h-9" placeholder="203.0.113.10 or app.example.com" />
+                <Input v-model="settingsForm.dns_target" placeholder="203.0.113.10 or app.example.com" />
               </Field>
             </div>
           </SectionCard>
@@ -196,7 +199,7 @@ function discardChanges() {
                 hint="One per line. These can never be claimed by a short link."
                 :error="settingsForm.errors.reserved_slugs"
               >
-                <textarea
+                <Textarea
                   v-model="settingsForm.reserved_slugs"
                   class="font-mono text-[13px]"
                   rows="6"
@@ -208,7 +211,7 @@ function discardChanges() {
                 hint="One per line. Slugs starting with these are rejected."
                 :error="settingsForm.errors.reserved_prefixes"
               >
-                <textarea
+                <Textarea
                   v-model="settingsForm.reserved_prefixes"
                   class="font-mono text-[13px]"
                   rows="6"
@@ -242,14 +245,10 @@ function discardChanges() {
             <div class="grid gap-5 p-5 lg:grid-cols-2">
               <div class="grid content-start gap-5">
                 <Field label="Title" :error="settingsForm.errors.public_unavailable_title">
-                  <input
-                    v-model="settingsForm.public_unavailable_title"
-                    class="h-9"
-                    placeholder="This link is unavailable"
-                  />
+                  <Input v-model="settingsForm.public_unavailable_title" placeholder="This link is unavailable" />
                 </Field>
                 <Field label="Message" :error="settingsForm.errors.public_unavailable_message">
-                  <textarea
+                  <Textarea
                     v-model="settingsForm.public_unavailable_message"
                     rows="3"
                     placeholder="The link cannot be opened right now."

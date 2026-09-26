@@ -3,14 +3,12 @@ import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 
 import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Input from '@/Components/ui/Input.vue';
 
 const confirmingUserDeletion = ref(false);
-const passwordInput = ref<HTMLInputElement | null>(null);
+const passwordInput = ref<InstanceType<typeof Input> | null>(null);
 
 const form = useForm({
   password: '',
@@ -63,20 +61,20 @@ const closeModal = () => {
           password to confirm you would like to permanently delete your account.
         </p>
 
-        <div class="mt-6">
-          <InputLabel for="password" value="Password" class="sr-only" />
+        <div class="mt-6 grid gap-1.5">
+          <label for="password" class="sr-only">Password</label>
 
-          <TextInput
+          <Input
             id="password"
             ref="passwordInput"
             v-model="form.password"
             type="password"
-            class="mt-1 block w-3/4"
+            class="w-3/4"
             placeholder="Password"
             @keyup.enter="deleteUser"
           />
 
-          <InputError :message="form.errors.password" class="mt-2" />
+          <p v-if="form.errors.password" class="text-xs text-danger">{{ form.errors.password }}</p>
         </div>
 
         <div class="mt-6 flex justify-end gap-3">

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps<{
@@ -34,21 +33,9 @@ const submit = () => {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <div>
-        <InputLabel for="email" value="Email" />
-
-        <TextInput
-          id="email"
-          type="email"
-          class="mt-1.5 block w-full"
-          v-model="form.email"
-          required
-          autofocus
-          autocomplete="username"
-        />
-
-        <InputError class="mt-2" :message="form.errors.email" />
-      </div>
+      <Field label="Email" :error="form.errors.email">
+        <Input id="email" type="email" v-model="form.email" required autofocus autocomplete="username" />
+      </Field>
 
       <PrimaryButton class="w-full" :disabled="form.processing">Email password reset link</PrimaryButton>
     </form>

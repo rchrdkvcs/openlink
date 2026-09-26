@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const form = useForm({
@@ -28,22 +27,17 @@ const submit = () => {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <div>
-        <InputLabel for="one_time_password" value="Authentication code" />
-
-        <TextInput
+      <Field label="Authentication code" :error="form.errors.one_time_password">
+        <Input
           id="one_time_password"
           type="text"
           inputmode="numeric"
-          class="mt-1.5 block w-full"
           v-model="form.one_time_password"
           required
           autofocus
           autocomplete="one-time-code"
         />
-
-        <InputError class="mt-2" :message="form.errors.one_time_password" />
-      </div>
+      </Field>
 
       <PrimaryButton class="w-full" :disabled="form.processing">Continue</PrimaryButton>
     </form>

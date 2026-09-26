@@ -21,13 +21,15 @@ import {
   Timer,
   Trash2,
 } from '@lucide/vue';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { originOf } from '@/lib/links';
 
@@ -41,6 +43,18 @@ import { useLinkGroups } from './useLinkGroups';
 const props = defineProps<LinksPageProps>();
 
 const filters = ref({ search: '', status: '', tag: '' });
+const statusOptions = [
+  { value: '', label: 'All statuses' },
+  { value: 'active', label: 'Active' },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'disabled', label: 'Disabled' },
+  { value: 'archived', label: 'Archived' },
+];
+const tagOptions = computed(() => [
+  { value: '', label: 'All tags' },
+  ...props.tags.map((tag) => ({ value: tag.name, label: tag.name })),
+]);
 const createOpen = ref(false);
 const selectedLink = ref<ShortLink | null>(null);
 const {
@@ -76,10 +90,10 @@ const { countdownFor, activationTitle } = useActivationCountdown(props);
 
 const folderForm = useForm({ name: '' });
 const creatingFolder = ref(false);
-const newFolderInput = ref<HTMLInputElement | null>(null);
+const newFolderInput = ref<InstanceType<typeof Input> | null>(null);
 const renamingFolderId = ref<number | null>(null);
 const renameValue = ref('');
-const renameInput = ref<HTMLInputElement[]>([]);
+const renameInput = ref<InstanceType<typeof Input>[]>([]);
 const folderMenuFor = ref<number | null>(null);
 
 function startCreateFolder() {
@@ -195,20 +209,10 @@ function markFaviconFailed(url: string) {
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <div class="relative w-72">
           <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-          <input v-model="filters.search" class="h-8 pl-8 text-[13px]" placeholder="Search across all folders…" />
+          <Input v-model="filters.search" size="sm" class="pl-8" placeholder="Search across all folders…" />
         </div>
-        <select v-model="filters.status" class="h-8 w-36 py-0 text-[13px]">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="expired">Expired</option>
-          <option value="disabled">Disabled</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select v-model="filters.tag" class="h-8 w-32 py-0 text-[13px]">
-          <option value="">All tags</option>
-          <option v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
-        </select>
+        <Select v-model="filters.status" :options="statusOptions" size="sm" class="w-36" />
+        <Select v-model="filters.tag" :options="tagOptions" size="sm" class="w-32" />
 
         <span v-if="hasActiveFilters" class="text-[13px] tabular-nums text-faint"
           >{{ totalMatching }} result{{ totalMatching === 1 ? '' : 's' }}</span
@@ -227,10 +231,11 @@ function markFaviconFailed(url: string) {
         <div v-if="canEditWorkspace || canManageWorkspace" class="ml-auto flex items-center gap-2">
           <template v-if="canManageWorkspace">
             <form v-if="creatingFolder" class="flex items-center gap-2" @submit.prevent="submitFolder">
-              <input
+              <Input
                 ref="newFolderInput"
                 v-model="folderForm.name"
-                class="h-8 w-48 text-[13px]"
+                size="sm"
+                class="w-48"
                 placeholder="Folder name…"
                 @keydown.escape="
                   creatingFolder = false;
@@ -289,11 +294,12 @@ function markFaviconFailed(url: string) {
             </span>
             <component :is="group.folder ? FolderIcon : Inbox" class="h-4 w-4 text-faint" />
 
-            <input
+            <Input
               v-if="group.folder && renamingFolderId === group.folder.id"
               ref="renameInput"
               v-model="renameValue"
-              class="h-7 w-64 px-2 text-[13px]"
+              size="sm"
+              class="h-7 w-64 px-2"
               @keydown.enter.stop="commitRenameFolder"
               @keydown.escape.stop="renamingFolderId = null"
               @blur="commitRenameFolder"

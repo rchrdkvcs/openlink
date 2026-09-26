@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Minus, Plus } from '@lucide/vue';
 
+import Button from '@/Components/ui/Button.vue';
+import Input from '@/Components/ui/Input.vue';
+
 const props = withDefaults(
   defineProps<{
     modelValue: string;
@@ -21,26 +24,30 @@ function stepBy(delta: number) {
 
 <template>
   <div class="flex items-center gap-1.5">
-    <button
+    <Button
       type="button"
-      class="grid h-9 w-9 shrink-0 place-items-center rounded-md border text-muted transition-colors hover:border-border-strong hover:text-foreground"
+      variant="secondary"
+      class="w-9 shrink-0 px-0 text-muted hover:text-foreground"
+      aria-label="Decrease"
       @click="stepBy(-step)"
     >
       <Minus class="h-3.5 w-3.5" />
-    </button>
-    <input
-      :value="modelValue"
+    </Button>
+    <Input
+      :model-value="modelValue"
       inputmode="numeric"
-      class="h-9 min-w-0 flex-1 text-center font-mono !text-sm tabular-nums"
+      class="flex-1 text-center font-mono tabular-nums"
       :placeholder="placeholder"
-      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @update:model-value="emit('update:modelValue', String($event ?? ''))"
     />
-    <button
+    <Button
       type="button"
-      class="grid h-9 w-9 shrink-0 place-items-center rounded-md border text-muted transition-colors hover:border-border-strong hover:text-foreground"
+      variant="secondary"
+      class="w-9 shrink-0 px-0 text-muted hover:text-foreground"
+      aria-label="Increase"
       @click="stepBy(step)"
     >
       <Plus class="h-3.5 w-3.5" />
-    </button>
+    </Button>
   </div>
 </template>

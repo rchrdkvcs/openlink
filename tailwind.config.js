@@ -56,5 +56,7 @@ export default {
     },
   },
 
-  plugins: [forms, animate],
+  // Class strategy: form controls are styled by the ui/ components (see resources/js/lib/controls.ts),
+  // not by element-level base styles.
+  plugins: [forms({ strategy: 'class' }), animate],
 };

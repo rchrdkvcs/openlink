@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Select from '@/Components/ui/Select.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 type Workspace = { id: number; name: string; slug: string };
@@ -29,7 +30,7 @@ const props = defineProps<{
 }>();
 
 const transferMenuFor = ref<number | null>(null);
-const transferForm = useForm({ workspace_id: '' });
+const transferForm = useForm({ workspace_id: '' as number | '' });
 
 function verifyDomain(domain: Domain) {
   useForm({}).post(route('domains.verify', domain.id), { preserveScroll: true });
@@ -85,9 +86,11 @@ function needsSetup(domain: Domain) {
   return !domain.is_default && domain.status !== 'active' && domain.status !== 'disabled';
 }
 
-function targetWorkspaces() {
-  return props.workspaces.filter((workspace) => workspace.id !== props.currentWorkspace.id);
-}
+const targetWorkspaceOptions = computed(() =>
+  props.workspaces
+    .filter((workspace) => workspace.id !== props.currentWorkspace.id)
+    .map((workspace) => ({ value: workspace.id, label: workspace.name })),
+);
 </script>
 
 <template>
@@ -160,12 +163,11 @@ function targetWorkspaces() {
                     @submit.prevent="transferDomain(domain)"
                   >
                     <Field label="Transfer to" :error="transferForm.errors.workspace_id">
-                      <select v-model="transferForm.workspace_id" class="h-9">
-                        <option value="">Choose workspace</option>
-                        <option v-for="workspace in targetWorkspaces()" :key="workspace.id" :value="workspace.id">
-                          {{ workspace.name }}
-                        </option>
-                      </select>
+                      <Select
+                        v-model="transferForm.workspace_id"
+                        :options="targetWorkspaceOptions"
+                        placeholder="Choose workspace"
+                      />
                     </Field>
                     <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id"
                       >Transfer</Button

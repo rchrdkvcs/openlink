@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const form = useForm({
@@ -32,19 +31,16 @@ const submit = () => {
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
-      <div>
-        <InputLabel for="password" value="Password" />
-        <TextInput
+      <Field label="Password" :error="form.errors.password">
+        <Input
           id="password"
           type="password"
-          class="mt-1.5 block w-full"
           v-model="form.password"
           required
           autocomplete="current-password"
           autofocus
         />
-        <InputError class="mt-2" :message="form.errors.password" />
-      </div>
+      </Field>
 
       <PrimaryButton class="w-full" :disabled="form.processing">Confirm</PrimaryButton>
     </form>

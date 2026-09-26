@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
 import { ArrowRight, Link2, QrCode } from '@lucide/vue';
+import { computed } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
+import type { SelectOption } from '@/lib/controls';
 
 import PayloadFields from './PayloadFields.vue';
 import type { PayloadDescriptors, ShortLinkOption } from './types';
 import { payloadHint, payloadIcon } from './types';
 
-defineProps<{
+const props = defineProps<{
   show: boolean;
   form: InertiaForm<{
     name: string;
@@ -25,6 +29,10 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
+
+const shortLinkOptions = computed<SelectOption<number>[]>(() =>
+  props.shortLinks.map((link) => ({ value: link.id, label: `${link.short_url} → ${link.destination_url}` })),
+);
 </script>
 
 <template>
@@ -94,12 +102,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
         </div>
 
         <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
-          <select v-model="form.short_link_id" class="h-9">
-            <option value="">Select a Short Link…</option>
-            <option v-for="link in shortLinks" :key="link.id" :value="link.id">
-              {{ link.short_url }} → {{ link.destination_url }}
-            </option>
-          </select>
+          <Select v-model="form.short_link_id" :options="shortLinkOptions" placeholder="Select a Short Link…" />
         </Field>
 
         <PayloadFields
@@ -111,7 +114,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
         />
 
         <Field label="Name" :error="form.errors.name">
-          <input v-model="form.name" class="h-9" placeholder="Wi-Fi lobby, business card, event…" />
+          <Input v-model="form.name" placeholder="Wi-Fi lobby, business card, event…" />
         </Field>
       </div>
 

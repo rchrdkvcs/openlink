@@ -2,6 +2,8 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import { LockKeyhole } from '@lucide/vue';
 
+import Input from '@/Components/ui/Input.vue';
+
 const props = defineProps<{
   shortLinkId: number;
   qrCodeId?: number | null;
@@ -41,7 +43,7 @@ function submit() {
       </div>
 
       <form class="grid gap-3" @submit.prevent="submit">
-        <input v-model="form.password" type="password" autofocus class="h-10" placeholder="Password" />
+        <Input v-model="form.password" type="password" autofocus size="lg" placeholder="Password" />
         <p v-if="error" class="text-sm text-danger">{{ error }}</p>
         <button
           class="inline-flex h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85 disabled:pointer-events-none disabled:opacity-50"

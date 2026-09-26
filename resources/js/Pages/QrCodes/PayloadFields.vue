@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import Checkbox from '@/Components/ui/Checkbox.vue';
 import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
+import Textarea from '@/Components/ui/Textarea.vue';
 
 import type { PayloadDescriptors, PayloadField } from './types';
 
@@ -30,17 +34,13 @@ function disabled(field: PayloadField) {
         class="flex items-center justify-between gap-3 rounded-md border bg-elevated/40 px-3 py-2.5"
       >
         <span class="text-[13px] font-medium text-foreground">{{ field.label }}</span>
-        <input v-model="payload[field.key]" type="checkbox" class="h-4 w-4 rounded" />
+        <Checkbox v-model="payload[field.key]" />
       </label>
 
       <Field v-else :label="field.label" :error="error(field.key)">
-        <select v-if="field.control === 'select'" v-model="payload[field.key]" class="h-9">
-          <option v-for="option in field.options ?? []" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
+        <Select v-if="field.control === 'select'" v-model="payload[field.key]" :options="field.options ?? []" />
 
-        <textarea
+        <Textarea
           v-else-if="field.control === 'textarea'"
           v-model="payload[field.key]"
           :rows="field.rows ?? 4"
@@ -48,13 +48,12 @@ function disabled(field: PayloadField) {
           :placeholder="field.placeholder"
         />
 
-        <input
+        <Input
           v-else
           v-model="payload[field.key]"
           :type="field.control"
           :step="field.step"
           :disabled="disabled(field)"
-          class="h-9"
           :placeholder="field.placeholder"
         />
       </Field>

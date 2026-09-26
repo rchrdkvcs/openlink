@@ -8,6 +8,8 @@ import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Input from '@/Components/ui/Input.vue';
+import Select from '@/Components/ui/Select.vue';
 import WorkspaceColorPicker from '@/Components/Workspaces/WorkspaceColorPicker.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
 import { fetchJson, HttpError } from '@/lib/http';
@@ -21,6 +23,12 @@ const step = ref<'details' | 'invite'>('details');
 const createdWorkspace = ref<{ id: number; name: string } | null>(null);
 
 const form = useForm({ name: '', icon: '', color: '' });
+
+const roleOptions = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
+];
 
 const inviteRole = ref('editor');
 const inviteUrl = ref<string | null>(null);
@@ -108,7 +116,7 @@ function close() {
 
         <form class="mt-6 grid gap-5" @submit.prevent="submit">
           <Field label="Name" :error="form.errors.name">
-            <input v-model="form.name" class="h-9" placeholder="Acme Events" autofocus />
+            <Input v-model="form.name" placeholder="Acme Events" autofocus />
           </Field>
 
           <WorkspaceColorPicker v-model:color="form.color" :name="form.name" />
@@ -141,11 +149,7 @@ function close() {
         <div class="mt-5 rounded-lg border bg-elevated/30 p-4">
           <div class="flex items-end gap-3">
             <Field label="Role" class="flex-1">
-              <select v-model="inviteRole" class="h-9">
-                <option value="admin">Admin</option>
-                <option value="editor">Editor</option>
-                <option value="viewer">Viewer</option>
-              </select>
+              <Select v-model="inviteRole" :options="roleOptions" />
             </Field>
             <Button type="button" :loading="generating" @click="generateInvite">
               <Link2 class="h-4 w-4" /> Generate invite link

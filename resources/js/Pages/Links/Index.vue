@@ -182,7 +182,7 @@ function markFaviconFailed(url: string) {
 </script>
 
 <template>
-  <Head title="Links" />
+  <Head title="Short links" />
 
   <AuthenticatedLayout>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">

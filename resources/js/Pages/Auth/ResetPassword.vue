@@ -30,7 +30,7 @@ const submit = () => {
 
 <template>
   <GuestLayout>
-    <Head title="Reset Password" />
+    <Head title="Reset your password" />
 
     <div class="mb-6">
       <h1 class="text-lg font-semibold text-foreground">Choose a new password</h1>

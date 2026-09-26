@@ -17,7 +17,7 @@ COPY config ./config
 COPY database ./database
 COPY routes ./routes
 COPY artisan ./artisan
-RUN mkdir -p bootstrap/cache \
+RUN mkdir -p bootstrap/cache storage/framework/views \
     && composer dump-autoload --no-dev --classmap-authoritative
 
 

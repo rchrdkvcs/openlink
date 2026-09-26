@@ -14,9 +14,10 @@ import {
   SelectValue,
   SelectViewport,
 } from 'radix-vue';
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 
 import { controlVariants, type ControlSize, type SelectOption } from '@/lib/controls';
+import { portalTargetKey } from '@/lib/overlays';
 import { cn } from '@/lib/utils';
 
 defineOptions({ inheritAttrs: false });
@@ -32,6 +33,8 @@ const props = withDefaults(
   { size: 'md' },
 );
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>();
+
+const portalTarget = inject(portalTargetKey, undefined);
 
 // Radix only accepts non-empty string values, so items are keyed by index.
 // Matching is loose ('' ≡ null, 1 ≡ '1') to mirror how native <select> behaved.
@@ -63,12 +66,11 @@ function select(key: string) {
       <SelectValue :placeholder="placeholder" />
       <SelectIcon as-child><ChevronDown class="h-3.5 w-3.5 shrink-0 text-faint" /></SelectIcon>
     </SelectTrigger>
-    <SelectPortal>
+    <SelectPortal :to="portalTarget ?? 'body'">
       <SelectContent
         position="popper"
         :side-offset="5"
         class="z-[70] max-h-[min(var(--radix-select-content-available-height),20rem)] min-w-[var(--radix-select-trigger-width)] max-w-[min(32rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer"
-        @escape-key-down.stop
       >
         <SelectScrollUpButton class="flex justify-center py-1 text-muted"
           ><ChevronUp class="h-4 w-4"

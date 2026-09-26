@@ -3,6 +3,7 @@ import { X } from '@lucide/vue';
 import { onMounted, onUnmounted, watch } from 'vue';
 
 import IconButton from '@/Components/ui/IconButton.vue';
+import { hasOpenFloatingLayer } from '@/lib/overlays';
 
 const props = withDefaults(
   defineProps<{
@@ -24,7 +25,7 @@ watch(
 );
 
 const closeOnEscape = (e: KeyboardEvent) => {
-  if (props.show && e.key === 'Escape') {
+  if (props.show && e.key === 'Escape' && !hasOpenFloatingLayer()) {
     emit('close');
   }
 };

@@ -402,6 +402,36 @@ class OpenlinkMvpTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_link_forms_accept_select_values_as_the_ui_sends_them(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceAndDomain();
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaigns']);
+
+        // The folder Select submits string ids, and "No folder" submits an empty string.
+        $this->actingAs($owner)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('short-links.store'), [
+                'domain_id' => $domain->id,
+                'destination_url' => 'https://example.com/filed',
+                'slug' => 'filed',
+                'folder_id' => (string) $folder->id,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($owner)
+            ->withSession(['workspace_id' => $workspace->id])
+            ->post(route('short-links.store'), [
+                'domain_id' => $domain->id,
+                'destination_url' => 'https://example.com/unfiled',
+                'slug' => 'unfiled',
+                'folder_id' => '',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($folder->id, ShortLink::query()->where('slug', 'filed')->value('folder_id'));
+        $this->assertNull(ShortLink::query()->where('slug', 'unfiled')->value('folder_id'));
+    }
+
     public function test_analytics_retention_command_prunes_old_events_only(): void
     {
         [$workspace, $domain] = $this->workspaceAndDomain();

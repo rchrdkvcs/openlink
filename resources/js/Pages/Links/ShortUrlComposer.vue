@@ -26,7 +26,7 @@ const domainOptions = computed(() => props.domains.map((domain) => ({ value: dom
     <Select
       :model-value="domainId"
       :options="domainOptions"
-      class="h-11 w-auto max-w-[45%] rounded-none border-0 border-r border-r-border bg-elevated/50 text-[13px] font-medium shadow-none focus:ring-0 focus-visible:ring-0"
+      class="h-11 w-auto max-w-[45%] rounded-none border-0 border-r border-r-border bg-elevated/50 text-[13px] font-medium shadow-none focus-visible:ring-0"
       @update:model-value="emit('update:domainId', $event)"
     />
     <span class="grid place-items-center px-2 font-mono text-sm text-faint">/</span>

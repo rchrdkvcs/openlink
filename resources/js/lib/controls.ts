@@ -4,9 +4,12 @@ import { cva, type VariantProps } from 'class-variance-authority';
  * The single source of truth for text-like form controls (Input, Textarea,
  * Select trigger, DateTimeField trigger, TagInput shell). Change the look of
  * every field here, never per page.
+ *
+ * Focus styles use focus-visible: text fields match it on any focus, while a
+ * Select trigger refocused after a mouse pick does not keep a ring.
  */
 export const controlVariants = cva(
-  'w-full min-w-0 rounded-md border border-border bg-surface text-foreground shadow-none outline-none transition-colors duration-150 placeholder:text-faint hover:border-border-strong focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/25 focus:ring-offset-0 focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger/60',
+  'w-full min-w-0 rounded-md border border-border bg-surface text-foreground shadow-none outline-none transition-colors duration-150 placeholder:text-faint hover:border-border-strong focus-visible:border-accent/60 focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger/60',
   {
     variants: {
       size: {

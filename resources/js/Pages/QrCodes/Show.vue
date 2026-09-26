@@ -206,7 +206,7 @@ async function copyPublicUrl() {
       <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <div class="grid content-start gap-6">
           <SectionCard>
-            <div class="grid gap-5 p-5">
+            <div class="grid grid-cols-1 gap-5 p-5">
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                   <p class="truncate text-sm font-medium text-foreground">
@@ -283,7 +283,7 @@ async function copyPublicUrl() {
         </div>
 
         <SectionCard>
-          <form class="grid gap-5 p-5" @submit.prevent="save">
+          <form class="grid grid-cols-1 gap-5 p-5" @submit.prevent="save">
             <Field label="Name" :error="form.errors.name">
               <Input v-model="form.name" />
             </Field>

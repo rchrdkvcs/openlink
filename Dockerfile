@@ -34,7 +34,7 @@ COPY app ./app
 COPY --from=vendor /app/vendor/tightenco/ziggy ./vendor/tightenco/ziggy
 COPY resources ./resources
 COPY public ./public
-COPY components.json postcss.config.js tailwind.config.js tsconfig.json vite.config.js ./
+COPY components.json tailwind.config.js tsconfig.json vite.config.js ./
 RUN pnpm run build
 
 

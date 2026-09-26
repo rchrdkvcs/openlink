@@ -92,7 +92,7 @@ watch(
 </script>
 
 <template>
-  <Drawer :wide="tab === 'routing'" :show="show" @close="emit('close')">
+  <Drawer wide :show="show" @close="emit('close')">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">

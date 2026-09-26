@@ -417,20 +417,14 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
               >
                 <Globe2 class="h-4 w-4 shrink-0" />Applies to every visitor. Add a condition to narrow the audience.
               </div>
-              <div class="grid gap-3" :class="rule.conditions.length > 1 && 'condition-group'">
-                <div
-                  v-for="(condition, conditionIndex) in rule.conditions"
-                  :key="conditionIndex"
-                  class="relative min-w-0"
-                >
-                  <span v-if="rule.conditions.length > 1" class="condition-connector" aria-hidden="true"
-                    ><span
-                      v-if="conditionIndex > 0"
-                      class="rounded-full border bg-surface px-1.5 py-0.5 text-[10px] text-muted"
-                      >{{ rule.match_mode === 'all' ? 'And' : 'Or' }}</span
-                    ></span
-                  >
-                  <div class="condition-row rounded-lg border bg-elevated/40 p-2">
+              <div class="grid" :class="rule.conditions.length > 1 ? 'condition-group' : 'gap-3'">
+                <template v-for="(condition, conditionIndex) in rule.conditions" :key="conditionIndex">
+                  <div v-if="conditionIndex > 0" class="condition-join" aria-hidden="true">
+                    <span class="rounded-full border bg-surface px-1.5 py-0.5 text-[10px] text-muted">{{
+                      rule.match_mode === 'all' ? 'And' : 'Or'
+                    }}</span>
+                  </div>
+                  <div class="condition-row relative rounded-lg border bg-elevated/40 p-2">
                     <div class="condition-fields">
                       <Select
                         :model-value="condition.type"
@@ -512,7 +506,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                         placeholder="Europe/Paris"
                     /></label>
                   </div>
-                </div>
+                </template>
               </div>
               <Button
                 type="button"
@@ -679,41 +673,36 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
   gap: 0.5rem;
 }
 .condition-group {
+  position: relative;
   padding-inline-start: 1.75rem;
 }
-.condition-group > div::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: -1rem;
-  top: -0.75rem;
-  bottom: 0;
-  border-inline-start: 1px solid hsl(var(--border-strong));
-}
-.condition-group > div:first-child::before {
-  top: 1.625rem;
-}
-.condition-group > div:last-child::before {
-  bottom: auto;
-  height: 2.375rem;
-}
-.condition-connector {
-  position: absolute;
-  inset-inline-start: -1.75rem;
-  top: 1.625rem;
-  transform: translateY(-50%);
-  width: 1.75rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1;
-}
-.condition-connector::before {
+.condition-group::before {
   content: '';
   position: absolute;
   inset-inline-start: 0.75rem;
+  top: 1.625rem;
+  bottom: 1.625rem;
+  border-inline-start: 1px solid hsl(var(--border-strong));
+}
+.condition-group > .condition-row::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -1rem;
+  top: 1.625rem;
   width: 1rem;
   border-top: 1px solid hsl(var(--border-strong));
-  z-index: -1;
+}
+.condition-join {
+  position: relative;
+  display: grid;
+  width: 1.75rem;
+  height: 1.5rem;
+  margin-inline-start: -1.75rem;
+  place-items: center;
+}
+.condition-join > span {
+  position: relative;
+  z-index: 1;
 }
 @container (min-width: 390px) {
   .condition-fields {
@@ -731,10 +720,16 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
     grid-column: auto;
   }
 }
-.routing-menu {
+:global(.routing-menu) {
   @apply z-[70] min-w-44 max-w-[calc(100vw-2rem)] rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer;
 }
-.routing-menu-item {
-  @apply flex cursor-default select-none items-center gap-2 rounded-md px-2.5 py-2 text-[13px] outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-elevated data-[disabled]:opacity-40;
+:global(.routing-menu-item) {
+  @apply flex cursor-default select-none items-center gap-2 rounded-md px-2.5 py-2 text-[13px] outline-none;
+}
+:global(.routing-menu-item[data-highlighted]) {
+  @apply bg-elevated;
+}
+:global(.routing-menu-item[data-disabled]) {
+  @apply pointer-events-none opacity-40;
 }
 </style>

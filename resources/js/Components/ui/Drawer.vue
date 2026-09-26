@@ -20,7 +20,7 @@ const restoreFocus = useDialogFocus(toRef(props, 'show'));
         @close-auto-focus="restoreFocus"
       >
         <DialogTitle class="sr-only">{{ title ?? eyebrow ?? 'Details' }}</DialogTitle>
-        <header class="flex shrink-0 items-center justify-between gap-4 border-b border-border/70 px-5 py-4">
+        <header class="flex shrink-0 items-center justify-between gap-4 px-6 pb-3 pt-6">
           <slot name="header">
             <div class="min-w-0">
               <p v-if="eyebrow" class="mb-1 text-xs text-muted">{{ eyebrow }}</p>

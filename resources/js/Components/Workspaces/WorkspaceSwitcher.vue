@@ -57,7 +57,7 @@ const switchDestination = computed(() => {
 <template>
   <Dropdown align="left" width="64" contentClasses="p-1">
     <template #trigger>
-      <button class="ui-control flex h-9 w-full items-center gap-2 px-2.5 text-left">
+      <button class="ui-workspace flex h-8 w-fit max-w-full items-center gap-2 px-2.5 text-left">
         <WorkspaceAvatar
           size="sm"
           :name="currentWorkspace?.name"

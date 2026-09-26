@@ -7,29 +7,29 @@
     color-scheme: dark;
 
     /* Core surfaces */
-    --background: 240 6% 4%;
-    --surface: 240 5% 7%;
-    --elevated: 240 5% 11%;
-    --overlay: 240 5% 9%;
+    --background: 0 0% 7%;
+    --surface: 0 0% 9%;
+    --elevated: 0 0% 13%;
+    --overlay: 0 0% 10%;
 
     /* Shared geometry: controls, grouped content, floating surfaces. */
-    --radius-control: 0.5rem;
-    --radius-panel: 1rem;
-    --radius-overlay: 1.25rem;
-    --shadow-surface: 0 1px 2px rgb(0 0 0 / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.025);
-    --shadow-floating: 0 0 0 1px hsl(var(--border)), 0 8px 24px rgb(0 0 0 / 0.3), 0 24px 64px rgb(0 0 0 / 0.16);
+    --radius-control: 1rem;
+    --radius-panel: 1.5rem;
+    --radius-overlay: 1.75rem;
+    --shadow-surface: none;
+    --shadow-floating: 0 8px 32px rgb(0 0 0 / 0.12);
 
     /* Strokes */
-    --border: 240 5% 14%;
-    --border-strong: 240 5% 22%;
+    --border: 0 0% 17%;
+    --border-strong: 0 0% 26%;
 
     /* Text */
-    --foreground: 220 10% 94%;
-    --muted: 220 5% 64%;
-    --faint: 220 4% 44%;
+    --foreground: 0 0% 94%;
+    --muted: 0 0% 65%;
+    --faint: 0 0% 48%;
 
     /* Semantic */
-    --accent: 234 60% 65%;
+    --accent: 0 0% 76%;
     --success: 152 55% 52%;
     --warning: 38 92% 58%;
     --danger: 0 72% 63%;
@@ -116,7 +116,7 @@
   [multiple],
   textarea,
   select {
-    @apply w-full min-w-0 border border-border bg-background/50 px-3 text-[13px] text-foreground shadow-none transition-colors duration-150;
+    @apply w-full min-w-0 border border-transparent bg-elevated/60 px-3 text-[13px] text-foreground shadow-none transition-colors duration-150;
     border-radius: var(--radius-control);
   }
 
@@ -180,15 +180,24 @@
 
 @layer components {
   .ui-page {
-    @apply w-full px-4 py-6 sm:px-6 lg:p-8;
+    @apply w-full px-4 py-6 sm:px-8 lg:px-10 lg:py-12;
+  }
+  .ui-metrics {
+    @apply grid gap-px overflow-hidden rounded-[24px] border border-border/60 bg-border/60 sm:grid-cols-2 xl:grid-cols-4;
+  }
+  .ui-metrics > .ui-panel {
+    @apply rounded-none border-0 bg-surface p-6 shadow-none;
   }
   .ui-panel {
-    @apply min-w-0 border border-border/80 bg-surface;
+    @apply min-w-0 border border-border/60 bg-surface;
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-surface);
   }
+  .ui-workspace {
+    @apply shrink-0 rounded-full border border-border/70 bg-surface text-[13px] transition-colors duration-150 hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
   .ui-control {
-    @apply border border-border bg-background/50 text-[13px] text-foreground transition-colors duration-150;
+    @apply border border-transparent bg-elevated/60 text-[13px] text-foreground transition-colors duration-150;
     border-radius: var(--radius-control);
   }
   .ui-control:hover {
@@ -208,6 +217,9 @@
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50;
     border-radius: var(--radius-control);
   }
+  .ui-button {
+    border-radius: 9999px;
+  }
   .ui-button:focus-visible,
   .ui-icon-button:focus-visible,
   .ui-nav-link:focus-visible {
@@ -219,15 +231,18 @@
     border-radius: var(--radius-control);
   }
   .ui-nav-link {
-    @apply flex min-h-8 items-center gap-2.5 px-2.5 py-1.5 text-[13px] text-muted transition-colors duration-150 hover:bg-elevated/60 hover:text-foreground;
+    @apply flex min-h-8 w-fit max-w-full items-center gap-2.5 px-3 py-1.5 text-[13px] text-muted transition-colors duration-150 hover:bg-elevated/60 hover:text-foreground;
     border-radius: var(--radius-control);
+  }
+  .ui-nav-link {
+    border-radius: 9999px;
   }
   .ui-nav-link[aria-current='page'] {
     @apply bg-elevated font-medium text-foreground;
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04);
+    box-shadow: none;
   }
   .ui-popover {
-    @apply bg-overlay text-foreground outline-none;
+    @apply border border-border/70 bg-overlay text-foreground outline-none;
     border-radius: calc(var(--radius-control) + 4px);
     box-shadow: var(--shadow-floating);
   }
@@ -236,11 +251,11 @@
     border-radius: var(--radius-control);
   }
   .ui-overlay {
-    @apply bg-black/50 backdrop-blur-[3px];
+    @apply bg-black/35;
   }
   .ui-dialog,
   .ui-drawer {
-    @apply border border-border-strong/60 bg-overlay;
+    @apply border border-border/70 bg-overlay;
     border-radius: var(--radius-overlay);
     box-shadow: var(--shadow-floating);
   }
@@ -251,13 +266,14 @@
     padding-inline-end: 1.5rem;
   }
   .ui-segmented {
-    @apply inline-flex flex-wrap items-center gap-1 rounded-xl bg-elevated/60 p-1;
+    @apply inline-flex flex-wrap items-center gap-1 rounded-full bg-elevated/60 p-1;
   }
   .ui-segmented > button {
-    @apply rounded-lg px-3 py-1.5 text-[13px] font-medium;
+    @apply rounded-full px-3 py-1.5 text-[13px] font-medium;
   }
 
   @media (pointer: coarse) {
+    .ui-workspace,
     .ui-nav-link,
     .ui-control,
     .ui-button {

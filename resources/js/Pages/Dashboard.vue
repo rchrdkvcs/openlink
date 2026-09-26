@@ -44,13 +44,13 @@ const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0
         </div>
         <Link
           :href="route('analytics.index')"
-          class="inline-flex h-9 w-fit items-center gap-2 rounded-md bg-foreground px-3.5 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85"
+          class="inline-flex h-9 w-fit items-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85"
         >
           <BarChart3 class="h-4 w-4" /> Full analytics
         </Link>
       </div>
 
-      <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section class="ui-metrics">
         <KpiCard
           label="Visits"
           :value="summary.visits"

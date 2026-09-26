@@ -44,7 +44,7 @@ function submit() {
         <input v-model="form.password" type="password" autofocus class="h-10" placeholder="Password" />
         <p v-if="error" class="text-sm text-danger">{{ error }}</p>
         <button
-          class="inline-flex h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85 disabled:pointer-events-none disabled:opacity-50"
+          class="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85 disabled:pointer-events-none disabled:opacity-50"
           :disabled="form.processing"
         >
           Continue

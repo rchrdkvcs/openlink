@@ -7,7 +7,7 @@ defineProps<{
 
 <template>
   <section class="ui-panel overflow-hidden">
-    <header v-if="title || $slots.header" class="flex items-center justify-between gap-4 border-b px-5 py-3.5">
+    <header v-if="title || $slots.header" class="flex items-center justify-between gap-4 px-6 pb-2 pt-6">
       <div class="flex min-w-0 items-center gap-2 text-foreground">
         <slot name="icon" />
         <div class="min-w-0">

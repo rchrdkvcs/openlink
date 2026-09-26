@@ -116,7 +116,7 @@ function targetWorkspaces() {
 
       <section class="ui-panel overflow-hidden">
         <div
-          class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
+          class="mx-2 mt-2 hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] rounded-full bg-elevated/50 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
         >
           <span>Hostname</span>
           <span>Status</span>

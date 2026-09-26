@@ -63,7 +63,7 @@ function popLast() {
 <template>
   <div>
     <div
-      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-lg border bg-background/50 px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
+      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-2xl border border-transparent bg-elevated/60 px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
     >
       <span
         v-for="tag in pills"

@@ -91,7 +91,7 @@ watch(
   <Drawer title="New short link" :show="show" @close="emit('close')">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
-        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-elevated">
           <Link2 class="h-4 w-4 text-accent" />
         </span>
         <div class="min-w-0">
@@ -105,7 +105,7 @@ watch(
 
     <form class="flex min-h-full flex-col" @submit.prevent="emit('submit')">
       <div class="flex-1 space-y-5 p-5">
-        <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
+        <div class="grid grid-cols-2 rounded-full bg-elevated/60 p-1">
           <button
             v-for="entry in [
               { key: 'link' as const, label: 'Link', icon: Link2 },
@@ -113,8 +113,8 @@ watch(
             ]"
             :key="entry.key"
             type="button"
-            class="flex h-8 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-colors"
-            :class="tab === entry.key ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
+            class="flex h-8 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors"
+            :class="tab === entry.key ? 'bg-surface text-foreground' : 'text-muted hover:text-foreground'"
             @click="tab = entry.key"
           >
             <component :is="entry.icon" class="h-3.5 w-3.5" />
@@ -206,7 +206,9 @@ watch(
       </div>
 
       <!-- Sticky footer with live preview -->
-      <footer class="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t bg-overlay px-5 py-4">
+      <footer
+        class="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t border-border/50 bg-overlay px-5 py-4"
+      >
         <p class="min-w-0 truncate font-mono text-[13px] text-faint">
           <span class="text-muted">{{ selectedDomain?.hostname ?? '—' }}</span
           >/<span :class="form.slug ? 'text-accent' : 'italic'">{{ previewSlug }}</span>

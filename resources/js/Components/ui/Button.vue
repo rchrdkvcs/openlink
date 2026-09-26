@@ -8,7 +8,7 @@ const buttonVariants = cva('ui-button', {
   variants: {
     variant: {
       primary: 'bg-foreground text-background hover:bg-foreground/85',
-      secondary: 'border border-border bg-surface text-foreground hover:border-border-strong hover:bg-elevated',
+      secondary: 'border border-transparent bg-elevated/70 text-foreground hover:bg-elevated',
       ghost: 'text-muted hover:bg-elevated hover:text-foreground',
       danger: 'border border-danger/30 bg-danger/10 text-danger hover:border-danger/50 hover:bg-danger/20',
     },

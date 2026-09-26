@@ -180,16 +180,16 @@ const sortedMembers = computed(() =>
         </Button>
       </div>
 
-      <section class="ui-panel">
+      <section class="ui-panel p-2">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b text-left text-[11px] font-medium uppercase tracking-wide text-faint">
-              <th class="px-4 py-2.5 font-medium">User</th>
+            <tr class="bg-elevated/50 text-left text-[11px] font-medium uppercase tracking-wide text-faint">
+              <th class="rounded-s-full px-4 py-2.5 font-medium">User</th>
               <th class="hidden px-4 py-2.5 font-medium sm:table-cell">Member since</th>
-              <th class="w-44 px-4 py-2.5 font-medium">Role</th>
+              <th class="w-44 rounded-e-full px-4 py-2.5 font-medium">Role</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border/60">
+          <tbody class="divide-y divide-border/30">
             <tr
               v-for="member in sortedMembers"
               :key="member.id"
@@ -215,7 +215,7 @@ const sortedMembers = computed(() =>
                   <template #trigger>
                     <button
                       type="button"
-                      class="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-sm capitalize text-foreground transition-colors duration-100 hover:border-border hover:bg-elevated"
+                      class="inline-flex h-8 items-center gap-1.5 rounded-full border border-transparent px-2.5 text-sm capitalize text-foreground transition-colors duration-100 hover:border-border hover:bg-elevated"
                     >
                       {{ member.role }}
                       <ChevronDown class="h-3.5 w-3.5 text-faint" />

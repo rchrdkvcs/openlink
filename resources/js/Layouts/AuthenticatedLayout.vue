@@ -92,18 +92,11 @@ function openCreateWorkspace() {
       >Skip to content</a
     >
     <!-- Quiet navigation, with the workspace as the primary anchor. -->
-    <aside class="fixed inset-y-0 start-0 z-30 hidden w-56 flex-col px-4 py-5 lg:flex">
-      <Link
-        :href="route('dashboard')"
-        aria-label="Openlink overview"
-        class="mb-6 inline-flex w-fit items-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-      >
-        <ApplicationLogo class="h-4 w-auto" />
-      </Link>
+    <aside class="fixed inset-y-0 start-0 z-30 hidden w-60 flex-col px-6 py-8 lg:flex">
       <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
 
       <!-- Navigation -->
-      <nav aria-label="Workspace navigation" class="mt-6 min-h-0 space-y-1 overflow-y-auto pb-6">
+      <nav aria-label="Workspace navigation" class="my-auto min-h-0 space-y-1.5 overflow-y-auto py-10">
         <Link
           v-for="item in navItems"
           :key="item.label"
@@ -151,16 +144,15 @@ function openCreateWorkspace() {
       </nav>
 
       <!-- User menu -->
-      <div class="mt-auto shrink-0 border-t border-border/60 pt-3">
+      <div class="shrink-0">
         <Dropdown align="left" width="64" placement="top" contentClasses="p-1">
           <template #trigger>
             <button
-              class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              class="flex w-full items-center gap-2.5 rounded-full px-2 py-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               <UserAvatar :name="user.name" :src="user.profile_avatar_url" size="sm" />
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-[13px] font-medium">{{ user.name }}</span>
-                <span class="block truncate text-xs text-faint">{{ user.email }}</span>
               </span>
               <ChevronsUpDown class="h-3.5 w-3.5 shrink-0 text-faint" />
             </button>
@@ -233,7 +225,7 @@ function openCreateWorkspace() {
       </DialogPortal>
 
       <!-- Main column — no desktop top bar -->
-      <div class="flex min-h-dvh min-w-0 flex-col lg:py-3 lg:pe-3 lg:ps-56">
+      <div class="flex min-h-dvh min-w-0 flex-col lg:ps-60">
         <header
           class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden"
         >
@@ -262,11 +254,7 @@ function openCreateWorkspace() {
           </Link>
         </header>
 
-        <main
-          id="main-content"
-          tabindex="-1"
-          class="min-w-0 flex-1 bg-surface/30 outline-none lg:rounded-[20px] lg:border lg:border-border/70"
-        >
+        <main id="main-content" tabindex="-1" class="min-w-0 flex-1 outline-none">
           <div class="mx-auto w-full max-w-[1600px]">
             <slot />
           </div>

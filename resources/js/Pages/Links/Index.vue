@@ -252,7 +252,7 @@ function markFaviconFailed(url: string) {
             </form>
             <button
               v-else
-              class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+              class="ui-button inline-flex h-8 items-center gap-1.5 bg-elevated/60 px-3 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
               @click="startCreateFolder"
             >
               <Plus class="h-3.5 w-3.5" /> New folder
@@ -269,7 +269,7 @@ function markFaviconFailed(url: string) {
         <section
           v-for="group in groups"
           :key="group.key"
-          class="ui-panel transition-shadow"
+          class="ui-panel p-2"
           :class="dropGroupKey === group.key && dragLinkId !== null ? 'ring-1 ring-accent' : ''"
           @dragover.prevent="dropGroupKey = group.key"
           @dragleave="dropGroupKey = null"
@@ -277,8 +277,7 @@ function markFaviconFailed(url: string) {
         >
           <!-- Group header -->
           <header
-            class="group/h flex h-10 cursor-pointer items-center gap-2 px-3 transition-colors hover:bg-elevated/40"
-            :class="isCollapsed(group.key) ? '' : 'border-b'"
+            class="group/h flex h-9 cursor-pointer items-center gap-2 rounded-full bg-elevated/50 px-3 transition-colors hover:bg-elevated"
             :title="isCollapsed(group.key) ? 'Expand' : 'Collapse'"
             role="button"
             tabindex="0"
@@ -348,11 +347,11 @@ function markFaviconFailed(url: string) {
           </header>
 
           <!-- Rows (rounded + clipped here so the folder menu can overflow the card) -->
-          <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60 overflow-hidden rounded-b-2xl">
+          <div v-if="!isCollapsed(group.key)" class="overflow-hidden rounded-b-2xl pt-1">
             <article
               v-for="link in group.links"
               :key="link.id"
-              class="group/r grid items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_190px_150px_minmax(90px,0.5fr)_168px]"
+              class="group/r grid items-center gap-x-3 gap-y-1 rounded-xl px-3 py-3.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_190px_150px_minmax(90px,0.5fr)_168px]"
               :class="[
                 dragLinkId === link.id ? 'opacity-40' : '',
                 canEditWorkspace ? 'cursor-grab active:cursor-grabbing' : '',

@@ -302,7 +302,7 @@ const outcomeRows = computed(() =>
 
       <!-- Refetch keeps the frame: previous render held at reduced opacity -->
       <div class="space-y-6 transition-opacity duration-150" :class="loading ? 'pointer-events-none opacity-50' : ''">
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <section class="ui-metrics xl:grid-cols-3 2xl:grid-cols-6">
           <KpiCard
             label="Visits"
             :value="summary.visits"

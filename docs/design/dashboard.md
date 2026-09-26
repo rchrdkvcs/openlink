@@ -1,18 +1,19 @@
 # Dashboard interface
 
-The dashboard uses a compact workspace shell, inset content surfaces and quiet
+The dashboard uses a open workspace canvas, flat content surfaces and quiet
 controls. Navigation, forms and overlays share the same geometry and interaction
 rules. Radix Vue supplies the primitives already used by shadcn-vue.
 
 ## Density and hierarchy
 
-- Desktop sidebar: 224 px wide, 32 px navigation rows, 36 px workspace switcher.
-  Navigation follows the workspace at the top; the profile stays at the bottom.
+- Desktop sidebar: 240 px wide, 32 px navigation pills and workspace switcher.
+  Navigation is vertically centered; workspace and profile anchor the top and bottom.
 - Primary controls: 36 px high with 13 px text. Toolbar actions: 32 px.
 - Coarse pointers: controls and menu items expand to at least 40 px.
 - Page titles: 20 px. Field labels: 13 px. Supporting text: 12–13 px.
-- Content has its own inset frame. Cards group related content; separators mark
-  table rows and fixed panel headers or footers. Avoid extra boxes around each label.
+- Content shares the navigation canvas without an enclosing frame. Metrics form a
+  single divided strip. Lists use inset neutral headers and spacious rows rather
+  than a grid of heavy separators. Cards group content without highlights or gradients.
 
 ## Shared styles
 
@@ -20,17 +21,18 @@ rules. Radix Vue supplies the primitives already used by shadcn-vue.
 
 | Style | Purpose |
 | --- | --- |
-| `ui-page` | Page gutters and vertical spacing |
-| `ui-panel` | Content cards with a quiet stroke and shallow depth |
+| `ui-page` | Generous page gutters and vertical spacing |
+| `ui-panel` | Flat content groups with a quiet stroke |
 | `ui-control` | Inputs and selection triggers, including open/invalid/disabled states |
 | `ui-button`, `ui-icon-button` | Actions and visible keyboard focus |
 | `ui-nav-link` | Compact navigation with a persistent selected state |
 | `ui-popover`, `ui-menu-item` | Floating menus and their items |
 | `ui-dialog`, `ui-drawer`, `ui-overlay` | Modal surfaces and backdrop |
 
-Control radius is 8 px, content panels 16 px, overlays 20 px. Popovers use 12 px
-outside and 8 px inside a 4 px inset. Shape follows the nesting and purpose of
-the surface. Accent color communicates focus, selection and semantic states.
+Controls use a 16 px radius; actions and navigation use pills. Content panels use
+24 px and overlays 28 px. Popovers use 20 px outside and 16 px inside a 4 px inset. Shape follows the nesting and purpose of
+the surface. Achromatic surfaces and focus states keep the interface neutral. Semantic colors
+remain reserved for status, errors and user-chosen workspace colors.
 
 ## Components and behavior
 

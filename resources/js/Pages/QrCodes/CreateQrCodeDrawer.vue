@@ -34,7 +34,7 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
   <Drawer title="New QR code" :show="show" @close="emit('close')">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
-        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-elevated">
           <QrCode class="h-4 w-4 text-accent" />
         </span>
         <div class="min-w-0">
@@ -119,7 +119,9 @@ const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
         </Field>
       </div>
 
-      <footer class="sticky bottom-0 flex shrink-0 items-center justify-end gap-2 border-t bg-overlay px-5 py-4">
+      <footer
+        class="sticky bottom-0 flex shrink-0 items-center justify-end gap-2 border-t border-border/50 bg-overlay px-5 py-4"
+      >
         <Button variant="secondary" type="button" @click="emit('close')">Cancel</Button>
         <Button :loading="form.processing" :disabled="form.processing">
           Create QR code

@@ -101,7 +101,7 @@ function submit() {
           v-for="qr in qrCodes"
           :key="qr.id"
           :href="route('qr-codes.show', qr.token)"
-          class="card-sheen group grid gap-0 overflow-hidden rounded-lg border bg-surface transition-colors hover:border-border-strong"
+          class="card-sheen group grid grid-cols-1 gap-0 overflow-hidden rounded-lg border bg-surface transition-colors hover:border-border-strong"
         >
           <div class="relative grid place-items-center border-b bg-white p-6">
             <img
@@ -111,7 +111,7 @@ function submit() {
               loading="lazy"
             />
             <div
-              class="absolute inset-x-0 bottom-0 flex justify-center gap-1.5 bg-gradient-to-t from-black/40 to-transparent p-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+              class="absolute inset-x-0 bottom-0 flex justify-center gap-1.5 bg-gradient-to-t from-black/40 to-transparent p-2 opacity-100 transition-opacity sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover:opacity-100"
             >
               <a
                 v-for="format in ['svg', 'png']"
@@ -124,7 +124,7 @@ function submit() {
               </a>
             </div>
           </div>
-          <div class="grid gap-1.5 p-4">
+          <div class="grid grid-cols-1 gap-1.5 p-4">
             <div class="flex items-center justify-between gap-2">
               <h2 class="truncate text-sm font-semibold text-foreground">{{ qr.name }}</h2>
               <Badge class="inline-flex shrink-0 items-center gap-1">

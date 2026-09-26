@@ -29,8 +29,16 @@ Thumbs.db
 # Project exclude paths
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
-/storage/app/
-/storage/framework/
+/storage/app/*
+!/storage/app/private/
+!/storage/app/public/
+/storage/framework/*
+!/storage/framework/cache/
+!/storage/framework/sessions/
+!/storage/framework/testing/
+!/storage/framework/views/
+/storage/framework/cache/*
+!/storage/framework/cache/data/
 **/caddy
 frankenphp
 frankenphp-worker.php

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\InstanceSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -63,7 +64,7 @@ class AuthTokenController extends Controller
             }
         }
 
-        if (! $user->hasVerifiedEmail()) {
+        if (app(InstanceSettings::class)->get('require_email_verification') && ! $user->hasVerifiedEmail()) {
             RateLimiter::hit($throttleKey);
 
             throw ValidationException::withMessages([

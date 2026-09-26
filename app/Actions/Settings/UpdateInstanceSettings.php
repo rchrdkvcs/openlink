@@ -18,7 +18,7 @@ class UpdateInstanceSettings
     {
         abort_unless($request->user()?->is_instance_admin, 403);
 
-        foreach (['registration_mode', 'default_domain', 'slug_length', 'analytics_retention_days', 'public_unavailable_title', 'public_unavailable_message'] as $key) {
+        foreach (['registration_mode', 'require_email_verification', 'default_domain', 'slug_length', 'analytics_retention_days', 'public_unavailable_title', 'public_unavailable_message'] as $key) {
             $this->settings->set($key, $data[$key]);
         }
 

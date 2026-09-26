@@ -18,6 +18,7 @@ const isInstanceAdmin = computed(() => Object.keys(props.settings).length > 0);
 
 const settingsForm = useForm({
   registration_mode: props.settings.registration_mode ?? 'invite_only',
+  require_email_verification: props.settings.require_email_verification ?? false,
   default_domain: props.settings.default_domain ?? 'localhost',
   dns_target: props.settings.dns_target ?? '',
   slug_length: String(props.settings.slug_length ?? 6),
@@ -134,6 +135,26 @@ function discardChanges() {
                 {{ settingsForm.errors.registration_mode }}
               </p>
             </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Email verification"
+            description="Control whether people must confirm their email address before using Openlink."
+          >
+            <template #icon><Mail class="h-4 w-4 text-faint" /></template>
+            <label class="flex cursor-pointer items-start gap-3 p-5">
+              <input v-model="settingsForm.require_email_verification" type="checkbox" class="mt-0.5" />
+              <span>
+                <span class="block text-sm font-medium text-foreground">Require email verification</span>
+                <span class="mt-1 block text-xs text-muted"
+                  >When enabled, unverified users need a working mail server to access the dashboard and API. Disabled
+                  by default.</span
+                >
+              </span>
+            </label>
+            <p v-if="settingsForm.errors.require_email_verification" class="px-5 pb-4 text-xs text-danger">
+              {{ settingsForm.errors.require_email_verification }}
+            </p>
           </SectionCard>
 
           <SectionCard title="Domains &amp; DNS" description="Hostnames used to publish and serve short URLs.">

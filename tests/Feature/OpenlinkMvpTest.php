@@ -23,7 +23,7 @@ class OpenlinkMvpTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_first_registration_creates_instance_admin_then_requires_email_verification_before_onboarding(): void
+    public function test_first_registration_creates_instance_admin_and_allows_onboarding_by_default(): void
     {
         $this->post('/register', [
             'name' => 'Bear',
@@ -37,10 +37,6 @@ class OpenlinkMvpTest extends TestCase
         $this->assertTrue($user->is_instance_admin);
         $this->assertDatabaseHas('domains', ['hostname' => 'localhost', 'status' => Domain::STATUS_ACTIVE, 'is_default' => true]);
         $this->assertDatabaseCount('workspaces', 0);
-
-        $this->actingAs($user)->get('/dashboard')->assertRedirect(route('verification.notice', absolute: false));
-
-        $user->forceFill(['email_verified_at' => now()])->save();
 
         $this->actingAs($user)->get('/dashboard')->assertRedirect(route('onboarding.show', absolute: false));
 

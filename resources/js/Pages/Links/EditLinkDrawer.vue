@@ -75,7 +75,13 @@ const shortUrlChanged = computed(
 </script>
 
 <template>
-  <Drawer :show="Boolean(link)" eyebrow="Link settings" :title="link?.short_url" @close="emit('close')">
+  <Drawer
+    :wide="tab === 'routing'"
+    :show="Boolean(link)"
+    eyebrow="Link settings"
+    :title="link?.short_url"
+    @close="emit('close')"
+  >
     <div v-if="link" class="space-y-5 p-5">
       <div class="grid grid-cols-2 rounded-lg border bg-elevated/30 p-1">
         <button
@@ -191,7 +197,12 @@ const shortUrlChanged = computed(
       </form>
 
       <form v-if="tab === 'routing'" class="grid gap-5" @submit.prevent="canEditWorkspace && emit('submit')">
-        <RoutingRulesEditor v-model="editForm.routing_rules" :errors="editForm.errors" :schema="routingSchema" />
+        <RoutingRulesEditor
+          v-model="editForm.routing_rules"
+          :errors="editForm.errors"
+          :schema="routingSchema"
+          :default-destination="editForm.destination_url"
+        />
 
         <div v-if="canEditWorkspace" class="flex justify-end">
           <Button :loading="editForm.processing">Save changes</Button>

@@ -44,6 +44,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/me/two-factor/confirm', [ProfileController::class, 'confirmTwoFactor'])->name('me.two-factor.confirm');
         Route::delete('/me/two-factor', [ProfileController::class, 'disableTwoFactor'])->name('me.two-factor.disable');
 
+        Route::get('/instance-settings', [InstanceSettingsController::class, 'show'])->name('instance-settings.show');
+        Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
+
         Route::middleware(EnsureApiEmailIsVerified::class)->group(function () {
             Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
             Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
@@ -90,9 +93,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/invite-links/{inviteLink}/join', [InviteLinkController::class, 'join'])->name('invite-links.join');
 
             Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-
-            Route::get('/instance-settings', [InstanceSettingsController::class, 'show'])->name('instance-settings.show');
-            Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         });
     });
 });

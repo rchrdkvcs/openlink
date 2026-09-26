@@ -22,7 +22,7 @@ const submit = () => {
 
 <template>
   <GuestLayout>
-    <Head title="Confirm Password" />
+    <Head title="Confirm your password" />
 
     <div class="mb-6">
       <h1 class="text-lg font-semibold text-foreground">Confirm your password</h1>

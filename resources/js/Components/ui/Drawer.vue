@@ -9,6 +9,7 @@ const props = withDefaults(
     show?: boolean;
     eyebrow?: string;
     title?: string;
+    wide?: boolean;
   }>(),
   { show: false },
 );
@@ -58,7 +59,8 @@ onUnmounted(() => {
     >
       <aside
         v-if="show"
-        class="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l bg-overlay shadow-drawer"
+        class="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l bg-overlay shadow-drawer"
+        :class="wide ? 'max-w-3xl' : 'max-w-xl'"
         role="dialog"
         aria-modal="true"
       >

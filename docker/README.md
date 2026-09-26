@@ -11,13 +11,33 @@ This Compose file runs a local evaluation stack with:
 
 ## Start
 
-From the repository root:
+From the repository root, create `docker/.env` and generate a unique `APP_KEY`.
+In Bash:
 
 ```bash
 cp docker/.env.example docker/.env
 key="base64:$(openssl rand -base64 32)"
 sed -i.bak "s|^APP_KEY=.*|APP_KEY=$key|" docker/.env && rm docker/.env.bak
+```
 
+In PowerShell:
+
+```powershell
+Copy-Item docker/.env.example docker/.env
+$bytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+$key = [Convert]::ToBase64String($bytes)
+$content = Get-Content docker/.env -Raw
+$content = [regex]::Replace($content, '(?m)^APP_KEY=.*$', "APP_KEY=base64:$key")
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText((Resolve-Path docker/.env).Path, $content, $utf8NoBom)
+$rng.Dispose()
+```
+
+Then start the stack:
+
+```bash
 docker compose --env-file docker/.env -f docker/compose.yml up --build
 ```
 
@@ -31,6 +51,10 @@ docker compose --env-file docker/.env -f docker/compose.yml logs app
 
 The stack exposes PostgreSQL and Redis to the host for local inspection. Remove
 those `ports` entries before using this example on an internet-facing host.
+The local development services are defined separately in
+[`compose.dev.yml`](./compose.dev.yml). Stop them before starting this full
+stack because both files publish PostgreSQL and Redis on ports `5432` and
+`6379`.
 
 ## Common commands
 

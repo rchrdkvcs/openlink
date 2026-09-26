@@ -658,6 +658,8 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
 </template>
 
 <style scoped>
+@reference '../../../css/app.css';
+
 .routing-builder {
   container-type: inline-size;
 }

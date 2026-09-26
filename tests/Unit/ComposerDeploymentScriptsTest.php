@@ -21,6 +21,17 @@ class ComposerDeploymentScriptsTest extends TestCase
         $this->assertStringContainsString('services.php', $scripts[$clearIndex]);
     }
 
+    public function test_post_autoload_dump_clears_compiled_views_before_discovery(): void
+    {
+        $scripts = $this->composerJson()['scripts']['post-autoload-dump'];
+        $clearIndex = $this->scriptIndexContaining($scripts, 'view:clear');
+        $discoverIndex = $this->scriptIndexContaining($scripts, 'package:discover');
+
+        $this->assertIsInt($clearIndex);
+        $this->assertIsInt($discoverIndex);
+        $this->assertLessThan($discoverIndex, $clearIndex);
+    }
+
     public function test_dev_only_laravel_providers_are_not_auto_discovered(): void
     {
         $composer = $this->composerJson();

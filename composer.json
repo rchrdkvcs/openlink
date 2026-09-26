@@ -64,6 +64,7 @@
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php -r \"if (is_file('bootstrap/cache/packages.php')) unlink('bootstrap/cache/packages.php'); if (is_file('bootstrap/cache/services.php')) unlink('bootstrap/cache/services.php');\"",
+            "@php artisan view:clear --ansi",
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [

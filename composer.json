@@ -63,7 +63,7 @@
         "lint": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php -r \"foreach (['bootstrap/cache/packages.php', 'bootstrap/cache/services.php'] as \\$path) { if (is_file(\\$path)) unlink(\\$path); }\"",
+            "@php -r \"if (is_file('bootstrap/cache/packages.php')) unlink('bootstrap/cache/packages.php'); if (is_file('bootstrap/cache/services.php')) unlink('bootstrap/cache/services.php');\"",
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [

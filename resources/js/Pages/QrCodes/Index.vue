@@ -68,10 +68,10 @@ function submit() {
   <Head title="QR codes" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight">QR Codes</h1>
+          <h1 class="text-xl font-semibold tracking-tight">QR Codes</h1>
           <p class="mt-1 max-w-2xl text-sm text-muted">
             Scannable codes for web pages, Wi-Fi, contact cards, events and more.
           </p>
@@ -100,7 +100,7 @@ function submit() {
         <article
           v-for="qr in qrCodes"
           :key="qr.id"
-          class="group relative grid min-w-0 overflow-hidden rounded-2xl border bg-surface shadow-sm transition-colors hover:border-border-strong"
+          class="ui-panel group relative grid overflow-hidden transition-colors hover:border-border-strong"
         >
           <div class="relative grid place-items-center border-b bg-white p-6">
             <img

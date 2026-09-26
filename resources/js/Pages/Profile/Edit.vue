@@ -71,7 +71,7 @@ function selectTab(tab: string) {
   <Head title="Profile settings" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6">
         <h1 class="text-xl font-semibold tracking-tight">Profile</h1>
         <p class="mt-1 text-sm text-muted">

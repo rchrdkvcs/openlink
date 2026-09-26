@@ -8,6 +8,8 @@ import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import WorkspaceColorPicker from '@/Components/Workspaces/WorkspaceColorPicker.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
 import { fetchJson, HttpError } from '@/lib/http';
@@ -93,7 +95,7 @@ function close() {
 </script>
 
 <template>
-  <Modal :show="show" max-width="lg" @close="close">
+  <Modal title="Create workspace" :show="show" max-width="lg" @close="close">
     <div class="p-6">
       <template v-if="step === 'details'">
         <div class="flex items-start gap-3">
@@ -139,13 +141,13 @@ function close() {
         </div>
 
         <div class="mt-5 rounded-lg border bg-elevated/30 p-4">
-          <div class="flex items-end gap-3">
-            <Field label="Role" class="flex-1">
-              <select v-model="inviteRole" class="h-9">
-                <option value="admin">Admin</option>
-                <option value="editor">Editor</option>
-                <option value="viewer">Viewer</option>
-              </select>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field label="Role" class="w-full sm:flex-1">
+              <Select v-model="inviteRole" class="h-9">
+                <SelectOption value="admin">Admin</SelectOption>
+                <SelectOption value="editor">Editor</SelectOption>
+                <SelectOption value="viewer">Viewer</SelectOption>
+              </Select>
             </Field>
             <Button type="button" :loading="generating" @click="generateInvite">
               <Link2 class="h-4 w-4" /> Generate invite link

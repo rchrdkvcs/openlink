@@ -18,6 +18,8 @@ import Button from '@/Components/ui/Button.vue';
 import DateTimeField from '@/Components/ui/DateTimeField.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
 import PasswordInput from '@/Components/ui/PasswordInput.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
 import { isLikelyUrl } from '@/lib/links';
@@ -86,7 +88,7 @@ watch(
 </script>
 
 <template>
-  <Drawer :show="show" @close="emit('close')">
+  <Drawer title="New short link" :show="show" @close="emit('close')">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">
@@ -172,12 +174,12 @@ watch(
               </template>
 
               <template v-else-if="key === 'folder_id'">
-                <select v-model="form.folder_id" class="h-9">
-                  <option value="">No folder</option>
-                  <option v-for="folder in folders" :key="folder.id" :value="folder.id">
+                <Select v-model="form.folder_id" class="h-9">
+                  <SelectOption value="">No folder</SelectOption>
+                  <SelectOption v-for="folder in folders" :key="folder.id" :value="String(folder.id)">
                     {{ folder.name }}
-                  </option>
-                </select>
+                  </SelectOption>
+                </Select>
                 <p v-if="form.errors.folder_id" class="mt-1.5 text-xs text-danger">
                   {{ form.errors.folder_id }}
                 </p>

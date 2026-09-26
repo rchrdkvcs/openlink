@@ -54,7 +54,7 @@ const closeModal = () => {
 
     <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
 
-    <Modal :show="confirmingUserDeletion" @close="closeModal">
+    <Modal title="Delete account" :show="confirmingUserDeletion" @close="closeModal">
       <div class="p-6">
         <h2 class="text-base font-semibold text-foreground">Are you sure you want to delete your account?</h2>
 

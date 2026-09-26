@@ -28,7 +28,7 @@ const deltaClass = computed(() => {
 </script>
 
 <template>
-  <div class="min-w-0 rounded-2xl border bg-surface p-5 shadow-sm">
+  <div class="ui-panel p-4">
     <div class="flex items-center justify-between gap-2 text-faint">
       <span class="truncate text-sm font-medium">{{ label }}</span>
       <span

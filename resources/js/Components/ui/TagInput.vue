@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { inject } from 'vue';
+
+import { fieldContextKey } from '@/lib/select';
+
+const field = inject(fieldContextKey, undefined);
 import { X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
@@ -58,19 +63,27 @@ function popLast() {
 <template>
   <div>
     <div
-      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border bg-surface px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
+      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-lg border bg-background/50 px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
     >
       <span
         v-for="tag in pills"
         :key="tag"
-        class="inline-flex items-center gap-1 rounded bg-elevated px-1.5 py-0.5 text-xs text-muted"
+        class="inline-flex items-center gap-1 rounded-md bg-elevated px-1.5 py-0.5 text-xs text-muted"
       >
         #{{ tag }}
-        <button type="button" class="text-faint hover:text-foreground" @click="remove(tag)">
+        <button
+          type="button"
+          :aria-label="`Remove ${tag}`"
+          class="text-faint hover:text-foreground"
+          @click="remove(tag)"
+        >
           <X class="h-3 w-3" />
         </button>
       </span>
       <input
+        :aria-labelledby="field?.labelId"
+        :aria-describedby="field?.descriptionId"
+        :aria-invalid="field?.invalid || undefined"
         v-model="draft"
         class="h-6 min-w-24 flex-1 !border-0 !bg-transparent !p-0 !text-[13px] !shadow-none !ring-0"
         :placeholder="pills.length ? '' : placeholder"

@@ -30,19 +30,21 @@ const faviconSrc = computed(() => {
 <template>
   <div>
     <div
-      class="flex items-center gap-3 rounded-xl border bg-surface px-4 py-1 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25 hover:border-border-strong"
+      class="flex items-center gap-2.5 rounded-lg border bg-background/50 px-3 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25 hover:border-border-strong"
     >
       <img
         v-if="faviconSrc"
         :src="faviconSrc"
         alt=""
-        class="h-5 w-5 shrink-0 rounded bg-elevated"
+        class="h-4 w-4 shrink-0 rounded bg-elevated"
         @error="faviconFailed = true"
       />
-      <Globe v-else class="h-5 w-5 shrink-0 text-faint" />
+      <Globe v-else class="h-4 w-4 shrink-0 text-faint" />
       <input
         :value="modelValue"
-        class="h-12 flex-1 !border-0 !bg-transparent !p-0 !text-[15px] !shadow-none !ring-0"
+        class="h-10 min-w-0 flex-1 !border-0 !bg-transparent !p-0 !text-[13px] !shadow-none !ring-0"
+        aria-label="Destination URL"
+        :aria-invalid="Boolean(error) || undefined"
         placeholder="Paste the destination URL…"
         :autofocus="autofocus"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"

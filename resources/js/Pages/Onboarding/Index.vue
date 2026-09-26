@@ -7,6 +7,8 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from '@/Components/ui/Button.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 
 type Domain = { id: number; hostname: string; is_default: boolean };
 type InviteLink = { id: number; role: string; url: string };
@@ -177,11 +179,11 @@ const steps = [
                   />
                 </Field>
                 <Field v-if="domains.length > 1" label="Domain" :error="linkForm.errors.domain_id">
-                  <select v-model="linkForm.domain_id" class="h-9">
-                    <option v-for="domain in domains" :key="domain.id" :value="domain.id">
+                  <Select v-model="linkForm.domain_id" class="h-9">
+                    <SelectOption v-for="domain in domains" :key="domain.id" :value="domain.id">
                       {{ domain.hostname }}
-                    </option>
-                  </select>
+                    </SelectOption>
+                  </Select>
                 </Field>
 
                 <div class="flex flex-col gap-2">
@@ -217,11 +219,11 @@ const steps = [
               </div>
               <form v-else class="mt-5 space-y-4" @submit.prevent="createInviteLink">
                 <Field label="New members join as" :error="inviteForm.errors.role">
-                  <select v-model="inviteForm.role" class="h-9">
-                    <option value="admin">Admin</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
+                  <Select v-model="inviteForm.role" class="h-9">
+                    <SelectOption value="admin">Admin</SelectOption>
+                    <SelectOption value="editor">Editor</SelectOption>
+                    <SelectOption value="viewer">Viewer</SelectOption>
+                  </Select>
                 </Field>
                 <Button class="w-full" variant="secondary" :loading="inviteForm.processing">
                   <Link2 class="h-4 w-4" /> Generate invite link

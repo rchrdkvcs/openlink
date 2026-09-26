@@ -92,17 +92,24 @@ function openCreateWorkspace() {
       >Skip to content</a
     >
     <!-- Quiet navigation, with the workspace as the primary anchor. -->
-    <aside class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col px-5 py-8 lg:flex">
+    <aside class="fixed inset-y-0 start-0 z-30 hidden w-56 flex-col px-4 py-5 lg:flex">
+      <Link
+        :href="route('dashboard')"
+        aria-label="Openlink overview"
+        class="mb-6 inline-flex w-fit items-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      >
+        <ApplicationLogo class="h-4 w-auto" />
+      </Link>
       <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
 
       <!-- Navigation -->
-      <nav class="my-auto space-y-2 overflow-y-auto py-10">
+      <nav aria-label="Workspace navigation" class="mt-6 min-h-0 space-y-1 overflow-y-auto pb-6">
         <Link
           v-for="item in navItems"
           :key="item.label"
           :href="item.href"
           :aria-current="item.active ? 'page' : undefined"
-          class="group flex min-h-11 w-fit max-w-full items-center gap-3 rounded-full px-4 py-2 text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          class="ui-nav-link group"
           :class="
             item.active
               ? 'bg-elevated font-medium text-foreground'
@@ -111,7 +118,7 @@ function openCreateWorkspace() {
         >
           <component
             :is="item.icon"
-            class="h-[18px] w-[18px] shrink-0"
+            class="h-4 w-4 shrink-0"
             :stroke-width="1.5"
             :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'"
           />
@@ -126,7 +133,7 @@ function openCreateWorkspace() {
           :key="item.label"
           :href="item.href"
           :aria-current="item.active ? 'page' : undefined"
-          class="group flex min-h-11 w-fit max-w-full items-center gap-3 rounded-full px-4 py-2 text-sm transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          class="ui-nav-link group"
           :class="
             item.active
               ? 'bg-elevated font-medium text-foreground'
@@ -135,7 +142,7 @@ function openCreateWorkspace() {
         >
           <component
             :is="item.icon"
-            class="h-[18px] w-[18px] shrink-0"
+            class="h-4 w-4 shrink-0"
             :stroke-width="1.5"
             :class="item.active ? 'text-foreground' : 'text-faint group-hover:text-muted'"
           />
@@ -144,11 +151,11 @@ function openCreateWorkspace() {
       </nav>
 
       <!-- User menu -->
-      <div class="shrink-0">
+      <div class="mt-auto shrink-0 border-t border-border/60 pt-3">
         <Dropdown align="left" width="64" placement="top" contentClasses="p-1">
           <template #trigger>
             <button
-              class="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               <UserAvatar :name="user.name" :src="user.profile_avatar_url" size="sm" />
               <span class="min-w-0 flex-1">
@@ -177,13 +184,13 @@ function openCreateWorkspace() {
 
     <DialogRoot v-model:open="mobileNavOpen">
       <DialogPortal>
-        <DialogOverlay class="fixed inset-0 z-40 bg-background/75 backdrop-blur-sm" />
+        <DialogOverlay class="ui-overlay fixed inset-0 z-40" />
         <DialogContent
           :aria-describedby="undefined"
-          class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col bg-overlay p-3 shadow-drawer"
+          class="ui-drawer fixed inset-y-2 start-2 z-50 flex w-72 max-w-[calc(100vw-1rem)] flex-col p-3"
         >
           <DialogTitle class="sr-only">Navigation</DialogTitle>
-          <div class="flex h-14 items-center gap-1 border-b px-2">
+          <div class="flex items-center gap-1 pb-3">
             <div class="min-w-0 flex-1">
               <WorkspaceSwitcher
                 gear-visibility="always"
@@ -198,13 +205,13 @@ function openCreateWorkspace() {
               <X class="h-4 w-4" />
             </DialogClose>
           </div>
-          <nav class="flex-1 space-y-0.5 overflow-y-auto p-3">
+          <nav aria-label="Workspace navigation" class="flex-1 space-y-1 overflow-y-auto py-4">
             <Link
               v-for="item in [...navItems, ...accountItems]"
               :key="item.label"
               :href="item.href"
               :aria-current="item.active ? 'page' : undefined"
-              class="flex min-h-11 items-center gap-2.5 rounded-full px-3 text-sm font-medium transition-colors duration-100"
+              class="ui-nav-link"
               :class="
                 item.active ? 'bg-elevated text-foreground' : 'text-muted hover:bg-elevated/60 hover:text-foreground'
               "
@@ -215,19 +222,10 @@ function openCreateWorkspace() {
             </Link>
           </nav>
           <div class="space-y-0.5 border-t p-3">
-            <Link
-              :href="route('profile.edit')"
-              class="flex min-h-11 items-center gap-2.5 rounded-full px-3 text-sm text-muted hover:bg-elevated hover:text-foreground"
-              @click="mobileNavOpen = false"
-            >
+            <Link :href="route('profile.edit')" class="ui-nav-link" @click="mobileNavOpen = false">
               <User class="h-4 w-4" /> Profile
             </Link>
-            <Link
-              :href="route('logout')"
-              method="post"
-              as="button"
-              class="flex min-h-11 w-full items-center gap-2.5 rounded-full px-3 text-sm text-muted hover:bg-elevated hover:text-foreground"
-            >
+            <Link :href="route('logout')" method="post" as="button" class="ui-nav-link w-full">
               <LogOut class="h-4 w-4" /> Log out
             </Link>
           </div>
@@ -235,7 +233,7 @@ function openCreateWorkspace() {
       </DialogPortal>
 
       <!-- Main column — no desktop top bar -->
-      <div class="flex min-h-dvh min-w-0 flex-col lg:pl-64">
+      <div class="flex min-h-dvh min-w-0 flex-col lg:py-3 lg:pe-3 lg:ps-56">
         <header
           class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden"
         >
@@ -264,7 +262,11 @@ function openCreateWorkspace() {
           </Link>
         </header>
 
-        <main id="main-content" tabindex="-1" class="min-w-0 flex-1 outline-none">
+        <main
+          id="main-content"
+          tabindex="-1"
+          class="min-w-0 flex-1 bg-surface/30 outline-none lg:rounded-[20px] lg:border lg:border-border/70"
+        >
           <div class="mx-auto w-full max-w-[1600px]">
             <slot />
           </div>

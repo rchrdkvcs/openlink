@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import Field from '@/Components/ui/Field.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 
 import type { PayloadDescriptors, PayloadField } from './types';
 
@@ -34,11 +36,11 @@ function disabled(field: PayloadField) {
       </label>
 
       <Field v-else :label="field.label" :error="error(field.key)">
-        <select v-if="field.control === 'select'" v-model="payload[field.key]" class="h-9">
-          <option v-for="option in field.options ?? []" :key="option.value" :value="option.value">
+        <Select v-if="field.control === 'select'" v-model="payload[field.key]" class="h-9">
+          <SelectOption v-for="option in field.options ?? []" :key="option.value" :value="option.value">
             {{ option.label }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
         <textarea
           v-else-if="field.control === 'textarea'"

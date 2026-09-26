@@ -15,5 +15,5 @@ defineExpose({ focus: () => input.value?.focus() });
 </script>
 
 <template>
-  <input class="h-9 rounded-md" v-model="model" ref="input" />
+  <input class="h-9" v-model="model" ref="input" />
 </template>

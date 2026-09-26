@@ -15,6 +15,8 @@ import {
 import { ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
 import type { RoutingCondition, RoutingOption, RoutingRuleDraft, RoutingSchema, RoutingVariantDraft } from './types';
@@ -292,10 +294,10 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
       <div v-if="openIndex === index" class="grid gap-4 border-t bg-elevated/30 p-3">
         <div class="grid gap-3 sm:grid-cols-[1fr_140px]">
           <input v-model="rule.name" class="h-9" placeholder="Rule name" />
-          <select v-model="rule.type" class="h-9" @change="onRuleTypeChange(rule)">
-            <option value="conditional">Destination</option>
-            <option value="split_test">Split test</option>
-          </select>
+          <Select aria-label="Rule type" v-model="rule.type" class="h-9" @update:model-value="onRuleTypeChange(rule)">
+            <SelectOption value="conditional">Destination</SelectOption>
+            <SelectOption value="split_test">Split test</SelectOption>
+          </Select>
         </div>
 
         <div class="grid gap-2">
@@ -324,16 +326,21 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
             :key="conditionIndex"
             class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[140px_140px_1fr_auto]"
           >
-            <select v-model="condition.type" class="h-9" @change="onConditionTypeChange(condition)">
-              <option v-for="option in schema.conditionTypes" :key="option.value" :value="option.value">
+            <Select
+              aria-label="Condition"
+              v-model="condition.type"
+              class="h-9"
+              @update:model-value="onConditionTypeChange(condition)"
+            >
+              <SelectOption v-for="option in schema.conditionTypes" :key="option.value" :value="option.value">
                 {{ option.label }}
-              </option>
-            </select>
-            <select v-model="condition.operator" class="h-9">
-              <option v-for="option in operatorsFor(condition)" :key="option.value" :value="option.value">
+              </SelectOption>
+            </Select>
+            <Select aria-label="Operator" v-model="condition.operator" class="h-9">
+              <SelectOption v-for="option in operatorsFor(condition)" :key="option.value" :value="option.value">
                 {{ option.label }}
-              </option>
-            </select>
+              </SelectOption>
+            </Select>
 
             <template v-if="hasValueInput(condition)">
               <div v-if="condition.operator === 'between'" class="grid grid-cols-2 gap-2">
@@ -348,11 +355,17 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
                   :type="condition.type === 'date_time' ? 'datetime-local' : 'time'"
                 />
               </div>
-              <select v-else-if="valueOptions(condition)" v-model="condition.value" class="h-9">
-                <option v-for="option in valueOptions(condition)" :key="option.value" :value="option.value">
+              <Select
+                v-else-if="valueOptions(condition)"
+                aria-label="Condition value"
+                :model-value="typeof condition.value === 'string' ? condition.value : ''"
+                class="h-9"
+                @update:model-value="condition.value = $event"
+              >
+                <SelectOption v-for="option in valueOptions(condition)" :key="option.value" :value="option.value">
                   {{ option.label }}
-                </option>
-              </select>
+                </SelectOption>
+              </Select>
               <input
                 v-else
                 v-model="condition.value"

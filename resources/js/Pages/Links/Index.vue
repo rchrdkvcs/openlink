@@ -25,9 +25,13 @@ import { nextTick, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import ConfirmDialog from '@/Components/ui/ConfirmDialog.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Popover from '@/Components/ui/Popover.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { originOf } from '@/lib/links';
 
@@ -58,6 +62,8 @@ const {
 const failedFavicons = ref<Set<string>>(new Set());
 
 const {
+  confirmation,
+  requestConfirmation,
   copiedLinkId,
   usableDomains,
   linkForm,
@@ -127,9 +133,11 @@ function commitRenameFolder() {
 function deleteFolder(folder: Folder, linkCount: number) {
   folderMenuFor.value = null;
   const detail = linkCount > 0 ? ` Its ${linkCount} link${linkCount > 1 ? 's' : ''} will move to Unfiled.` : '';
-  if (confirm(`Delete folder "${folder.name}"?${detail}`)) {
-    router.delete(route('folders.destroy', folder.id), { preserveScroll: true });
-  }
+  requestConfirmation({
+    title: `Delete folder “${folder.name}”?`,
+    description: `This removes the folder from this workspace.${detail}`,
+    action: () => router.delete(route('folders.destroy', folder.id), { preserveScroll: true }),
+  });
 }
 
 function parseDisplayUrl(url: string): URL | null {
@@ -185,9 +193,9 @@ function markFaviconFailed(url: string) {
   <Head title="Short links" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight">Links</h1>
+        <h1 class="text-xl font-semibold tracking-tight">Links</h1>
         <p class="mt-1 text-sm text-muted">Short URLs grouped by folder. Drag a link onto a folder to move it.</p>
       </div>
 
@@ -197,18 +205,18 @@ function markFaviconFailed(url: string) {
           <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
           <input v-model="filters.search" class="h-8 pl-8 text-[13px]" placeholder="Search across all folders…" />
         </div>
-        <select v-model="filters.status" class="h-8 w-36 py-0 text-[13px]">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="expired">Expired</option>
-          <option value="disabled">Disabled</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select v-model="filters.tag" class="h-8 w-32 py-0 text-[13px]">
-          <option value="">All tags</option>
-          <option v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
-        </select>
+        <Select aria-label="Filter by status" v-model="filters.status" class="h-8 w-36 py-0 text-[13px]">
+          <SelectOption value="">All statuses</SelectOption>
+          <SelectOption value="active">Active</SelectOption>
+          <SelectOption value="scheduled">Scheduled</SelectOption>
+          <SelectOption value="expired">Expired</SelectOption>
+          <SelectOption value="disabled">Disabled</SelectOption>
+          <SelectOption value="archived">Archived</SelectOption>
+        </Select>
+        <Select aria-label="Filter by tag" v-model="filters.tag" class="h-8 w-32 py-0 text-[13px]">
+          <SelectOption value="">All tags</SelectOption>
+          <SelectOption v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }}</SelectOption>
+        </Select>
 
         <span v-if="hasActiveFilters" class="text-[13px] tabular-nums text-faint"
           >{{ totalMatching }} result{{ totalMatching === 1 ? '' : 's' }}</span
@@ -261,7 +269,7 @@ function markFaviconFailed(url: string) {
         <section
           v-for="group in groups"
           :key="group.key"
-          class="min-w-0 rounded-2xl border bg-surface shadow-sm transition-shadow"
+          class="ui-panel transition-shadow"
           :class="dropGroupKey === group.key && dragLinkId !== null ? 'ring-1 ring-accent' : ''"
           @dragover.prevent="dropGroupKey = group.key"
           @dragleave="dropGroupKey = null"
@@ -298,54 +306,44 @@ function markFaviconFailed(url: string) {
               @keydown.escape.stop="renamingFolderId = null"
               @blur="commitRenameFolder"
               @click.stop
+              @keydown.stop
             />
             <span v-else class="text-[13px] font-semibold text-foreground">{{ group.folder?.name ?? 'Unfiled' }}</span>
             <span class="text-xs tabular-nums text-faint">{{ group.links.length }}</span>
 
             <div
               v-if="group.folder && canManageWorkspace"
-              class="relative ml-auto opacity-0 transition-opacity focus-within:opacity-100 group-hover/h:opacity-100"
+              class="relative ml-auto transition-opacity focus-within:opacity-100 group-hover/h:opacity-100 [@media(hover:hover)]:opacity-0"
               @click.stop
+              @keydown.stop
             >
-              <button
-                class="grid h-7 w-7 place-items-center rounded-md text-faint transition-colors hover:bg-elevated hover:text-foreground"
-                title="Folder actions"
-                @click="folderMenuFor = folderMenuFor === group.folder.id ? null : group.folder.id"
+              <Popover
+                :open="folderMenuFor === group.folder.id"
+                align="end"
+                class="w-44 p-1"
+                aria-label="Folder actions"
+                @update:open="folderMenuFor = $event ? group.folder.id : null"
               >
-                <MoreHorizontal class="h-4 w-4" />
-              </button>
-              <button
-                v-if="folderMenuFor === group.folder.id"
-                class="fixed inset-0 z-20 cursor-default"
-                tabindex="-1"
-                @click="folderMenuFor = null"
-              />
-              <Transition
-                enter-active-class="transition ease-emphasized-out duration-150"
-                enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
-                enter-to-class="opacity-100 scale-100 translate-y-0"
-                leave-active-class="transition ease-out duration-100"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-[0.97]"
-              >
-                <div
-                  v-if="folderMenuFor === group.folder.id"
-                  class="absolute right-0 top-full z-30 mt-1 w-44 origin-top-right rounded-lg bg-overlay p-1 shadow-popover"
+                <template #trigger>
+                  <button type="button" class="ui-icon-button h-7 w-7" aria-label="Folder actions">
+                    <MoreHorizontal class="h-4 w-4" />
+                  </button>
+                </template>
+                <button
+                  type="button"
+                  class="ui-menu-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[13px] hover:bg-elevated hover:text-foreground"
+                  @click="startRenameFolder(group.folder)"
                 >
-                  <button
-                    class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-muted transition-colors hover:bg-elevated hover:text-foreground"
-                    @click="startRenameFolder(group.folder)"
-                  >
-                    <Pencil class="h-3.5 w-3.5" /> Rename
-                  </button>
-                  <button
-                    class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-danger transition-colors hover:bg-danger/15"
-                    @click="deleteFolder(group.folder, group.links.length)"
-                  >
-                    <Trash2 class="h-3.5 w-3.5" /> Delete folder
-                  </button>
-                </div>
-              </Transition>
+                  <Pencil class="h-3.5 w-3.5" /> Rename
+                </button>
+                <button
+                  type="button"
+                  class="ui-menu-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[13px] text-danger hover:bg-danger/15"
+                  @click="deleteFolder(group.folder, group.links.length)"
+                >
+                  <Trash2 class="h-3.5 w-3.5" /> Delete folder
+                </button>
+              </Popover>
             </div>
           </header>
 
@@ -477,10 +475,7 @@ function markFaviconFailed(url: string) {
         </section>
 
         <!-- Global empty state -->
-        <section
-          v-if="groups.length === 0 || (links.length === 0 && !hasActiveFilters)"
-          class="min-w-0 rounded-2xl border bg-surface shadow-sm"
-        >
+        <section v-if="groups.length === 0 || (links.length === 0 && !hasActiveFilters)" class="ui-panel">
           <EmptyState
             :title="hasActiveFilters ? 'No links match' : 'No links yet'"
             :description="
@@ -525,5 +520,6 @@ function markFaviconFailed(url: string) {
       @close="selectedLink = null"
       @submit="updateLink"
     />
+    <ConfirmDialog :confirmation="confirmation" @close="confirmation = null" />
   </AuthenticatedLayout>
 </template>

@@ -11,6 +11,8 @@ import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
@@ -167,10 +169,10 @@ const sortedMembers = computed(() =>
   <Head title="Workspace members" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight">Members</h1>
+          <h1 class="text-xl font-semibold tracking-tight">Members</h1>
           <p class="mt-1 text-sm text-muted">People with access to {{ currentWorkspace.name }}.</p>
         </div>
         <Button v-if="canManageMembers" type="button" @click="showInviteModal = true">
@@ -178,7 +180,7 @@ const sortedMembers = computed(() =>
         </Button>
       </div>
 
-      <section class="min-w-0 rounded-2xl border bg-surface shadow-sm">
+      <section class="ui-panel">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b text-left text-[11px] font-medium uppercase tracking-wide text-faint">
@@ -284,7 +286,7 @@ const sortedMembers = computed(() =>
       </section>
 
       <!-- Invite members modal -->
-      <Modal :show="showInviteModal" max-width="lg" @close="showInviteModal = false">
+      <Modal title="Invite members" :show="showInviteModal" max-width="lg" @close="showInviteModal = false">
         <div class="p-6">
           <div class="flex items-start gap-3">
             <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
@@ -299,19 +301,19 @@ const sortedMembers = computed(() =>
           <form class="mt-5 rounded-lg border bg-elevated/30 p-4" @submit.prevent="createInviteLink">
             <div class="grid gap-3 sm:grid-cols-3">
               <Field label="Role" :error="linkForm.errors.role">
-                <select v-model="linkForm.role" class="h-9">
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                <Select v-model="linkForm.role" class="h-9">
+                  <SelectOption value="admin">Admin</SelectOption>
+                  <SelectOption value="editor">Editor</SelectOption>
+                  <SelectOption value="viewer">Viewer</SelectOption>
+                </Select>
               </Field>
               <Field label="Expires" :error="linkForm.errors.expires_in_days">
-                <select v-model="linkForm.expires_in_days" class="h-9">
-                  <option value="">Never</option>
-                  <option value="1">In 1 day</option>
-                  <option value="7">In 7 days</option>
-                  <option value="30">In 30 days</option>
-                </select>
+                <Select v-model="linkForm.expires_in_days" class="h-9">
+                  <SelectOption value="">Never</SelectOption>
+                  <SelectOption value="1">In 1 day</SelectOption>
+                  <SelectOption value="7">In 7 days</SelectOption>
+                  <SelectOption value="30">In 30 days</SelectOption>
+                </Select>
               </Field>
               <Field label="Max uses" :error="linkForm.errors.max_uses">
                 <input v-model="linkForm.max_uses" type="number" min="1" class="h-9" placeholder="Unlimited" />
@@ -350,7 +352,7 @@ const sortedMembers = computed(() =>
       </Modal>
 
       <!-- Confirmation modal -->
-      <Modal :show="confirmation !== null" max-width="md" @close="confirmation = null">
+      <Modal title="Confirm member action" :show="confirmation !== null" max-width="md" @close="confirmation = null">
         <div class="p-6">
           <h2 class="text-base font-semibold text-foreground">{{ confirmText.title }}</h2>
           <p class="mt-2 text-sm text-muted">{{ confirmText.body }}</p>

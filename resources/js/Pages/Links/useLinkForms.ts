@@ -1,9 +1,12 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch, type Ref } from 'vue';
 
+import { useConfirmation } from '@/lib/useConfirmation';
+
 import type { LinksPageProps, RoutingRuleDraft, ShortLink } from './types';
 
 export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink | null>, createOpen: Ref<boolean>) {
+  const { confirmation, requestConfirmation } = useConfirmation();
   const copiedLinkId = ref<number | null>(null);
   const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'active'));
   const PASSWORD_MASK = '********';
@@ -102,9 +105,11 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
   }
 
   function deleteLink(link: ShortLink) {
-    if (confirm(`Permanently delete ${link.short_url}? This frees its slug.`)) {
-      useForm({}).delete(route('short-links.destroy', link.id), { preserveScroll: true });
-    }
+    requestConfirmation({
+      title: 'Delete this short link?',
+      description: `${link.short_url} will be permanently deleted and its slug released. This cannot be undone.`,
+      action: () => useForm({}).delete(route('short-links.destroy', link.id), { preserveScroll: true }),
+    });
   }
 
   async function copyShortUrl(link: ShortLink) {
@@ -130,6 +135,8 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
   }
 
   return {
+    confirmation,
+    requestConfirmation,
     copiedLinkId,
     usableDomains,
     linkForm,

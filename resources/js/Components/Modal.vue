@@ -1,106 +1,50 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { X } from '@lucide/vue';
+import { DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'radix-vue';
+import { computed, toRef } from 'vue';
+
+import { useDialogFocus } from '@/lib/useDialogFocus';
 
 const props = withDefaults(
   defineProps<{
     show?: boolean;
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     closeable?: boolean;
+    title?: string;
   }>(),
-  {
-    show: false,
-    maxWidth: '2xl',
-    closeable: true,
-  },
+  { show: false, maxWidth: '2xl', closeable: true, title: 'Dialog' },
 );
-
-const emit = defineEmits(['close']);
-const dialog = ref();
-const showSlot = ref(props.show);
-
-watch(
-  () => props.show,
-  () => {
-    if (props.show) {
-      document.body.style.overflow = 'hidden';
-      showSlot.value = true;
-
-      dialog.value?.showModal();
-    } else {
-      document.body.style.overflow = '';
-
-      setTimeout(() => {
-        dialog.value?.close();
-        showSlot.value = false;
-      }, 200);
-    }
-  },
+const emit = defineEmits<{ close: [] }>();
+const restoreFocus = useDialogFocus(toRef(props, 'show'));
+const width = computed(
+  () => ({ sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl', '2xl': 'max-w-2xl' })[props.maxWidth],
 );
-
-const close = () => {
-  if (props.closeable) {
-    emit('close');
-  }
-};
-
-const closeOnEscape = (e: KeyboardEvent) => {
-  if (props.show && e.key === 'Escape') {
-    e.preventDefault();
-    close();
-  }
-};
-
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', closeOnEscape);
-
-  document.body.style.overflow = '';
-});
-
-const maxWidthClass = computed(() => {
-  return {
-    sm: 'sm:max-w-sm',
-    md: 'sm:max-w-md',
-    lg: 'sm:max-w-lg',
-    xl: 'sm:max-w-xl',
-    '2xl': 'sm:max-w-2xl',
-  }[props.maxWidth];
-});
+function dismiss(open: boolean) {
+  if (!open && props.closeable) emit('close');
+}
+function preventDismiss(event: Event) {
+  if (!props.closeable) event.preventDefault();
+}
 </script>
 
 <template>
-  <dialog class="z-50 m-0 min-h-full min-w-full overflow-y-auto bg-transparent backdrop:bg-transparent" ref="dialog">
-    <div class="fixed inset-0 z-50 overflow-y-auto px-4 py-6 sm:px-0" scroll-region>
-      <Transition
-        enter-active-class="ease-out duration-200"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="ease-out duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
+  <DialogRoot :open="show" @update:open="dismiss">
+    <DialogPortal>
+      <DialogOverlay class="ui-overlay fixed inset-0 z-50" />
+      <DialogContent
+        :aria-describedby="undefined"
+        :class="width"
+        class="ui-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto overscroll-contain outline-none"
+        @escape-key-down="preventDismiss"
+        @interact-outside="preventDismiss"
+        @close-auto-focus="restoreFocus"
       >
-        <div v-show="show" class="fixed inset-0 transform transition-all" @click="close">
-          <div class="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
-        </div>
-      </Transition>
-
-      <Transition
-        enter-active-class="ease-emphasized-out duration-200"
-        enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-[0.97]"
-        enter-to-class="opacity-100 translate-y-0 sm:scale-100"
-        leave-active-class="ease-out duration-150"
-        leave-from-class="opacity-100 translate-y-0 sm:scale-100"
-        leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-[0.97]"
-      >
-        <div
-          v-show="show"
-          class="mb-6 mt-[8vh] transform rounded-xl border bg-overlay shadow-2xl shadow-black/50 transition-all sm:mx-auto sm:w-full"
-          :class="maxWidthClass"
-        >
-          <slot v-if="showSlot" />
-        </div>
-      </Transition>
-    </div>
-  </dialog>
+        <DialogTitle class="sr-only">{{ title }}</DialogTitle>
+        <DialogClose v-if="closeable" aria-label="Close dialog" class="ui-icon-button absolute end-3 top-3 z-10"
+          ><X class="h-4 w-4"
+        /></DialogClose>
+        <slot />
+      </DialogContent>
+    </DialogPortal>
+  </DialogRoot>
 </template>

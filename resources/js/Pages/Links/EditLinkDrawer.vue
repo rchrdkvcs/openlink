@@ -8,6 +8,8 @@ import DateTimeField from '@/Components/ui/DateTimeField.vue';
 import Drawer from '@/Components/ui/Drawer.vue';
 import Field from '@/Components/ui/Field.vue';
 import PasswordInput from '@/Components/ui/PasswordInput.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
@@ -163,12 +165,12 @@ const shortUrlChanged = computed(
             </template>
 
             <template v-else-if="key === 'folder_id'">
-              <select v-model="editForm.folder_id" class="h-9">
-                <option value="">No folder</option>
-                <option v-for="folder in folders" :key="folder.id" :value="folder.id">
+              <Select v-model="editForm.folder_id" class="h-9">
+                <SelectOption value="">No folder</SelectOption>
+                <SelectOption v-for="folder in folders" :key="folder.id" :value="String(folder.id)">
                   {{ folder.name }}
-                </option>
-              </select>
+                </SelectOption>
+              </Select>
               <p v-if="editForm.errors.folder_id" class="mt-1.5 text-xs text-danger">
                 {{ editForm.errors.folder_id }}
               </p>

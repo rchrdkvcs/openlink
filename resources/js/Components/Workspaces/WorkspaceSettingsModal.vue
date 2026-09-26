@@ -6,6 +6,8 @@ import { ref, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import WorkspaceColorPicker from '@/Components/Workspaces/WorkspaceColorPicker.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
@@ -100,7 +102,7 @@ function destroy() {
 </script>
 
 <template>
-  <Modal :show="show" max-width="lg" @close="emit('close')">
+  <Modal title="Workspace settings" :show="show" max-width="lg" @close="emit('close')">
     <div class="p-6">
       <div class="flex items-start gap-3">
         <WorkspaceIconPicker
@@ -145,12 +147,12 @@ function destroy() {
             hint="Used as the default domain when creating new short links."
             :error="form.errors.preferred_domain_id"
           >
-            <select v-model="form.preferred_domain_id" class="h-9">
-              <option value="">No preferred domain</option>
-              <option v-for="domain in manage.domains" :key="domain.id" :value="domain.id">
+            <Select v-model="form.preferred_domain_id" class="h-9">
+              <SelectOption value="">No preferred domain</SelectOption>
+              <SelectOption v-for="domain in manage.domains" :key="domain.id" :value="domain.id">
                 {{ domain.hostname }}
-              </option>
-            </select>
+              </SelectOption>
+            </Select>
           </Field>
 
           <div class="flex items-center gap-3">

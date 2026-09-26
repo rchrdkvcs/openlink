@@ -5,10 +5,15 @@ import { ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import ConfirmDialog from '@/Components/ui/ConfirmDialog.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
+import Popover from '@/Components/ui/Popover.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { useConfirmation } from '@/lib/useConfirmation';
 
 type Workspace = { id: number; name: string; slug: string };
 type Domain = {
@@ -20,6 +25,8 @@ type Domain = {
   failure_reason?: string | null;
   dns_check_error?: string | null;
 };
+
+const { confirmation, requestConfirmation } = useConfirmation();
 
 const props = defineProps<{
   currentWorkspace: Workspace;
@@ -56,9 +63,11 @@ function transferDomain(domain: Domain) {
 }
 
 function deleteDomain(domain: Domain) {
-  if (confirm(`Delete ${domain.hostname}? Links using this domain will be deleted too.`)) {
-    useForm({}).delete(route('domains.destroy', domain.id), { preserveScroll: true });
-  }
+  requestConfirmation({
+    title: `Delete ${domain.hostname}?`,
+    description: 'Links using this domain will also be permanently deleted. This cannot be undone.',
+    action: () => useForm({}).delete(route('domains.destroy', domain.id), { preserveScroll: true }),
+  });
 }
 
 function statusVariant(domain: Domain) {
@@ -94,10 +103,10 @@ function targetWorkspaces() {
   <Head title="Domains & DNS" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6 flex items-end justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight">Domains</h1>
+          <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
           <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
         </div>
         <Link v-if="canManageWorkspace" :href="route('domains.create')">
@@ -105,7 +114,7 @@ function targetWorkspaces() {
         </Link>
       </div>
 
-      <section class="min-w-0 overflow-hidden rounded-2xl border bg-surface shadow-sm">
+      <section class="ui-panel overflow-hidden">
         <div
           class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
         >
@@ -149,30 +158,31 @@ function targetWorkspaces() {
               >
                 <RefreshCw class="h-4 w-4" />
               </IconButton>
-              <div v-if="canManageWorkspace && !domain.is_default" class="relative">
-                <IconButton title="Transfer domain" @click="openTransfer(domain)">
-                  <ArrowRightLeft class="h-4 w-4" />
-                </IconButton>
-                <template v-if="transferMenuFor === domain.id">
-                  <button class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="transferMenuFor = null" />
-                  <form
-                    class="absolute right-0 top-full z-30 mt-1 grid w-64 gap-2 rounded-lg bg-overlay p-3 shadow-popover"
-                    @submit.prevent="transferDomain(domain)"
+              <Popover
+                v-if="canManageWorkspace && !domain.is_default"
+                :open="transferMenuFor === domain.id"
+                align="end"
+                class="w-64 p-3"
+                aria-label="Transfer domain"
+                @update:open="$event ? openTransfer(domain) : (transferMenuFor = null)"
+              >
+                <template #trigger
+                  ><IconButton title="Transfer domain"><ArrowRightLeft class="h-4 w-4" /></IconButton
+                ></template>
+                <form class="grid gap-3" @submit.prevent="transferDomain(domain)">
+                  <Field label="Transfer to" :error="transferForm.errors.workspace_id">
+                    <Select v-model="transferForm.workspace_id" class="h-9">
+                      <SelectOption value="">Choose workspace</SelectOption>
+                      <SelectOption v-for="workspace in targetWorkspaces()" :key="workspace.id" :value="workspace.id">
+                        {{ workspace.name }}
+                      </SelectOption>
+                    </Select>
+                  </Field>
+                  <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id"
+                    >Transfer</Button
                   >
-                    <Field label="Transfer to" :error="transferForm.errors.workspace_id">
-                      <select v-model="transferForm.workspace_id" class="h-9">
-                        <option value="">Choose workspace</option>
-                        <option v-for="workspace in targetWorkspaces()" :key="workspace.id" :value="workspace.id">
-                          {{ workspace.name }}
-                        </option>
-                      </select>
-                    </Field>
-                    <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id"
-                      >Transfer</Button
-                    >
-                  </form>
-                </template>
-              </div>
+                </form>
+              </Popover>
               <IconButton
                 v-if="canManageWorkspace && !domain.is_default"
                 variant="danger"
@@ -202,5 +212,6 @@ function targetWorkspaces() {
         </EmptyState>
       </section>
     </div>
+    <ConfirmDialog :confirmation="confirmation" @close="confirmation = null" />
   </AuthenticatedLayout>
 </template>

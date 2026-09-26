@@ -24,7 +24,7 @@ const widthClass = computed(() => ({ 48: 'w-48', 64: 'w-64', 72: 'w-72' })[props
         :align="align === 'left' ? 'start' : 'end'"
         :side-offset="8"
         :collision-padding="12"
-        class="z-50 max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl bg-overlay shadow-popover outline-none"
+        class="ui-popover z-[70] max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1.5rem)] overflow-y-auto"
         :class="[widthClass, contentClasses]"
         @click="open = false"
       >

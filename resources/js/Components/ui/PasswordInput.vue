@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { inject } from 'vue';
+
+import { fieldContextKey } from '@/lib/select';
+
+const field = inject(fieldContextKey, undefined);
 import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
 
@@ -15,6 +20,9 @@ const show = ref(false);
 <template>
   <div class="relative">
     <input
+      :aria-labelledby="field?.labelId"
+      :aria-describedby="field?.descriptionId"
+      :aria-invalid="field?.invalid || undefined"
       :value="modelValue"
       :type="show ? 'text' : 'password'"
       class="h-9 !pr-10"

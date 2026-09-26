@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { CalendarClock, ChevronLeft, ChevronRight } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import Popover from '@/Components/ui/Popover.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import { addDays, fromInputValue, humanize, monthGrid, monthLabel, toInputValue, WEEKDAYS } from '@/lib/datetime';
+import { fieldContextKey } from '@/lib/select';
 
 const props = withDefaults(
   defineProps<{
@@ -16,6 +20,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
+const field = inject(fieldContextKey, undefined);
 const open = ref(false);
 const view = ref(new Date());
 
@@ -28,12 +33,9 @@ const PRESETS = [
   { label: 'In a month', days: 30 },
 ];
 
-function toggle() {
-  open.value = !open.value;
-  if (open.value) {
-    view.value = selected.value ?? new Date();
-  }
-}
+watch(open, (value) => {
+  if (value) view.value = selected.value ?? new Date();
+});
 
 function shiftMonth(delta: number) {
   view.value = new Date(view.value.getFullYear(), view.value.getMonth() + delta, 1);
@@ -60,111 +62,107 @@ function applyPreset(days: number) {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
+const MINUTES = computed(() =>
+  [...new Set([...Array.from({ length: 12 }, (_, i) => i * 5), selected.value?.getMinutes() ?? 0])].toSorted(
+    (a, b) => a - b,
+  ),
+);
 </script>
 
 <template>
-  <!-- Escape closes the popover without bubbling to the drawer's document listener. -->
-  <div class="relative" @keydown.escape.stop="open = false">
-    <button
-      type="button"
-      class="flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-surface px-3 text-sm transition-colors hover:border-border-strong focus-visible:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-      :class="modelValue ? 'text-foreground' : 'text-faint'"
-      @click="toggle"
-    >
-      <span class="truncate">{{ modelValue ? humanize(modelValue) : placeholder }}</span>
-      <CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />
-    </button>
-
-    <button v-if="open" type="button" class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="open = false" />
-    <Transition
-      enter-active-class="transition ease-emphasized-out duration-150"
-      enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
-      enter-to-class="opacity-100 scale-100 translate-y-0"
-      leave-active-class="transition ease-out duration-100"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-[0.97] -translate-y-0.5"
-    >
-      <div
-        v-if="open"
-        class="absolute z-30 mt-2 w-[19rem] max-w-[calc(100vw-2rem)] rounded-xl bg-overlay p-3 shadow-popover"
-        :class="align === 'end' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'"
+  <Popover v-model:open="open" :align="align" class="w-[19rem] p-3" aria-label="Date and time">
+    <template #trigger>
+      <button
+        type="button"
+        :aria-labelledby="field?.labelId"
+        :aria-describedby="field?.descriptionId"
+        :aria-invalid="field?.invalid || undefined"
+        class="ui-control flex h-9 w-full items-center justify-between gap-2 px-3"
+        :class="modelValue ? 'text-foreground' : 'text-faint'"
       >
-        <div class="mb-2 flex flex-wrap gap-1.5">
-          <button
-            v-for="preset in PRESETS"
-            :key="preset.label"
-            type="button"
-            class="rounded-full border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-foreground"
-            @click="applyPreset(preset.days)"
-          >
-            {{ preset.label }}
-          </button>
-        </div>
+        <span class="truncate">{{ modelValue ? humanize(modelValue) : placeholder }}</span>
+        <CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />
+      </button>
+    </template>
+    <div class="mb-2 flex flex-wrap gap-1.5">
+      <button
+        v-for="preset in PRESETS"
+        :key="preset.label"
+        type="button"
+        class="rounded-full border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-foreground"
+        @click="applyPreset(preset.days)"
+      >
+        {{ preset.label }}
+      </button>
+    </div>
 
-        <div class="mb-1 flex items-center justify-between">
-          <button
-            type="button"
-            class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
-            @click="shiftMonth(-1)"
-          >
-            <ChevronLeft class="h-4 w-4" />
-          </button>
-          <span class="text-[13px] font-semibold text-foreground">{{ monthLabel(view) }}</span>
-          <button
-            type="button"
-            class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
-            @click="shiftMonth(1)"
-          >
-            <ChevronRight class="h-4 w-4" />
-          </button>
-        </div>
+    <div class="mb-1 flex items-center justify-between">
+      <button
+        type="button"
+        class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
+        aria-label="Previous month"
+        @click="shiftMonth(-1)"
+      >
+        <ChevronLeft class="h-4 w-4" />
+      </button>
+      <span class="text-[13px] font-semibold text-foreground">{{ monthLabel(view) }}</span>
+      <button
+        type="button"
+        class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
+        aria-label="Next month"
+        @click="shiftMonth(1)"
+      >
+        <ChevronRight class="h-4 w-4" />
+      </button>
+    </div>
 
-        <div class="grid grid-cols-7 gap-y-0.5 text-center">
-          <span v-for="d in WEEKDAYS" :key="d" class="py-1 text-[11px] font-medium text-faint">{{ d }}</span>
-          <button
-            v-for="day in monthGrid(view)"
-            :key="day.key"
-            type="button"
-            class="mx-auto grid h-8 w-8 place-items-center rounded-md text-[13px] tabular-nums transition-colors"
-            :class="[
-              day.inMonth ? 'text-foreground hover:bg-elevated' : 'text-faint/50 hover:bg-elevated',
-              modelValue && day.key === modelValue.slice(0, 10)
-                ? '!bg-accent font-semibold !text-white'
-                : day.isToday
-                  ? 'border border-accent/40'
-                  : '',
-            ]"
-            @click="pickDay(day.date)"
-          >
-            {{ day.date.getDate() }}
-          </button>
-        </div>
+    <div class="grid grid-cols-7 gap-y-0.5 text-center">
+      <span v-for="d in WEEKDAYS" :key="d" class="py-1 text-[11px] font-medium text-faint">{{ d }}</span>
+      <button
+        v-for="day in monthGrid(view)"
+        :key="day.key"
+        type="button"
+        class="mx-auto grid h-8 w-8 place-items-center rounded-md text-[13px] tabular-nums transition-colors"
+        :class="[
+          day.inMonth ? 'text-foreground hover:bg-elevated' : 'text-faint/50 hover:bg-elevated',
+          modelValue && day.key === modelValue.slice(0, 10)
+            ? '!bg-accent font-semibold !text-white'
+            : day.isToday
+              ? 'border border-accent/40'
+              : '',
+        ]"
+        :aria-label="day.date.toLocaleDateString(undefined, { dateStyle: 'full' })"
+        :aria-pressed="day.key === modelValue.slice(0, 10)"
+        @click="pickDay(day.date)"
+      >
+        {{ day.date.getDate() }}
+      </button>
+    </div>
 
-        <div class="mt-2 flex items-center justify-between border-t pt-2">
-          <div class="flex items-center gap-1">
-            <select
-              class="h-8 w-auto !py-0 !pr-7 text-[13px] tabular-nums"
-              :value="selected?.getHours() ?? 9"
-              @change="setTime('hours', ($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="h in HOURS" :key="h" :value="h">{{ String(h).padStart(2, '0') }}</option>
-            </select>
-            <span class="text-sm text-faint">:</span>
-            <select
-              class="h-8 w-auto !py-0 !pr-7 text-[13px] tabular-nums"
-              :value="selected?.getMinutes() ?? 0"
-              @change="setTime('minutes', ($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="m in MINUTES" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
-            </select>
-          </div>
-          <div class="flex gap-1">
-            <Button variant="ghost" size="sm" type="button" @click="emit('update:modelValue', '')">Clear</Button>
-            <Button variant="secondary" size="sm" type="button" @click="open = false">Done</Button>
-          </div>
-        </div>
+    <div class="mt-2 flex items-center justify-between border-t pt-2">
+      <div class="flex items-center gap-1">
+        <Select
+          class="h-8 w-16 tabular-nums"
+          aria-label="Hours"
+          :model-value="selected?.getHours() ?? 9"
+          @update:model-value="setTime('hours', String($event))"
+        >
+          <SelectOption v-for="h in HOURS" :key="h" :value="h">{{ String(h).padStart(2, '0') }}</SelectOption>
+        </Select>
+        <span class="text-sm text-faint">:</span>
+        <Select
+          class="h-8 w-16 tabular-nums"
+          aria-label="Minutes"
+          :model-value="selected?.getMinutes() ?? 0"
+          @update:model-value="setTime('minutes', String($event))"
+        >
+          <SelectOption v-for="m in MINUTES" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</SelectOption>
+        </Select>
       </div>
-    </Transition>
-  </div>
+      <div class="flex gap-1">
+        <Button variant="ghost" size="sm" type="button" @click="emit('update:modelValue', '')">Clear</Button>
+        <Button variant="secondary" size="sm" type="button" @click="open = false">Done</Button>
+      </div>
+    </div>
+  </Popover>
 </template>

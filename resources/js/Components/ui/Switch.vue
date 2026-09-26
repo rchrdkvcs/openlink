@@ -1,23 +1,20 @@
 <script setup lang="ts">
-defineProps<{
-  modelValue: boolean;
-}>();
+import { SwitchRoot, SwitchThumb } from 'radix-vue';
 
+defineProps<{ modelValue: boolean; disabled?: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 </script>
 
 <template>
-  <button
-    type="button"
-    role="switch"
-    :aria-checked="modelValue"
-    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-    :class="modelValue ? 'bg-accent' : 'bg-border-strong'"
-    @click="emit('update:modelValue', !modelValue)"
+  <SwitchRoot
+    :checked="modelValue"
+    :disabled="disabled"
+    :aria-label="($attrs['aria-label'] as string) ?? 'Enabled'"
+    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-border-strong transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-accent"
+    @update:checked="emit('update:modelValue', $event)"
   >
-    <span
-      class="ease-emphasized-out inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200"
-      :class="modelValue ? 'translate-x-[18px]' : 'translate-x-0.5'"
+    <SwitchThumb
+      class="ease-emphasized-out pointer-events-none block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px]"
     />
-  </button>
+  </SwitchRoot>
 </template>

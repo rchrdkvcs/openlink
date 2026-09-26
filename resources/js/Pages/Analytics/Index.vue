@@ -9,6 +9,8 @@ import KpiCard from '@/Components/analytics/KpiCard.vue';
 import TimeSeriesChart from '@/Components/analytics/TimeSeriesChart.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
+import Select from '@/Components/ui/Select.vue';
+import SelectOption from '@/Components/ui/SelectOption.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import {
   CHANNEL_LABELS,
@@ -190,10 +192,10 @@ const outcomeRows = computed(() =>
   <Head title="Analytics" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+    <div class="ui-page">
       <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight">Analytics</h1>
+          <h1 class="text-xl font-semibold tracking-tight">Analytics</h1>
           <p class="mt-1 text-sm text-muted">
             Visits, scans, and audience across this workspace. Bots are excluded from every figure.
           </p>
@@ -208,13 +210,15 @@ const outcomeRows = computed(() =>
 
       <!-- Filter row: scopes everything below it -->
       <div class="mb-6 flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-0.5 rounded-md border bg-surface p-0.5">
+        <div class="ui-segmented">
           <button
             v-for="range in RANGES"
             :key="range.key"
             type="button"
             class="rounded-[5px] px-2.5 py-1.5 text-[13px] font-medium transition-colors duration-100"
-            :class="state.range === range.key ? 'bg-elevated text-foreground' : 'text-muted hover:text-foreground'"
+            :class="
+              state.range === range.key ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'
+            "
             @click="state.range = range.key"
           >
             {{ range.label }}
@@ -227,53 +231,73 @@ const outcomeRows = computed(() =>
           <input v-model="state.to" type="date" class="h-9 w-auto" @change="applyCustomRange" />
         </template>
 
-        <select v-model="state.link" class="h-9 w-auto min-w-36 max-w-56">
-          <option value="">All links</option>
-          <option v-for="link in filterOptions.links" :key="link.id" :value="String(link.id)">
+        <Select aria-label="Link" v-model="state.link" class="h-9 w-auto min-w-36 max-w-56">
+          <SelectOption value="">All links</SelectOption>
+          <SelectOption v-for="link in filterOptions.links" :key="link.id" :value="String(link.id)">
             {{ link.hostname ? `${link.hostname}/` : '/' }}{{ link.slug }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-if="filterOptions.domains.length > 0" v-model="state.domain" class="h-9 w-auto min-w-32">
-          <option value="">All domains</option>
-          <option v-for="domain in filterOptions.domains" :key="domain.id" :value="String(domain.id)">
+        <Select
+          v-if="filterOptions.domains.length > 0"
+          aria-label="Domain"
+          v-model="state.domain"
+          class="h-9 w-auto min-w-32"
+        >
+          <SelectOption value="">All domains</SelectOption>
+          <SelectOption v-for="domain in filterOptions.domains" :key="domain.id" :value="String(domain.id)">
             {{ domain.hostname }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-if="filterOptions.folders.length > 0" v-model="state.folder" class="h-9 w-auto min-w-32">
-          <option value="">All folders</option>
-          <option v-for="folder in filterOptions.folders" :key="folder.id" :value="String(folder.id)">
+        <Select
+          v-if="filterOptions.folders.length > 0"
+          aria-label="Folder"
+          v-model="state.folder"
+          class="h-9 w-auto min-w-32"
+        >
+          <SelectOption value="">All folders</SelectOption>
+          <SelectOption v-for="folder in filterOptions.folders" :key="folder.id" :value="String(folder.id)">
             {{ folder.name }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-if="filterOptions.tags.length > 0" v-model="state.tag" class="h-9 w-auto min-w-28">
-          <option value="">All tags</option>
-          <option v-for="tag in filterOptions.tags" :key="tag.id" :value="String(tag.id)">
+        <Select v-if="filterOptions.tags.length > 0" aria-label="Tag" v-model="state.tag" class="h-9 w-auto min-w-28">
+          <SelectOption value="">All tags</SelectOption>
+          <SelectOption v-for="tag in filterOptions.tags" :key="tag.id" :value="String(tag.id)">
             {{ tag.name }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-if="filterOptions.routingRules.length > 0" v-model="state.rule" class="h-9 w-auto min-w-32">
-          <option value="">All rules</option>
-          <option v-for="rule in filterOptions.routingRules" :key="rule.id" :value="String(rule.id)">
+        <Select
+          v-if="filterOptions.routingRules.length > 0"
+          aria-label="Routing rule"
+          v-model="state.rule"
+          class="h-9 w-auto min-w-32"
+        >
+          <SelectOption value="">All rules</SelectOption>
+          <SelectOption v-for="rule in filterOptions.routingRules" :key="rule.id" :value="String(rule.id)">
             {{ rule.name }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-if="filterOptions.routingVariants.length > 0" v-model="state.variant" class="h-9 w-auto min-w-32">
-          <option value="">All variants</option>
-          <option v-for="variant in filterOptions.routingVariants" :key="variant.id" :value="String(variant.id)">
+        <Select
+          v-if="filterOptions.routingVariants.length > 0"
+          aria-label="Routing variant"
+          v-model="state.variant"
+          class="h-9 w-auto min-w-32"
+        >
+          <SelectOption value="">All variants</SelectOption>
+          <SelectOption v-for="variant in filterOptions.routingVariants" :key="variant.id" :value="String(variant.id)">
             {{ variant.name }}
-          </option>
-        </select>
+          </SelectOption>
+        </Select>
 
-        <select v-model="state.metric" class="h-9 w-auto min-w-28">
-          <option value="">Visits + scans</option>
-          <option value="visit">Visits only</option>
-          <option value="scan">Scans only</option>
-        </select>
+        <Select aria-label="Metric" v-model="state.metric" class="h-9 w-auto min-w-28">
+          <SelectOption value="">Visits + scans</SelectOption>
+          <SelectOption value="visit">Visits only</SelectOption>
+          <SelectOption value="scan">Scans only</SelectOption>
+        </Select>
       </div>
 
       <!-- Refetch keeps the frame: previous render held at reduced opacity -->

@@ -68,7 +68,7 @@ function selectTab(tab: string) {
 </script>
 
 <template>
-  <Head title="Profile" />
+  <Head title="Profile settings" />
 
   <AuthenticatedLayout>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">

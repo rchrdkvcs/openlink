@@ -91,7 +91,7 @@ function targetWorkspaces() {
 </script>
 
 <template>
-  <Head title="Domains" />
+  <Head title="Domains & DNS" />
 
   <AuthenticatedLayout>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">

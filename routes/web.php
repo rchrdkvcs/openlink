@@ -45,7 +45,6 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/domains/new', [DomainController::class, 'create'])->name('domains.create');
         Route::get('/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
         Route::get('/members', [DashboardController::class, 'members'])->name('members.index');
-        Route::get('/settings', [DashboardController::class, 'settings'])->name('settings.index');
     });
 
     Route::middleware(['auth', 'verified'])->group(function () {
@@ -56,6 +55,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
+        Route::get('/settings', [DashboardController::class, 'settings'])
+            ->middleware(EnsureHasWorkspace::class)
+            ->name('settings.index');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

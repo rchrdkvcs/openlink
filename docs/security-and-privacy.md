@@ -8,11 +8,11 @@ Openlink should be useful without becoming a visitor profiling system. Analytics
 
 Users authenticate with email and password or configured OAuth providers. Two-factor authentication is available. Password reset uses email.
 
-Verified email is required for the main authenticated web and API surfaces. The profile page remains available to unverified users so they can resend verification, change their email, manage their password, revoke tokens, or delete their account.
+Email verification is optional by default and can be required by an Instance Admin in instance settings. When required, a verified email is needed for the main authenticated web and API surfaces. The profile page remains available to unverified users so they can resend verification, change their email, manage their password, revoke tokens, or delete their account. An unverified Instance Admin with a workspace can still open instance settings to disable the requirement.
 
 Connected identities require a provider-verified email matching the user's verified email when linked from the profile page. Removing a connected identity must not leave the user without a valid sign-in method. Connected identities whose provider email no longer matches the user's verified email remain visible but are not valid sign-in methods.
 
-API tokens are user-owned credentials. They are shown in clear text only once after creation, can be revoked individually, and require a verified email to create or use.
+API tokens are user-owned credentials. They are shown in clear text only once after creation, can be revoked individually, and require a verified email to create or use when email verification is required by instance settings.
 
 The first user created on an instance becomes an instance admin. The default registration mode is invite-only.
 

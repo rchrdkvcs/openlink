@@ -36,7 +36,7 @@ const submit = () => {
 
 <template>
   <GuestLayout>
-    <Head title="Register" />
+    <Head title="Create an account" />
 
     <div class="mb-6">
       <h1 class="text-lg font-semibold text-foreground">Create your account</h1>

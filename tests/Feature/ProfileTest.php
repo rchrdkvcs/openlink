@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\InstanceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -139,6 +140,7 @@ class ProfileTest extends TestCase
 
     public function test_api_tokens_cannot_be_created_until_email_is_verified(): void
     {
+        app(InstanceSettings::class)->set('require_email_verification', true);
         $user = User::factory()->unverified()->create();
 
         $this->actingAs($user)

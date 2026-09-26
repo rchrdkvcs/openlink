@@ -164,7 +164,7 @@ const sortedMembers = computed(() =>
 </script>
 
 <template>
-  <Head title="Members" />
+  <Head title="Workspace members" />
 
   <AuthenticatedLayout>
     <div class="w-full px-4 py-8 sm:px-6 lg:px-8">

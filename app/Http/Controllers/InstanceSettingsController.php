@@ -12,6 +12,7 @@ class InstanceSettingsController extends Controller
     {
         $data = $request->validate([
             'registration_mode' => ['required', 'in:closed,invite_only,open'],
+            'require_email_verification' => ['required', 'boolean'],
             'default_domain' => ['required', 'string', 'max:255'],
             'dns_target' => ['nullable', 'string', 'max:255'],
             'slug_length' => ['required', 'integer', 'min:4', 'max:32'],

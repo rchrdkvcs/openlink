@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureEmailIsVerifiedWhenRequired;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias(['verified' => EnsureEmailIsVerifiedWhenRequired::class]);
         $middleware->trustProxies(
             at: env('TRUSTED_PROXIES', '*'),
             headers: Request::HEADER_X_FORWARDED_TRAEFIK,

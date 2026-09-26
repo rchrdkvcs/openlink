@@ -7,6 +7,7 @@ use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
+use App\Services\InstanceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\Sanctum;
@@ -49,6 +50,7 @@ class ApiV1Test extends TestCase
 
     public function test_token_issuance_requires_verified_email(): void
     {
+        app(InstanceSettings::class)->set('require_email_verification', true);
         $user = User::factory()->unverified()->create(['password' => 'secret-password']);
 
         $this->postJson('/api/v1/auth/token', [
@@ -108,6 +110,7 @@ class ApiV1Test extends TestCase
 
     public function test_main_api_routes_require_verified_email_but_profile_remains_available(): void
     {
+        app(InstanceSettings::class)->set('require_email_verification', true);
         [$workspace, , $user] = $this->workspaceAndDomain();
         $user->forceFill(['email_verified_at' => null])->save();
 

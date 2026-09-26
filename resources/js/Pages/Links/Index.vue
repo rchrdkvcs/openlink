@@ -2,17 +2,11 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import {
   Archive,
-  ChevronDown,
-  ChevronsDownUp,
-  ChevronsUpDown,
   ExternalLink,
   Folder as FolderIcon,
   Globe,
-  GripVertical,
-  Inbox,
   Link2,
   Lock,
-  MoreHorizontal,
   Pencil,
   Plus,
   QrCode,
@@ -21,13 +15,15 @@ import {
   Timer,
   Trash2,
 } from '@lucide/vue';
-import { nextTick, ref } from 'vue';
+import { ref } from 'vue';
 
+import Modal from '@/Components/Modal.vue';
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import ConfirmDialog from '@/Components/ui/ConfirmDialog.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import Popover from '@/Components/ui/Popover.vue';
 import Select from '@/Components/ui/Select.vue';
@@ -37,6 +33,7 @@ import { originOf } from '@/lib/links';
 
 import CreateLinkDrawer from './CreateLinkDrawer.vue';
 import EditLinkDrawer from './EditLinkDrawer.vue';
+import FolderNavigation from './FolderNavigation.vue';
 import type { Folder, LinksPageProps, ShortLink } from './types';
 import { useActivationCountdown } from './useActivationCountdown';
 import { useLinkForms } from './useLinkForms';
@@ -53,10 +50,10 @@ const {
   hasActiveFilters,
   dragLinkId,
   dropGroupKey,
-  toggleCollapse,
-  toggleAllCollapse,
-  allGroupsCollapsed,
-  isCollapsed,
+  selectedFolderKey,
+  selectedGroup,
+  visibleLinks,
+  moveLink,
   onDrop,
 } = useLinkGroups(props, filters);
 const failedFavicons = ref<Set<string>>(new Set());
@@ -82,56 +79,45 @@ const { countdownFor, activationTitle } = useActivationCountdown(props);
 
 const folderForm = useForm({ name: '' });
 const creatingFolder = ref(false);
-const newFolderInput = ref<HTMLInputElement | null>(null);
 const renamingFolderId = ref<number | null>(null);
-const renameValue = ref('');
-const renameInput = ref<HTMLInputElement[]>([]);
-const folderMenuFor = ref<number | null>(null);
 
 function startCreateFolder() {
+  renamingFolderId.value = null;
+  folderForm.reset();
+  folderForm.clearErrors();
   creatingFolder.value = true;
-  nextTick(() => newFolderInput.value?.focus());
-}
-
-function submitFolder() {
-  if (!folderForm.name.trim()) {
-    creatingFolder.value = false;
-    return;
-  }
-
-  folderForm.post(route('folders.store'), {
-    preserveScroll: true,
-    onSuccess: () => {
-      folderForm.reset();
-      creatingFolder.value = false;
-    },
-  });
 }
 
 function startRenameFolder(folder: Folder) {
-  folderMenuFor.value = null;
   renamingFolderId.value = folder.id;
-  renameValue.value = folder.name;
-  nextTick(() => renameInput.value[0]?.focus());
+  folderForm.name = folder.name;
+  folderForm.clearErrors();
+  creatingFolder.value = true;
 }
 
-function commitRenameFolder() {
-  const id = renamingFolderId.value;
-  if (id === null) {
-    return;
+function submitFolder() {
+  if (folderForm.processing) return;
+  const options = {
+    preserveScroll: true,
+    onSuccess: () => {
+      creatingFolder.value = false;
+      folderForm.reset();
+    },
+  };
+  if (renamingFolderId.value !== null) {
+    folderForm.patch(route('folders.update', renamingFolderId.value), options);
+  } else {
+    folderForm.post(route('folders.store'), options);
   }
+}
 
-  const name = renameValue.value.trim();
-  const current = props.folders.find((folder) => folder.id === id);
-  renamingFolderId.value = null;
-
-  if (name && current && name !== current.name) {
-    router.patch(route('folders.update', id), { name }, { preserveScroll: true });
-  }
+function openCreateLink() {
+  linkForm.defaults({ folder_id: selectedGroup.value?.folder ? String(selectedGroup.value.folder.id) : '' });
+  linkForm.reset('folder_id');
+  createOpen.value = true;
 }
 
 function deleteFolder(folder: Folder, linkCount: number) {
-  folderMenuFor.value = null;
   const detail = linkCount > 0 ? ` Its ${linkCount} link${linkCount > 1 ? 's' : ''} will move to Unfiled.` : '';
   requestConfirmation({
     title: `Delete folder “${folder.name}”?`,
@@ -196,162 +182,77 @@ function markFaviconFailed(url: string) {
     <div class="ui-page">
       <div class="mb-6">
         <h1 class="text-xl font-semibold tracking-tight">Links</h1>
-        <p class="mt-1 text-sm text-muted">Short URLs grouped by folder. Drag a link onto a folder to move it.</p>
+        <p class="mt-1 text-sm text-muted">Your short links, organised into a shared library.</p>
       </div>
 
-      <!-- Toolbar -->
-      <div class="mb-4 flex flex-wrap items-center gap-2">
-        <div class="relative w-72">
-          <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-          <input v-model="filters.search" class="h-8 pl-8 text-[13px]" placeholder="Search across all folders…" />
-        </div>
-        <Select aria-label="Filter by status" v-model="filters.status" class="h-8 w-36 py-0 text-[13px]">
-          <SelectOption value="">All statuses</SelectOption>
-          <SelectOption value="active">Active</SelectOption>
-          <SelectOption value="scheduled">Scheduled</SelectOption>
-          <SelectOption value="expired">Expired</SelectOption>
-          <SelectOption value="disabled">Disabled</SelectOption>
-          <SelectOption value="archived">Archived</SelectOption>
-        </Select>
-        <Select aria-label="Filter by tag" v-model="filters.tag" class="h-8 w-32 py-0 text-[13px]">
-          <SelectOption value="">All tags</SelectOption>
-          <SelectOption v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }}</SelectOption>
-        </Select>
-
-        <span v-if="hasActiveFilters" class="text-[13px] tabular-nums text-faint"
-          >{{ totalMatching }} result{{ totalMatching === 1 ? '' : 's' }}</span
-        >
-        <Button
-          v-if="groups.length > 0 && !hasActiveFilters"
-          variant="ghost"
-          size="sm"
-          type="button"
-          @click="toggleAllCollapse"
-        >
-          <component :is="allGroupsCollapsed ? ChevronsUpDown : ChevronsDownUp" class="h-3.5 w-3.5" />
-          {{ allGroupsCollapsed ? 'Open all' : 'Close all' }}
-        </Button>
-
-        <div v-if="canEditWorkspace || canManageWorkspace" class="ml-auto flex items-center gap-2">
-          <template v-if="canManageWorkspace">
-            <form v-if="creatingFolder" class="flex items-center gap-2" @submit.prevent="submitFolder">
-              <input
-                ref="newFolderInput"
-                v-model="folderForm.name"
-                class="h-8 w-48 text-[13px]"
-                placeholder="Folder name…"
-                @keydown.escape="
-                  creatingFolder = false;
-                  folderForm.reset();
-                "
-                @blur="submitFolder"
-              />
-              <p v-if="folderForm.errors.name" class="text-xs text-danger">
-                {{ folderForm.errors.name }}
-              </p>
-            </form>
-            <button
-              v-else
-              class="ui-button inline-flex h-8 items-center gap-1.5 bg-elevated/60 px-3 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-              @click="startCreateFolder"
-            >
-              <Plus class="h-3.5 w-3.5" /> New folder
-            </button>
-          </template>
-          <Button v-if="canEditWorkspace" size="sm" type="button" @click="createOpen = true">
-            <Plus class="h-3.5 w-3.5" /> New link
-          </Button>
-        </div>
-      </div>
-
-      <!-- Folder groups -->
-      <div class="space-y-3">
-        <section
-          v-for="group in groups"
-          :key="group.key"
-          class="ui-panel p-2"
-          :class="dropGroupKey === group.key && dragLinkId !== null ? 'ring-1 ring-accent' : ''"
-          @dragover.prevent="dropGroupKey = group.key"
-          @dragleave="dropGroupKey = null"
-          @drop.prevent="onDrop(group)"
-        >
-          <!-- Group header -->
-          <header
-            class="group/h flex h-9 cursor-pointer items-center gap-2 rounded-full bg-elevated/50 px-3 transition-colors hover:bg-elevated"
-            :title="isCollapsed(group.key) ? 'Expand' : 'Collapse'"
-            role="button"
-            tabindex="0"
-            @click="toggleCollapse(group.key)"
-            @keydown.enter.prevent="toggleCollapse(group.key)"
-            @keydown.space.prevent="toggleCollapse(group.key)"
-          >
-            <span
-              class="pointer-events-none grid h-6 w-6 place-items-center rounded text-faint transition-colors group-hover/h:text-foreground"
-              aria-hidden="true"
-            >
-              <ChevronDown
-                class="ease-emphasized-out h-4 w-4 transition-transform duration-200"
-                :class="isCollapsed(group.key) ? '-rotate-90' : ''"
-              />
-            </span>
-            <component :is="group.folder ? FolderIcon : Inbox" class="h-4 w-4 text-faint" />
-
-            <input
-              v-if="group.folder && renamingFolderId === group.folder.id"
-              ref="renameInput"
-              v-model="renameValue"
-              class="h-7 w-64 px-2 text-[13px]"
-              @keydown.enter.stop="commitRenameFolder"
-              @keydown.escape.stop="renamingFolderId = null"
-              @blur="commitRenameFolder"
-              @click.stop
-              @keydown.stop
-            />
-            <span v-else class="text-[13px] font-semibold text-foreground">{{ group.folder?.name ?? 'Unfiled' }}</span>
-            <span class="text-xs tabular-nums text-faint">{{ group.links.length }}</span>
-
-            <div
-              v-if="group.folder && canManageWorkspace"
-              class="relative ml-auto transition-opacity focus-within:opacity-100 group-hover/h:opacity-100 [@media(hover:hover)]:opacity-0"
-              @click.stop
-              @keydown.stop
-            >
-              <Popover
-                :open="folderMenuFor === group.folder.id"
-                align="end"
-                class="w-44 p-1"
-                aria-label="Folder actions"
-                @update:open="folderMenuFor = $event ? group.folder.id : null"
-              >
-                <template #trigger>
-                  <button type="button" class="ui-icon-button h-7 w-7" aria-label="Folder actions">
-                    <MoreHorizontal class="h-4 w-4" />
-                  </button>
-                </template>
-                <button
-                  type="button"
-                  class="ui-menu-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[13px] hover:bg-elevated hover:text-foreground"
-                  @click="startRenameFolder(group.folder)"
-                >
-                  <Pencil class="h-3.5 w-3.5" /> Rename
-                </button>
-                <button
-                  type="button"
-                  class="ui-menu-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[13px] text-danger hover:bg-danger/15"
-                  @click="deleteFolder(group.folder, group.links.length)"
-                >
-                  <Trash2 class="h-3.5 w-3.5" /> Delete folder
-                </button>
-              </Popover>
+      <div class="grid min-w-0 gap-6 xl:grid-cols-[184px_minmax(0,1fr)]">
+        <FolderNavigation
+          :groups="groups"
+          :selected="selectedFolderKey"
+          :total="totalMatching"
+          :can-manage="canManageWorkspace"
+          :can-move="canEditWorkspace"
+          :drop-key="dragLinkId !== null ? dropGroupKey : null"
+          @select="selectedFolderKey = $event"
+          @create="startCreateFolder"
+          @rename="$event.folder && startRenameFolder($event.folder)"
+          @delete="
+            $event.folder &&
+            deleteFolder($event.folder, links.filter((link) => link.folder?.id === $event.folder?.id).length)
+          "
+          @drag-over="dropGroupKey = $event"
+          @drop="onDrop"
+        />
+        <div class="min-w-0">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-2">
+              <h2 class="truncate text-sm font-medium">
+                {{ selectedFolderKey === 'all' ? 'All links' : (selectedGroup?.folder?.name ?? 'Unfiled') }}
+              </h2>
+              <span class="text-xs tabular-nums text-faint">{{ visibleLinks.length }}</span>
             </div>
-          </header>
-
-          <!-- Rows (rounded + clipped here so the folder menu can overflow the card) -->
-          <div v-if="!isCollapsed(group.key)" class="overflow-hidden rounded-b-2xl pt-1">
+            <div class="flex items-center gap-1">
+              <template v-if="selectedGroup?.folder && canManageWorkspace">
+                <IconButton title="Rename folder" @click="startRenameFolder(selectedGroup.folder)"
+                  ><Pencil class="h-3.5 w-3.5"
+                /></IconButton>
+                <IconButton
+                  title="Delete folder"
+                  @click="
+                    deleteFolder(
+                      selectedGroup.folder,
+                      links.filter((link) => link.folder?.id === selectedGroup?.folder?.id).length,
+                    )
+                  "
+                  ><Trash2 class="h-3.5 w-3.5"
+                /></IconButton>
+              </template>
+              <Button v-if="canEditWorkspace" size="sm" type="button" @click="openCreateLink"
+                ><Plus class="h-3.5 w-3.5" /> New link</Button
+              >
+            </div>
+          </div>
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <div class="relative min-w-0 basis-full sm:min-w-40 sm:flex-1 sm:basis-0">
+              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+              <input v-model="filters.search" aria-label="Search links" class="h-9 pl-9" placeholder="Search links…" />
+            </div>
+            <Select aria-label="Filter by status" v-model="filters.status" class="h-9 w-36">
+              <SelectOption value="">All statuses</SelectOption><SelectOption value="active">Active</SelectOption
+              ><SelectOption value="scheduled">Scheduled</SelectOption
+              ><SelectOption value="expired">Expired</SelectOption><SelectOption value="disabled">Disabled</SelectOption
+              ><SelectOption value="archived">Archived</SelectOption>
+            </Select>
+            <Select aria-label="Filter by tag" v-model="filters.tag" class="h-9 w-32">
+              <SelectOption value="">All tags</SelectOption
+              ><SelectOption v-for="tag in tags" :key="tag.id" :value="tag.name">{{ tag.name }}</SelectOption>
+            </Select>
+          </div>
+          <section class="ui-panel p-2" aria-label="Links in selected folder">
             <article
-              v-for="link in group.links"
+              v-for="link in visibleLinks"
               :key="link.id"
-              class="group/r grid items-center gap-x-3 gap-y-1 rounded-xl px-3 py-3.5 transition-colors hover:bg-elevated/40 lg:grid-cols-[20px_minmax(180px,1.3fr)_minmax(150px,1fr)_190px_150px_minmax(90px,0.5fr)_168px]"
+              class="ui-list-row group/r flex flex-wrap items-center gap-x-5 gap-y-3"
               :class="[
                 dragLinkId === link.id ? 'opacity-40' : '',
                 canEditWorkspace ? 'cursor-grab active:cursor-grabbing' : '',
@@ -363,58 +264,62 @@ function markFaviconFailed(url: string) {
                 dropGroupKey = null;
               "
             >
-              <GripVertical
-                v-if="canEditWorkspace"
-                class="hidden h-3.5 w-3.5 text-faint opacity-0 transition-opacity group-hover/r:opacity-100 lg:block"
-              />
-              <span v-else class="hidden lg:block" />
+              <div class="min-w-0 basis-full xl:min-w-48 xl:flex-1 xl:basis-0">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <a
+                    :href="link.short_url"
+                    target="_blank"
+                    class="truncate text-sm font-medium text-foreground hover:text-accent"
+                  >
+                    {{ urlWithoutProtocol(link.short_url) }}
+                  </a>
+                  <button
+                    class="shrink-0 rounded p-1 text-faint transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/r:opacity-100 [@media(hover:hover)]:opacity-0"
+                    title="Copy short URL"
+                    @click="copyShortUrl(link)"
+                  >
+                    <CopyCheckIcon :copied="copiedLinkId === link.id" />
+                  </button>
+                  <span
+                    v-if="link.qr_code_count > 0"
+                    class="grid h-5 w-5 shrink-0 place-items-center rounded text-accent"
+                    :title="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
+                    :aria-label="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
+                  >
+                    <QrCode class="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </div>
 
-              <div class="flex min-w-0 items-center gap-1.5">
                 <a
-                  :href="link.short_url"
+                  :href="link.destination_url"
                   target="_blank"
-                  class="truncate text-sm font-medium text-foreground hover:text-accent"
+                  rel="noopener"
+                  class="mt-1 flex min-w-0 items-center gap-2 text-[13px] text-muted transition-colors hover:text-foreground"
+                  :title="urlWithoutProtocol(link.destination_url)"
                 >
-                  {{ urlWithoutProtocol(link.short_url) }}
+                  <img
+                    v-if="hasFavicon(link.destination_url)"
+                    :src="faviconUrl(link.destination_url) ?? undefined"
+                    alt=""
+                    class="h-4 w-4 shrink-0 rounded-[3px] bg-elevated"
+                    loading="lazy"
+                    @error="markFaviconFailed(link.destination_url)"
+                  />
+                  <span v-else class="grid h-4 w-4 shrink-0 place-items-center rounded-[3px] bg-elevated">
+                    <Globe class="h-3 w-3 text-faint" />
+                  </span>
+                  <span class="min-w-0 truncate">{{ destinationHost(link.destination_url) }}</span>
                 </a>
+
                 <button
-                  class="shrink-0 rounded p-1 text-faint opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/r:opacity-100"
-                  title="Copy short URL"
-                  @click="copyShortUrl(link)"
+                  v-if="selectedFolderKey === 'all' && link.folder"
+                  type="button"
+                  class="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-faint hover:text-foreground"
+                  @click="selectedFolderKey = String(link.folder.id)"
                 >
-                  <CopyCheckIcon :copied="copiedLinkId === link.id" />
+                  <FolderIcon class="h-3 w-3 shrink-0" /><span class="truncate">{{ link.folder.name }}</span>
                 </button>
-                <span
-                  v-if="link.qr_code_count > 0"
-                  class="grid h-5 w-5 shrink-0 place-items-center rounded text-accent"
-                  :title="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
-                  :aria-label="`${link.qr_code_count} linked QR code${link.qr_code_count === 1 ? '' : 's'}`"
-                >
-                  <QrCode class="h-3.5 w-3.5" aria-hidden="true" />
-                </span>
               </div>
-
-              <a
-                :href="link.destination_url"
-                target="_blank"
-                rel="noopener"
-                class="flex min-w-0 items-center gap-2 text-[13px] text-muted transition-colors hover:text-foreground"
-                :title="urlWithoutProtocol(link.destination_url)"
-              >
-                <img
-                  v-if="hasFavicon(link.destination_url)"
-                  :src="faviconUrl(link.destination_url) ?? undefined"
-                  alt=""
-                  class="h-4 w-4 shrink-0 rounded-[3px] bg-elevated"
-                  loading="lazy"
-                  @error="markFaviconFailed(link.destination_url)"
-                />
-                <span v-else class="grid h-4 w-4 shrink-0 place-items-center rounded-[3px] bg-elevated">
-                  <Globe class="h-3 w-3 text-faint" />
-                </span>
-                <span class="min-w-0 truncate">{{ destinationHost(link.destination_url) }}</span>
-              </a>
-
               <div class="flex min-w-0 items-center gap-2">
                 <Badge :variant="statusVariant(link.status)" dot>{{ link.status }}</Badge>
                 <span
@@ -443,18 +348,24 @@ function markFaviconFailed(url: string) {
                 >
               </div>
 
-              <div
-                class="pointer-events-none flex justify-start gap-0.5 opacity-0 transition-opacity focus-within:pointer-events-auto focus-within:opacity-100 group-hover/r:pointer-events-auto group-hover/r:opacity-100 lg:justify-end"
-              >
-                <a
-                  :href="link.short_url"
-                  target="_blank"
-                  class="grid h-8 w-8 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-elevated hover:text-foreground"
-                  title="Open"
-                >
+              <div class="ms-auto flex items-center gap-0.5">
+                <a :href="link.short_url" target="_blank" class="ui-icon-button" title="Open">
                   <ExternalLink class="h-4 w-4" />
                 </a>
 
+                <Popover v-if="canEditWorkspace" align="end" class="ui-popover-form w-56 p-3" aria-label="Move link">
+                  <template #trigger
+                    ><IconButton title="Move to folder"><FolderIcon class="h-4 w-4" /></IconButton
+                  ></template>
+                  <Field label="Move to folder">
+                    <Select :model-value="link.folder?.id ?? null" @update:model-value="moveLink(link, $event)">
+                      <SelectOption :value="null">Unfiled</SelectOption
+                      ><SelectOption v-for="folder in folders" :key="folder.id" :value="folder.id">{{
+                        folder.name
+                      }}</SelectOption>
+                    </Select>
+                  </Field>
+                </Popover>
                 <IconButton :title="canEditWorkspace ? 'Edit' : 'View'" @click="selectedLink = link">
                   <Settings2 class="h-4 w-4" />
                 </IconButton>
@@ -467,36 +378,60 @@ function markFaviconFailed(url: string) {
               </div>
             </article>
 
-            <p v-if="group.links.length === 0" class="px-4 py-4 text-[13px] italic text-faint">
-              {{ canEditWorkspace ? 'Empty — drag links here.' : 'Empty.' }}
-            </p>
-          </div>
-        </section>
-
-        <!-- Global empty state -->
-        <section v-if="groups.length === 0 || (links.length === 0 && !hasActiveFilters)" class="ui-panel">
-          <EmptyState
-            :title="hasActiveFilters ? 'No links match' : 'No links yet'"
-            :description="
-              hasActiveFilters ? 'Try another search, status, or tag.' : 'Create your first short link to get started.'
-            "
-          >
-            <template #icon><Link2 class="h-5 w-5" /></template>
-            <template #action>
-              <Button
-                v-if="canEditWorkspace && !hasActiveFilters"
-                variant="secondary"
-                size="sm"
-                type="button"
-                @click="createOpen = true"
+            <!-- Global empty state -->
+            <div v-if="visibleLinks.length === 0">
+              <EmptyState
+                :title="
+                  hasActiveFilters
+                    ? 'No links match'
+                    : selectedFolderKey === 'all'
+                      ? 'No links yet'
+                      : 'This folder is empty'
+                "
+                :description="
+                  hasActiveFilters
+                    ? 'Try another search, status, or tag.'
+                    : 'Create your first short link to get started.'
+                "
               >
-                <Plus class="h-3.5 w-3.5" /> New link
-              </Button>
-            </template>
-          </EmptyState>
-        </section>
+                <template #icon><Link2 class="h-5 w-5" /></template>
+                <template #action>
+                  <Button
+                    v-if="canEditWorkspace && !hasActiveFilters"
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    @click="openCreateLink"
+                  >
+                    <Plus class="h-3.5 w-3.5" /> New link
+                  </Button>
+                </template>
+              </EmptyState>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
+
+    <Modal
+      :show="creatingFolder"
+      :title="renamingFolderId === null ? 'New folder' : 'Rename folder'"
+      max-width="sm"
+      @close="creatingFolder = false"
+    >
+      <form class="space-y-5 p-6" @submit.prevent="submitFolder">
+        <h2 class="text-base font-semibold">{{ renamingFolderId === null ? 'New folder' : 'Rename folder' }}</h2>
+        <Field label="Folder name" :error="folderForm.errors.name"
+          ><input v-model="folderForm.name" class="h-9" autofocus placeholder="Campaigns, resources…"
+        /></Field>
+        <div class="flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="creatingFolder = false">Cancel</Button
+          ><Button :loading="folderForm.processing">{{
+            renamingFolderId === null ? 'Create folder' : 'Save changes'
+          }}</Button>
+        </div>
+      </form>
+    </Modal>
 
     <CreateLinkDrawer
       :show="createOpen"

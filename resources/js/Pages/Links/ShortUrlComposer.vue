@@ -19,7 +19,7 @@ const emit = defineEmits<{ 'update:domainId': [value: number | string]; 'update:
 
 <template>
   <div
-    class="flex items-stretch overflow-hidden rounded-2xl border border-transparent bg-elevated/60 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
+    class="ui-field-shell flex items-stretch overflow-hidden transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
   >
     <Select
       :model-value="domainId"

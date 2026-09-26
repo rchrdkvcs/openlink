@@ -181,21 +181,19 @@ const sortedMembers = computed(() =>
       </div>
 
       <section class="ui-panel p-2">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="bg-elevated/50 text-left text-[11px] font-medium uppercase tracking-wide text-faint">
-              <th class="rounded-s-full px-4 py-2.5 font-medium">User</th>
-              <th class="hidden px-4 py-2.5 font-medium sm:table-cell">Member since</th>
-              <th class="w-44 rounded-e-full px-4 py-2.5 font-medium">Role</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border/30">
-            <tr
+        <div class="text-sm">
+          <div class="ui-list-header hidden grid-cols-[minmax(0,1fr)_180px_180px] gap-4 md:grid">
+            <span>User</span>
+            <span>Member since</span>
+            <span>Role</span>
+          </div>
+          <div class="space-y-1 pt-1">
+            <article
               v-for="member in sortedMembers"
               :key="member.id"
-              class="transition-colors duration-100 hover:bg-elevated/40"
+              class="ui-list-row grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px] md:gap-4"
             >
-              <td class="px-4 py-3">
+              <div class="min-w-0">
                 <div class="flex min-w-0 items-center gap-3">
                   <UserAvatar :name="member.user.name" :src="member.user.profile_avatar_url" />
                   <div class="min-w-0">
@@ -206,16 +204,17 @@ const sortedMembers = computed(() =>
                     <p class="truncate text-xs text-faint">{{ member.user.email }}</p>
                   </div>
                 </div>
-              </td>
-              <td class="hidden px-4 py-3 text-muted sm:table-cell">
+              </div>
+              <div class="text-xs text-muted md:text-sm">
+                <span class="md:hidden">Member since </span>
                 {{ formatDate(member.created_at) }}
-              </td>
-              <td class="px-4 py-3">
+              </div>
+              <div class="min-w-0">
                 <Dropdown v-if="canEditMember(member)" align="right" width="72">
                   <template #trigger>
                     <button
                       type="button"
-                      class="inline-flex h-8 items-center gap-1.5 rounded-full border border-transparent px-2.5 text-sm capitalize text-foreground transition-colors duration-100 hover:border-border hover:bg-elevated"
+                      class="inline-flex h-8 items-center gap-1.5 rounded-xl border border-transparent px-2.5 text-sm capitalize text-foreground transition-colors duration-100 hover:border-border hover:bg-elevated"
                     >
                       {{ member.role }}
                       <ChevronDown class="h-3.5 w-3.5 text-faint" />
@@ -226,7 +225,7 @@ const sortedMembers = computed(() =>
                       v-for="option in roleOptions"
                       :key="option.value"
                       type="button"
-                      class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-100 hover:bg-elevated"
+                      class="ui-menu-item flex w-full items-start gap-2.5 px-2.5 py-2 text-left transition-colors duration-100 hover:bg-elevated"
                       @click="changeRole(member, option.value)"
                     >
                       <Check
@@ -242,14 +241,14 @@ const sortedMembers = computed(() =>
                     <button
                       v-if="isOwner"
                       type="button"
-                      class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors duration-100 hover:bg-elevated"
+                      class="ui-menu-item flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-sm text-foreground transition-colors duration-100 hover:bg-elevated"
                       @click="confirmation = { type: 'transfer', member }"
                     >
                       <Crown class="h-3.5 w-3.5 text-faint" /> Transfer ownership…
                     </button>
                     <button
                       type="button"
-                      class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-danger transition-colors duration-100 hover:bg-danger/10"
+                      class="ui-menu-item flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-sm text-danger transition-colors duration-100 hover:bg-danger/10"
                       @click="confirmation = { type: 'remove', member }"
                     >
                       <Trash2 class="h-3.5 w-3.5" /> Remove from workspace…
@@ -271,10 +270,10 @@ const sortedMembers = computed(() =>
                     <LogOut class="h-3.5 w-3.5" />
                   </IconButton>
                 </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </article>
+          </div>
+        </div>
 
         <EmptyState
           v-if="members.length === 0"

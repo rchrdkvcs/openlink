@@ -63,7 +63,7 @@ function popLast() {
 <template>
   <div>
     <div
-      class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-2xl border border-transparent bg-elevated/60 px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
+      class="ui-field-shell flex min-h-9 flex-wrap items-center gap-1.5 px-2 py-1.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25"
     >
       <span
         v-for="tag in pills"
@@ -98,7 +98,7 @@ function popLast() {
         v-for="suggestion in availableSuggestions"
         :key="suggestion.id"
         type="button"
-        class="rounded-full border border-dashed px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-accent/50 hover:text-foreground"
+        class="rounded-xl border border-dashed px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-accent/50 hover:text-foreground"
         @click="update([...pills, suggestion.name])"
       >
         + {{ suggestion.name }}

@@ -74,7 +74,7 @@ const switchDestination = computed(() => {
       <div
         v-for="workspace in workspaces"
         :key="workspace.id"
-        class="group flex items-center gap-1 rounded-lg transition-colors duration-100 hover:bg-elevated"
+        class="ui-menu-item group flex items-center gap-1 transition-colors duration-100 hover:bg-elevated"
       >
         <Link
           :href="route('workspaces.switch', workspace.id)"
@@ -108,7 +108,7 @@ const switchDestination = computed(() => {
       <div class="mx-1 my-1 border-t" />
       <button
         type="button"
-        class="block w-full rounded-lg px-2.5 py-2 text-start text-[13px] text-muted transition-colors duration-100 hover:bg-elevated hover:text-foreground focus:bg-elevated focus:text-foreground focus:outline-none"
+        class="ui-menu-item block w-full px-2.5 py-2 text-start text-[13px] text-muted transition-colors duration-100 hover:bg-elevated hover:text-foreground focus:bg-elevated focus:text-foreground focus:outline-none"
         @click="emit('create')"
       >
         <span class="inline-flex items-center gap-2"><Plus class="h-3.5 w-3.5" /> Create workspace</span>

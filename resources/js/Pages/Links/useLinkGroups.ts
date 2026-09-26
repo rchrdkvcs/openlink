@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 
 import type { LinkFilters, LinkGroup, LinksPageProps, ShortLink } from './types';
 
@@ -27,58 +27,52 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
     }));
 
     const unfiled = props.links.filter((link) => !link.folder && matchesFilters(link, filters.value));
-    if (unfiled.length > 0 || props.folders.length === 0) {
-      result.push({ key: 'unfiled', folder: null, links: unfiled });
-    }
-
-    return hasActiveFilters.value ? result.filter((group) => group.links.length > 0) : result;
+    result.unshift({ key: 'unfiled', folder: null, links: unfiled });
+    return result;
   });
 
   const totalMatching = computed(() => groups.value.reduce((sum, group) => sum + group.links.length, 0));
-  const collapseStorageKey = `links.collapsed.${props.currentWorkspace.id}`;
-
-  function readCollapsed(): Set<string> {
-    try {
-      return new Set(JSON.parse(localStorage.getItem(collapseStorageKey) ?? '[]'));
-    } catch {
-      return new Set();
-    }
-  }
-
-  const collapsed = ref<Set<string>>(readCollapsed());
-
-  function persistCollapsed(next: Set<string>) {
-    collapsed.value = next;
-    localStorage.setItem(collapseStorageKey, JSON.stringify([...next]));
-  }
-
-  function toggleCollapse(key: string) {
-    const next = new Set(collapsed.value);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
-    persistCollapsed(next);
-  }
-
-  const allGroupsCollapsed = computed(
-    () => groups.value.length > 0 && groups.value.every((group) => collapsed.value.has(group.key)),
+  const selectedFolderKey = ref('all');
+  watch(
+    () => props.currentWorkspace.id,
+    (id) => {
+      try {
+        selectedFolderKey.value = localStorage.getItem(`links.folder.${id}`) ?? 'all';
+      } catch {
+        selectedFolderKey.value = 'all';
+      }
+    },
+    { immediate: true },
   );
-
-  function toggleAllCollapse() {
-    persistCollapsed(allGroupsCollapsed.value ? new Set() : new Set(groups.value.map((group) => group.key)));
-  }
-
-  function isCollapsed(key: string) {
-    return collapsed.value.has(key) && !hasActiveFilters.value;
-  }
+  watch(
+    [selectedFolderKey, () => props.folders],
+    () => {
+      if (
+        !['all', 'unfiled'].includes(selectedFolderKey.value) &&
+        !props.folders.some((folder) => String(folder.id) === selectedFolderKey.value)
+      ) {
+        selectedFolderKey.value = 'all';
+      }
+      try {
+        localStorage.setItem(`links.folder.${props.currentWorkspace.id}`, selectedFolderKey.value);
+      } catch {
+        /* Folder navigation still works when browser storage is unavailable. */
+      }
+    },
+    { immediate: true },
+  );
+  const selectedGroup = computed(() => groups.value.find((group) => group.key === selectedFolderKey.value));
+  const visibleLinks = computed(() =>
+    selectedFolderKey.value === 'all'
+      ? props.links.filter((link) => matchesFilters(link, filters.value))
+      : (selectedGroup.value?.links ?? []),
+  );
 
   const dragLinkId = ref<number | null>(null);
   const dropGroupKey = ref<string | null>(null);
 
   function moveLink(link: ShortLink, folderId: number | null) {
-    if ((link.folder?.id ?? null) === folderId) {
+    if (!props.canEditWorkspace || (link.folder?.id ?? null) === folderId) {
       return;
     }
 
@@ -90,7 +84,7 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
     dragLinkId.value = null;
     dropGroupKey.value = null;
 
-    if (link) {
+    if (link && props.canEditWorkspace) {
       moveLink(link, group.folder?.id ?? null);
     }
   }
@@ -101,10 +95,9 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
     hasActiveFilters,
     dragLinkId,
     dropGroupKey,
-    toggleCollapse,
-    toggleAllCollapse,
-    allGroupsCollapsed,
-    isCollapsed,
+    selectedFolderKey,
+    selectedGroup,
+    visibleLinks,
     moveLink,
     onDrop,
   };

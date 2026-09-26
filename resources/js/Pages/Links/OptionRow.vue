@@ -19,7 +19,7 @@ const emit = defineEmits<{ remove: [] }>();
 </script>
 
 <template>
-  <div class="group/opt rounded-xl border bg-surface p-3">
+  <div class="group/opt rounded-3xl border bg-surface p-3">
     <div class="mb-2 flex items-center justify-between">
       <span :id="id" class="flex items-center gap-2 text-[13px] font-medium text-foreground">
         <component :is="icon" class="h-3.5 w-3.5 text-accent" />

@@ -15,6 +15,7 @@ import {
 import { ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import Popover from '@/Components/ui/Popover.vue';
 import Select from '@/Components/ui/Select.vue';
 import SelectOption from '@/Components/ui/SelectOption.vue';
 import Switch from '@/Components/ui/Switch.vue';
@@ -201,7 +202,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
       {{ props.errors.routing_rules }}
     </div>
 
-    <div v-if="rules.length === 0" class="rounded-lg border border-dashed bg-surface p-4">
+    <div v-if="rules.length === 0" class="rounded-[28px] border border-dashed bg-surface p-4">
       <div class="flex items-start gap-3">
         <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/10">
           <Route class="h-4 w-4 text-accent" />
@@ -219,7 +220,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
           v-for="preset in schema.presets"
           :key="preset.kind"
           type="button"
-          class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-elevated"
+          class="flex items-center gap-2 rounded-xl border bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-elevated"
           @click="addRule(preset.kind)"
         >
           <component :is="presetIcons[preset.kind] ?? Plus" class="h-3.5 w-3.5 shrink-0 text-accent" />
@@ -232,45 +233,32 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
       <p class="text-xs text-faint">
         {{ rules.length }} rule{{ rules.length > 1 ? 's' : '' }} · evaluated top to bottom, first match wins.
       </p>
-      <div class="relative">
-        <Button type="button" variant="secondary" size="sm" @click="menuOpen = !menuOpen">
-          <Plus class="h-3.5 w-3.5" />Add rule<ChevronDown class="h-3 w-3 text-faint" />
-        </Button>
-        <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
-        <Transition
-          enter-active-class="transition ease-emphasized-out duration-150"
-          enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
-          enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition ease-out duration-100"
-          leave-from-class="opacity-100 scale-100"
-          leave-to-class="opacity-0 scale-[0.97] -translate-y-0.5"
+      <Popover v-model:open="menuOpen" align="end" class="w-64 p-1" aria-label="Routing presets">
+        <template #trigger>
+          <Button type="button" variant="secondary" size="sm"
+            ><Plus class="h-3.5 w-3.5" />Add rule<ChevronDown class="h-3 w-3 text-faint"
+          /></Button>
+        </template>
+        <button
+          v-for="preset in schema.presets"
+          :key="preset.kind"
+          type="button"
+          class="ui-menu-item flex w-full items-start gap-2.5 px-2.5 py-2 text-left transition-colors hover:bg-elevated"
+          @click="addRule(preset.kind)"
         >
-          <div
-            v-if="menuOpen"
-            class="absolute right-0 z-20 mt-1.5 w-64 origin-top-right rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer"
-          >
-            <button
-              v-for="preset in schema.presets"
-              :key="preset.kind"
-              type="button"
-              class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-elevated"
-              @click="addRule(preset.kind)"
-            >
-              <component :is="presetIcons[preset.kind] ?? Plus" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
-              <span class="min-w-0">
-                <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
-                <span class="block text-xs text-faint">{{ preset.description }}</span>
-              </span>
-            </button>
-          </div>
-        </Transition>
-      </div>
+          <component :is="presetIcons[preset.kind] ?? Plus" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+          <span class="min-w-0">
+            <span class="block text-[13px] font-medium text-foreground">{{ preset.label }}</span>
+            <span class="block text-xs text-faint">{{ preset.description }}</span>
+          </span>
+        </button>
+      </Popover>
     </div>
 
     <article
       v-for="(rule, index) in rules"
       :key="rule.id ?? rule.client_id ?? index"
-      class="rounded-lg border bg-surface transition-colors"
+      class="rounded-3xl border bg-surface transition-colors"
       :class="openIndex === index ? 'border-accent/50' : 'hover:border-border-strong'"
     >
       <div class="flex items-center gap-2.5 p-3">
@@ -303,12 +291,12 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
         <div class="grid gap-2">
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs font-medium uppercase tracking-wide text-faint">When</p>
-            <div class="grid grid-cols-2 rounded-md border bg-surface p-0.5 text-xs">
+            <div class="ui-segmented grid grid-cols-2 text-xs">
               <button
                 v-for="mode in ['all', 'any'] as const"
                 :key="mode"
                 type="button"
-                class="rounded px-2.5 py-1 font-medium transition-colors"
+                class="px-2.5 py-1 font-medium transition-colors"
                 :class="rule.match_mode === mode ? 'bg-elevated text-foreground' : 'text-faint hover:text-foreground'"
                 @click="rule.match_mode = mode"
               >
@@ -324,7 +312,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
           <div
             v-for="(condition, conditionIndex) in rule.conditions"
             :key="conditionIndex"
-            class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[140px_140px_1fr_auto]"
+            class="grid gap-2 rounded-[20px] border bg-surface p-2 sm:grid-cols-[110px_110px_minmax(0,1fr)_auto]"
           >
             <Select
               aria-label="Condition"
@@ -417,7 +405,7 @@ function rangeValue(condition: RoutingCondition): { from?: string; to?: string }
             <div
               v-for="(variant, variantIndex) in rule.variants"
               :key="variant.id ?? variant.client_id ?? variantIndex"
-              class="grid gap-2 rounded-md border bg-surface p-2 sm:grid-cols-[80px_1fr_72px_auto]"
+              class="grid gap-2 rounded-[20px] border bg-surface p-2 sm:grid-cols-[80px_1fr_72px_auto]"
             >
               <input v-model="variant.name" class="h-9" />
               <input v-model="variant.destination_url" class="h-9" placeholder="https://example.com/variant" />

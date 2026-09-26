@@ -242,7 +242,7 @@ async function copyPublicUrl() {
                 </Select>
                 <a
                   :href="exportUrl('png')"
-                  class="inline-flex h-9 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
+                  class="ui-button inline-flex h-9 items-center gap-1.5 bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
                 >
                   <Download class="h-4 w-4" /> PNG
                 </a>

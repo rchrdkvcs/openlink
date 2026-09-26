@@ -13,9 +13,9 @@
     --overlay: 0 0% 10%;
 
     /* Shared geometry: controls, grouped content, floating surfaces. */
-    --radius-control: 1rem;
+    --radius-control: 0.75rem;
     --radius-panel: 1.5rem;
-    --radius-overlay: 1.75rem;
+    --radius-overlay: 1.5rem;
     --shadow-surface: none;
     --shadow-floating: 0 8px 32px rgb(0 0 0 / 0.12);
 
@@ -116,7 +116,7 @@
   [multiple],
   textarea,
   select {
-    @apply w-full min-w-0 border border-transparent bg-elevated/60 px-3 text-[13px] text-foreground shadow-none transition-colors duration-150;
+    @apply w-full min-w-0 border border-border-strong/70 bg-background/70 px-3 text-[13px] text-foreground shadow-none transition-colors duration-150;
     border-radius: var(--radius-control);
   }
 
@@ -197,7 +197,7 @@
     @apply shrink-0 rounded-full border border-border/70 bg-surface text-[13px] transition-colors duration-150 hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
   }
   .ui-control {
-    @apply border border-transparent bg-elevated/60 text-[13px] text-foreground transition-colors duration-150;
+    @apply border border-border-strong/70 bg-background/70 text-[13px] text-foreground transition-colors duration-150;
     border-radius: var(--radius-control);
   }
   .ui-control:hover {
@@ -217,9 +217,7 @@
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50;
     border-radius: var(--radius-control);
   }
-  .ui-button {
-    border-radius: 9999px;
-  }
+
   .ui-button:focus-visible,
   .ui-icon-button:focus-visible,
   .ui-nav-link:focus-visible {
@@ -246,6 +244,27 @@
     border-radius: calc(var(--radius-control) + 4px);
     box-shadow: var(--shadow-floating);
   }
+  .ui-folder-item {
+    @apply flex min-h-9 w-full min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] text-muted transition-colors hover:bg-elevated/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+  }
+  .ui-folder-item[aria-current='page'] {
+    @apply bg-elevated text-foreground;
+  }
+  .ui-list-header {
+    @apply bg-elevated/50 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-faint;
+    border-radius: calc(var(--radius-panel) - 8px);
+  }
+  .ui-list-row {
+    @apply min-w-0 px-4 py-4 transition-colors duration-100 hover:bg-elevated/40;
+    border-radius: calc(var(--radius-panel) - 8px);
+  }
+  .ui-field-shell {
+    @apply border border-border-strong/70 bg-background/70 transition-colors duration-150 focus-within:border-accent/80 focus-within:ring-2 focus-within:ring-accent/20;
+    border-radius: var(--radius-control);
+  }
+  .ui-popover.ui-popover-form {
+    border-radius: calc(var(--radius-control) + 12px);
+  }
   .ui-menu-item {
     @apply text-muted transition-colors duration-100;
     border-radius: var(--radius-control);
@@ -266,10 +285,10 @@
     padding-inline-end: 1.5rem;
   }
   .ui-segmented {
-    @apply inline-flex flex-wrap items-center gap-1 rounded-full bg-elevated/60 p-1;
+    @apply inline-flex flex-wrap items-center gap-1 rounded-2xl bg-elevated/60 p-1;
   }
   .ui-segmented > button {
-    @apply rounded-full px-3 py-1.5 text-[13px] font-medium;
+    @apply rounded-xl px-3 py-1.5 text-[13px] font-medium;
   }
 
   @media (pointer: coarse) {
@@ -278,6 +297,27 @@
     .ui-control,
     .ui-button {
       min-height: 2.5rem;
+    }
+    .ui-folder-item {
+      @apply flex min-h-9 w-full min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] text-muted transition-colors hover:bg-elevated/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent;
+    }
+    .ui-folder-item[aria-current='page'] {
+      @apply bg-elevated text-foreground;
+    }
+    .ui-list-header {
+      @apply bg-elevated/50 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-faint;
+      border-radius: calc(var(--radius-panel) - 8px);
+    }
+    .ui-list-row {
+      @apply min-w-0 px-4 py-4 transition-colors duration-100 hover:bg-elevated/40;
+      border-radius: calc(var(--radius-panel) - 8px);
+    }
+    .ui-field-shell {
+      @apply border border-border-strong/70 bg-background/70 transition-colors duration-150 focus-within:border-accent/80 focus-within:ring-2 focus-within:ring-accent/20;
+      border-radius: var(--radius-control);
+    }
+    .ui-popover.ui-popover-form {
+      border-radius: calc(var(--radius-control) + 12px);
     }
     .ui-menu-item {
       min-height: 2.5rem;

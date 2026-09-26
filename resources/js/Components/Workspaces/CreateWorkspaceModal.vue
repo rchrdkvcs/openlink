@@ -140,7 +140,7 @@ function close() {
           </div>
         </div>
 
-        <div class="mt-5 rounded-lg border bg-elevated/30 p-4">
+        <div class="mt-5 rounded-[28px] border bg-elevated/30 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
             <Field label="Role" class="w-full sm:flex-1">
               <Select v-model="inviteRole" class="h-9">

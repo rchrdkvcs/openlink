@@ -70,7 +70,7 @@ const MINUTES = computed(() =>
 </script>
 
 <template>
-  <Popover v-model:open="open" :align="align" class="w-[19rem] p-3" aria-label="Date and time">
+  <Popover v-model:open="open" :align="align" class="ui-popover-form w-[19rem] p-3" aria-label="Date and time">
     <template #trigger>
       <button
         type="button"
@@ -89,7 +89,7 @@ const MINUTES = computed(() =>
         v-for="preset in PRESETS"
         :key="preset.label"
         type="button"
-        class="rounded-full border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-foreground"
+        class="rounded-xl border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-foreground"
         @click="applyPreset(preset.days)"
       >
         {{ preset.label }}

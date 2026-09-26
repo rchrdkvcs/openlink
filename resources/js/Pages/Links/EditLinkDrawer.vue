@@ -79,7 +79,7 @@ const shortUrlChanged = computed(
 <template>
   <Drawer :show="Boolean(link)" eyebrow="Link settings" :title="link?.short_url" @close="emit('close')">
     <div v-if="link" class="space-y-5 p-5">
-      <div class="grid grid-cols-2 rounded-full bg-elevated/60 p-1">
+      <div class="ui-segmented grid grid-cols-2">
         <button
           v-for="entry in [
             { key: 'link' as const, label: 'Link', icon: Link2 },
@@ -87,8 +87,8 @@ const shortUrlChanged = computed(
           ]"
           :key="entry.key"
           type="button"
-          class="flex h-8 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium transition-colors"
-          :class="tab === entry.key ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
+          class="flex h-8 items-center justify-center gap-1.5 text-[13px] font-medium transition-colors"
+          :class="tab === entry.key ? 'bg-surface text-foreground' : 'text-muted hover:text-foreground'"
           @click="tab = entry.key"
         >
           <component :is="entry.icon" class="h-3.5 w-3.5" />

@@ -1,6 +1,6 @@
 # Dashboard interface
 
-The dashboard uses a open workspace canvas, flat content surfaces and quiet
+The dashboard uses an open workspace canvas, flat content surfaces and quiet
 controls. Navigation, forms and overlays share the same geometry and interaction
 rules. Radix Vue supplies the primitives already used by shadcn-vue.
 
@@ -29,10 +29,35 @@ rules. Radix Vue supplies the primitives already used by shadcn-vue.
 | `ui-popover`, `ui-menu-item` | Floating menus and their items |
 | `ui-dialog`, `ui-drawer`, `ui-overlay` | Modal surfaces and backdrop |
 
-Controls use a 16 px radius; actions and navigation use pills. Content panels use
-24 px and overlays 28 px. Popovers use 20 px outside and 16 px inside a 4 px inset. Shape follows the nesting and purpose of
-the surface. Achromatic surfaces and focus states keep the interface neutral. Semantic colors
+Controls and actions use a 12 px radius, including icon buttons. Navigation,
+workspace anchors, avatars and status badges retain their pill/circle silhouette.
+Content panels and dialogs use 24 px. Menus use 16 px outside and 12 px inside
+with a 4 px inset. List headers and hover rows use 16 px inside a panel's 8 px
+padding. A group surrounding 12 px controls with 12 px padding uses 24 px outside.
+Segmented controls use 16 px outside / 12 px inside / 4 px padding.
+
+Fields have a darker background and a visible neutral stroke, including composed
+URL and tag fields. Avoid overriding those with a transparent border in drawers.
+Achromatic surfaces and focus states keep the interface neutral. Semantic colors
 remain reserved for status, errors and user-chosen workspace colors.
+
+## Link library
+
+Folders are persistent navigation, not collapsible stacks of cards. A compact
+rail provides All links, Unfiled and every folder, with counts reflecting the
+current filters. Empty folders remain selectable and available as drop targets.
+On narrow screens a labeled Select replaces the rail; selected-folder actions
+remain in the list header. Search/status/tag filters apply inside the selected
+folder. New links inherit that folder, with the field visible in the drawer.
+
+Selection is stored per workspace and resets to All links if its folder is
+removed. Drag/drop and the accessible Move to folder control share the same move
+operation. Creation and renaming use an explicit form, validation errors and
+submission state rather than submitting on blur. Deletion retains confirmation
+and moves the folder's links to Unfiled.
+
+Run folder behavior regression tests with Node 22.18+:
+`node --test tests/Frontend/link-folders.test.ts`.
 
 ## Components and behavior
 

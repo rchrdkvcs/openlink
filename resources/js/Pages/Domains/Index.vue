@@ -104,7 +104,7 @@ function targetWorkspaces() {
 
   <AuthenticatedLayout>
     <div class="ui-page">
-      <div class="mb-6 flex items-end justify-between gap-3">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
           <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
@@ -114,24 +114,22 @@ function targetWorkspaces() {
         </Link>
       </div>
 
-      <section class="ui-panel overflow-hidden">
-        <div
-          class="mx-2 mt-2 hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] rounded-full bg-elevated/50 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
-        >
+      <section class="ui-panel p-2">
+        <div class="ui-list-header hidden gap-3 xl:grid xl:grid-cols-[minmax(0,1.4fr)_120px_minmax(0,1fr)_144px]">
           <span>Hostname</span>
           <span>Status</span>
           <span>DNS record</span>
           <span class="text-right">Actions</span>
         </div>
 
-        <div class="divide-y divide-border/60">
+        <div class="space-y-1 pt-1">
           <article
             v-for="domain in domains"
             :key="domain.id"
-            class="grid gap-3 px-4 py-3.5 transition-colors duration-100 hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] lg:items-start"
+            class="ui-list-row grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_120px_minmax(0,1fr)_144px] xl:items-center"
           >
-            <div>
-              <p class="truncate text-sm font-medium text-foreground">{{ domain.hostname }}</p>
+            <div class="min-w-0">
+              <p class="break-words text-sm font-medium text-foreground">{{ domain.hostname }}</p>
               <p class="mt-0.5 text-xs text-faint">
                 {{ domain.is_default ? 'Application default' : 'Workspace domain' }}
               </p>
@@ -150,7 +148,7 @@ function targetWorkspaces() {
                 {{ domain.failure_reason }}
               </p>
             </div>
-            <div class="flex gap-0.5 lg:justify-end">
+            <div class="flex gap-0.5 xl:justify-end">
               <IconButton
                 v-if="canManageWorkspace && !domain.is_default"
                 title="Verify DNS"
@@ -162,7 +160,7 @@ function targetWorkspaces() {
                 v-if="canManageWorkspace && !domain.is_default"
                 :open="transferMenuFor === domain.id"
                 align="end"
-                class="w-64 p-3"
+                class="ui-popover-form w-64 p-3"
                 aria-label="Transfer domain"
                 @update:open="$event ? openTransfer(domain) : (transferMenuFor = null)"
               >

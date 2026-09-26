@@ -30,7 +30,7 @@ const faviconSrc = computed(() => {
 <template>
   <div>
     <div
-      class="flex items-center gap-2.5 rounded-2xl border border-transparent bg-elevated/60 px-3 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25 hover:border-border-strong"
+      class="ui-field-shell flex items-center gap-2.5 px-3 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25 hover:border-border-strong"
     >
       <img
         v-if="faviconSrc"

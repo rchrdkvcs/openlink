@@ -18,31 +18,42 @@ Thank you for helping improve Openlink.
 Requirements:
 
 - PHP 8.4 and Composer 2
-- Node.js 24 and pnpm 11
-- PostgreSQL 17
-- Redis 7
-- FrankenPHP, used through Laravel Octane
+- Node.js 24 and pnpm 12.6.0
+- Docker Compose v2
+- PHP extensions required by Composer, including `pdo_pgsql`
 
-Install and configure the application:
+Prepare the local environment, PostgreSQL, Redis, and frontend assets:
 
 ```bash
-composer install
-pnpm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
+composer run setup
 ```
 
-Set the PostgreSQL and Redis connection values in `.env`, then start the
-application, queue worker, and Vite development server:
+This creates `.env` and an application key if needed, then starts PostgreSQL
+and Redis with Docker Compose. It preserves an existing `.env` and application
+key. Start the application, queue worker, and Vite development server with:
 
 ```bash
 composer run dev
 ```
 
-The application is available at `http://localhost:8000`.
+The application is available at `http://localhost:8000`. To stop PostgreSQL
+and Redis while keeping their data, run
+`docker compose -f docker/compose.dev.yml down`.
 With the default `log` mailer, verification and password-reset links are
 written to `storage/logs/laravel.log`.
+
+If PostgreSQL and Redis are already available outside Docker, use this setup
+instead. Run `php scripts/prepare-local.php` first, then set `DB_HOST`,
+`DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, and the Redis values in
+`.env` before migrating:
+
+```bash
+php scripts/prepare-local.php
+composer install
+pnpm install --frozen-lockfile
+php artisan migrate --force
+pnpm run build
+```
 
 The Docker example can also run the entire stack. See
 [`docker/README.md`](./docker/README.md).

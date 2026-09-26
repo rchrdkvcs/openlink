@@ -44,16 +44,16 @@
     },
     "scripts": {
         "setup": [
+            "@php scripts/prepare-local.php",
+            "docker compose -f docker/compose.dev.yml up -d",
             "composer install",
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
-            "@php artisan key:generate",
             "@php artisan migrate --force",
-            "pnpm install --ignore-scripts",
+            "pnpm install --frozen-lockfile",
             "pnpm run build"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan octane:frankenphp --host=127.0.0.1 --port=8000 --workers=1 --max-requests=1\" \"php artisan queue:listen --tries=1 --timeout=0\" \"pnpm run dev\" --names=octane,queue,vite --kill-others"
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve --host=127.0.0.1 --port=8000\" \"php artisan queue:listen --tries=1 --timeout=0\" \"pnpm run dev\" --names=server,queue,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",

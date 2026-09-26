@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 @config '../../tailwind.config.js';
 
+/* Tailwind v4 defaults a bare `border` to currentColor and ignores the JS
+   config's borderColor.DEFAULT, so restore the v3 behaviour explicitly. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: hsl(var(--border));
+  }
+}
+
 @layer base {
   :root {
     color-scheme: dark;

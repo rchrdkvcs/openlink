@@ -11,6 +11,14 @@
   ::file-selector-button {
     border-color: hsl(var(--border));
   }
+
+  /* v4 preflight also resets buttons to cursor: default. Utilities such as
+     cursor-default or disabled:cursor-not-allowed still win over this. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  ::file-selector-button {
+    cursor: pointer;
+  }
 }
 
 @layer base {

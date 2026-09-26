@@ -1,6 +1,6 @@
 # HTTP API
 
-Openlink exposes a token-based JSON API under `/api/v1` that mirrors the functionality of the web interface. It is designed for browser extensions, CLI tools, and other integrations. API access requires a verified email.
+Openlink exposes a token-based JSON API under `/api/v1` that mirrors the functionality of the web interface. It is designed for browser extensions, CLI tools, and other integrations. API access requires a verified email only when instance settings require email verification.
 
 ## Authentication
 
@@ -43,7 +43,7 @@ Token management:
 | `DELETE` | `/api/v1/auth/token` | Revoke the token used for the request (logout) |
 | `DELETE` | `/api/v1/auth/tokens/{id}` | Revoke a specific token |
 
-Issuing and using API tokens requires the user's current email to be verified. If a user changes their email, existing tokens stop working for main API surfaces until the new email is verified. Minimal profile and token-revocation endpoints may remain available so the user can recover or revoke credentials.
+When instance settings require email verification, issuing and using API tokens requires the user's current email to be verified. If a user changes their email while verification is required, existing tokens stop working for main API surfaces until the new email is verified. Minimal profile and token-revocation endpoints may remain available so the user can recover or revoke credentials.
 
 Account registration and password reset are handled by the web interface; point users at the instance URL for onboarding.
 
@@ -63,7 +63,7 @@ X-Workspace-Id: 42
 
 ## Endpoints
 
-All routes below require `Authorization: Bearer <token>` and a verified email unless explicitly noted. Workspace routes operate in the workspace selected by `X-Workspace-Id`. Permissions match the web interface exactly (workspace roles Owner/Admin/Editor/Viewer).
+All routes below require `Authorization: Bearer <token>`. They also require a verified email when instance settings require email verification, unless explicitly noted. Workspace routes operate in the workspace selected by `X-Workspace-Id`. Permissions match the web interface exactly (workspace roles Owner/Admin/Editor/Viewer).
 
 ### Profile
 

@@ -161,7 +161,7 @@ The user-selected image shown as the user's visual representation across Openlin
 _Avoid_: Global avatar, account avatar, social avatar
 
 **Verified Email**:
-A user's confirmed email address. A user needs a verified email to use Openlink's main authenticated surfaces.
+A user's confirmed email address. A user needs a verified email to use Openlink's main authenticated surfaces when the Instance Admin requires email verification.
 _Avoid_: Validated email, confirmed account, active account
 
 **API Token**:

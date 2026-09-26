@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\InstanceSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -16,7 +17,7 @@ class ProfileApiTokenController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        if (! $request->user()->hasVerifiedEmail()) {
+        if (app(InstanceSettings::class)->get('require_email_verification') && ! $request->user()->hasVerifiedEmail()) {
             throw ValidationException::withMessages([
                 'name' => 'Verify your email before creating API tokens.',
             ]);

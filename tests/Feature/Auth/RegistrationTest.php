@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Services\InstanceSettings;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Events\MessageSending;
@@ -40,6 +41,20 @@ class RegistrationTest extends TestCase
 
         Notification::assertSentTo($user, VerifyEmail::class);
         $this->assertNull($user->email_verified_at);
+        $this->get(route('dashboard'))->assertRedirect(route('onboarding.show', absolute: false));
+    }
+
+    public function test_email_verification_can_be_required_for_registration(): void
+    {
+        app(InstanceSettings::class)->set('require_email_verification', true);
+
+        $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect('/dashboard');
+
         $this->get(route('dashboard'))->assertRedirect(route('verification.notice', absolute: false));
     }
 

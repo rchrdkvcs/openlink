@@ -10,6 +10,7 @@ class InstanceSettings
     public const DEFAULTS = [
         'instance_name' => 'Openlink',
         'registration_mode' => 'invite_only',
+        'require_email_verification' => false,
         'default_domain' => 'localhost',
         'dns_target' => '',
         'reserved_slugs' => [

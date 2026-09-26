@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -22,6 +24,42 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_profile_page_keeps_workspace_selection_available(): void
+    {
+        $user = User::factory()->create();
+        $current = Workspace::create([
+            'owner_id' => $user->id,
+            'name' => 'Current',
+            'slug' => 'current',
+            'settings' => [],
+        ]);
+        $other = Workspace::create([
+            'owner_id' => $user->id,
+            'name' => 'Other',
+            'slug' => 'other',
+            'settings' => [],
+        ]);
+
+        foreach ([$current, $other] as $workspace) {
+            WorkspaceMember::create([
+                'workspace_id' => $workspace->id,
+                'user_id' => $user->id,
+                'role' => WorkspaceMember::ROLE_OWNER,
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->withSession(['workspace_id' => $current->id])
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Profile/Edit')
+                ->where('currentWorkspace.id', $current->id)
+                ->has('workspaces', 2)
+                ->where('workspaces.0.id', $current->id)
+                ->where('workspaces.1.id', $other->id));
     }
 
     public function test_profile_page_includes_connected_identities_avatar_source_and_api_tokens(): void

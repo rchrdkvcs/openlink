@@ -6,6 +6,7 @@ use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\InstanceSettingsController;
+use App\Http\Controllers\InstanceUpdateController;
 use App\Http\Controllers\InviteLinkController;
 use App\Http\Controllers\JoinController;
 use App\Http\Controllers\MemberController;
@@ -111,6 +112,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/qr-codes/{qrCode}/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
+        Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');
     });
 
     require __DIR__.'/auth.php';

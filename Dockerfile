@@ -42,6 +42,9 @@ FROM dunglas/frankenphp:1-php8.4-alpine AS production
 
 WORKDIR /app
 
+ARG OPENLINK_VERSION=dev
+ENV OPENLINK_VERSION=${OPENLINK_VERSION}
+
 RUN install-php-extensions \
     gd \
     intl \

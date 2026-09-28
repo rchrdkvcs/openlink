@@ -3,7 +3,7 @@
 Openlink is a self-hosted URL management application for personal and team use. It manages short links, domains, QR codes, access rules, and analytics across multiple workspaces in one installation.
 
 > [!NOTE]
-> Openlink is under active development and does not have a stable release yet.
+> Openlink is under active development. Review each release before updating a production installation.
 
 ## Features
 
@@ -46,7 +46,7 @@ Create `docker/.env` and generate its key using the instructions for your shell
 in [`docker/README.md`](./docker/README.md), then start the stack:
 
 ```bash
-docker compose --env-file docker/.env -f docker/compose.yml up --build
+docker compose --env-file docker/.env -f docker/compose.yml up -d
 ```
 
 Open `http://localhost:8080`. See [`docker/README.md`](./docker/README.md) for configuration and operational commands.

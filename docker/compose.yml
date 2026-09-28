@@ -1,10 +1,7 @@
 name: openlink
 
 x-app-image: &app-image
-  build:
-    context: ..
-    dockerfile: Dockerfile
-  image: openlink:local
+  image: ghcr.io/rchrdkvcs/openlink:${OPENLINK_IMAGE_TAG:-latest}
 
 x-app-environment: &app-environment
   APP_ENV: production
@@ -27,6 +24,8 @@ x-app-environment: &app-environment
   QUEUE_CONNECTION: redis
   SESSION_DRIVER: redis
   MAIL_MAILER: log
+  OPENLINK_UPDATER_ENABLED: ${OPENLINK_UPDATER_ENABLED:-false}
+  OPENLINK_IMAGE_TAG: ${OPENLINK_IMAGE_TAG:-latest}
 
 services:
   app:
@@ -119,6 +118,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  updater:
+    image: docker:29-cli
+    profiles: [updates]
+    entrypoint: ["/bin/sh", "/deploy/update.sh"]
+    environment:
+      OPENLINK_IMAGE_TAG: ${OPENLINK_IMAGE_TAG:-latest}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./compose.yml:/deploy/compose.yml:ro
+      - ./update.sh:/deploy/update.sh:ro
+      - ./.env:/deploy/.env:ro
+      - app-storage:/app/storage
     restart: unless-stopped
 
 volumes:

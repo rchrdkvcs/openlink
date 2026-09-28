@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
-import { BarChart3, CheckCircle2, CircleAlert, Globe2, Link2, Lock, Mail, UserPlus } from '@lucide/vue';
-import { computed } from 'vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { BarChart3, CheckCircle2, CircleAlert, Download, Globe2, Link2, Lock, Mail, UserPlus } from '@lucide/vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Checkbox from '@/Components/ui/Checkbox.vue';
@@ -15,7 +15,43 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps<{
   settings: Record<string, any>;
+  updateStatus: {
+    current: string;
+    latest: { version: string; url: string } | null;
+    available: boolean;
+    canUpdate: boolean;
+    state: 'pending' | 'running' | 'succeeded' | 'failed' | null;
+  } | null;
 }>();
+
+const requestingUpdate = ref(false);
+let updatePoll: ReturnType<typeof setInterval> | undefined;
+
+onMounted(() => {
+  updatePoll = setInterval(() => {
+    if (props.updateStatus?.state === 'pending' || props.updateStatus?.state === 'running') {
+      router.reload({ only: ['updateStatus'] });
+    }
+  }, 5000);
+});
+
+onUnmounted(() => {
+  if (updatePoll) clearInterval(updatePoll);
+});
+
+function requestUpdate() {
+  requestingUpdate.value = true;
+  router.post(
+    route('instance-update.store'),
+    {},
+    {
+      preserveScroll: true,
+      onFinish: () => {
+        requestingUpdate.value = false;
+      },
+    },
+  );
+}
 
 const isInstanceAdmin = computed(() => Object.keys(props.settings).length > 0);
 
@@ -100,7 +136,56 @@ function discardChanges() {
           </EmptyState>
         </SectionCard>
 
-        <form v-else class="space-y-4" @submit.prevent="updateSettings">
+        <SectionCard
+          v-else
+          title="Application updates"
+          description="Version installed on this Openlink instance."
+          class="mb-4"
+        >
+          <template #icon><Download class="h-4 w-4 text-faint" /></template>
+          <div class="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div class="text-sm">
+              <p>
+                Installed: <span class="font-medium">{{ updateStatus?.current ?? 'dev' }}</span>
+              </p>
+              <p v-if="updateStatus?.latest" class="mt-1 text-muted">
+                Latest stable release:
+                <a
+                  :href="updateStatus.latest.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent underline"
+                >
+                  {{ updateStatus.latest.version }}
+                </a>
+              </p>
+              <p v-else class="mt-1 text-muted">Release information is temporarily unavailable.</p>
+              <p v-if="updateStatus?.state === 'pending'" class="mt-2 text-muted">Update requested…</p>
+              <p v-else-if="updateStatus?.state === 'running'" class="mt-2 text-muted">Updating containers…</p>
+              <p v-else-if="updateStatus?.state === 'failed'" class="mt-2 text-danger">
+                Update failed. Check the updater logs and retry.
+              </p>
+              <p v-else-if="updateStatus?.available && !updateStatus.canUpdate" class="mt-2 text-muted">
+                A new release is available. Update this installation through your deployment platform.
+              </p>
+              <p v-else-if="updateStatus?.current === 'dev'" class="mt-2 text-muted">
+                This development build has no release version.
+              </p>
+              <p v-else-if="!updateStatus?.available && updateStatus?.latest" class="mt-2 text-muted">Up to date.</p>
+            </div>
+            <Button
+              v-if="updateStatus?.available && updateStatus.canUpdate"
+              type="button"
+              :loading="requestingUpdate"
+              :disabled="updateStatus.state === 'pending' || updateStatus.state === 'running'"
+              @click="requestUpdate"
+            >
+              Update now
+            </Button>
+          </div>
+        </SectionCard>
+
+        <form v-if="isInstanceAdmin" class="space-y-4" @submit.prevent="updateSettings">
           <SectionCard title="Access" description="Who can create an account on this instance.">
             <template #icon><UserPlus class="h-4 w-4 text-faint" /></template>
 

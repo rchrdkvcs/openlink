@@ -2,6 +2,8 @@
 
 Openlink ships a production `Dockerfile`. The image runs Laravel Octane with
 FrankenPHP on port `8080`. PostgreSQL and Redis are required.
+Stable releases publish versioned and `latest` images to
+`ghcr.io/rchrdkvcs/openlink`. The image embeds its release version.
 
 The example in [`docker/`](../docker/) is the quickest way to evaluate the full
 stack. For production, use a container platform or an orchestrator that can:
@@ -32,7 +34,14 @@ infrastructure credentials in instance settings.
 
 This repository currently uses Coolify for its hosted instance. Publishing the
 latest stable GitHub Release triggers `.github/workflows/deploy.yml`, which
-calls a Coolify deployment webhook.
+publishes the multi-architecture GHCR image and then calls a Coolify deployment
+webhook. The package must be made public in GitHub package settings for
+anonymous self-hosted pulls.
+
+The instance administrator sees the installed and latest stable versions in
+Settings. The update button is available only with the optional Compose updater
+and a `latest` image tag; deployments on other platforms should update through
+their own deployment process. See [`docker/README.md`](../docker/README.md).
 
 Configure these repository secrets:
 

@@ -1,5 +1,9 @@
 # Agent Guidance
 
+## Code comments
+
+Keep all tracked code, configuration, templates, and scripts free of comments, including PHPDoc and inline annotations. Express intent through names, types, tests, and documentation outside source files. Remove existing comments when editing a file.
+
 ## Agent skills
 
 ### Issue tracker

@@ -89,18 +89,28 @@ docker compose --env-file docker/.env -f docker/compose.yml up -d --wait app wor
 
 ## Common commands
 
+Run an Artisan command:
+
 ```bash
-# Run an Artisan command
 docker compose --env-file docker/.env -f docker/compose.yml run --rm \
   --entrypoint php app artisan about
+```
 
-# Follow application, worker, and scheduler logs
+Follow application, worker, and scheduler logs:
+
+```bash
 docker compose --env-file docker/.env -f docker/compose.yml logs -f app worker scheduler
+```
 
-# Stop containers without deleting data
+Stop containers while keeping local data:
+
+```bash
 docker compose --env-file docker/.env -f docker/compose.yml down
+```
 
-# Stop containers and delete all local data
+Stop containers and delete all local data:
+
+```bash
 docker compose --env-file docker/.env -f docker/compose.yml down --volumes
 ```
 

@@ -16,10 +16,8 @@ use Tests\TestCase;
 
 class FakeDnsResolver extends DnsResolver
 {
-    /** @var array<string, array<int, string>> */
     public array $txt = [];
 
-    /** @var array<string, array<int, string>> */
     public array $ips = [];
 
     public function txtValues(string $hostname): array
@@ -253,7 +251,6 @@ class DomainSetupTest extends TestCase
                 ->where('domain.dns_record.value', '203.0.113.10'));
     }
 
-    /** @return array{Workspace, Domain, User} */
     private function workspaceAndPendingDomain(string $hostname = 'go.example.test'): array
     {
         $user = User::factory()->create();

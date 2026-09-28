@@ -12,12 +12,6 @@ use App\Services\ResolutionContext;
 use App\Services\ResolutionContextFactory;
 use Illuminate\Http\Request;
 
-/**
- * Captures every request dimension synchronously (headers disappear once the
- * response is sent), then persists the event after the response by default so
- * recording works without a queue worker. Set OPENLINK_ANALYTICS_VIA_QUEUE=true
- * to move the write onto the queue on instances that run one.
- */
 class RecordAnalytics
 {
     public const METRIC_VISIT = 'visit';
@@ -49,11 +43,6 @@ class RecordAnalytics
             : dispatch($job)->afterResponse();
     }
 
-    /**
-     * Writes a captured event, never letting a failure surface to the visitor.
-     *
-     * @param  array<string, mixed>  $event
-     */
     public function persist(array $event): void
     {
         try {
@@ -63,7 +52,6 @@ class RecordAnalytics
         }
     }
 
-    /** @return array<string, mixed>|null */
     public function capture(
         Request $request,
         ?ShortLink $shortLink,

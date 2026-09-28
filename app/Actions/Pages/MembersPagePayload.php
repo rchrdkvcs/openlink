@@ -15,7 +15,6 @@ class MembersPagePayload
         private readonly WorkspaceViewFactory $views,
     ) {}
 
-    /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user): array
     {
         $view = $this->views->make($workspace, $user);

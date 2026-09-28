@@ -73,7 +73,6 @@ function openCreateWorkspace() {
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
-    <!-- Sidebar (desktop) — floating card -->
     <aside
       class="card-sheen fixed bottom-3 left-3 top-3 z-30 hidden w-60 flex-col rounded-lg border bg-surface lg:flex"
     >
@@ -89,14 +88,12 @@ function openCreateWorkspace() {
 
       <div class="mx-2.5 border-t" />
 
-      <!-- Workspace switcher -->
       <div class="px-2.5 pb-2 pt-2.5">
         <WorkspaceSwitcher @open-settings="openWorkspaceSettings" @create="openCreateWorkspace" />
       </div>
 
       <div class="mx-2.5 border-t" />
 
-      <!-- Navigation -->
       <nav class="flex-1 space-y-0.5 overflow-y-auto px-2.5 py-2.5">
         <Link
           v-for="item in navItems"
@@ -140,7 +137,6 @@ function openCreateWorkspace() {
         </Link>
       </nav>
 
-      <!-- User menu -->
       <div class="border-t p-2">
         <Dropdown align="left" width="64" placement="top" contentClasses="p-1">
           <template #trigger>
@@ -172,7 +168,6 @@ function openCreateWorkspace() {
       </div>
     </aside>
 
-    <!-- Mobile nav overlay -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition-opacity ease-out duration-200"
@@ -252,7 +247,6 @@ function openCreateWorkspace() {
       </Transition>
     </Teleport>
 
-    <!-- Main column — no desktop top bar -->
     <div class="flex min-h-screen flex-col lg:pl-[16.5rem]">
       <header
         class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:hidden"

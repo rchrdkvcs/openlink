@@ -53,8 +53,6 @@ const roleOptions = [
   { value: 'viewer', label: 'Viewer', description: 'Read-only access to links and analytics' },
 ];
 
-// --- Invite modal ---
-
 const showInviteModal = ref(false);
 
 const expiryOptions = [
@@ -100,8 +98,6 @@ function linkMeta(link: InviteLink) {
   }
   return parts.join(' · ');
 }
-
-// --- Member management ---
 
 function canEditMember(member: Member) {
   return props.canManageMembers && member.role !== 'owner' && member.user.id !== me.value.id;
@@ -292,7 +288,6 @@ const sortedMembers = computed(() =>
         </EmptyState>
       </section>
 
-      <!-- Invite members modal -->
       <Modal :show="showInviteModal" max-width="lg" @close="showInviteModal = false">
         <div class="p-6">
           <div class="flex items-start gap-3">
@@ -349,7 +344,6 @@ const sortedMembers = computed(() =>
         </div>
       </Modal>
 
-      <!-- Confirmation modal -->
       <Modal :show="confirmation !== null" max-width="md" @close="confirmation = null">
         <div class="p-6">
           <h2 class="text-base font-semibold text-foreground">{{ confirmText.title }}</h2>

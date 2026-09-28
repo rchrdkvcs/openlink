@@ -12,9 +12,6 @@ use Illuminate\Console\Command;
 #[Description('Recheck workspace domains awaiting DNS verification or pointing')]
 class VerifyPendingDomains extends Command
 {
-    /**
-     * Execute the console command.
-     */
     public function handle(DomainLifecycle $lifecycle): int
     {
         $limit = max(1, (int) $this->option('limit'));

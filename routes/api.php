@@ -15,17 +15,6 @@ use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Middleware\EnsureApiEmailIsVerified;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API v1
-|--------------------------------------------------------------------------
-| Token-based API (Laravel Sanctum) exposing the same functionality as the
-| web interface, for browser extensions and other API clients.
-|
-| Stateless clients select the active workspace per request with the
-| `X-Workspace-Id` header; without it, the user's first workspace is used.
-*/
-
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/auth/token', [AuthTokenController::class, 'store'])
         ->middleware('throttle:10,1')

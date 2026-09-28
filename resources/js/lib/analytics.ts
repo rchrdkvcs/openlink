@@ -74,9 +74,9 @@ export type RoutingPerformanceRow = {
 
 export type BarListRow = {
   label: string;
-  /** Optional human-readable replacement for the raw label. */
+
   display?: string;
-  /** Optional prefix rendered before the label (e.g. a flag emoji). */
+
   prefix?: string;
   count: number;
   share: number;
@@ -111,8 +111,6 @@ export type Report = {
   top_qr_codes: TopQrCode[];
 };
 
-// Series colors, validated for CVD separation and contrast against the app's
-// dark surface (see docs/adr/0007). Visits wears the product accent.
 export const SERIES_COLORS = {
   visits: '#707bdb',
   scans: '#c47d20',
@@ -184,7 +182,6 @@ export const DEVICE_LABELS: Record<string, string> = {
   unknown: 'Unknown',
 };
 
-/** Format a time-series bucket key ("2026-07-06", "2026-07-06 14:00", "2026-07") for axis and tooltip use. */
 export function formatBucket(bucket: string, unit: ReportRange['bucket'], style: 'short' | 'long' = 'short'): string {
   if (unit === 'hour') {
     const [date, time] = bucket.split(' ');

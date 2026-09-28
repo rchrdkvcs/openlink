@@ -9,10 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class JoinWorkspaceViaInviteLink
 {
-    /**
-     * Add the user to the invite link's workspace. Existing members keep
-     * their current role and do not consume a use.
-     */
     public function handle(User $user, InviteLink $inviteLink): WorkspaceMember
     {
         return DB::transaction(function () use ($user, $inviteLink) {

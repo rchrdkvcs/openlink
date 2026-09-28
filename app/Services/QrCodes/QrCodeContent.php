@@ -9,13 +9,11 @@ use Illuminate\Validation\Rule;
 
 class QrCodeContent
 {
-    /** @return array<string, string> */
     public static function types(): array
     {
         return collect(self::descriptors())->map(fn (array $descriptor) => $descriptor['label'])->all();
     }
 
-    /** @return array<string, array{label: string, hint: string, defaults: array<string, mixed>, fields: list<array<string, mixed>>}> */
     public static function descriptors(): array
     {
         return [
@@ -120,9 +118,6 @@ class QrCodeContent
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     public function normalize(string $type, array $payload): string
     {
         Validator::make(['payload' => $payload], $this->rulesFor($type))->validate();
@@ -153,9 +148,6 @@ class QrCodeContent
             && ! str_starts_with(strtoupper($qrCode->content), 'BEGIN:');
     }
 
-    /**
-     * @return array<string, list<mixed>>
-     */
     private function rulesFor(string $type): array
     {
         return match ($type) {
@@ -202,9 +194,6 @@ class QrCodeContent
         };
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function email(array $payload): string
     {
         $query = collect([
@@ -216,9 +205,6 @@ class QrCodeContent
             .($query === [] ? '' : '?'.http_build_query($query, '', '&', PHP_QUERY_RFC3986));
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function sms(array $payload): string
     {
         $message = trim((string) ($payload['message'] ?? ''));
@@ -227,9 +213,6 @@ class QrCodeContent
             .($message === '' ? '' : '?body='.rawurlencode($message));
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function wifi(array $payload): string
     {
         $encryption = (string) $payload['encryption'];
@@ -243,9 +226,6 @@ class QrCodeContent
             .';;';
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function vcard(array $payload): string
     {
         $lines = [
@@ -272,9 +252,6 @@ class QrCodeContent
         return implode("\n", $lines);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function event(array $payload): string
     {
         $start = Carbon::parse((string) $payload['starts_at'])->utc();
@@ -304,9 +281,6 @@ class QrCodeContent
         return implode("\n", $lines);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     private function location(array $payload): string
     {
         $lat = trim((string) $payload['latitude']);

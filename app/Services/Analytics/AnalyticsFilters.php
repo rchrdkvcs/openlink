@@ -6,11 +6,6 @@ use App\Actions\Analytics\RecordAnalytics;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-/**
- * The slice of analytics a report covers: a date range (preset or custom)
- * plus optional dimension filters. Every number in a report is computed
- * against the same instance, so all figures always agree.
- */
 class AnalyticsFilters
 {
     public const RANGES = ['24h', '7d', '14d', '30d', '90d', '12m', 'custom'];
@@ -61,7 +56,6 @@ class AnalyticsFilters
         );
     }
 
-    /** The immediately preceding window of the same length, for comparisons. */
     public function previous(): self
     {
         $duration = $this->from->diffInSeconds($this->to);
@@ -81,7 +75,6 @@ class AnalyticsFilters
         );
     }
 
-    /** Bucket size for time series: fine enough to read, coarse enough to plot. */
     public function bucketUnit(): string
     {
         $days = $this->from->diffInDays($this->to);
@@ -93,7 +86,6 @@ class AnalyticsFilters
         };
     }
 
-    /** @return array<string, string|int> Non-empty query parameters, for links and exports. */
     public function toQuery(): array
     {
         return array_filter([
@@ -111,7 +103,6 @@ class AnalyticsFilters
         ]);
     }
 
-    /** @return array{0: CarbonImmutable, 1: CarbonImmutable} */
     private static function customRange(Request $request, CarbonImmutable $now): array
     {
         $from = rescue(fn () => CarbonImmutable::parse($request->query('from'))->startOfDay(), $now->subDays(30)->startOfDay(), false);

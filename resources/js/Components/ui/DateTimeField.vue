@@ -68,7 +68,6 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
 </script>
 
 <template>
-  <!-- Escape closes the popover without bubbling to the drawer's document listener. -->
   <div class="relative" @keydown.escape.stop="open = false">
     <button
       type="button"

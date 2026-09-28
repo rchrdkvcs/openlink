@@ -139,7 +139,6 @@ class PaginatedListsTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('shortLinks.0.id', $selected->id));
     }
 
-    /** @return array{Workspace, Domain, User} */
     private function workspace(): array
     {
         $user = User::factory()->create();

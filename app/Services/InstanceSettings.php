@@ -6,7 +6,6 @@ use App\Models\InstanceSetting;
 
 class InstanceSettings
 {
-    /** @var array<string, mixed> */
     public const DEFAULTS = [
         'instance_name' => 'Openlink',
         'registration_mode' => 'invite_only',
@@ -60,7 +59,6 @@ class InstanceSettings
         return $value;
     }
 
-    /** @return array<string, mixed> */
     public function all(): array
     {
         $settings = self::DEFAULTS;

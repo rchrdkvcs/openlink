@@ -14,8 +14,6 @@ return new class extends Migration
             $table->text('dns_check_error')->nullable()->after('failure_reason');
         });
 
-        // Default domains serve application traffic by definition; workspace
-        // domains must prove their DNS points here before becoming active.
         DB::table('domains')->where('status', 'verified')->where('is_default', true)
             ->update(['status' => 'active', 'dns_pointed_at' => now()]);
         DB::table('domains')->where('status', 'verified')

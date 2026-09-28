@@ -50,7 +50,6 @@ class AnalyticsEvent extends Model
         return $this->belongsTo(RoutingVariant::class);
     }
 
-    /** Human traffic that reached the destination URL. */
     public function scopeSuccessful(Builder $query): Builder
     {
         return $query->where('outcome', 'success')->where('is_bot', false);

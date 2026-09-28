@@ -63,7 +63,6 @@ class QrCodeLogoConsistencyTest extends TestCase
         Storage::assertExists($oldLogoPath);
     }
 
-    /** @return array{User, QrCode, string} */
     private function qrCodeWithLogo(): array
     {
         $user = User::factory()->create();

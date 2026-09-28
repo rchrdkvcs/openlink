@@ -25,10 +25,6 @@ class BuildAnalyticsReport
         private readonly ExportRowsSection $exports,
     ) {}
 
-    /**
-     * @param  list<int>|null  $accessibleLinkIds
-     * @return array<string, mixed>
-     */
     public function report(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
     {
         $slice = $this->slice($workspace, $filters, $accessibleLinkIds);
@@ -61,7 +57,6 @@ class BuildAnalyticsReport
         ];
     }
 
-    /** @return array<string, mixed> */
     public function summary(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
     {
         return $this->summary->build(
@@ -70,55 +65,46 @@ class BuildAnalyticsReport
         );
     }
 
-    /** @return list<array{bucket: string, visits: int, scans: int, visitors: int, blocked: int}> */
     public function timeseries(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
     {
         return $this->timeSeries->build($this->slice($workspace, $filters, $accessibleLinkIds));
     }
 
-    /** @return list<array{label: string, count: int, share: float}> */
     public function breakdown(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds, string $column): array
     {
         return $this->breakdowns->dimension($this->slice($workspace, $filters, $accessibleLinkIds), $column);
     }
 
-    /** @return list<array{outcome: string, count: int, share: float}> */
     public function outcomes(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
     {
         return $this->breakdowns->outcomes($this->slice($workspace, $filters, $accessibleLinkIds));
     }
 
-    /** @return list<array<string, mixed>> */
     public function topLinks(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null, int $limit = 10): array
     {
         return $this->rankings->topLinks($this->slice($workspace, $filters, $accessibleLinkIds), $limit);
     }
 
-    /** @return list<array<string, mixed>> */
     public function topQrCodes(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null, int $limit = 10): array
     {
         return $this->rankings->topQrCodes($this->slice($workspace, $filters, $accessibleLinkIds), $limit);
     }
 
-    /** @return list<array<string, mixed>> */
     public function routingPerformance(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
     {
         return $this->rankings->routingPerformance($this->slice($workspace, $filters, $accessibleLinkIds));
     }
 
-    /** @return list<int>|null */
     public function accessibleLinkIds(Workspace $workspace, User $user): ?array
     {
         return $this->access->isMember($user, $workspace) ? null : [];
     }
 
-    /** @return Generator<int, list<string|null>, void, void> */
     public function exportRows(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Generator
     {
         return $this->exports->rows($this->slice($workspace, $filters, $accessibleLinkIds));
     }
 
-    /** @param list<int>|null $accessibleLinkIds */
     private function slice(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds): AnalyticsEventSlice
     {
         return new AnalyticsEventSlice($workspace, $filters, $accessibleLinkIds);

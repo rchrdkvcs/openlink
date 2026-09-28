@@ -119,8 +119,6 @@ const {
 
 const { countdownFor, activationTitle } = useActivationCountdown(props);
 
-// ── Folder CRUD ──────────────────────────────────────────────────────────────
-
 const folderForm = useForm({ name: '' });
 const creatingFolder = ref(false);
 const newFolderInput = ref<InstanceType<typeof Input> | null>(null);
@@ -237,7 +235,6 @@ function markFaviconFailed(url: string) {
         <p class="mt-1 text-sm text-muted">Short URLs grouped by folder. Drag a link onto a folder to move it.</p>
       </div>
 
-      <!-- Toolbar -->
       <div class="mb-4 flex flex-wrap items-center gap-2">
         <div class="relative w-72">
           <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
@@ -293,7 +290,6 @@ function markFaviconFailed(url: string) {
         </div>
       </div>
 
-      <!-- Folder groups -->
       <div class="space-y-3">
         <section
           v-for="group in groups"
@@ -304,7 +300,6 @@ function markFaviconFailed(url: string) {
           @dragleave="dropGroupKey = null"
           @drop.prevent="onDrop(group)"
         >
-          <!-- Group header -->
           <header
             class="group/h flex h-10 cursor-pointer items-center gap-2 px-3 transition-colors hover:bg-elevated/40"
             :class="isCollapsed(group.key) ? '' : 'border-b'"
@@ -387,7 +382,6 @@ function markFaviconFailed(url: string) {
             </div>
           </header>
 
-          <!-- Rows (rounded + clipped here so the folder menu can overflow the card) -->
           <div v-if="!isCollapsed(group.key)" class="divide-y divide-border/60 overflow-hidden rounded-b-lg">
             <article
               v-for="link in group.links"
@@ -514,7 +508,6 @@ function markFaviconFailed(url: string) {
           </div>
         </section>
 
-        <!-- Global empty state -->
         <section
           v-if="groups.length === 0 || (links.length === 0 && !hasActiveFilters)"
           class="card-sheen rounded-lg border bg-surface"

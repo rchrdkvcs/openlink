@@ -456,7 +456,6 @@ class OpenlinkMvpTest extends TestCase
         [$workspace, $domain, $owner] = $this->workspaceAndDomain();
         $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Campaigns']);
 
-        // The folder Select submits string ids, and "No folder" submits an empty string.
         $this->actingAs($owner)
             ->withSession(['workspace_id' => $workspace->id])
             ->post(route('short-links.store'), [
@@ -748,7 +747,6 @@ class OpenlinkMvpTest extends TestCase
             'destination_url' => 'https://example.com/target',
         ]);
 
-        // Warm the resolution cache for the old address.
         $this->get('/before')->assertRedirect('https://example.com/target');
 
         $this->actingAs($user)
@@ -767,7 +765,6 @@ class OpenlinkMvpTest extends TestCase
 
         $this->assertSame('after', $link->fresh()->slug);
 
-        // The cached entry for the old address must be gone immediately.
         $this->get('/before')->assertNotFound();
         $this->get('/after')->assertRedirect('https://example.com/target');
     }
@@ -823,7 +820,6 @@ class OpenlinkMvpTest extends TestCase
         $this->assertSame(1, $link->fresh()->successful_visits);
     }
 
-    /** @return array{Workspace, Domain, User} */
     private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();

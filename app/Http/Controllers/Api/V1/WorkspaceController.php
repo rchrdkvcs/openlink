@@ -94,7 +94,6 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    /** @return array<string, array<int, mixed>> */
     private function rules(): array
     {
         return [

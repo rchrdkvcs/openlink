@@ -49,7 +49,6 @@ const folderOptions = computed(() => [
   ...props.folders.map((folder) => ({ value: String(folder.id), label: folder.name })),
 ]);
 
-// ── Progressive options — settings already on the link open expanded, the rest are chips ──
 type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url' | 'tags';
 
 const OPTIONS: { key: OptionKey; label: string; icon: unknown }[] = [
@@ -71,7 +70,7 @@ watch(
   (link) => {
     if (!link) return;
     tab.value = 'link';
-    // useLinkForms has already reset editForm to this link's values.
+
     activeOptions.value = OPTIONS.map((o) => o.key).filter((key) => props.editForm[key] !== '');
   },
 );
@@ -85,7 +84,6 @@ function removeOption(key: OptionKey) {
   props.editForm[key] = '';
 }
 
-// ── Short URL ────────────────────────────────────────────────────────────────
 const shortUrlChanged = computed(
   () =>
     Boolean(props.link) &&

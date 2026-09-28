@@ -10,7 +10,6 @@ class WorkspaceShellPayload
 {
     public function __construct(private readonly WorkspaceAccess $access) {}
 
-    /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user): array
     {
         $canManage = $this->access->canManageWorkspace($user, $workspace);

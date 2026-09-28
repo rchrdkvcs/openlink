@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsEventSlice
 {
-    /** @param list<int>|null $accessibleLinkIds */
     public function __construct(
         private readonly Workspace $workspace,
         private readonly AnalyticsFilters $filters,

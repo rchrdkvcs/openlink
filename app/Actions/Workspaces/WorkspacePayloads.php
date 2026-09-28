@@ -4,7 +4,6 @@ namespace App\Actions\Workspaces;
 
 use App\Actions\Domains\DomainPayload;
 use App\Models\Domain;
-use App\Models\Folder;
 use App\Models\InviteLink;
 use App\Models\ShortLink;
 use App\Models\Workspace;
@@ -20,9 +19,6 @@ class WorkspacePayloads
         private readonly ShortLinkLifecycle $lifecycle,
     ) {}
 
-    /** @param array{search?: string, status?: string, tag?: string, page?: int} $filters
-     * @return LengthAwarePaginator<int, array<string, mixed>>
-     */
     public function linksPage(WorkspaceView $view, array $filters = []): LengthAwarePaginator
     {
         $query = $view->workspace->shortLinks()
@@ -58,7 +54,6 @@ class WorkspacePayloads
             ->through(fn (ShortLink $link) => $this->linkPayload($link));
     }
 
-    /** @return array{total: int, active: int} */
     public function linkCounts(Workspace $workspace): array
     {
         $query = $workspace->shortLinks();
@@ -71,7 +66,7 @@ class WorkspacePayloads
 
     private function filterStatus(HasMany $query, string $status): void
     {
-        // Keep the SQL precedence aligned with ShortLinkLifecycle::status().
+
         $now = now()->toDateTimeString();
         $expression = "CASE WHEN archived_at IS NOT NULL THEN 'archived' "
             ."WHEN is_enabled = false THEN 'disabled' "
@@ -82,7 +77,6 @@ class WorkspacePayloads
         $query->whereRaw("{$expression} = ?", [$now, $now, $status]);
     }
 
-    /** @return array<string, \Closure> */
     private function analyticsCounts(): array
     {
         return [
@@ -91,7 +85,6 @@ class WorkspacePayloads
         ];
     }
 
-    /** @return array<string, mixed> */
     public function linkPayload(ShortLink $link): array
     {
         $link->loadMissing(['domain', 'folder', 'tags', 'routingRules.variants']);
@@ -144,13 +137,11 @@ class WorkspacePayloads
         ];
     }
 
-    /** @return Collection<int, Folder> */
     public function folders(WorkspaceView $view): Collection
     {
         return $view->folders;
     }
 
-    /** @return Collection<int, array<string, mixed>> */
     public function domains(Workspace $workspace): Collection
     {
         return $workspace->domains()
@@ -167,7 +158,6 @@ class WorkspacePayloads
         return Domain::query()->where('is_default', true)->first();
     }
 
-    /** @return Collection<int, array<string, mixed>> */
     public function inviteLinks(Workspace $workspace): Collection
     {
         return $workspace->inviteLinks()
@@ -177,7 +167,6 @@ class WorkspacePayloads
             ->map(fn (InviteLink $link) => $this->inviteLinkPayload($link));
     }
 
-    /** @return array<string, mixed> */
     public function inviteLinkPayload(InviteLink $link): array
     {
         return [

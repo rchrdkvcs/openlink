@@ -40,10 +40,8 @@ class OnboardingTest extends TestCase
             'role' => WorkspaceMember::ROLE_OWNER,
         ]);
 
-        // The wizard stays reachable for the optional steps…
         $this->actingAs($user)->get(route('onboarding.show'))->assertOk();
 
-        // …until the user completes it.
         $this->actingAs($user)
             ->post(route('onboarding.complete'))
             ->assertRedirect(route('dashboard', absolute: false));
@@ -105,7 +103,6 @@ class OnboardingTest extends TestCase
 
         $this->actingAs($user)->get(route('onboarding.show'))->assertRedirect(route('dashboard', absolute: false));
 
-        // A second workspace cannot be created through onboarding.
         $this->actingAs($user)
             ->post(route('onboarding.workspace'), ['name' => 'Another'])
             ->assertRedirect(route('onboarding.show', absolute: false));

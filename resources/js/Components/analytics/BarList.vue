@@ -18,7 +18,6 @@ withDefaults(
       class="group relative flex h-8 items-center gap-3 rounded-[5px] px-2.5"
       :title="formatNumber(row.count)"
     >
-      <!-- Share bar behind the label, in the series accent wash -->
       <div
         class="absolute inset-y-0.5 left-0 rounded-[5px] bg-accent/10"
         :style="{ width: `${Math.max(row.share, 1.5)}%` }"

@@ -23,7 +23,6 @@ import { cn } from '@/lib/utils';
 defineOptions({ inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
-    // Not typed as T so the option values alone drive inference (e.g. number ids plus a '' "None" option).
     modelValue?: string | number | null;
     options: SelectOption<T>[];
     placeholder?: string;
@@ -36,8 +35,6 @@ const emit = defineEmits<{ 'update:modelValue': [value: T] }>();
 
 const portalTarget = inject(portalTargetKey, undefined);
 
-// Radix only accepts non-empty string values, so items are keyed by index.
-// Matching is loose ('' ≡ null, 1 ≡ '1') to mirror how native <select> behaved.
 const normalize = (value: unknown) => String(value ?? '');
 
 const selectedKey = computed(() => {

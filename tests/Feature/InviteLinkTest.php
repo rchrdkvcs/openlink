@@ -135,13 +135,11 @@ class InviteLinkTest extends TestCase
             'invite_token' => $link->token,
         ])->assertForbidden();
 
-        // Existing users can still join through the link.
         $user = User::factory()->create();
         $this->actingAs($user)->post(route('join.store', $link))->assertRedirect();
         $this->assertDatabaseHas('workspace_members', ['workspace_id' => $workspace->id, 'user_id' => $user->id]);
     }
 
-    /** @return array{Workspace, User} */
     private function workspaceWithOwner(): array
     {
         $owner = User::factory()->create();
@@ -180,7 +178,6 @@ class InviteLinkTest extends TestCase
         return $user;
     }
 
-    /** @param array<string, mixed> $attributes */
     private function inviteLink(Workspace $workspace, User $creator, string $role, array $attributes = []): InviteLink
     {
         return InviteLink::create([

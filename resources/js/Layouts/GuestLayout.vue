@@ -6,7 +6,6 @@ import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
 <template>
   <div class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-12">
-    <!-- Ambient glow -->
     <div
       class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.12),transparent_65%)]"
     />

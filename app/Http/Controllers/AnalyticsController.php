@@ -61,7 +61,6 @@ class AnalyticsController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    /** @return array<string, mixed> */
     private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspacePayloads $data, WorkspaceView $view): array
     {
         $links = $workspace->shortLinks()

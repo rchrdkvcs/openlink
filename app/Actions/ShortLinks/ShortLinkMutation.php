@@ -69,9 +69,6 @@ class ShortLinkMutation
         $shortLink->delete();
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     private function createFromData(Workspace $workspace, Request $request, array $data, ?Domain $fallbackDomain): ShortLink
     {
         $domain = $this->shortUrls->requireUsableDomain($data['domain_id'] ?? null, $workspace, $fallbackDomain);
@@ -102,9 +99,6 @@ class ShortLinkMutation
         });
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     private function updateFromData(Workspace $workspace, Request $request, ShortLink $shortLink, array $data): ShortLink
     {
         $folder = $this->folderForWorkspace($workspace, $request->user(), $data['folder_id'] ?? null);
@@ -151,7 +145,6 @@ class ShortLinkMutation
         });
     }
 
-    /** @return array<string, list<mixed>> */
     private function rules(Workspace $workspace, bool $creating): array
     {
         return [

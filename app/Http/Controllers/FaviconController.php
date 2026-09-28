@@ -63,7 +63,6 @@ class FaviconController extends Controller
         ]);
     }
 
-    /** @return array{found: bool, body?: string, content_type?: string} */
     private function cachedFavicon(string $origin, string $destinationUrl): array
     {
         $key = 'favicons:v1:'.hash('sha256', $origin);
@@ -92,7 +91,6 @@ class FaviconController extends Controller
         }
     }
 
-    /** @return array{found: bool, body?: string, content_type?: string} */
     private function resolveAndCache(string $key, string $destinationUrl): array
     {
         $response = $this->firstImageResponse($destinationUrl);
@@ -171,7 +169,6 @@ class FaviconController extends Controller
         return $this->fetchWithUrl($url)['response'] ?? null;
     }
 
-    /** @return array{response: ClientResponse, url: string}|null */
     private function fetchWithUrl(string $url): ?array
     {
         $current = $url;
@@ -203,7 +200,6 @@ class FaviconController extends Controller
         return null;
     }
 
-    /** @return list<string> */
     private function candidateUrlsFromHtml(string $pageUrl, string $html): array
     {
         libxml_use_internal_errors(true);
@@ -251,7 +247,6 @@ class FaviconController extends Controller
         ];
     }
 
-    /** @param list<string> $manifestUrls @return list<string> */
     private function candidateUrlsFromManifests(array $manifestUrls): array
     {
         $candidates = [];

@@ -9,9 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureApiEmailIsVerified
 {
-    /**
-     * @param  Closure(Request): Response  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         if (app(InstanceSettings::class)->get('require_email_verification') && $request->user() && ! $request->user()->hasVerifiedEmail()) {

@@ -17,7 +17,6 @@ class LinksPagePayload
         private readonly SmartRouting $routing,
     ) {}
 
-    /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user, array $filters = []): array
     {
         $view = $this->views->make($workspace, $user);

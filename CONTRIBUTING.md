@@ -62,6 +62,7 @@ The Docker example can also run the entire stack. See
 
 - Keep pull requests focused on one problem.
 - Follow the existing Laravel, Vue, and TypeScript conventions.
+- Comments are strictly banned in code, configuration, templates, and scripts, including PHPDoc and inline annotations. Use clear names, types, tests, and documentation instead.
 - Add or update tests for behavior changes.
 - Update user, API, deployment, or domain documentation when behavior changes.
 - Record durable architecture decisions as an ADR in [`docs/adr`](./docs/adr).

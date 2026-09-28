@@ -28,11 +28,6 @@ class AccountRegistration
             || $this->acceptsInvite($inviteLink);
     }
 
-    /**
-     * Create a new user inside the caller's transaction after checking allowsNewUser().
-     *
-     * @param  array<string, mixed>  $attributes
-     */
     public function createUser(array $attributes): User
     {
         $isFirstUser = ! User::query()->exists();

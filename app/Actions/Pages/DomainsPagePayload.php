@@ -13,7 +13,6 @@ class DomainsPagePayload
         private readonly WorkspacePayloads $workspacePayloads,
     ) {}
 
-    /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user): array
     {
         return [

@@ -33,11 +33,6 @@ class ResolutionContextFactory
         ], CarbonImmutable::now(), $this->visitorHash($request));
     }
 
-    /**
-     * A privacy-preserving visitor identifier: hashed from IP + user agent
-     * with a salt that rotates daily, so visitors can be counted as unique
-     * within a day but never tracked across days or identified.
-     */
     private function visitorHash(Request $request): string
     {
         $salt = config('app.key').now()->toDateString();
@@ -77,7 +72,6 @@ class ResolutionContextFactory
             : null;
     }
 
-    /** @return array<string, ?string> */
     private function utm(Request $request): array
     {
         $params = [];

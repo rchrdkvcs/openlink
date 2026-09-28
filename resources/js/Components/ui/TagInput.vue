@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 
 const props = withDefaults(
   defineProps<{
-    /** Comma-separated tag list — the wire format the backend accepts. */
     modelValue: string;
     suggestions?: { id: number; name: string }[];
     placeholder?: string;

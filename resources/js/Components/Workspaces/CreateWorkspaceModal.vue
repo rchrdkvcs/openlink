@@ -86,7 +86,6 @@ async function copyInviteUrl() {
 function close() {
   emit('close');
 
-  // Reset after the closing transition so the content doesn't flicker.
   setTimeout(() => {
     step.value = 'details';
     createdWorkspace.value = null;

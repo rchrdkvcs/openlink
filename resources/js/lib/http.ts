@@ -13,7 +13,6 @@ export class HttpError extends Error {
   }
 }
 
-/** JSON fetch against web routes, authenticated by the current session. */
 export async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(url, {
     credentials: 'same-origin',

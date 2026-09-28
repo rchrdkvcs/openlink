@@ -287,7 +287,6 @@ class SmartRoutingTest extends TestCase
         $this->assertNull(AnalyticsEvent::query()->sole()->routing_rule_id);
     }
 
-    /** @return array{Workspace, Domain, User} */
     private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();

@@ -2,7 +2,6 @@ import forms from '@tailwindcss/forms';
 import animate from 'tailwindcss-animate';
 import defaultTheme from 'tailwindcss/defaultTheme';
 
-/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
@@ -56,7 +55,5 @@ export default {
     },
   },
 
-  // Class strategy: form controls are styled by the ui/ components (see resources/js/lib/controls.ts),
-  // not by element-level base styles.
   plugins: [forms({ strategy: 'class' }), animate],
 };

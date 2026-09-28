@@ -8,7 +8,6 @@ use App\Models\ShortLink;
 use App\Services\ResolutionContext;
 use App\Services\RoutingDecision;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -83,7 +82,6 @@ class SmartRouting
         'between',
     ];
 
-    /** @return array<string, mixed> */
     public function editorPayload(): array
     {
         return [
@@ -117,13 +115,12 @@ class SmartRouting
         ];
     }
 
-    /** @param array<int, array<string, mixed>> $rules */
     public function sync(ShortLink $shortLink, array $rules): void
     {
         $this->validate($shortLink, $rules);
 
         DB::transaction(function () use ($shortLink, $rules): void {
-            // Serialize edits of the same Short Link before reading its current rules.
+
             ShortLink::query()->whereKey($shortLink->id)->lockForUpdate()->firstOrFail();
             $existingRules = $shortLink->routingRules()->with('variants')->get()->keyBy('id');
             $retainedRuleIds = [];
@@ -140,13 +137,11 @@ class SmartRouting
                 $retainedRuleIds[] = $rule->id;
             }
 
-            // Explicitly removed rules lose attribution through the existing nullOnDelete FK.
             $shortLink->routingRules()->whereNotIn('id', $retainedRuleIds)->delete();
             $shortLink->unsetRelation('routingRules');
         });
     }
 
-    /** @param array<string, mixed> $ruleData */
     private function saveRule(ShortLink $shortLink, ?RoutingRule $rule, array $ruleData, int $index): RoutingRule
     {
         $type = $ruleData['type'] ?? RoutingRule::TYPE_CONDITIONAL;
@@ -235,7 +230,6 @@ class SmartRouting
         return new RoutingDecision($shortLink->destination_url);
     }
 
-    /** @param array<int, array<string, mixed>> $rules */
     private function validate(ShortLink $shortLink, array $rules): void
     {
         Validator::make(['routing_rules' => $rules], $this->validationRules())->validate();
@@ -275,7 +269,6 @@ class SmartRouting
         }
     }
 
-    /** @return array<string, mixed> */
     private function validationRules(): array
     {
         return [
@@ -326,7 +319,6 @@ class SmartRouting
             : $results->every(fn (bool $result) => $result);
     }
 
-    /** @param array<string, mixed> $condition */
     private function conditionMatches(array $condition, ResolutionContext $context): bool
     {
         $type = (string) ($condition['type'] ?? '');
@@ -386,7 +378,6 @@ class SmartRouting
         };
     }
 
-    /** @param array<string, mixed> $condition */
     private function dateTimeMatches(array $condition, ResolutionContext $context): bool
     {
         $operator = (string) ($condition['operator'] ?? 'is');
@@ -423,7 +414,6 @@ class SmartRouting
         return $from && $to && $now->betweenIncluded($from, $to);
     }
 
-    /** @param array<string, mixed> $condition */
     private function dayOfWeekMatches(array $condition, ResolutionContext $context): bool
     {
         $day = mb_strtolower($context->occurredAt->setTimezone($this->timezone($condition))->format('l'));
@@ -431,7 +421,6 @@ class SmartRouting
         return $this->scalarMatches($day, (string) ($condition['operator'] ?? 'is'), $condition['value'] ?? null);
     }
 
-    /** @param array<string, mixed> $condition */
     private function timeOfDayMatches(array $condition, ResolutionContext $context): bool
     {
         $operator = (string) ($condition['operator'] ?? 'between');
@@ -464,7 +453,6 @@ class SmartRouting
             : $minutes >= $from || $minutes <= $to;
     }
 
-    /** @param array<string, mixed> $condition */
     private function timezone(array $condition): string
     {
         $timezone = (string) ($condition['timezone'] ?? 'UTC');
@@ -472,7 +460,6 @@ class SmartRouting
         return in_array($timezone, timezone_identifiers_list(), true) ? $timezone : 'UTC';
     }
 
-    /** @return array{mixed, mixed} */
     private function rangeValues(mixed $value): array
     {
         if (is_array($value)) {
@@ -493,7 +480,7 @@ class SmartRouting
 
     private function variantFor(RoutingRule $rule, ResolutionContext $context): ?RoutingVariant
     {
-        /** @var Collection<int, RoutingVariant> $variants */
+
         $variants = $rule->variants
             ->filter(fn (RoutingVariant $variant) => $variant->is_enabled && $variant->weight > 0)
             ->values();
@@ -517,7 +504,6 @@ class SmartRouting
         return $variants->last();
     }
 
-    /** @param array<string, string> $options */
     private function options(array $options): array
     {
         return collect($options)
@@ -526,7 +512,6 @@ class SmartRouting
             ->all();
     }
 
-    /** @param list<string> $values */
     private function plainOptions(array $values): array
     {
         return collect($values)

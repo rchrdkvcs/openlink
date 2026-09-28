@@ -39,8 +39,6 @@ return new class extends Migration
             $table->index(['qr_code_id', 'occurred_at']);
         });
 
-        // The aggregate tables never populated reliably in production (their
-        // writer depended on a queue worker); the raw event table replaces them.
         Schema::dropIfExists('analytics_totals');
         Schema::dropIfExists('analytics_daily_aggregates');
     }

@@ -6,7 +6,6 @@ use Generator;
 
 class ExportRowsSection
 {
-    /** @return Generator<int, list<string|null>, void, void> */
     public function rows(AnalyticsEventSlice $slice): Generator
     {
         $query = $slice->ordered()

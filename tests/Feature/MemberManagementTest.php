@@ -169,7 +169,6 @@ class MemberManagementTest extends TestCase
             ->assertNotFound();
     }
 
-    /** @return array{Workspace, User} */
     private function workspaceWithOwner(string $slug = 'events'): array
     {
         $owner = User::factory()->create();

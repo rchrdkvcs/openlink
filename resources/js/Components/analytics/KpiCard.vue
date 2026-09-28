@@ -8,9 +8,9 @@ const props = withDefaults(
   defineProps<{
     label: string;
     value: number | string;
-    /** Percent change vs the previous period; null when there is no baseline. */
+
     change?: number | null;
-    /** Whether an increase is good (visits) or bad (blocked attempts). */
+
     upIsGood?: boolean;
     detail?: string;
   }>(),

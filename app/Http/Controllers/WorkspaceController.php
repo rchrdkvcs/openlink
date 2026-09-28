@@ -101,7 +101,6 @@ class WorkspaceController extends Controller
         return redirect()->route('dashboard');
     }
 
-    /** @return array<string, array<int, mixed>> */
     private function rules(): array
     {
         return [

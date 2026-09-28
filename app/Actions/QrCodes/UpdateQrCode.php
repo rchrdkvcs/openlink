@@ -9,6 +9,8 @@ use App\Services\QrCodes\QrCodeContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
+use Throwable;
 
 class UpdateQrCode
 {
@@ -62,23 +64,37 @@ class UpdateQrCode
 
         $this->appearance->fill($qrCode, $data);
 
+        $oldLogoPath = $qrCode->logo_path;
+        $newLogoPath = null;
+
         if ($request->hasFile('logo')) {
-            $this->deleteLogo($qrCode);
-            $qrCode->logo_path = $request->file('logo')->store('qr-logos');
+            $newLogoPath = $request->file('logo')->store('qr-logos');
+
+            if (! is_string($newLogoPath) || $newLogoPath === '') {
+                throw new RuntimeException('Unable to store the QR Code logo.');
+            }
+
+            $qrCode->logo_path = $newLogoPath;
         } elseif ($data['remove_logo'] ?? false) {
-            $this->deleteLogo($qrCode);
             $qrCode->logo_path = null;
         }
 
-        $qrCode->save();
+        try {
+            if (! $qrCode->save()) {
+                throw new RuntimeException('Unable to save the QR Code.');
+            }
+        } catch (Throwable $exception) {
+            if ($newLogoPath) {
+                Storage::delete($newLogoPath);
+            }
+
+            throw $exception;
+        }
+
+        if ($oldLogoPath && $oldLogoPath !== $qrCode->logo_path) {
+            Storage::delete($oldLogoPath);
+        }
 
         return $qrCode;
-    }
-
-    private function deleteLogo(QrCode $qrCode): void
-    {
-        if ($qrCode->hasLogo()) {
-            Storage::delete($qrCode->logo_path);
-        }
     }
 }

@@ -2,15 +2,21 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
 use App\Models\InviteLink;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\InstanceSettings;
+use App\Services\OAuth\OAuthProfile;
+use App\Services\OAuth\OAuthSignIn;
+use App\Services\Registration\AccountRegistration;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -19,6 +25,7 @@ use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use PragmaRX\Google2FA\Google2FA;
+use RuntimeException;
 use Tests\TestCase;
 
 class OAuthAuthenticationTest extends TestCase
@@ -100,6 +107,7 @@ class OAuthAuthenticationTest extends TestCase
 
     public function test_oauth_creates_the_first_user_as_instance_admin(): void
     {
+        Event::fake([Registered::class]);
         $this->configureGoogle();
         $this->mockSocialiteUser('google', [
             'id' => 'google-1',
@@ -125,6 +133,36 @@ class OAuthAuthenticationTest extends TestCase
             'email' => 'ada@example.com',
             'email_verified' => true,
         ]);
+        Event::assertDispatched(Registered::class, fn (Registered $event) => $event->user->is($user));
+    }
+
+    public function test_oauth_does_not_dispatch_registered_when_invite_join_rolls_back_creation(): void
+    {
+        Event::fake([Registered::class]);
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $inviteLink = $this->inviteLink($workspace, $owner);
+        $joiner = Mockery::mock(JoinWorkspaceViaInviteLink::class);
+        $joiner->shouldReceive('handle')->once()->andThrow(new RuntimeException('Invite join failed'));
+        $signIn = new OAuthSignIn($joiner, app(AccountRegistration::class));
+
+        try {
+            $signIn->userFor(new OAuthProfile(
+                provider: 'google',
+                providerUserId: 'rollback-test',
+                email: 'rollback@example.com',
+                emailVerified: true,
+                name: 'Rollback User',
+                avatarUrl: null,
+            ), ['invite_token' => $inviteLink->token]);
+            $this->fail('Invite join failure must roll back OAuth registration.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Invite join failed', $exception->getMessage());
+        }
+
+        app()->terminate();
+        Event::assertNotDispatched(Registered::class);
+        $this->assertDatabaseMissing('users', ['email' => 'rollback@example.com']);
+        $this->assertDatabaseMissing('social_accounts', ['provider_user_id' => 'rollback-test']);
     }
 
     public function test_oauth_creates_a_user_when_registration_is_open(): void

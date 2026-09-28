@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { type InertiaForm } from '@inertiajs/vue3';
-import { CalendarClock, CalendarOff, Folder as FolderIcon, Gauge, LifeBuoy, Link2, Lock, Route } from '@lucide/vue';
+import {
+  CalendarClock,
+  CalendarOff,
+  Folder as FolderIcon,
+  Gauge,
+  LifeBuoy,
+  Link2,
+  Lock,
+  Route,
+  Tags as TagsIcon,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
@@ -12,6 +22,7 @@ import PasswordInput from '@/Components/ui/PasswordInput.vue';
 import Select from '@/Components/ui/Select.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import Switch from '@/Components/ui/Switch.vue';
+import TagInput from '@/Components/ui/TagInput.vue';
 
 import DestinationUrlField from './DestinationUrlField.vue';
 import OptionChips from './OptionChips.vue';
@@ -25,6 +36,7 @@ const props = defineProps<{
   editForm: InertiaForm<EditLinkFormData>;
   domains: Domain[];
   folders: Folder[];
+  knownTags: { id: number; name: string }[];
   routingSchema: RoutingSchema;
   canEditWorkspace: boolean;
 }>();
@@ -38,7 +50,7 @@ const folderOptions = computed(() => [
 ]);
 
 // ── Progressive options — settings already on the link open expanded, the rest are chips ──
-type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url';
+type OptionKey = 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'folder_id' | 'fallback_url' | 'tags';
 
 const OPTIONS: { key: OptionKey; label: string; icon: unknown }[] = [
   { key: 'activates_at', label: 'Activation', icon: CalendarClock },
@@ -47,6 +59,7 @@ const OPTIONS: { key: OptionKey; label: string; icon: unknown }[] = [
   { key: 'password', label: 'Password', icon: Lock },
   { key: 'folder_id', label: 'Folder', icon: FolderIcon },
   { key: 'fallback_url', label: 'Fallback URL', icon: LifeBuoy },
+  { key: 'tags', label: 'Tags', icon: TagsIcon },
 ];
 
 const activeOptions = ref<OptionKey[]>([]);
@@ -180,6 +193,11 @@ const shortUrlChanged = computed(
               <p class="mt-1.5 text-xs" :class="editForm.errors.fallback_url ? 'text-danger' : 'text-faint'">
                 {{ editForm.errors.fallback_url ?? 'Shown when the link is expired or unavailable.' }}
               </p>
+            </template>
+
+            <template v-else-if="key === 'tags'">
+              <TagInput v-model="editForm.tags" :suggestions="knownTags" />
+              <p v-if="editForm.errors.tags" class="mt-1.5 text-xs text-danger">{{ editForm.errors.tags }}</p>
             </template>
           </OptionRow>
         </TransitionGroup>

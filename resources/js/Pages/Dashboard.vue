@@ -12,12 +12,11 @@ import { formatNumber, type ReportRange, type Summary, type TimePoint, type TopL
 
 type Workspace = { id: number; name: string; slug: string };
 type Domain = { id: number; hostname: string; status: string; is_default: boolean };
-type ShortLink = { id: number; status: string; is_enabled: boolean };
 
 const props = defineProps<{
   currentWorkspace: Workspace;
   domains: Domain[];
-  links: ShortLink[];
+  linkCounts: { total: number; active: number };
   analytics: {
     range: { preset: string; bucket: ReportRange['bucket'] };
     summary: Summary;
@@ -27,7 +26,6 @@ const props = defineProps<{
 }>();
 
 const summary = computed(() => props.analytics.summary);
-const activeLinks = computed(() => props.links.filter((link) => link.status === 'active' && link.is_enabled).length);
 const verifiedDomains = computed(() => props.domains.filter((domain) => domain.status === 'active').length);
 const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0);
 </script>
@@ -66,8 +64,8 @@ const hasTraffic = computed(() => summary.value.visits + summary.value.scans > 0
         />
         <KpiCard
           label="Active links"
-          :value="activeLinks"
-          :detail="`${links.length} links · ${verifiedDomains} verified domains`"
+          :value="linkCounts.active"
+          :detail="`${linkCounts.total} links · ${verifiedDomains} verified domains`"
         />
       </section>
 

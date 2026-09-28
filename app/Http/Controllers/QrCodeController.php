@@ -10,8 +10,11 @@ use App\Actions\QrCodes\QrCodePayload;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\QrCode;
+use App\Models\ShortLink;
+use App\Models\Workspace;
 use App\Services\QrCodes\QrCodeContent;
 use App\Services\QrCodes\QrCodeRenderer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,24 +27,31 @@ class QrCodeController extends Controller
     {
         $workspace = $access->requireCurrent($request);
         $user = $request->user();
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
 
         $qrCodes = $workspace->qrCodes()
             ->with('shortLink.domain')
             ->withCount(['analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan')])
-            ->latest()
-            ->get()
-            ->map(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
+            ->when(trim($filters['search'] ?? '') !== '', fn ($query) => $query->whereRaw('LOWER(name) LIKE LOWER(?)', ['%'.trim($filters['search']).'%']))
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(24, ['*'], 'page', $filters['page'] ?? 1)
+            ->through(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
 
         return Inertia::render('QrCodes/Index', [
             ...$shell->handle($workspace, $user),
-            'qrCodes' => $qrCodes,
+            'qrCodes' => $qrCodes->items(),
+            'qrPagination' => [
+                'currentPage' => $qrCodes->currentPage(),
+                'lastPage' => $qrCodes->lastPage(),
+                'total' => $qrCodes->total(),
+            ],
+            'qrFilters' => ['search' => $filters['search'] ?? ''],
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
-            'shortLinks' => $workspace->shortLinks()->with('domain')->primary()->latest()->get()->map(fn ($link) => [
-                'id' => $link->id,
-                'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
-                'destination_url' => $link->destination_url,
-            ]),
+            'shortLinks' => $this->shortLinkOptions($workspace),
         ]);
     }
 
@@ -62,12 +72,46 @@ class QrCodeController extends Controller
             'qr' => QrCodePayload::make($qrCode),
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
-            'shortLinks' => $workspace->shortLinks()->with('domain')->primary()->latest()->get()->map(fn ($link) => [
-                'id' => $link->id,
-                'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
-                'destination_url' => $link->destination_url,
-            ]),
+            'shortLinks' => $this->shortLinkOptions($workspace, selectedId: $qrCode->short_link_id),
         ]);
+    }
+
+    public function shortLinks(Request $request, WorkspaceAccess $access): JsonResponse
+    {
+        $workspace = $access->requireCurrent($request);
+        $filters = $request->validate(['search' => ['nullable', 'string', 'max:200']]);
+
+        return response()->json(['data' => $this->shortLinkOptions($workspace, $filters['search'] ?? '')]);
+    }
+
+    /** @return array<int, array{id: int, short_url: string, destination_url: string}> */
+    private function shortLinkOptions(Workspace $workspace, string $search = '', ?int $selectedId = null): array
+    {
+        $query = $workspace->shortLinks()->with('domain')->primary();
+        $search = trim($search);
+        if ($search !== '') {
+            $query->where(function ($query) use ($search): void {
+                $term = '%'.$search.'%';
+                $query->whereRaw('LOWER(slug) LIKE LOWER(?)', [$term])
+                    ->orWhereRaw('LOWER(destination_url) LIKE LOWER(?)', [$term])
+                    ->orWhereHas('domain', fn ($domain) => $domain
+                        ->whereRaw("LOWER('https://' || domains.hostname || '/' || short_links.slug) LIKE LOWER(?)", [$term]));
+            });
+        }
+
+        $links = $query->orderByDesc('created_at')->orderByDesc('id')->limit(50)->get();
+        if ($selectedId && ! $links->contains('id', $selectedId)) {
+            $selected = $workspace->shortLinks()->with('domain')->whereKey($selectedId)->first();
+            if ($selected) {
+                $links->prepend($selected);
+            }
+        }
+
+        return $links->map(fn (ShortLink $link) => [
+            'id' => $link->id,
+            'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
+            'destination_url' => $link->destination_url,
+        ])->all();
     }
 
     public function update(Request $request, QrCode $qrCode, UpdateQrCode $action): RedirectResponse

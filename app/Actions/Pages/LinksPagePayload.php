@@ -18,16 +18,28 @@ class LinksPagePayload
     ) {}
 
     /** @return array<string, mixed> */
-    public function handle(Workspace $workspace, User $user): array
+    public function handle(Workspace $workspace, User $user, array $filters = []): array
     {
         $view = $this->views->make($workspace, $user);
+        $page = $this->workspacePayloads->linksPage($view, $filters);
 
         return [
             ...$this->shell->handle($workspace, $user),
             'domains' => $this->workspacePayloads->domains($workspace),
             'folders' => $this->workspacePayloads->folders($view),
             'tags' => $workspace->tags()->orderBy('name')->get(),
-            'links' => $this->workspacePayloads->links($view),
+            'links' => $page->items(),
+            'linksPagination' => [
+                'currentPage' => $page->currentPage(),
+                'lastPage' => $page->lastPage(),
+                'total' => $page->total(),
+                'perPage' => $page->perPage(),
+            ],
+            'filters' => [
+                'search' => $filters['search'] ?? '',
+                'status' => $filters['status'] ?? '',
+                'tag' => $filters['tag'] ?? '',
+            ],
             'routingSchema' => $this->routing->editorPayload(),
         ];
     }

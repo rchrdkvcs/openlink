@@ -103,6 +103,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
 
         Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
+        Route::get('/qr-codes/short-links/search', [QrCodeController::class, 'shortLinks'])->name('qr-codes.short-links');
         Route::get('/qr-codes/{qrCode}', [QrCodeController::class, 'show'])->name('qr-codes.show');
         Route::patch('/qr-codes/{qrCode}', [QrCodeController::class, 'update'])->name('qr-codes.update');
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');

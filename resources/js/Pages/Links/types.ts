@@ -101,6 +101,7 @@ export type EditLinkFormData = {
   expires_at: string;
   visit_limit: string;
   password: string;
+  tags: string;
   routing_rules: RoutingRuleDraft[];
 };
 
@@ -116,5 +117,7 @@ export type LinksPageProps = {
   folders: Folder[];
   tags: { id: number; name: string }[];
   links: ShortLink[];
+  linksPagination: { currentPage: number; lastPage: number; total: number; perPage: number };
+  filters: LinkFilters;
   routingSchema: RoutingSchema;
 };

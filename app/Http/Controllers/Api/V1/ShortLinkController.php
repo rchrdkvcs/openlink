@@ -17,7 +17,26 @@ class ShortLinkController extends Controller
     {
         $workspace = $access->requireCurrent($request);
 
-        return response()->json(['data' => $data->links($views->make($workspace, $request->user()))]);
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'status' => ['nullable', 'in:active,scheduled,expired,disabled,archived'],
+            'tag' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $page = $data->linksPage($views->make($workspace, $request->user()), [
+            ...$filters,
+            'status' => $filters['status'] ?? 'all',
+        ]);
+
+        return response()->json([
+            'data' => $page->items(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+            ],
+        ]);
     }
 
     public function show(Request $request, ShortLink $shortLink, WorkspaceAccess $access, WorkspacePayloads $data): JsonResponse

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Domain;
 use App\Models\User;
 use App\Services\InstanceSettings;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -40,6 +41,8 @@ class RegistrationTest extends TestCase
         $user = User::query()->where('email', 'test@example.com')->firstOrFail();
 
         Notification::assertSentTo($user, VerifyEmail::class);
+        $this->assertTrue($user->is_instance_admin);
+        $this->assertDatabaseHas('domains', ['hostname' => 'localhost', 'is_default' => true]);
         $this->assertNull($user->email_verified_at);
         $this->get(route('dashboard'))->assertRedirect(route('onboarding.show', absolute: false));
     }
@@ -83,6 +86,33 @@ class RegistrationTest extends TestCase
         $this->get('/register')
             ->assertRedirect(route('login', absolute: false))
             ->assertSessionHas('status', 'Registration is invite-only. Use an invite link or sign in.');
+    }
+
+    public function test_closed_registration_still_allows_first_user_to_bootstrap_only_once(): void
+    {
+        app(InstanceSettings::class)->set('registration_mode', 'closed');
+
+        $this->post('/register', [
+            'name' => 'First User',
+            'email' => 'first@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertTrue(User::query()->where('email', 'first@example.com')->sole()->is_instance_admin);
+        $this->assertDatabaseHas('domains', ['hostname' => 'localhost', 'is_default' => true]);
+
+        $this->post(route('logout'))->assertRedirect();
+
+        $this->post('/register', [
+            'name' => 'Second User',
+            'email' => 'second@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'second@example.com']);
+        $this->assertSame(1, Domain::query()->where('is_default', true)->count());
     }
 
     public function test_home_redirects_guest_to_register_before_setup(): void

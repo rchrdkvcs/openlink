@@ -14,9 +14,12 @@ use App\Models\WorkspaceMember;
 use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Analytics\Outcome;
 use App\Services\Analytics\ReferrerClassifier;
+use App\Services\Analytics\Report\AnalyticsEventSlice;
+use App\Services\Analytics\Report\BreakdownSection;
 use App\Services\Analytics\UserAgentParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AnalyticsTest extends TestCase
@@ -142,6 +145,39 @@ class AnalyticsTest extends TestCase
         $outcomes = collect($report['outcomes']);
         $this->assertSame(3, $outcomes->firstWhere('outcome', Outcome::SUCCESS)['count']);
         $this->assertSame(1, $outcomes->firstWhere('outcome', Outcome::DISABLED)['count']);
+    }
+
+    public function test_breakdown_shares_include_rows_beyond_the_limit_with_one_event_query(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $link = $this->link($workspace, $domain, 'breakdown');
+
+        foreach (range(0, 12) as $index) {
+            $this->event($workspace, $link, ['country' => 'C'.strtoupper(dechex($index))]);
+        }
+
+        $this->event($workspace, $link, ['country' => 'C0']);
+        $this->event($workspace, $link, ['country' => 'C0', 'is_bot' => true]);
+        $this->event($workspace, $link, ['country' => null]);
+
+        $slice = new AnalyticsEventSlice($workspace, AnalyticsFilters::fromRequest(Request::create('/')));
+        $connection = DB::connection();
+        $connection->enableQueryLog();
+        $connection->flushQueryLog();
+
+        try {
+            $rows = app(BreakdownSection::class)->dimension($slice, 'country');
+            $queries = $connection->getQueryLog();
+        } finally {
+            $connection->disableQueryLog();
+            $connection->flushQueryLog();
+        }
+
+        $this->assertCount(1, $queries);
+        $this->assertCount(12, $rows);
+        $this->assertSame('C0', $rows[0]['label']);
+        $this->assertSame(2, $rows[0]['count']);
+        $this->assertSame(14.3, $rows[0]['share']);
     }
 
     public function test_report_filters_by_link_and_metric(): void

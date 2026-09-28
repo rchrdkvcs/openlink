@@ -43,6 +43,18 @@ class ShortLinkLifecycle
         };
     }
 
+    public function reserveVisit(ShortLink $shortLink): bool
+    {
+        // PostgreSQL rechecks this predicate after waiting for a concurrent
+        // update, including one that changes the Visit Limit itself.
+        return ShortLink::query()
+            ->whereKey($shortLink->id)
+            ->where(fn ($query) => $query
+                ->whereNull('visit_limit')
+                ->orWhereColumn('successful_visits', '<', 'visit_limit'))
+            ->increment('successful_visits') === 1;
+    }
+
     public function passwordSessionKey(ShortLink $shortLink): string
     {
         return 'openlink_protected_link_'.$shortLink->id;

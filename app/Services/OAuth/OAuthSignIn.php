@@ -3,22 +3,20 @@
 namespace App\Services\OAuth;
 
 use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
-use App\Models\Domain;
 use App\Models\InviteLink;
 use App\Models\SocialAccount;
 use App\Models\User;
-use App\Services\InstanceSettings;
-use Illuminate\Auth\Events\Registered;
+use App\Services\Registration\AccountRegistration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OAuthSignIn
 {
-    public function __construct(private readonly JoinWorkspaceViaInviteLink $joiner)
-    {
-        //
-    }
+    public function __construct(
+        private readonly JoinWorkspaceViaInviteLink $joiner,
+        private readonly AccountRegistration $registration,
+    ) {}
 
     /**
      * @param  array{invite_token?: string|null}  $context
@@ -35,7 +33,7 @@ class OAuthSignIn
 
         $inviteLink = $this->usableInviteLink($context['invite_token'] ?? null);
 
-        return DB::transaction(function () use ($profile, $inviteLink): User {
+        [$user, $created] = DB::transaction(function () use ($profile, $inviteLink): array {
             $account = SocialAccount::query()
                 ->where('provider', $profile->provider)
                 ->where('provider_user_id', $profile->providerUserId)
@@ -70,7 +68,7 @@ class OAuthSignIn
                 $user->refreshProfileAvatarSource();
                 $this->joinViaInviteIfPresent($user, $inviteLink);
 
-                return $user;
+                return [$user, false];
             }
 
             $user = User::query()
@@ -87,35 +85,37 @@ class OAuthSignIn
                 $user->refreshProfileAvatarSource();
                 $this->joinViaInviteIfPresent($user, $inviteLink);
 
-                return $user;
+                return [$user, false];
             }
 
-            $this->ensureRegistrationIsAllowed($inviteLink);
+            if (! $this->registration->allowsNewUser($inviteLink)) {
+                throw ValidationException::withMessages([
+                    'oauth' => 'Registration is not available. Use an invite link or sign in with an existing account.',
+                ]);
+            }
 
-            $isFirstUser = ! User::query()->exists();
-            $user = User::create([
+            $user = $this->registration->createUser([
                 'name' => $this->nameForNewUser($profile),
                 'email' => $profile->email,
                 'email_verified_at' => now(),
                 'password' => null,
-                'is_instance_admin' => $isFirstUser,
             ]);
 
             $this->createSocialAccount($user, $profile);
-
-            if ($isFirstUser) {
-                $this->createDefaultDomain();
-            }
 
             if ($inviteLink) {
                 $member = $this->joiner->handle($user, $inviteLink);
                 session()->put('workspace_id', $member->workspace_id);
             }
 
-            event(new Registered($user));
-
-            return $user;
+            return [$user, true];
         });
+
+        if ($created) {
+            $this->registration->dispatchRegisteredAfterResponse($user);
+        }
+
+        return $user;
     }
 
     private function usableInviteLink(?string $token): ?InviteLink
@@ -127,26 +127,6 @@ class OAuthSignIn
         $inviteLink = InviteLink::query()->where('token', $token)->first();
 
         return $inviteLink && $inviteLink->isUsable() ? $inviteLink : null;
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function ensureRegistrationIsAllowed(?InviteLink $inviteLink): void
-    {
-        if (! User::query()->exists()) {
-            return;
-        }
-
-        $mode = app(InstanceSettings::class)->get('registration_mode');
-
-        if ($mode === 'open' || ($mode !== 'closed' && $inviteLink)) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'oauth' => 'Registration is not available. Use an invite link or sign in with an existing account.',
-        ]);
     }
 
     private function joinViaInviteIfPresent(User $user, ?InviteLink $inviteLink): void
@@ -190,19 +170,5 @@ class OAuthSignIn
             ->replace(['.', '_', '-'], ' ')
             ->headline()
             ->value();
-    }
-
-    private function createDefaultDomain(): void
-    {
-        Domain::query()->firstOrCreate([
-            'hostname' => parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost',
-        ], [
-            'workspace_id' => null,
-            'status' => Domain::STATUS_ACTIVE,
-            'verification_token' => Str::random(40),
-            'is_default' => true,
-            'verified_at' => now(),
-            'dns_pointed_at' => now(),
-        ]);
     }
 }

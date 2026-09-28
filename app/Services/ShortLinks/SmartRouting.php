@@ -9,6 +9,7 @@ use App\Services\ResolutionContext;
 use App\Services\RoutingDecision;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -121,37 +122,90 @@ class SmartRouting
     {
         $this->validate($shortLink, $rules);
 
-        $shortLink->routingRules()->delete();
+        DB::transaction(function () use ($shortLink, $rules): void {
+            // Serialize edits of the same Short Link before reading its current rules.
+            ShortLink::query()->whereKey($shortLink->id)->lockForUpdate()->firstOrFail();
+            $existingRules = $shortLink->routingRules()->with('variants')->get()->keyBy('id');
+            $retainedRuleIds = [];
 
-        foreach (array_values($rules) as $index => $ruleData) {
-            $type = $ruleData['type'] ?? RoutingRule::TYPE_CONDITIONAL;
-            $rule = $shortLink->routingRules()->create([
-                'name' => filled($ruleData['name'] ?? null) ? $ruleData['name'] : 'Routing rule '.($index + 1),
-                'type' => $type,
-                'position' => $index + 1,
-                'is_enabled' => $ruleData['is_enabled'] ?? true,
-                'match_mode' => $ruleData['match_mode'] ?? RoutingRule::MATCH_ALL,
-                'conditions_version' => 1,
-                'conditions' => array_values($ruleData['conditions'] ?? []),
-                'destination_url' => $type === RoutingRule::TYPE_CONDITIONAL
-                    ? ($ruleData['destination_url'] ?? null)
-                    : null,
-            ]);
+            foreach (array_values($rules) as $index => $ruleData) {
+                $ruleId = $ruleData['id'] ?? null;
+                $rule = $ruleId === null ? null : $existingRules->get((int) $ruleId);
 
-            if ($type !== RoutingRule::TYPE_SPLIT_TEST) {
-                continue;
+                if ($ruleId !== null && $rule === null) {
+                    throw ValidationException::withMessages(["routing_rules.$index.id" => 'This routing rule does not belong to the Short Link.']);
+                }
+
+                $rule = $this->saveRule($shortLink, $rule, $ruleData, $index);
+                $retainedRuleIds[] = $rule->id;
             }
 
-            foreach (array_values($ruleData['variants'] ?? []) as $variantIndex => $variantData) {
-                $rule->variants()->create([
-                    'name' => filled($variantData['name'] ?? null) ? $variantData['name'] : 'Variant '.($variantIndex + 1),
-                    'position' => $variantIndex + 1,
-                    'is_enabled' => $variantData['is_enabled'] ?? true,
-                    'destination_url' => $variantData['destination_url'],
-                    'weight' => $variantData['weight'] ?? 50,
-                ]);
-            }
+            // Explicitly removed rules lose attribution through the existing nullOnDelete FK.
+            $shortLink->routingRules()->whereNotIn('id', $retainedRuleIds)->delete();
+            $shortLink->unsetRelation('routingRules');
+        });
+    }
+
+    /** @param array<string, mixed> $ruleData */
+    private function saveRule(ShortLink $shortLink, ?RoutingRule $rule, array $ruleData, int $index): RoutingRule
+    {
+        $type = $ruleData['type'] ?? RoutingRule::TYPE_CONDITIONAL;
+        $attributes = [
+            'name' => filled($ruleData['name'] ?? null) ? $ruleData['name'] : 'Routing rule '.($index + 1),
+            'type' => $type,
+            'position' => $index + 1,
+            'is_enabled' => $ruleData['is_enabled'] ?? true,
+            'match_mode' => $ruleData['match_mode'] ?? RoutingRule::MATCH_ALL,
+            'conditions_version' => 1,
+            'conditions' => array_values($ruleData['conditions'] ?? []),
+            'destination_url' => $type === RoutingRule::TYPE_CONDITIONAL
+                ? ($ruleData['destination_url'] ?? null)
+                : null,
+        ];
+
+        if ($rule) {
+            $rule->update($attributes);
+        } else {
+            $rule = $shortLink->routingRules()->create($attributes);
         }
+
+        if ($type !== RoutingRule::TYPE_SPLIT_TEST) {
+            $rule->variants()->delete();
+
+            return $rule;
+        }
+
+        $existingVariants = $rule->variants->keyBy('id');
+        $retainedVariantIds = [];
+
+        foreach (array_values($ruleData['variants'] ?? []) as $variantIndex => $variantData) {
+            $variantId = $variantData['id'] ?? null;
+            $variant = $variantId === null ? null : $existingVariants->get((int) $variantId);
+
+            if ($variantId !== null && $variant === null) {
+                throw ValidationException::withMessages(["routing_rules.$index.variants.$variantIndex.id" => 'This variant does not belong to the routing rule.']);
+            }
+
+            $attributes = [
+                'name' => filled($variantData['name'] ?? null) ? $variantData['name'] : 'Variant '.($variantIndex + 1),
+                'position' => $variantIndex + 1,
+                'is_enabled' => $variantData['is_enabled'] ?? true,
+                'destination_url' => $variantData['destination_url'],
+                'weight' => $variantData['weight'] ?? 50,
+            ];
+
+            if ($variant) {
+                $variant->update($attributes);
+            } else {
+                $variant = $rule->variants()->create($attributes);
+            }
+
+            $retainedVariantIds[] = $variant->id;
+        }
+
+        $rule->variants()->whereNotIn('id', $retainedVariantIds)->delete();
+
+        return $rule;
     }
 
     public function resolve(ShortLink $shortLink, ResolutionContext $context): RoutingDecision
@@ -226,6 +280,7 @@ class SmartRouting
     {
         return [
             'routing_rules' => ['array', 'max:50'],
+            'routing_rules.*.id' => ['nullable', 'integer', 'min:1', 'distinct'],
             'routing_rules.*.name' => ['nullable', 'string', 'max:120'],
             'routing_rules.*.type' => ['nullable', Rule::in([RoutingRule::TYPE_CONDITIONAL, RoutingRule::TYPE_SPLIT_TEST])],
             'routing_rules.*.is_enabled' => ['nullable', 'boolean'],
@@ -237,6 +292,7 @@ class SmartRouting
             'routing_rules.*.conditions.*.timezone' => ['nullable', 'timezone'],
             'routing_rules.*.destination_url' => ['nullable', 'url:http,https'],
             'routing_rules.*.variants' => ['nullable', 'array', 'max:20'],
+            'routing_rules.*.variants.*.id' => ['nullable', 'integer', 'min:1', 'distinct'],
             'routing_rules.*.variants.*.name' => ['nullable', 'string', 'max:120'],
             'routing_rules.*.variants.*.is_enabled' => ['nullable', 'boolean'],
             'routing_rules.*.variants.*.destination_url' => ['required_with:routing_rules.*.variants', 'url:http,https'],

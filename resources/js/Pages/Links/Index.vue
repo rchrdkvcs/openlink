@@ -21,7 +21,7 @@ import {
   Timer,
   Trash2,
 } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -42,7 +42,40 @@ import { useLinkGroups } from './useLinkGroups';
 
 const props = defineProps<LinksPageProps>();
 
-const filters = ref({ search: '', status: '', tag: '' });
+const filters = ref({ ...props.filters });
+let filterTimer: ReturnType<typeof setTimeout> | undefined;
+onUnmounted(() => clearTimeout(filterTimer));
+watch(
+  filters,
+  () => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => {
+      router.get(
+        route('links.index'),
+        { ...filters.value },
+        {
+          preserveState: true,
+          preserveScroll: true,
+          replace: true,
+          only: ['links', 'linksPagination', 'filters'],
+        },
+      );
+    }, 300);
+  },
+  { deep: true },
+);
+
+function goToPage(page: number) {
+  router.get(
+    route('links.index'),
+    { ...filters.value, page },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      only: ['links', 'linksPagination', 'filters'],
+    },
+  );
+}
 const statusOptions = [
   { value: '', label: 'All statuses' },
   { value: 'active', label: 'Active' },
@@ -138,10 +171,9 @@ function commitRenameFolder() {
   }
 }
 
-function deleteFolder(folder: Folder, linkCount: number) {
+function deleteFolder(folder: Folder) {
   folderMenuFor.value = null;
-  const detail = linkCount > 0 ? ` Its ${linkCount} link${linkCount > 1 ? 's' : ''} will move to Unfiled.` : '';
-  if (confirm(`Delete folder "${folder.name}"?${detail}`)) {
+  if (confirm(`Delete folder "${folder.name}"? Any links in it will move to Unfiled.`)) {
     router.delete(route('folders.destroy', folder.id), { preserveScroll: true });
   }
 }
@@ -306,7 +338,7 @@ function markFaviconFailed(url: string) {
               @click.stop
             />
             <span v-else class="text-[13px] font-semibold text-foreground">{{ group.folder?.name ?? 'Unfiled' }}</span>
-            <span class="text-xs tabular-nums text-faint">{{ group.links.length }}</span>
+            <span class="text-xs tabular-nums text-faint">{{ group.links.length }} on page</span>
 
             <div
               v-if="group.folder && canManageWorkspace"
@@ -346,7 +378,7 @@ function markFaviconFailed(url: string) {
                   </button>
                   <button
                     class="flex w-full items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-[13px] text-danger transition-colors hover:bg-danger/15"
-                    @click="deleteFolder(group.folder, group.links.length)"
+                    @click="deleteFolder(group.folder)"
                   >
                     <Trash2 class="h-3.5 w-3.5" /> Delete folder
                   </button>
@@ -508,6 +540,35 @@ function markFaviconFailed(url: string) {
           </EmptyState>
         </section>
       </div>
+
+      <nav
+        v-if="linksPagination.lastPage > 1"
+        class="mt-5 flex items-center justify-between gap-3 text-sm"
+        aria-label="Links pages"
+      >
+        <span class="text-faint"
+          >Page {{ linksPagination.currentPage }} of {{ linksPagination.lastPage }} ·
+          {{ linksPagination.total }} links</span
+        >
+        <div class="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            :disabled="linksPagination.currentPage <= 1"
+            @click="goToPage(linksPagination.currentPage - 1)"
+            >Previous</Button
+          >
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            :disabled="linksPagination.currentPage >= linksPagination.lastPage"
+            @click="goToPage(linksPagination.currentPage + 1)"
+            >Next</Button
+          >
+        </div>
+      </nav>
     </div>
 
     <CreateLinkDrawer
@@ -526,6 +587,7 @@ function markFaviconFailed(url: string) {
       :edit-form="editForm"
       :domains="usableDomains"
       :folders="folders"
+      :known-tags="tags"
       :routing-schema="routingSchema"
       :can-edit-workspace="canEditWorkspace"
       @close="selectedLink = null"

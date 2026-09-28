@@ -8,11 +8,11 @@ import Drawer from '@/Components/ui/Drawer.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
-import type { SelectOption } from '@/lib/controls';
 
 import PayloadFields from './PayloadFields.vue';
 import type { PayloadDescriptors, ShortLinkOption } from './types';
 import { payloadHint, payloadIcon } from './types';
+import { useShortLinkSearch } from './useShortLinkSearch';
 
 const props = defineProps<{
   show: boolean;
@@ -30,8 +30,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; submit: []; setType: [type: string] }>();
 
-const shortLinkOptions = computed<SelectOption<number>[]>(() =>
-  props.shortLinks.map((link) => ({ value: link.id, label: `${link.short_url} → ${link.destination_url}` })),
+const { search: shortLinkSearch, options: shortLinkOptions } = useShortLinkSearch(
+  props.shortLinks,
+  computed(() => props.form.short_link_id),
 );
 </script>
 
@@ -102,6 +103,7 @@ const shortLinkOptions = computed<SelectOption<number>[]>(() =>
         </div>
 
         <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
+          <Input v-model="shortLinkSearch" class="mb-2" placeholder="Search Short Links…" />
           <Select v-model="form.short_link_id" :options="shortLinkOptions" placeholder="Select a Short Link…" />
         </Field>
 

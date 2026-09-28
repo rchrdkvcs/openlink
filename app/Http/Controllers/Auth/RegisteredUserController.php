@@ -4,40 +4,33 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
 use App\Http\Controllers\Controller;
-use App\Models\Domain;
 use App\Models\InviteLink;
 use App\Models\User;
-use App\Services\InstanceSettings;
 use App\Services\OAuth\OAuthProviderRegistry;
-use Illuminate\Auth\Events\Registered;
+use App\Services\Registration\AccountRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class RegisteredUserController extends Controller
 {
     /**
      * Display the registration view.
      */
-    public function create(Request $request, InstanceSettings $settings, OAuthProviderRegistry $providers): Response
+    public function create(Request $request, AccountRegistration $registration, OAuthProviderRegistry $providers): Response
     {
         $inviteLink = $this->usableInviteLink($request->query('invite'));
 
-        $inviteAllowsRegistration = $inviteLink && $settings->get('registration_mode') !== 'closed';
-        $registrationMode = $settings->get('registration_mode');
-        $registrationAllowsOAuth = ! User::query()->exists()
-            || $registrationMode === 'open'
-            || $inviteAllowsRegistration;
+        $inviteAllowsRegistration = $registration->acceptsInvite($inviteLink);
+        $registrationAllowsOAuth = $registration->allowsNewUser($inviteLink);
 
-        if (! $inviteAllowsRegistration && User::query()->exists() && $registrationMode !== 'open') {
+        if (! $registrationAllowsOAuth) {
             redirect()
                 ->route('login')
                 ->with('status', 'Registration is invite-only. Use an invite link or sign in.')
@@ -59,7 +52,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request, JoinWorkspaceViaInviteLink $joiner): RedirectResponse
+    public function store(Request $request, JoinWorkspaceViaInviteLink $joiner, AccountRegistration $registration): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -68,36 +61,19 @@ class RegisteredUserController extends Controller
             'invite_token' => ['nullable', 'string'],
         ]);
 
-        $isFirstUser = ! User::query()->exists();
         $inviteLink = $request->filled('invite_token')
             ? InviteLink::query()->where('token', $request->string('invite_token'))->first()
             : null;
 
-        $registrationMode = app(InstanceSettings::class)->get('registration_mode');
-        abort_if(! $isFirstUser && $registrationMode === 'closed', 403);
-        abort_if(! $isFirstUser && ! $inviteLink && $registrationMode !== 'open', 403);
         abort_if($inviteLink && ! $inviteLink->isUsable(), 410);
+        abort_unless($registration->allowsNewUser($inviteLink), 403);
 
-        $user = DB::transaction(function () use ($request, $isFirstUser, $inviteLink, $joiner) {
-            $user = User::create([
+        $user = DB::transaction(function () use ($request, $inviteLink, $joiner, $registration) {
+            $user = $registration->createUser([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'is_instance_admin' => $isFirstUser,
             ]);
-
-            if ($isFirstUser) {
-                Domain::query()->firstOrCreate([
-                    'hostname' => parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost',
-                ], [
-                    'workspace_id' => null,
-                    'status' => Domain::STATUS_ACTIVE,
-                    'verification_token' => Str::random(40),
-                    'is_default' => true,
-                    'verified_at' => now(),
-                    'dns_pointed_at' => now(),
-                ]);
-            }
 
             if ($inviteLink) {
                 $member = $joiner->handle($user, $inviteLink);
@@ -108,20 +84,9 @@ class RegisteredUserController extends Controller
         });
 
         Auth::login($user);
-        $this->sendRegisteredEventAfterResponse($user);
+        $registration->dispatchRegisteredAfterResponse($user);
 
         return redirect(route('dashboard', absolute: false));
-    }
-
-    private function sendRegisteredEventAfterResponse(User $user): void
-    {
-        app()->terminating(function () use ($user): void {
-            try {
-                event(new Registered($user));
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        });
     }
 
     private function usableInviteLink(?string $token): ?InviteLink

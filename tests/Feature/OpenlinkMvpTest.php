@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Resolution\ResolvePublicLink;
 use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\Folder;
@@ -13,6 +14,7 @@ use App\Models\WorkspaceMember;
 use App\Services\Analytics\Outcome;
 use App\Services\SlugService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -217,6 +219,53 @@ class OpenlinkMvpTest extends TestCase
             'metric' => 'visit',
             'outcome' => Outcome::VISIT_LIMIT_REACHED,
         ]);
+    }
+
+    public function test_visit_limit_rechecks_count_when_two_resolutions_start_with_stale_link_instances(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'one-visit',
+            'destination_url' => 'https://example.com/one-visit',
+            'visit_limit' => 1,
+        ]);
+
+        $firstSnapshot = ShortLink::findOrFail($link->id);
+        $secondSnapshot = ShortLink::findOrFail($link->id);
+        $resolver = app(ResolvePublicLink::class);
+        $request = Request::create('http://localhost/one-visit');
+
+        $first = $resolver->resolveShortLink($request, $firstSnapshot);
+        $second = $resolver->resolveShortLink($request, $secondSnapshot);
+
+        $this->assertSame(Outcome::SUCCESS, $first->outcome);
+        $this->assertSame('https://example.com/one-visit', $first->redirectUrl);
+        $this->assertSame(Outcome::VISIT_LIMIT_REACHED, $second->outcome);
+        $this->assertSame(1, $link->fresh()->successful_visits);
+    }
+
+    public function test_visit_limit_added_after_link_load_is_checked_when_reserving_visit(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'new-limit',
+            'destination_url' => 'https://example.com/new-limit',
+            'successful_visits' => 1,
+        ]);
+        $snapshotWithoutLimit = ShortLink::findOrFail($link->id);
+        $link->update(['visit_limit' => 1]);
+
+        $result = app(ResolvePublicLink::class)->resolveShortLink(
+            Request::create('http://localhost/new-limit'),
+            $snapshotWithoutLimit,
+        );
+
+        $this->assertSame(Outcome::VISIT_LIMIT_REACHED, $result->outcome);
+        $this->assertSame(1, $link->fresh()->successful_visits);
     }
 
     public function test_protected_link_requires_password_before_visit_is_counted(): void

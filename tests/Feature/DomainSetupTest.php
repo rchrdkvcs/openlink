@@ -9,7 +9,9 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Dns\DnsResolver;
 use App\Services\InstanceSettings;
+use App\Services\ShortLinks\ShortUrlCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class FakeDnsResolver extends DnsResolver
@@ -175,6 +177,64 @@ class DomainSetupTest extends TestCase
         $this->artisan('openlink:verify-pending-domains')->assertSuccessful();
 
         $this->assertSame(Domain::STATUS_ACTIVE, $domain->fresh()->status);
+    }
+
+    public function test_dns_metadata_and_status_changes_preserve_short_url_cache_entries(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndPendingDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'launch',
+            'destination_url' => 'https://example.com/launch',
+        ]);
+        $key = app(ShortUrlCache::class)->key($domain, $link->slug);
+        Cache::put($key, $link->id, 600);
+
+        $domain->forceFill([
+            'status' => Domain::STATUS_ACTIVE,
+            'last_checked_at' => now(),
+            'dns_pointed_at' => now(),
+        ])->save();
+
+        $this->assertSame($link->id, Cache::get($key));
+    }
+
+    public function test_hostname_change_invalidates_old_and_new_short_url_cache_entries(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndPendingDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'launch',
+            'destination_url' => 'https://example.com/launch',
+        ]);
+        $oldKey = app(ShortUrlCache::class)->key($domain, $link->slug);
+        Cache::put($oldKey, $link->id, 600);
+        Cache::put('resolution:new.example.test:launch', 999, 600);
+
+        $domain->hostname = 'new.example.test';
+        $domain->save();
+
+        $this->assertFalse(Cache::has($oldKey));
+        $this->assertFalse(Cache::has('resolution:new.example.test:launch'));
+    }
+
+    public function test_domain_deletion_invalidates_short_url_cache_entries(): void
+    {
+        [$workspace, $domain] = $this->workspaceAndPendingDomain();
+        $link = ShortLink::create([
+            'workspace_id' => $workspace->id,
+            'domain_id' => $domain->id,
+            'slug' => 'launch',
+            'destination_url' => 'https://example.com/launch',
+        ]);
+        $key = app(ShortUrlCache::class)->key($domain, $link->slug);
+        Cache::put($key, $link->id, 600);
+
+        $domain->delete();
+
+        $this->assertFalse(Cache::has($key));
     }
 
     public function test_setup_page_renders_with_dns_instructions(): void

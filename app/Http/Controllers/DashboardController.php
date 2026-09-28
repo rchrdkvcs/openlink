@@ -38,7 +38,14 @@ class DashboardController extends Controller
     {
         $workspace = $access->requireCurrent($request);
 
-        return Inertia::render('Links/Index', $payload->handle($workspace, $request->user()));
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'status' => ['nullable', 'in:active,scheduled,expired,disabled,archived'],
+            'tag' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        return Inertia::render('Links/Index', $payload->handle($workspace, $request->user(), $filters));
     }
 
     public function domains(Request $request, WorkspaceAccess $access, DomainsPagePayload $payload): Response

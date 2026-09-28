@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Download, Plus, QrCode } from '@lucide/vue';
-import { ref } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import Input from '@/Components/ui/Input.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 import CreateQrCodeDrawer from './CreateQrCodeDrawer.vue';
@@ -14,6 +15,8 @@ import { payloadDefaults, payloadIcon } from './types';
 
 const props = defineProps<{
   qrCodes: QrCodeRecord[];
+  qrPagination: { currentPage: number; lastPage: number; total: number };
+  qrFilters: { search: string };
   payloadTypes: Record<string, string>;
   payloadDescriptors: PayloadDescriptors;
   shortLinks: ShortLinkOption[];
@@ -21,6 +24,36 @@ const props = defineProps<{
 }>();
 
 const createOpen = ref(false);
+const search = ref(props.qrFilters.search);
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+onUnmounted(() => clearTimeout(searchTimer));
+watch(search, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    router.get(
+      route('qr-codes.index'),
+      { search: search.value },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        only: ['qrCodes', 'qrPagination', 'qrFilters'],
+      },
+    );
+  }, 300);
+});
+
+function goToPage(page: number) {
+  router.get(
+    route('qr-codes.index'),
+    { search: search.value, page },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      only: ['qrCodes', 'qrPagination', 'qrFilters'],
+    },
+  );
+}
 
 const form = useForm({
   name: '',
@@ -82,10 +115,21 @@ function submit() {
         </Button>
       </div>
 
+      <Input
+        v-model="search"
+        class="mb-5 w-full max-w-sm"
+        placeholder="Search QR Codes…"
+        aria-label="Search QR Codes"
+      />
+
       <EmptyState
         v-if="qrCodes.length === 0"
-        title="No QR Codes yet"
-        description="Create a tracked QR Code for a Short Link or encode a native payload such as Wi-Fi or a contact card."
+        :title="search ? 'No QR Codes match' : 'No QR Codes yet'"
+        :description="
+          search
+            ? 'Try another name.'
+            : 'Create a tracked QR Code for a Short Link or encode a native payload such as Wi-Fi or a contact card.'
+        "
       >
         <template #icon><QrCode class="h-5 w-5 text-faint" /></template>
         <template v-if="canEditWorkspace" #action>
@@ -137,6 +181,33 @@ function submit() {
           </div>
         </Link>
       </div>
+      <nav
+        v-if="qrPagination.lastPage > 1"
+        class="mt-5 flex items-center justify-between gap-3 text-sm"
+        aria-label="QR Code pages"
+      >
+        <span class="text-faint"
+          >Page {{ qrPagination.currentPage }} of {{ qrPagination.lastPage }} · {{ qrPagination.total }} QR Codes</span
+        >
+        <div class="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            :disabled="qrPagination.currentPage <= 1"
+            @click="goToPage(qrPagination.currentPage - 1)"
+            >Previous</Button
+          >
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            :disabled="qrPagination.currentPage >= qrPagination.lastPage"
+            @click="goToPage(qrPagination.currentPage + 1)"
+            >Next</Button
+          >
+        </div>
+      </nav>
     </div>
 
     <CreateQrCodeDrawer

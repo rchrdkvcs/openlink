@@ -89,7 +89,25 @@ class ResolvePublicLink
         $context = $this->contexts->fromRequest($request);
         $decision = $this->routing->resolve($shortLink, $context);
 
-        $shortLink->increment('successful_visits');
+        if (! $this->lifecycle->reserveVisit($shortLink)) {
+            $currentLink = ShortLink::query()->with('domain')->find($shortLink->id);
+
+            if (! $currentLink) {
+                return new ResolutionResult(Outcome::NOT_FOUND);
+            }
+
+            $unavailableOutcome = $this->lifecycle->unavailableOutcome($currentLink) ?? Outcome::VISIT_LIMIT_REACHED;
+            $this->analytics->record($request, $currentLink, $qrCode, $qrCode ? RecordAnalytics::METRIC_SCAN : RecordAnalytics::METRIC_VISIT, $unavailableOutcome);
+
+            return new ResolutionResult(
+                outcome: $unavailableOutcome,
+                shortLink: $currentLink,
+                qrCode: $qrCode,
+                redirectUrl: $currentLink->fallback_url,
+            );
+        }
+
+        $shortLink->successful_visits++;
         $this->analytics->record(
             $request,
             $shortLink,

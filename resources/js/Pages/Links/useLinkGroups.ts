@@ -3,19 +3,6 @@ import { computed, ref, type Ref } from 'vue';
 
 import type { LinkFilters, LinkGroup, LinksPageProps, ShortLink } from './types';
 
-function matchesFilters(link: ShortLink, filters: LinkFilters) {
-  if (!filters.status && link.status === 'archived') {
-    return false;
-  }
-
-  const haystack = `${link.short_url} ${link.destination_url} ${link.slug}`.toLowerCase();
-  const matchesSearch = !filters.search || haystack.includes(filters.search.toLowerCase());
-  const matchesStatus = !filters.status || link.status === filters.status;
-  const matchesTag = !filters.tag || link.tags.some((tag) => tag.name === filters.tag);
-
-  return matchesSearch && matchesStatus && matchesTag;
-}
-
 export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) {
   const hasActiveFilters = computed(() => Boolean(filters.value.search || filters.value.status || filters.value.tag));
 
@@ -23,10 +10,10 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
     const result: LinkGroup[] = props.folders.map((folder) => ({
       key: String(folder.id),
       folder,
-      links: props.links.filter((link) => link.folder?.id === folder.id && matchesFilters(link, filters.value)),
+      links: props.links.filter((link) => link.folder?.id === folder.id),
     }));
 
-    const unfiled = props.links.filter((link) => !link.folder && matchesFilters(link, filters.value));
+    const unfiled = props.links.filter((link) => !link.folder);
     if (unfiled.length > 0 || props.folders.length === 0) {
       result.push({ key: 'unfiled', folder: null, links: unfiled });
     }
@@ -34,7 +21,7 @@ export function useLinkGroups(props: LinksPageProps, filters: Ref<LinkFilters>) 
     return hasActiveFilters.value ? result.filter((group) => group.links.length > 0) : result;
   });
 
-  const totalMatching = computed(() => groups.value.reduce((sum, group) => sum + group.links.length, 0));
+  const totalMatching = computed(() => props.linksPagination.total);
   const collapseStorageKey = `links.collapsed.${props.currentWorkspace.id}`;
 
   function readCollapsed(): Set<string> {

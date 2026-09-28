@@ -35,11 +35,15 @@ class ShortUrlCache
         }
     }
 
-    public function forgetForDomain(Domain $domain): void
+    public function forgetForDomain(Domain $domain, ?string $previousHostname = null): void
     {
-        $domain->shortLinks()->pluck('slug')->each(
-            fn (string $slug) => Cache::forget($this->key($domain, $slug))
-        );
+        $domain->shortLinks()->pluck('slug')->each(function (string $slug) use ($domain, $previousHostname): void {
+            Cache::forget($this->key($domain, $slug));
+
+            if ($previousHostname !== null && $previousHostname !== $domain->hostname) {
+                Cache::forget("resolution:{$previousHostname}:{$slug}");
+            }
+        });
     }
 
     public function key(Domain $domain, string $slug): string

@@ -6,6 +6,7 @@ use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\QrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class DeleteQrCode
 {
@@ -15,10 +16,14 @@ class DeleteQrCode
     {
         $this->access->requireEditableQrCode($request, $qrCode);
 
-        if ($qrCode->hasLogo()) {
-            Storage::delete($qrCode->logo_path);
+        $logoPath = $qrCode->logo_path;
+
+        if (! $qrCode->delete()) {
+            throw new RuntimeException('Unable to delete the QR Code.');
         }
 
-        $qrCode->delete();
+        if ($logoPath) {
+            Storage::delete($logoPath);
+        }
     }
 }

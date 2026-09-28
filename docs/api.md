@@ -94,7 +94,7 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | `GET` | `/api/v1/links` | List accessible links (includes status, visits, scans, tags, QR codes) |
 | `POST` | `/api/v1/links` | Create a link |
 | `GET` | `/api/v1/links/{id}` | Show one link |
-| `PATCH` | `/api/v1/links/{id}` | Update destination, lifecycle rules, password |
+| `PATCH` | `/api/v1/links/{id}` | Update destination, lifecycle rules, password, tags |
 | `POST` | `/api/v1/links/{id}/move` | Move to a folder (`folder_id`, null to unfile) |
 | `POST` | `/api/v1/links/{id}/archive` | Archive the link |
 | `DELETE` | `/api/v1/links/{id}` | Delete permanently (managers only) |
@@ -118,6 +118,8 @@ Create payload (only `destination_url` is required):
 ```
 
 When `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
+
+The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags.
 
 ### Domains
 

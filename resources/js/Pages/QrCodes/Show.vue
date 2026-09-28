@@ -17,6 +17,7 @@ import type { SelectOption } from '@/lib/controls';
 import PayloadFields from './PayloadFields.vue';
 import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
 import { payloadDefaults } from './types';
+import { useShortLinkSearch } from './useShortLinkSearch';
 
 const props = defineProps<{
   qr: QrCodeRecord;
@@ -79,8 +80,13 @@ const form = useForm({
 
 const exportSize = ref(props.qr.size);
 
-const shortLinkOptions = computed<SelectOption<number>[]>(() =>
-  props.shortLinks.map((link) => ({ value: link.id, label: `${link.short_url} → ${link.destination_url}` })),
+const {
+  search: shortLinkSearch,
+  links: availableShortLinks,
+  options: shortLinkOptions,
+} = useShortLinkSearch(
+  props.shortLinks,
+  computed(() => form.short_link_id),
 );
 const copied = ref(false);
 const previewVersion = ref(0);
@@ -268,11 +274,12 @@ async function copyPublicUrl() {
             <div v-if="form.target_type === 'short_link'" class="p-5 text-sm">
               <p class="font-medium text-foreground">
                 {{
-                  shortLinks.find((link) => link.id === Number(form.short_link_id))?.short_url ?? 'Select a Short Link'
+                  availableShortLinks.find((link) => link.id === Number(form.short_link_id))?.short_url ??
+                  'Select a Short Link'
                 }}
               </p>
               <p class="mt-1 truncate text-xs text-faint">
-                {{ shortLinks.find((link) => link.id === Number(form.short_link_id))?.destination_url }}
+                {{ availableShortLinks.find((link) => link.id === Number(form.short_link_id))?.destination_url }}
               </p>
             </div>
             <pre
@@ -293,6 +300,7 @@ async function copyPublicUrl() {
             </Field>
 
             <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
+              <Input v-model="shortLinkSearch" class="mb-2" placeholder="Search Short Links…" />
               <Select v-model="form.short_link_id" :options="shortLinkOptions" placeholder="Select a Short Link…" />
             </Field>
 

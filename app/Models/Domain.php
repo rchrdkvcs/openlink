@@ -64,7 +64,9 @@ class Domain extends Model
     protected static function booted(): void
     {
         static::saved(function (Domain $domain): void {
-            app(ShortUrlCache::class)->forgetForDomain($domain);
+            if ($domain->wasChanged('hostname')) {
+                app(ShortUrlCache::class)->forgetForDomain($domain, $domain->getOriginal('hostname'));
+            }
         });
 
         static::deleting(function (Domain $domain): void {

@@ -12,16 +12,14 @@ class BreakdownSection
         $rows = $slice->query()
             ->successful()
             ->whereNotNull($column)
-            ->selectRaw("{$column} as label, count(*) as count, count(distinct visitor_hash) as visitors")
+            ->selectRaw("{$column} as label, count(*) as count, count(distinct visitor_hash) as visitors, sum(count(*)) over () as dimension_total")
             ->groupBy($column)
             ->orderByDesc('count')
             ->limit(self::LIMIT)
             ->get();
 
-        $total = (int) $slice->query()
-            ->successful()
-            ->whereNotNull($column)
-            ->count();
+        // The window sees every group before LIMIT, so shares include hidden rows.
+        $total = (int) ($rows->first()?->dimension_total ?? 0);
 
         return $rows->map(fn ($row) => [
             'label' => (string) $row->label,

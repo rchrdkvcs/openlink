@@ -9,6 +9,8 @@ use App\Models\InviteLink;
 use App\Models\ShortLink;
 use App\Models\Workspace;
 use App\Services\ShortLinks\ShortLinkLifecycle;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class WorkspacePayloads
@@ -18,16 +20,66 @@ class WorkspacePayloads
         private readonly ShortLinkLifecycle $lifecycle,
     ) {}
 
-    /** @return Collection<int, array<string, mixed>> */
-    public function links(WorkspaceView $view): Collection
+    /** @param array{search?: string, status?: string, tag?: string, page?: int} $filters
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function linksPage(WorkspaceView $view, array $filters = []): LengthAwarePaginator
     {
-        return $view->workspace->shortLinks()
+        $query = $view->workspace->shortLinks()
             ->with(['domain', 'folder', 'tags', 'routingRules.variants'])
             ->withCount('qrCodes')
-            ->withCount($this->analyticsCounts())
-            ->latest()
-            ->get()
-            ->map(fn (ShortLink $link) => $this->linkPayload($link));
+            ->withCount($this->analyticsCounts());
+
+        $search = trim($filters['search'] ?? '');
+        if ($search !== '') {
+            $query->where(function ($query) use ($search): void {
+                $term = '%'.$search.'%';
+                $query->whereRaw('LOWER(slug) LIKE LOWER(?)', [$term])
+                    ->orWhereRaw('LOWER(destination_url) LIKE LOWER(?)', [$term])
+                    ->orWhereHas('domain', fn ($domain) => $domain
+                        ->whereRaw("LOWER('https://' || domains.hostname || '/' || short_links.slug) LIKE LOWER(?)", [$term]));
+            });
+        }
+
+        $tag = $filters['tag'] ?? null;
+        if ($tag !== null && $tag !== '') {
+            $query->whereHas('tags', fn ($tags) => $tags->where('name', $tag));
+        }
+
+        $status = $filters['status'] ?? '';
+        if ($status === '') {
+            $query->whereNull('archived_at');
+        } elseif ($status !== 'all') {
+            $this->filterStatus($query, $status);
+        }
+
+        return $query->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(50, ['*'], 'page', $filters['page'] ?? 1)
+            ->through(fn (ShortLink $link) => $this->linkPayload($link));
+    }
+
+    /** @return array{total: int, active: int} */
+    public function linkCounts(Workspace $workspace): array
+    {
+        $query = $workspace->shortLinks();
+        $total = (clone $query)->count();
+        $activeQuery = clone $query;
+        $this->filterStatus($activeQuery, 'active');
+
+        return ['total' => $total, 'active' => $activeQuery->count()];
+    }
+
+    private function filterStatus(HasMany $query, string $status): void
+    {
+        // Keep the SQL precedence aligned with ShortLinkLifecycle::status().
+        $now = now()->toDateTimeString();
+        $expression = "CASE WHEN archived_at IS NOT NULL THEN 'archived' "
+            ."WHEN is_enabled = false THEN 'disabled' "
+            ."WHEN activates_at IS NOT NULL AND activates_at > ? THEN 'scheduled' "
+            .'WHEN (expires_at IS NOT NULL AND expires_at < ?) '
+            ."OR (visit_limit IS NOT NULL AND successful_visits >= visit_limit) THEN 'expired' "
+            ."ELSE 'active' END";
+        $query->whereRaw("{$expression} = ?", [$now, $now, $status]);
     }
 
     /** @return array<string, \Closure> */

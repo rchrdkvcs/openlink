@@ -143,6 +143,10 @@ class ShortLinkMutation
                 $this->routing->sync($shortLink, $data['routing_rules'] ?? []);
             }
 
+            if (array_key_exists('tags', $data)) {
+                $this->syncTags($shortLink, $data['tags'] ?? '');
+            }
+
             return $shortLink;
         });
     }
@@ -195,9 +199,7 @@ class ShortLinkMutation
                 ])->id;
             });
 
-        if ($tagIds->isNotEmpty()) {
-            $shortLink->tags()->sync($tagIds->all());
-        }
+        $shortLink->tags()->sync($tagIds->all());
     }
 
     private function defaultDomain(): ?Domain

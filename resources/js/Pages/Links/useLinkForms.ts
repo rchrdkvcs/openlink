@@ -34,6 +34,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
     expires_at: '',
     visit_limit: '',
     password: '',
+    tags: '',
     routing_rules: [] as RoutingRuleDraft[],
   });
 
@@ -53,6 +54,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
       expires_at: link.expires_at ? String(link.expires_at).slice(0, 16) : '',
       visit_limit: link.visit_limit ? String(link.visit_limit) : '',
       password: link.has_password ? PASSWORD_MASK : '',
+      tags: link.tags.map((tag) => tag.name).join(', '),
       routing_rules: cloneRoutingRules(link.routing_rules ?? []),
     });
     editForm.reset();

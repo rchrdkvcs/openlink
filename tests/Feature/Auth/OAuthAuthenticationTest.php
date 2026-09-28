@@ -484,7 +484,6 @@ class OAuthAuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    /** @param array<string, mixed> $attributes */
     private function mockSocialiteUser(string $provider, array $attributes): void
     {
         $user = SocialiteUser::fake([
@@ -518,7 +517,6 @@ class OAuthAuthenticationTest extends TestCase
         config()->set('services.discord.redirect', 'http://localhost/auth/discord/callback');
     }
 
-    /** @return array{Workspace, User} */
     private function workspaceWithOwner(): array
     {
         $owner = User::factory()->create();

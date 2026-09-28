@@ -11,9 +11,6 @@ class UpdateInstanceSettings
 {
     public function __construct(private readonly InstanceSettings $settings) {}
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     public function handle(Request $request, array $data): void
     {
         abort_unless($request->user()?->is_instance_admin, 403);
@@ -41,7 +38,6 @@ class UpdateInstanceSettings
         $this->settings->set('reserved_prefixes', $this->lines($data['reserved_prefixes'] ?? ''));
     }
 
-    /** @return array<int, string> */
     private function lines(string $value): array
     {
         return collect(preg_split('/\R/', $value) ?: [])

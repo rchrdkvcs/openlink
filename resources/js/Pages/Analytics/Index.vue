@@ -238,7 +238,6 @@ const outcomeRows = computed(() =>
         </a>
       </div>
 
-      <!-- Filter row: scopes everything below it -->
       <div class="mb-6 flex flex-wrap items-center gap-2">
         <div class="flex items-center gap-0.5 rounded-md border bg-surface p-0.5">
           <button
@@ -299,7 +298,6 @@ const outcomeRows = computed(() =>
         <Select v-model="state.metric" :options="METRIC_OPTIONS" class="w-auto min-w-28" />
       </div>
 
-      <!-- Refetch keeps the frame: previous render held at reduced opacity -->
       <div class="space-y-6 transition-opacity duration-150" :class="loading ? 'pointer-events-none opacity-50' : ''">
         <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <KpiCard

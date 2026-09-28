@@ -1,10 +1,6 @@
 ## Summary
 
-<!-- What problem does this pull request solve? -->
-
 ## Related issue
-
-<!-- Use "Closes #123" when applicable. -->
 
 ## Testing
 
@@ -15,8 +11,4 @@
 
 ## Screenshots
 
-<!-- Add screenshots or recordings for visible UI changes, or write "Not applicable". -->
-
 ## Notes
-
-<!-- Call out migrations, configuration changes, breaking changes, or follow-up work. -->

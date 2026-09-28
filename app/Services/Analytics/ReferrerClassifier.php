@@ -2,11 +2,6 @@
 
 namespace App\Services\Analytics;
 
-/**
- * Normalises a Referer header into a clean host plus a marketing channel
- * (direct, search, social, video, email, messaging, ai, referral) so teams
- * can read acquisition at a glance without memorising hostnames.
- */
 class ReferrerClassifier
 {
     public const CHANNEL_DIRECT = 'direct';
@@ -54,7 +49,6 @@ class ReferrerClassifier
         ],
     ];
 
-    /** @return array{host: ?string, channel: string} */
     public function classify(?string $referrer): array
     {
         $host = $this->host($referrer);
@@ -74,12 +68,6 @@ class ReferrerClassifier
         return ['host' => $host, 'channel' => self::CHANNEL_REFERRAL];
     }
 
-    /**
-     * A trailing-dot needle ("google.") matches that name under any TLD and
-     * any subdomain; a full domain ("t.co") matches exactly or as a suffix
-     * label — never as a bare substring, which would make "chatgpt.com"
-     * match "t.co".
-     */
     private function matches(string $host, string $needle): bool
     {
         if (str_ends_with($needle, '.')) {
@@ -97,7 +85,6 @@ class ReferrerClassifier
             return null;
         }
 
-        // Android app referrers arrive as android-app://<package>.
         if (str_starts_with($referrer, 'android-app://')) {
             return substr($referrer, strlen('android-app://'));
         }

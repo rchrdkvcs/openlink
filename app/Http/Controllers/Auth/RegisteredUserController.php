@@ -14,15 +14,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(Request $request, AccountRegistration $registration, OAuthProviderRegistry $providers): Response
     {
         $inviteLink = $this->usableInviteLink($request->query('invite'));
@@ -47,11 +43,6 @@ class RegisteredUserController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request, JoinWorkspaceViaInviteLink $joiner, AccountRegistration $registration): RedirectResponse
     {
         $request->validate([

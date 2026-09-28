@@ -4,12 +4,8 @@ namespace App\Services\OAuth;
 
 class OAuthProviderRegistry
 {
-    /** @var array<int, string> */
     private const PROVIDERS = ['google', 'discord'];
 
-    /**
-     * @return array<string, bool>
-     */
     public function availableProviders(): array
     {
         return collect(self::PROVIDERS)
@@ -18,9 +14,6 @@ class OAuthProviderRegistry
             ->all();
     }
 
-    /**
-     * @return array<int, string>
-     */
     public function scopes(string $provider): array
     {
         return match ($provider) {

@@ -26,7 +26,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Project exclude paths
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
 /storage/app/*

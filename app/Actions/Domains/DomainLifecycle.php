@@ -19,10 +19,6 @@ class DomainLifecycle
         return $this->pointing->handle($domain);
     }
 
-    /**
-     * A real request reaching this server with the domain's hostname is
-     * definitive proof the DNS points here; proxies can hide resolved IPs.
-     */
     public function activateOnObservedTraffic(Request $request, Domain $domain): void
     {
         if ($domain->status === Domain::STATUS_OWNERSHIP_VERIFIED

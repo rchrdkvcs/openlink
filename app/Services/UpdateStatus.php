@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Http;
 
 class UpdateStatus
 {
-    /** @return array<string, mixed> */
     public function get(): array
     {
         $current = (string) config('openlink.version');

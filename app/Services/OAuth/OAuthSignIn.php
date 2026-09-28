@@ -18,11 +18,6 @@ class OAuthSignIn
         private readonly AccountRegistration $registration,
     ) {}
 
-    /**
-     * @param  array{invite_token?: string|null}  $context
-     *
-     * @throws ValidationException
-     */
     public function userFor(OAuthProfile $profile, array $context = []): User
     {
         if (! $profile->email || ! $profile->emailVerified) {

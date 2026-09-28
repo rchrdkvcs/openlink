@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 class TimeSeriesSection
 {
-    /** @return list<array{bucket: string, visits: int, scans: int, visitors: int, blocked: int}> */
     public function build(AnalyticsEventSlice $slice): array
     {
         $filters = $slice->filters();
@@ -72,7 +71,6 @@ class TimeSeriesSection
         };
     }
 
-    /** @return list<string> */
     private function buckets(CarbonImmutable $from, CarbonImmutable $to, string $unit): array
     {
         [$step, $format] = match ($unit) {

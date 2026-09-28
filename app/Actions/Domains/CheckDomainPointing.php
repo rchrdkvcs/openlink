@@ -55,9 +55,6 @@ class CheckDomainPointing
             return $domain;
         }
 
-        // A proxy or CDN in front of the domain can hide the real target IPs,
-        // so a mismatch is advisory: the domain still activates when real
-        // traffic reaches this server (see ResolvePublicLink).
         if ($domain->status !== Domain::STATUS_ACTIVE) {
             $domain->forceFill([
                 'dns_check_error' => $domainIps === []
@@ -69,7 +66,6 @@ class CheckDomainPointing
         return $domain;
     }
 
-    /** @param array<int, string> $ips */
     private function resolvesOnlyToCloudflareProxy(array $ips): bool
     {
         return $ips !== [] && collect($ips)->every(
@@ -77,7 +73,6 @@ class CheckDomainPointing
         );
     }
 
-    /** @param array<int, string> $cidrs */
     private function matchesAnyCidr(string $ip, array $cidrs): bool
     {
         foreach ($cidrs as $cidr) {

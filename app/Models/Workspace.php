@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workspace extends Model
 {
-    /** Icon keys the UI maps to Lucide icons — mirrors WORKSPACE_ICON_CATEGORIES in resources/js/lib/workspaces.ts. */
     public const ICONS = [
         'briefcase',
         'building',
@@ -136,7 +135,6 @@ class Workspace extends Model
         'home',
     ];
 
-    /** Preset color keys the UI maps to swatches. */
     public const COLORS = [
         'slate',
         'red',

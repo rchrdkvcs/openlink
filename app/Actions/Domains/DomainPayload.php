@@ -12,7 +12,6 @@ class DomainPayload
         private readonly DomainDnsTarget $target,
     ) {}
 
-    /** @return array<string, mixed> */
     public function handle(Domain $domain): array
     {
         return [

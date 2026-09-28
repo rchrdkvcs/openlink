@@ -80,7 +80,6 @@ const xLabelIndexes = computed(() => {
 
 const hasScans = computed(() => props.points.some((p) => p.scans > 0));
 
-// Hover / keyboard focus state: index of the highlighted bucket.
 const active = ref<number | null>(null);
 
 function onPointerMove(event: PointerEvent) {
@@ -136,7 +135,6 @@ const tooltip = computed(() => {
       @keydown="onKeydown"
       @blur="active = null"
     >
-      <!-- Gridlines + y ticks -->
       <g v-for="tick in yTicks" :key="tick">
         <line
           :x1="pad.left"
@@ -151,7 +149,6 @@ const tooltip = computed(() => {
         </text>
       </g>
 
-      <!-- X labels -->
       <text
         v-for="i in xLabelIndexes"
         :key="`x-${i}`"
@@ -163,7 +160,6 @@ const tooltip = computed(() => {
         {{ formatBucket(points[i].bucket, bucket) }}
       </text>
 
-      <!-- Visits: area wash + line -->
       <path :d="areaPath('visits')" :fill="SERIES_COLORS.visits" fill-opacity="0.1" />
       <path
         :d="linePath('visits')"
@@ -174,7 +170,6 @@ const tooltip = computed(() => {
         stroke-linecap="round"
       />
 
-      <!-- Scans line -->
       <path
         v-if="hasScans"
         :d="linePath('scans')"
@@ -185,7 +180,6 @@ const tooltip = computed(() => {
         stroke-linecap="round"
       />
 
-      <!-- Crosshair + markers -->
       <g v-if="active !== null && points[active]">
         <line
           :x1="x(active)"
@@ -215,7 +209,6 @@ const tooltip = computed(() => {
       </g>
     </svg>
 
-    <!-- Tooltip: value leads, label follows -->
     <div
       v-if="tooltip"
       class="pointer-events-none absolute top-3 z-10 min-w-[150px] rounded-md border bg-overlay px-3 py-2 shadow-popover"
@@ -246,7 +239,6 @@ const tooltip = computed(() => {
       </div>
     </div>
 
-    <!-- Legend -->
     <div class="flex items-center gap-4 px-1 pt-2">
       <span class="inline-flex items-center gap-1.5 text-xs text-muted">
         <span class="h-0.5 w-4 rounded-full" :style="{ background: SERIES_COLORS.visits }" /> Visits

@@ -42,7 +42,6 @@ onMounted(() => {
         clearInterval(timer);
       }
 
-      // The server resolves to the destination once the activation date has passed.
       setTimeout(() => window.location.reload(), 800);
     }
   }, 1000);

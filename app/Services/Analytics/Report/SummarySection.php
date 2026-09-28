@@ -4,7 +4,6 @@ namespace App\Services\Analytics\Report;
 
 class SummarySection
 {
-    /** @return array<string, mixed> */
     public function build(AnalyticsEventSlice $current, AnalyticsEventSlice $previous): array
     {
         $currentTotals = $this->totals($current);
@@ -23,7 +22,6 @@ class SummarySection
         ];
     }
 
-    /** @return array{visits: int, scans: int, visitors: int, blocked: int, bots: int, active_links: int} */
     private function totals(AnalyticsEventSlice $slice): array
     {
         $row = $slice->query()

@@ -45,8 +45,7 @@ class ShortLinkLifecycle
 
     public function reserveVisit(ShortLink $shortLink): bool
     {
-        // PostgreSQL rechecks this predicate after waiting for a concurrent
-        // update, including one that changes the Visit Limit itself.
+
         return ShortLink::query()
             ->whereKey($shortLink->id)
             ->where(fn ($query) => $query

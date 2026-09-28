@@ -2,11 +2,6 @@
 
 namespace App\Services\Analytics;
 
-/**
- * Resolution outcomes recorded with every analytics event. `success` means
- * the visitor reached the destination URL; everything else explains why the
- * short link did not resolve.
- */
 final class Outcome
 {
     public const SUCCESS = 'success';
@@ -27,7 +22,6 @@ final class Outcome
 
     public const ARCHIVED = 'archived';
 
-    /** @return list<string> */
     public static function all(): array
     {
         return [
@@ -43,7 +37,6 @@ final class Outcome
         ];
     }
 
-    /** @return list<string> */
     public static function blocked(): array
     {
         return array_values(array_diff(self::all(), [self::SUCCESS]));

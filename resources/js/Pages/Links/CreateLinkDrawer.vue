@@ -49,11 +49,9 @@ const folderOptions = computed(() => [
 ]);
 const destinationValid = computed(() => isLikelyUrl(props.form.destination_url));
 
-// ── Short URL segment control ────────────────────────────────────────────────
 const selectedDomain = computed(() => props.domains.find((d) => d.id === Number(props.form.domain_id)));
 const previewSlug = computed(() => props.form.slug.trim() || 'auto');
 
-// ── Progressive options ──────────────────────────────────────────────────────
 type OptionKey = 'folder_id' | 'activates_at' | 'expires_at' | 'visit_limit' | 'password' | 'fallback_url' | 'tags';
 
 const OPTIONS: { key: OptionKey; label: string; icon: unknown }[] = [
@@ -79,7 +77,6 @@ function removeOption(key: OptionKey) {
   props.form[key] = '';
 }
 
-// Fresh drawer on reopen: options collapse back to chips once the form is clean.
 watch(
   () => props.show,
   (show) => {
@@ -127,10 +124,8 @@ watch(
         </div>
 
         <div v-if="tab === 'link'" class="space-y-6">
-          <!-- Destination hero -->
           <DestinationUrlField v-model="form.destination_url" :error="form.errors.destination_url" autofocus />
 
-          <!-- Short URL segment control -->
           <div>
             <p class="mb-1.5 text-[13px] font-medium text-foreground">Short URL</p>
             <ShortUrlComposer v-model:domain-id="form.domain_id" v-model:slug="form.slug" :domains="domains" />
@@ -140,7 +135,6 @@ watch(
             <p v-else class="mt-1.5 text-xs text-faint">Leave the slug empty to generate one automatically.</p>
           </div>
 
-          <!-- Active option rows -->
           <TransitionGroup
             tag="div"
             class="space-y-3 empty:hidden"
@@ -210,7 +204,6 @@ watch(
         />
       </div>
 
-      <!-- Sticky footer with live preview -->
       <footer class="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t bg-overlay px-5 py-4">
         <p class="min-w-0 truncate font-mono text-[13px] text-faint">
           <span class="text-muted">{{ selectedDomain?.hostname ?? '—' }}</span

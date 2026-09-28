@@ -10,11 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class ProfileApiTokenController extends Controller
 {
-    /**
-     * Create an API token from the web profile.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         if (app(InstanceSettings::class)->get('require_email_verification') && ! $request->user()->hasVerifiedEmail()) {

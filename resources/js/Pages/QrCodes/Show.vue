@@ -183,9 +183,7 @@ async function copyPublicUrl() {
     await navigator.clipboard.writeText(props.qr.public_url);
     copied.value = true;
     setTimeout(() => (copied.value = false), 1500);
-  } catch {
-    // Clipboard unavailable in insecure contexts.
-  }
+  } catch {}
 }
 </script>
 

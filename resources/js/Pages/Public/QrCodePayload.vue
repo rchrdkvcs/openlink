@@ -19,9 +19,7 @@ async function copyContent() {
     await navigator.clipboard.writeText(props.content);
     copied.value = true;
     setTimeout(() => (copied.value = false), 1500);
-  } catch {
-    // Clipboard unavailable in insecure contexts.
-  }
+  } catch {}
 }
 </script>
 

@@ -6,11 +6,6 @@ use App\Models\QrCode;
 
 class QrCodePayload
 {
-    /**
-     * Validation rules shared by the web and API QR code endpoints.
-     *
-     * @return array<string, list<mixed>>
-     */
     public static function rules(bool $creating = true): array
     {
         return [
@@ -29,9 +24,6 @@ class QrCodePayload
         ];
     }
 
-    /**
-     * @return array<string, list<mixed>>
-     */
     public static function directRules(bool $creating = true): array
     {
         return [
@@ -41,7 +33,6 @@ class QrCodePayload
         ];
     }
 
-    /** Validation rules for the unified QR Code target. */
     public static function unifiedRules(bool $creating = true): array
     {
         return [
@@ -51,7 +42,6 @@ class QrCodePayload
         ];
     }
 
-    /** @return array<string, mixed> */
     public static function make(QrCode $qrCode): array
     {
         return [

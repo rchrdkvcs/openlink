@@ -18,9 +18,6 @@ class CreateQrCode
         private readonly QrCodeAppearance $appearance,
     ) {}
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     public function handle(Request $request, array $data): QrCode
     {
         $workspace = $this->access->requireEditableWorkspace($request);

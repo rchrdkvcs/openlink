@@ -9,7 +9,6 @@ use App\Models\ShortLink;
 
 class EntityRankingSection
 {
-    /** @return list<array<string, mixed>> */
     public function topLinks(AnalyticsEventSlice $slice, int $limit = 10): array
     {
         $rows = $slice->query()
@@ -42,7 +41,6 @@ class EntityRankingSection
         })->all();
     }
 
-    /** @return list<array<string, mixed>> */
     public function topQrCodes(AnalyticsEventSlice $slice, int $limit = 10): array
     {
         $rows = $slice->query()
@@ -69,7 +67,6 @@ class EntityRankingSection
         })->all();
     }
 
-    /** @return list<array<string, mixed>> */
     public function routingPerformance(AnalyticsEventSlice $slice): array
     {
         $rows = $slice->query()

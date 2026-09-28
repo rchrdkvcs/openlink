@@ -45,7 +45,6 @@ class DashboardTest extends TestCase
         }
     }
 
-    /** @return array{Workspace, User} */
     private function workspaceOwner(): array
     {
         $user = User::factory()->create();

@@ -3,7 +3,6 @@
 namespace App\Services\Dns {
     class DnsResolverTestRecords
     {
-        /** @var array<string, array<int, array<int, array<string, mixed>>>> */
         public static array $records = [];
     }
 

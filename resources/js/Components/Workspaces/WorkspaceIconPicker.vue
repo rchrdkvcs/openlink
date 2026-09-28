@@ -48,7 +48,6 @@ function remove() {
   open.value = false;
 }
 
-// Capture phase so Escape closes only the popover, not the whole modal behind it.
 const closeOnEscape = (e: KeyboardEvent) => {
   if (open.value && e.key === 'Escape') {
     e.preventDefault();

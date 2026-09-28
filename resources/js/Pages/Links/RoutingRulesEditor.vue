@@ -253,7 +253,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
       {{ props.errors.routing_rules }}
     </p>
 
-    <!-- Empty state: presets are the first step, no wrapper card -->
     <template v-if="rules.length === 0">
       <div>
         <p class="text-[13px] font-medium text-foreground">Route visitors to different destinations</p>
@@ -317,7 +316,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
             !rule.is_enabled && openIndex !== index && 'opacity-60',
           ]"
         >
-          <!-- Rule header -->
           <div class="flex items-center gap-2 py-2.5 pe-2 ps-3">
             <button
               type="button"
@@ -373,7 +371,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
             </DropdownMenuRoot>
           </div>
 
-          <!-- Rule body: one flat surface, sentence-like rows sharing a single content edge -->
           <div v-if="openIndex === index" :id="`${editorId}-rule-${index}`" class="grid gap-5 border-t p-4">
             <div class="grid gap-3 min-[480px]:grid-cols-[minmax(0,1fr)_160px]">
               <Field label="Rule name"><Input v-model="rule.name" placeholder="e.g. French visitors" /></Field>
@@ -395,7 +392,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
             </div>
 
             <div class="sentence">
-              <!-- When -->
               <template v-if="rule.conditions.length">
                 <template v-for="(condition, conditionIndex) in rule.conditions" :key="conditionIndex">
                   <span class="sentence-word">{{
@@ -517,7 +513,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
                 /></label>
               </div>
 
-              <!-- Then -->
               <template v-if="rule.type === 'conditional'">
                 <label :for="`${editorId}-destination-${index}`" class="sentence-word mt-3">Then</label>
                 <Input
@@ -611,7 +606,6 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
       </ol>
     </template>
 
-    <!-- Default destination closes the flow, at the same level as the rules -->
     <div class="flex min-w-0 items-center gap-3 rounded-xl border border-dashed px-3 py-2.5">
       <CornerDownRight class="h-4 w-4 shrink-0 text-faint" />
       <span class="min-w-0 flex-1"
@@ -631,7 +625,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
 .routing-builder {
   container-type: inline-size;
 }
-/* Leading word column (If / and / Then) + content column, shared by every row of a rule. */
+
 .sentence {
   display: grid;
   grid-template-columns: 2.25rem minmax(0, 1fr);
@@ -656,7 +650,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
   gap: 0.5rem;
   min-width: 0;
 }
-/* Optional rows (time range, timezone) only take space when present. */
+
 .condition-extra {
   grid-column: 1 / -2;
 }
@@ -681,7 +675,7 @@ function variantShare(rule: RoutingRuleDraft, variant: RoutingVariantDraft) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) 2rem;
     grid-template-areas: 'type op value remove';
   }
-  /* Two time pickers don't fit the value column: give the range its own full row. */
+
   .condition-row--range {
     grid-template-areas:
       'type op . remove'

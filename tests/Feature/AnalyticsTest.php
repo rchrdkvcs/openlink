@@ -118,7 +118,7 @@ class AnalyticsTest extends TestCase
         $this->event($workspace, $link, ['occurred_at' => now()->subDays(2), 'visitor_hash' => 'aaa', 'country' => 'FR', 'browser' => 'Chrome']);
         $this->event($workspace, $link, ['occurred_at' => now()->subDay(), 'visitor_hash' => 'bbb', 'country' => 'DE', 'browser' => 'Firefox']);
         $this->event($workspace, $link, ['occurred_at' => now()->subDay(), 'outcome' => Outcome::DISABLED]);
-        // Previous period traffic for the delta baseline.
+
         $this->event($workspace, $link, ['occurred_at' => now()->subDays(40), 'visitor_hash' => 'ccc']);
 
         $report = app(BuildAnalyticsReport::class)->report($workspace, AnalyticsFilters::fromRequest(Request::create('/?range=30d')));
@@ -311,7 +311,6 @@ class AnalyticsTest extends TestCase
         $this->assertSame(['host' => 'example.org', 'channel' => 'referral'], $classifier->classify('https://example.org/blog'));
     }
 
-    /** @return array{0: Workspace, 1: Domain, 2: User} */
     private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();

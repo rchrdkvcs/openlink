@@ -118,9 +118,7 @@ export function useLinkForms(props: LinksPageProps, selectedLink: Ref<ShortLink 
           copiedLinkId.value = null;
         }
       }, 1500);
-    } catch {
-      // Clipboard unavailable in insecure contexts.
-    }
+    } catch {}
   }
 
   function statusVariant(status: string) {

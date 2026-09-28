@@ -6,7 +6,6 @@ use App\Models\QrCode;
 
 class QrCodeAppearance
 {
-    /** @return array<string, mixed> */
     public function defaults(array $data = []): array
     {
         return [
@@ -21,7 +20,6 @@ class QrCodeAppearance
         ];
     }
 
-    /** @param array<string, mixed> $data */
     public function fill(QrCode $qrCode, array $data): void
     {
         $qrCode->fill(collect($data)->only([
@@ -40,7 +38,6 @@ class QrCodeAppearance
         }
     }
 
-    /** @param array<string, mixed> $data */
     public function previewOverrides(array $data): array
     {
         return collect($data)

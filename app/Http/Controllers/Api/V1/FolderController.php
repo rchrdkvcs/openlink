@@ -52,7 +52,6 @@ class FolderController extends Controller
     {
         $access->requireManagedFolder($request, $folder);
 
-        // short_links.folder_id is nullOnDelete: links in the folder become unfiled.
         $folder->delete();
 
         return response()->json(['message' => 'Folder deleted.']);

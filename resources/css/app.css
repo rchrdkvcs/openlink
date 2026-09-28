@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 @config '../../tailwind.config.js';
 
-/* Tailwind v4 defaults a bare `border` to currentColor and ignores the JS
-   config's borderColor.DEFAULT, so restore the v3 behaviour explicitly. */
 @layer base {
   *,
   ::after,
@@ -12,8 +10,6 @@
     border-color: hsl(var(--border));
   }
 
-  /* v4 preflight also resets buttons to cursor: default. Utilities such as
-     cursor-default or disabled:cursor-not-allowed still win over this. */
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']),
   ::file-selector-button {
@@ -25,22 +21,18 @@
   :root {
     color-scheme: dark;
 
-    /* Core surfaces */
     --background: 240 6% 4%;
     --surface: 240 5% 7%;
     --elevated: 240 5% 11%;
     --overlay: 240 5% 9%;
 
-    /* Strokes */
     --border: 240 5% 14%;
     --border-strong: 240 5% 22%;
 
-    /* Text */
     --foreground: 220 10% 94%;
     --muted: 220 5% 64%;
     --faint: 220 4% 44%;
 
-    /* Semantic */
     --accent: 234 60% 65%;
     --success: 152 55% 52%;
     --warning: 38 92% 58%;
@@ -63,12 +55,10 @@
     color: hsl(var(--foreground));
   }
 
-  /* Native datetime picker icons */
   ::-webkit-calendar-picker-indicator {
     filter: invert(0.6);
   }
 
-  /* Scrollbars */
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border-strong)) transparent;
@@ -88,11 +78,7 @@
     background: transparent;
   }
 
-  /* Collapse motion for users who opt out; spinners keep rotating
-       so loading feedback survives. */
   @media (prefers-reduced-motion: reduce) {
-    /* Always collapse transitions (including on spinners), but keep the
-           `animate-spin` keyframes running for loading feedback. */
     *,
     *::before,
     *::after {
@@ -114,12 +100,10 @@
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* iOS-like curve for drawers and sheets (Ionic) */
   .ease-drawer {
     transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  /* Subtle top highlight for cards, à la Linear */
   .card-sheen {
     background-image: linear-gradient(180deg, hsl(var(--foreground) / 0.02), transparent 32px);
   }

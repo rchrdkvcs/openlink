@@ -108,7 +108,6 @@ const targetWorkspaceOptions = computed(() =>
         </Link>
       </div>
 
-      <!-- No overflow-hidden: the transfer popover must be able to overflow the card. -->
       <section class="card-sheen rounded-lg border bg-surface">
         <div
           class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"

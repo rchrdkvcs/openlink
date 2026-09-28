@@ -47,7 +47,6 @@ const close = () => {
 };
 
 const closeOnEscape = (e: KeyboardEvent) => {
-  // Leave the event untouched so Radix can dismiss its own layer; @cancel.prevent keeps the dialog open.
   if (e.key === 'Escape' && !hasOpenFloatingLayer()) {
     e.preventDefault();
 

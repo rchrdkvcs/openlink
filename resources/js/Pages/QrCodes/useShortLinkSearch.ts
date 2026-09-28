@@ -32,9 +32,7 @@ export function useShortLinkSearch(initial: ShortLinkOption[], selectedId: Ref<s
         const selected = links.value.find((link) => link.id === Number(selectedId.value));
         links.value =
           selected && !result.data.some((link) => link.id === selected.id) ? [selected, ...result.data] : result.data;
-      } catch {
-        // Keep the current choices when a search request fails.
-      }
+      } catch {}
     }, 250);
   });
 

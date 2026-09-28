@@ -24,9 +24,6 @@ class VerifyDomain
         $expected = $this->expectedTxtValue($domain);
         $found = in_array($expected, $this->resolver->txtValues($this->expectedTxtName($domain)), true);
 
-        // An active domain already proved ownership and serves traffic; a
-        // missing TXT record later (records are often cleaned up) must not
-        // demote it.
         $status = match (true) {
             $domain->status === Domain::STATUS_ACTIVE => Domain::STATUS_ACTIVE,
             $found => Domain::STATUS_OWNERSHIP_VERIFIED,

@@ -132,10 +132,6 @@ export type WorkspaceAppearance = {
   color?: string | null;
 };
 
-/**
- * Icon keys grouped for the picker. The flat key set mirrors
- * Workspace::ICONS on the backend — keep both in sync.
- */
 export const WORKSPACE_ICON_CATEGORIES: { label: string; icons: Record<string, Component> }[] = [
   {
     label: 'Work',
@@ -303,13 +299,11 @@ export const WORKSPACE_ICON_CATEGORIES: { label: string; icons: Record<string, C
   },
 ];
 
-/** Flat lookup of every picker icon by key. */
 export const WORKSPACE_ICONS: Record<string, Component> = Object.assign(
   {},
   ...WORKSPACE_ICON_CATEGORIES.map((category) => category.icons),
 );
 
-/** Keys mirror Workspace::COLORS on the backend. */
 export const WORKSPACE_COLORS: Record<string, string> = {
   slate: '#64748b',
   red: '#ef4444',

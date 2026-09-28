@@ -174,7 +174,6 @@ class ViewerRoleTest extends TestCase
             ->withHeader('Host', 'localhost');
     }
 
-    /** @return array{0: Workspace, 1: Domain, 2: User} */
     private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();

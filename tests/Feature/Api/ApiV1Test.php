@@ -392,7 +392,6 @@ class ApiV1Test extends TestCase
         ])->assertOk()->assertJsonPath('user.name', 'Renamed');
     }
 
-    /** @return array{Workspace, Domain, User} */
     private function workspaceAndDomain(string $hostname = 'localhost'): array
     {
         $user = User::factory()->create();

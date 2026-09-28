@@ -7,13 +7,10 @@ import { cn } from '@/lib/utils';
 defineOptions({ inheritAttrs: false });
 withDefaults(defineProps<{ size?: ControlSize }>(), { size: 'md' });
 
-// Native v-model on the inner element keeps Vue's number casting for type="number".
 const model = defineModel<string | number | null>();
 
 const input = ref<HTMLInputElement | null>(null);
 
-// `autofocus` alone is ignored inside modals and drawers mounted after page load.
-// Wait a frame: a modal panel can still be display:none when its children mount.
 onMounted(() => {
   if (input.value?.hasAttribute('autofocus')) {
     requestAnimationFrame(() => input.value?.focus());

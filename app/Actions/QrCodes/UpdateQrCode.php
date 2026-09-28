@@ -20,9 +20,6 @@ class UpdateQrCode
         private readonly QrCodeAppearance $appearance,
     ) {}
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     public function handle(Request $request, QrCode $qrCode, array $data): QrCode
     {
         $workspace = $this->access->requireEditableQrCode($request, $qrCode);

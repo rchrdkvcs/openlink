@@ -9,9 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 class ConnectedIdentityManager
 {
-    /**
-     * @throws ValidationException
-     */
     public function link(User $user, OAuthProfile $profile): SocialAccount
     {
         if (! $user->hasVerifiedEmail()) {
@@ -84,9 +81,6 @@ class ConnectedIdentityManager
         });
     }
 
-    /**
-     * @throws ValidationException
-     */
     public function unlink(User $user, SocialAccount $account): void
     {
         if ($account->user_id !== $user->id) {
@@ -108,9 +102,6 @@ class ConnectedIdentityManager
         }
     }
 
-    /**
-     * @throws ValidationException
-     */
     public function selectAvatar(User $user, ?SocialAccount $account): void
     {
         if (! $account) {

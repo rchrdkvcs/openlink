@@ -84,7 +84,6 @@ class QrCodeController extends Controller
         return response()->json(['data' => $this->shortLinkOptions($workspace, $filters['search'] ?? '')]);
     }
 
-    /** @return array<int, array{id: int, short_url: string, destination_url: string}> */
     private function shortLinkOptions(Workspace $workspace, string $search = '', ?int $selectedId = null): array
     {
         $query = $workspace->shortLinks()->with('domain')->primary();
@@ -149,7 +148,6 @@ class QrCodeController extends Controller
     {
         $access->requireViewableQrCode($request, $qrCode);
 
-        // Query overrides let the studio page live-preview unsaved settings.
         $rules = $qrCode->hasDirectPayload()
             ? QrCodePayload::directRules(creating: false)
             : QrCodePayload::rules(creating: false);

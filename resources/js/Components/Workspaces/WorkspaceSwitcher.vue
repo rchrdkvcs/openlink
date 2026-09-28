@@ -17,7 +17,6 @@ type Workspace = {
 
 const props = withDefaults(
   defineProps<{
-    /** 'hover' reveals the settings gear on row hover (pointer devices); 'always' keeps it visible (touch). */
     gearVisibility?: 'hover' | 'always';
   }>(),
   { gearVisibility: 'hover' },

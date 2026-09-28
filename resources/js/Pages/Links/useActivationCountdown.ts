@@ -7,8 +7,7 @@ export function useActivationCountdown(props: LinksPageProps) {
   const now = ref(Date.now());
   let timer: ReturnType<typeof setInterval> | null = null;
   let reloading = false;
-  // Links already refreshed once their activation passed, so a server clock
-  // slightly behind the client cannot trigger a reload loop.
+
   const reloadedIds = new Set<number>();
 
   function activationTime(link: ShortLink): number | null {
@@ -36,7 +35,6 @@ export function useActivationCountdown(props: LinksPageProps) {
 
   watch(() => props.links, syncTimer, { immediate: true });
 
-  // Refresh once a scheduled link reaches its activation date so its status flips.
   watch(now, (current) => {
     if (reloading) {
       return;

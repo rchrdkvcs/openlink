@@ -57,10 +57,6 @@ class QrCode extends Model
         return $this->hasMany(AnalyticsEvent::class);
     }
 
-    /**
-     * The fallback public URL for opening this QR Code through Openlink.
-     * Short Link QR Codes also encode this URL so scans can be attributed.
-     */
     public function publicUrl(): string
     {
         if ($this->short_link_id) {
@@ -72,11 +68,6 @@ class QrCode extends Model
         return route('public.qr', $this, true);
     }
 
-    /**
-     * The actual payload encoded in exported QR images. Direct payload QR Codes
-     * must scan as their native payload so device QR scanners can handle Wi-Fi,
-     * vCards, calendar events, and other non-URL formats directly.
-     */
     public function encodedContent(): string
     {
         if ($this->hasDirectPayload()) {

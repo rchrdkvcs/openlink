@@ -2,11 +2,6 @@
 
 namespace App\Services\Analytics;
 
-/**
- * Dependency-free user agent parser tuned for analytics dimensions: family
- * level browser/OS names, a coarse device type, and bot detection. It favours
- * being right about the common 99% over exhaustive UA coverage.
- */
 class UserAgentParser
 {
     private const BOT_MARKERS = [
@@ -20,7 +15,6 @@ class UserAgentParser
         'baiduspider', 'sogou', 'scrapy', 'feedfetcher', 'datanyze', 'zgrab', 'masscan',
     ];
 
-    /** @return array{browser: string, os: string, device_type: string, is_bot: bool} */
     public function parse(?string $userAgent): array
     {
         $agent = mb_strtolower(trim((string) $userAgent));
@@ -47,7 +41,6 @@ class UserAgentParser
             }
         }
 
-        // Real browsers always announce Mozilla, Opera, or a known engine.
         return ! str_contains($agent, 'mozilla') && ! str_contains($agent, 'opera');
     }
 

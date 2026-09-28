@@ -15,7 +15,6 @@ class SettingsPagePayload
         private readonly UpdateStatus $updates,
     ) {}
 
-    /** @return array<string, mixed> */
     public function handle(Workspace $workspace, User $user): array
     {
         return [

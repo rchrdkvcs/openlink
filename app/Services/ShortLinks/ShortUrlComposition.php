@@ -35,7 +35,6 @@ class ShortUrlComposition
         return $domain;
     }
 
-    /** @param array<string, mixed> $data */
     public function slugForCreate(Domain $domain, array $data): string
     {
         return filled($data['slug'] ?? null)
@@ -43,7 +42,6 @@ class ShortUrlComposition
             : $this->slugs->generate($domain);
     }
 
-    /** @param array<string, mixed> $data */
     public function slugForUpdate(ShortLink $shortLink, Domain $domain, array $data): string
     {
         $submitted = trim((string) ($data['slug'] ?? $shortLink->slug), '/');

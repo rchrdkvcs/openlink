@@ -16,9 +16,6 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthTokenController extends Controller
 {
-    /**
-     * Exchange credentials for a personal access token (API login).
-     */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -82,9 +79,6 @@ class AuthTokenController extends Controller
         ], 201);
     }
 
-    /**
-     * List the authenticated user's tokens.
-     */
     public function index(Request $request): JsonResponse
     {
         return response()->json([
@@ -94,9 +88,6 @@ class AuthTokenController extends Controller
         ]);
     }
 
-    /**
-     * Revoke the token used for the current request (API logout).
-     */
     public function destroyCurrent(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
@@ -104,9 +95,6 @@ class AuthTokenController extends Controller
         return response()->json(['message' => 'Token revoked.']);
     }
 
-    /**
-     * Revoke a specific token by id.
-     */
     public function destroy(Request $request, int $tokenId): JsonResponse
     {
         $request->user()->tokens()->where('id', $tokenId)->delete();

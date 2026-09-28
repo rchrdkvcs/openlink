@@ -6,7 +6,6 @@ class BreakdownSection
 {
     private const LIMIT = 12;
 
-    /** @return list<array{label: string, count: int, share: float}> */
     public function dimension(AnalyticsEventSlice $slice, string $column): array
     {
         $rows = $slice->query()
@@ -18,7 +17,6 @@ class BreakdownSection
             ->limit(self::LIMIT)
             ->get();
 
-        // The window sees every group before LIMIT, so shares include hidden rows.
         $total = (int) ($rows->first()?->dimension_total ?? 0);
 
         return $rows->map(fn ($row) => [
@@ -29,7 +27,6 @@ class BreakdownSection
         ])->all();
     }
 
-    /** @return list<array{outcome: string, count: int, share: float}> */
     public function outcomes(AnalyticsEventSlice $slice): array
     {
         $rows = $slice->query()

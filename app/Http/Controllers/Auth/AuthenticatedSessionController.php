@@ -19,9 +19,6 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(OAuthProviderRegistry $providers): Response
     {
         return Inertia::render('Auth/Login', [
@@ -31,9 +28,6 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
         $pendingUser = $request->authenticate();
@@ -52,9 +46,6 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    /**
-     * Display the two-factor challenge view.
-     */
     public function createTwoFactor(Request $request): Response|RedirectResponse
     {
         if (! $request->session()->has('login.two_factor.user_id')) {
@@ -64,9 +55,6 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('Auth/TwoFactorChallenge');
     }
 
-    /**
-     * Complete a pending two-factor authentication challenge.
-     */
     public function storeTwoFactor(Request $request): RedirectResponse
     {
         $pending = $request->session()->get('login.two_factor');
@@ -109,9 +97,6 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    /**
-     * @throws ValidationException
-     */
     private function ensureTwoFactorIsNotRateLimited(Request $request, User $user): void
     {
         if (! RateLimiter::tooManyAttempts($this->twoFactorThrottleKey($request, $user), 5)) {
@@ -133,9 +118,6 @@ class AuthenticatedSessionController extends Controller
         return 'two-factor-login|'.$user->id.'|'.$request->ip();
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();

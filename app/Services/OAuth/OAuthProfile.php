@@ -13,9 +13,7 @@ class OAuthProfile
         public readonly bool $emailVerified,
         public readonly ?string $name,
         public readonly ?string $avatarUrl,
-    ) {
-        //
-    }
+    ) {}
 
     public static function fromSocialiteUser(string $provider, SocialiteUser $user): self
     {
@@ -32,9 +30,6 @@ class OAuthProfile
         );
     }
 
-    /**
-     * @param  array<string, mixed>  $raw
-     */
     private static function emailIsVerified(string $provider, array $raw): bool
     {
         $value = match ($provider) {

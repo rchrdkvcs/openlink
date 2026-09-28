@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Domain;
-use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
@@ -240,7 +239,6 @@ class QrCodeStudioTest extends TestCase
         $this->assertDatabaseMissing('qr_codes', ['id' => $qrCode->id]);
     }
 
-    /** @return array{Workspace, Domain, User, QrCode, ShortLink} */
     private function linkWithQrCode(): array
     {
         $user = User::factory()->create();

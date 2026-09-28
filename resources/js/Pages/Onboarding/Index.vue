@@ -20,9 +20,6 @@ const props = defineProps<{
   hasLink: boolean;
 }>();
 
-// Step 1 happens while the user has no workspace; steps 2 and 3 after.
-// Inertia reuses the component instance across the redirect, so advance
-// the step when the workspace prop appears instead of only on mount.
 const step = ref(props.workspace ? 2 : 1);
 
 watch(

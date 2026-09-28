@@ -1,6 +1,3 @@
-// Date helpers for the custom date-time picker (no native datetime-local inputs).
-// Values travel as `YYYY-MM-DDTHH:mm` local strings, the format the backend accepts.
-
 export type CalendarDay = { date: Date; inMonth: boolean; key: string; isToday: boolean };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -31,7 +28,6 @@ export function monthLabel(view: Date): string {
 
 export const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-/** 6-week month grid starting Monday. */
 export function monthGrid(view: Date): CalendarDay[] {
   const first = new Date(view.getFullYear(), view.getMonth(), 1);
   const start = new Date(first);

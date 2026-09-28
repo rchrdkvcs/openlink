@@ -8,14 +8,6 @@ use BaconQrCode\Encoder\Encoder;
 use GdImage;
 use Illuminate\Support\Facades\Storage;
 
-/**
- * Renders Openlink QR codes as SVG or PNG from the encoded module matrix,
- * applying the stored customization: module style, eye style, colors,
- * margin (in modules), optional transparent background, and centered logo.
- *
- * When a logo is present the error correction level is raised to at least
- * quartile so the modules hidden behind the logo stay recoverable.
- */
 class QrCodeRenderer
 {
     private const FINDER_SIZE = 7;
@@ -140,7 +132,6 @@ class QrCodeRenderer
         return (string) ob_get_clean();
     }
 
-    /** @return array{modules: list<list<int>>, count: int} */
     private function grid(OpenlinkQrCode $qrCode, string $url): array
     {
         $matrix = Encoder::encode($url, $this->level($qrCode), 'UTF-8')->getMatrix();
@@ -171,7 +162,6 @@ class QrCodeRenderer
         };
     }
 
-    /** @return list<array{0: int, 1: int}> Finder pattern origins as [row, column]. */
     private function finderOrigins(int $count): array
     {
         return [[0, 0], [0, $count - self::FINDER_SIZE], [$count - self::FINDER_SIZE, 0]];
@@ -196,8 +186,6 @@ class QrCodeRenderer
 
         return Storage::get($qrCode->logo_path);
     }
-
-    // ── SVG shapes ───────────────────────────────────────────────────────────
 
     private function svgRect(float $x, float $y, float $w, float $h): string
     {
@@ -278,8 +266,6 @@ class QrCodeRenderer
     {
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
-
-    // ── GD shapes ────────────────────────────────────────────────────────────
 
     private function allocate(GdImage $image, string $hex): int
     {

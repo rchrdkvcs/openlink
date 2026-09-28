@@ -23,7 +23,6 @@ class DomainDnsTarget
         return filter_var($this->value(), FILTER_VALIDATE_IP) ? 'A' : 'CNAME';
     }
 
-    /** @return array<int, string> */
     public function targetIps(): array
     {
         $value = $this->value();

@@ -44,9 +44,6 @@ class ComposerDeploymentScriptsTest extends TestCase
         ], $composer['extra']['laravel']['dont-discover']);
     }
 
-    /**
-     * @param  array<int, string>  $scripts
-     */
     private function scriptIndexContaining(array $scripts, string $needle): ?int
     {
         foreach ($scripts as $index => $script) {
@@ -58,9 +55,6 @@ class ComposerDeploymentScriptsTest extends TestCase
         return null;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function composerJson(): array
     {
         return json_decode(

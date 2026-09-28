@@ -36,14 +36,12 @@ const steps = [
   { number: 3, label: 'Done' },
 ];
 
-// Step 1 — choose hostname
 const hostnameForm = useForm({ hostname: '' });
 
 function submitHostname() {
   hostnameForm.post(route('domains.store'));
 }
 
-// Step 2 — DNS records with live checks
 const checking = ref(false);
 
 function checkNow() {
@@ -132,7 +130,6 @@ const records = computed(() => {
       </div>
 
       <div class="card-sheen rounded-xl border bg-surface p-6">
-        <!-- Step 1: hostname -->
         <template v-if="step === 1">
           <div class="flex items-center gap-2">
             <Globe class="h-4 w-4 text-faint" />
@@ -151,7 +148,6 @@ const records = computed(() => {
           </form>
         </template>
 
-        <!-- Step 2: DNS records -->
         <template v-else-if="step === 2 && domain">
           <h1 class="text-lg font-semibold text-foreground">Add two DNS records for {{ domain.hostname }}</h1>
           <p class="mt-1 text-sm text-muted">
@@ -237,7 +233,6 @@ const records = computed(() => {
           </div>
         </template>
 
-        <!-- Step 3: done -->
         <template v-else-if="domain">
           <div class="flex animate-slide-up flex-col items-center py-4 text-center">
             <Transition

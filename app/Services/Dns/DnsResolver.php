@@ -4,7 +4,6 @@ namespace App\Services\Dns;
 
 class DnsResolver
 {
-    /** @return array<int, string> */
     public function txtValues(string $hostname): array
     {
         $records = @dns_get_record($hostname, DNS_TXT) ?: [];
@@ -30,7 +29,6 @@ class DnsResolver
             ->all();
     }
 
-    /** @return array<int, string> */
     public function ipAddresses(string $hostname): array
     {
         $ips = [];

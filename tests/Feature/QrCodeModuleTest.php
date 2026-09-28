@@ -171,7 +171,6 @@ class QrCodeModuleTest extends TestCase
         $this->actingAs($outsider)->delete(route('qr-codes.destroy', $qrCode))->assertForbidden();
     }
 
-    /** @return array{Workspace, User} */
     private function workspace(string $name = 'Events'): array
     {
         $user = User::factory()->create();

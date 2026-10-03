@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import BarList from '@/Components/analytics/BarList.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import { type BreakdownTab } from '@/lib/analytics';
 
 const props = defineProps<{
@@ -10,28 +11,20 @@ const props = defineProps<{
   tabs: BreakdownTab[];
 }>();
 
-const activeKey = ref(props.tabs[0]?.key);
+const activeKey = ref(props.tabs[0]?.key ?? '');
+
+const options = computed(() => props.tabs.map((tab) => ({ value: tab.key, label: tab.label })));
+const activeTab = computed(() => props.tabs.find((tab) => tab.key === activeKey.value) ?? props.tabs[0]);
 </script>
 
 <template>
-  <SectionCard :title="title">
+  <SectionCard :title="title" class="flex flex-col">
     <template #header>
-      <div v-if="tabs.length > 1" class="flex items-center gap-0.5 rounded-md bg-elevated p-0.5">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          type="button"
-          class="rounded-[5px] px-2 py-1 text-xs font-medium transition-colors duration-100"
-          :class="activeKey === tab.key ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'"
-          @click="activeKey = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+      <SegmentedControl v-if="tabs.length > 1" v-model="activeKey" :options="options" size="sm" :label="title" />
     </template>
 
-    <template v-for="tab in tabs" :key="tab.key">
-      <BarList v-if="activeKey === tab.key" :rows="tab.rows" :empty="tab.empty" />
-    </template>
+    <div class="h-72 overflow-y-auto">
+      <BarList v-if="activeTab" :rows="activeTab.rows" :empty="activeTab.empty" />
+    </div>
   </SectionCard>
 </template>

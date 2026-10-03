@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Check, Globe, Link2, RefreshCw } from '@lucide/vue';
+import { ArrowLeft, Check, Copy, Link2, RefreshCw } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
-import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { copyToClipboard } from '@/lib/toast';
 
 type Domain = {
   id: number;
@@ -31,10 +31,18 @@ const step = computed(() => {
 });
 
 const steps = [
-  { number: 1, label: 'Domain name' },
+  { number: 1, label: 'Hostname' },
   { number: 2, label: 'DNS records' },
-  { number: 3, label: 'Done' },
+  { number: 3, label: 'Ready' },
 ];
+
+const pageTitle = computed(() => props.domain?.hostname ?? 'Add a domain');
+
+const pageDescription = computed(() => {
+  if (step.value === 1) return 'Use a domain or subdomain you own for branded short links.';
+  if (step.value === 2) return 'Add two DNS records where you manage this domain. You only do this once.';
+  return 'Verified and serving short links.';
+});
 
 const hostnameForm = useForm({ hostname: '' });
 
@@ -66,14 +74,6 @@ onBeforeUnmount(() => {
   if (pollTimer) clearInterval(pollTimer);
 });
 
-const copiedKey = ref<string | null>(null);
-
-async function copy(key: string, value: string) {
-  await navigator.clipboard.writeText(value);
-  copiedKey.value = key;
-  setTimeout(() => (copiedKey.value = null), 2000);
-}
-
 const records = computed(() => {
   if (!props.domain) return [];
   return [
@@ -100,163 +100,161 @@ const records = computed(() => {
 </script>
 
 <template>
-  <Head title="Add a domain" />
+  <Head :title="domain ? `Set up ${domain.hostname}` : 'Add a domain'" />
 
-  <AuthenticatedLayout>
-    <div class="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
-      <Link
-        :href="route('domains.index')"
-        class="mb-6 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft class="h-4 w-4" /> Back to domains
+  <SettingsLayout :title="pageTitle" :description="pageDescription">
+    <template #actions>
+      <Link :href="route('domains.index')">
+        <Button variant="ghost" size="sm" type="button"><ArrowLeft class="h-4 w-4" /> Domains</Button>
       </Link>
+    </template>
 
-      <div class="mb-6 flex items-center gap-2">
-        <template v-for="(item, index) in steps" :key="item.number">
-          <div class="flex items-center gap-2">
+    <ol class="flex items-center gap-2" aria-label="Setup progress">
+      <template v-for="(item, index) in steps" :key="item.number">
+        <li class="flex items-center gap-2" :aria-current="step === item.number ? 'step' : undefined">
+          <span
+            class="grid h-5 w-5 place-items-center rounded-full text-[11px] font-semibold transition-colors duration-200"
+            :class="
+              step > item.number
+                ? 'bg-success text-white'
+                : step === item.number
+                  ? 'bg-foreground text-background'
+                  : 'border border-border-strong text-faint'
+            "
+          >
+            <Check v-if="step > item.number" class="h-3 w-3" />
+            <template v-else>{{ item.number }}</template>
+          </span>
+          <span class="text-[13px]" :class="step >= item.number ? 'font-medium text-foreground' : 'text-faint'">
+            {{ item.label }}
+          </span>
+        </li>
+        <li v-if="index < steps.length - 1" aria-hidden="true" class="h-px w-8 bg-border" />
+      </template>
+    </ol>
+
+    <section v-if="step === 1" class="rounded-xl border bg-surface p-5">
+      <form class="space-y-5" @submit.prevent="submitHostname">
+        <Field
+          label="Hostname"
+          hint="Most teams use a subdomain like go.yourcompany.com. You need access to its DNS settings."
+          :error="hostnameForm.errors.hostname"
+        >
+          <Input
+            v-model="hostnameForm.hostname"
+            placeholder="go.example.com"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+            required
+          />
+        </Field>
+        <div class="flex justify-end">
+          <Button :loading="hostnameForm.processing" :disabled="!hostnameForm.hostname.trim()">Continue</Button>
+        </div>
+      </form>
+    </section>
+
+    <template v-else-if="step === 2 && domain">
+      <p class="text-sm text-muted">
+        Sign in where you bought the domain (Cloudflare, OVH, GoDaddy, Namecheap…), open its DNS settings and add both
+        records below.
+      </p>
+
+      <section
+        v-for="record in records"
+        :key="record.key"
+        class="overflow-hidden rounded-xl border bg-surface transition-colors duration-200"
+        :class="record.done ? 'border-success/30' : ''"
+      >
+        <header class="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+          <div class="flex min-w-0 items-center gap-3">
             <span
-              class="grid h-6 w-6 place-items-center rounded-full text-xs font-semibold"
-              :class="step >= item.number ? 'bg-foreground text-background' : 'border border-border text-faint'"
+              class="grid h-5 w-5 shrink-0 place-items-center rounded-full transition-colors duration-200"
+              :class="record.done ? 'bg-success text-white' : 'border border-border-strong'"
             >
-              <Check v-if="step > item.number" class="h-3.5 w-3.5" />
-              <template v-else>{{ item.number }}</template>
+              <Check v-if="record.done" class="h-3 w-3" />
             </span>
-            <span class="text-xs" :class="step >= item.number ? 'text-foreground' : 'text-faint'">{{
-              item.label
-            }}</span>
-          </div>
-          <span v-if="index < steps.length - 1" class="h-px w-8 bg-border" />
-        </template>
-      </div>
-
-      <div class="card-sheen rounded-xl border bg-surface p-6">
-        <template v-if="step === 1">
-          <div class="flex items-center gap-2">
-            <Globe class="h-4 w-4 text-faint" />
-            <h1 class="text-lg font-semibold text-foreground">What domain do you want to use?</h1>
-          </div>
-          <p class="mt-1 text-sm text-muted">
-            This is the address your short links will start with. Most teams use a subdomain like
-            <code class="rounded bg-elevated px-1 py-0.5 font-mono text-xs">go.yourcompany.com</code> — you must own the
-            domain to complete the next step.
-          </p>
-          <form class="mt-5 space-y-4" @submit.prevent="submitHostname">
-            <Field label="Domain" :error="hostnameForm.errors.hostname">
-              <Input v-model="hostnameForm.hostname" placeholder="go.example.com" autofocus required />
-            </Field>
-            <Button class="w-full" :loading="hostnameForm.processing">Continue</Button>
-          </form>
-        </template>
-
-        <template v-else-if="step === 2 && domain">
-          <h1 class="text-lg font-semibold text-foreground">Add two DNS records for {{ domain.hostname }}</h1>
-          <p class="mt-1 text-sm text-muted">
-            Sign in to the website where you bought your domain (GoDaddy, OVH, Cloudflare, Namecheap…), find the
-            <strong>DNS settings</strong>, and add both records below. You only need to do this once.
-          </p>
-
-          <div class="mt-5 space-y-4">
-            <div
-              v-for="record in records"
-              :key="record.key"
-              class="rounded-lg border p-4"
-              :class="record.done ? 'border-success/30 bg-success/5' : 'border-border'"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="grid h-5 w-5 place-items-center rounded-full"
-                    :class="record.done ? 'bg-success text-white' : 'border border-border text-faint'"
-                  >
-                    <Check v-if="record.done" class="h-3 w-3" />
-                  </span>
-                  <span class="text-sm font-medium text-foreground">{{ record.type }} record</span>
-                </div>
-                <Badge :variant="record.done ? 'success' : 'warning'" dot>{{
-                  record.done ? 'found' : 'waiting'
-                }}</Badge>
-              </div>
-              <p class="mt-1 text-xs text-muted">{{ record.purpose }}</p>
-
-              <dl class="mt-3 grid gap-2 text-xs">
-                <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2">
-                  <dt class="font-medium uppercase tracking-wide text-faint">Type</dt>
-                  <dd>
-                    <code class="rounded bg-elevated px-1.5 py-0.5 font-mono">{{ record.type }}</code>
-                  </dd>
-                  <span />
-                </div>
-                <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2">
-                  <dt class="font-medium uppercase tracking-wide text-faint">Name</dt>
-                  <dd class="min-w-0">
-                    <code class="block truncate rounded bg-elevated px-1.5 py-0.5 font-mono">{{ record.name }}</code>
-                  </dd>
-                  <button
-                    type="button"
-                    class="text-faint hover:text-foreground"
-                    title="Copy"
-                    @click="copy(record.key + '-name', record.name)"
-                  >
-                    <CopyCheckIcon :copied="copiedKey === record.key + '-name'" />
-                  </button>
-                </div>
-                <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2">
-                  <dt class="font-medium uppercase tracking-wide text-faint">Value</dt>
-                  <dd class="min-w-0">
-                    <code class="block truncate rounded bg-elevated px-1.5 py-0.5 font-mono">{{ record.value }}</code>
-                  </dd>
-                  <button
-                    type="button"
-                    class="text-faint hover:text-foreground"
-                    title="Copy"
-                    @click="copy(record.key + '-value', record.value)"
-                  >
-                    <CopyCheckIcon :copied="copiedKey === record.key + '-value'" />
-                  </button>
-                </div>
-              </dl>
-
-              <p v-if="record.error && !record.done" class="mt-2 text-xs text-warning">
-                {{ record.error }}
-              </p>
+            <div class="min-w-0">
+              <h2 class="text-sm font-medium text-foreground">{{ record.type }} record</h2>
+              <p class="text-[13px] text-muted">{{ record.purpose }}</p>
             </div>
           </div>
+          <Badge :variant="record.done ? 'success' : 'warning'" dot class="shrink-0">
+            {{ record.done ? 'Found' : 'Waiting' }}
+          </Badge>
+        </header>
 
-          <div class="mt-5 flex items-center justify-between gap-3">
-            <p class="text-xs text-faint">
-              We check automatically every 15 seconds. DNS changes usually apply within minutes, but can take up to 24
-              hours.
-            </p>
-            <Button variant="secondary" size="sm" type="button" :loading="checking" @click="checkNow">
-              <RefreshCw class="h-3.5 w-3.5" /> Check now
-            </Button>
+        <dl class="divide-y divide-border border-t">
+          <div class="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-3 px-4 py-2 sm:px-5">
+            <dt class="text-[13px] text-muted">Type</dt>
+            <dd class="truncate font-mono text-[13px] text-foreground">{{ record.type }}</dd>
+            <span />
           </div>
-        </template>
-
-        <template v-else-if="domain">
-          <div class="flex animate-slide-up flex-col items-center py-4 text-center">
-            <Transition
-              appear
-              enter-active-class="transition duration-200 ease-emphasized-out"
-              enter-from-class="opacity-0 scale-[0.97]"
-              enter-to-class="opacity-100 scale-100"
+          <div class="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-3 px-4 py-2 sm:px-5">
+            <dt class="text-[13px] text-muted">Name</dt>
+            <dd class="truncate font-mono text-[13px] text-foreground" :title="record.name">{{ record.name }}</dd>
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-faint transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              :aria-label="`Copy ${record.type} record name`"
+              @click="copyToClipboard(record.name, 'Name copied')"
             >
-              <span class="grid h-12 w-12 place-items-center rounded-full bg-success/15 text-success">
-                <Check class="h-6 w-6" />
-              </span>
-            </Transition>
-            <h1 class="mt-4 text-lg font-semibold text-foreground">{{ domain.hostname }} is ready</h1>
-            <p class="mt-1 max-w-sm text-sm text-muted">
-              Your domain is verified and pointing to this server. You can now create short links on it. HTTPS may take
-              a few minutes to become available on the first visit.
-            </p>
-            <div class="mt-6 flex gap-3">
-              <Button variant="secondary" @click="router.visit(route('domains.index'))">View domains</Button>
-              <Button @click="router.visit(route('links.index'))"> <Link2 class="h-4 w-4" /> Create a link </Button>
-            </div>
+              <Copy class="h-3.5 w-3.5" />
+            </button>
           </div>
-        </template>
+          <div class="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-3 px-4 py-2 sm:px-5">
+            <dt class="text-[13px] text-muted">Value</dt>
+            <dd class="truncate font-mono text-[13px] text-foreground" :title="record.value">{{ record.value }}</dd>
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-faint transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              :aria-label="`Copy ${record.type} record value`"
+              @click="copyToClipboard(record.value, 'Value copied')"
+            >
+              <Copy class="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </dl>
+
+        <p v-if="record.error && !record.done" class="border-t px-4 py-2.5 text-xs text-warning sm:px-5">
+          {{ record.error }}
+        </p>
+      </section>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-xs leading-relaxed text-faint">
+          Checked automatically every 15 seconds. DNS changes usually apply within minutes, but can take up to 24 hours.
+        </p>
+        <Button variant="secondary" size="sm" type="button" class="shrink-0" :loading="checking" @click="checkNow">
+          <RefreshCw v-if="!checking" class="h-3.5 w-3.5" /> Check now
+        </Button>
       </div>
-    </div>
-  </AuthenticatedLayout>
+    </template>
+
+    <section v-else-if="domain" class="rounded-xl border bg-surface px-6 py-10">
+      <div class="flex flex-col items-center text-center">
+        <Transition
+          appear
+          enter-active-class="transition duration-300 ease-emphasized-out"
+          enter-from-class="opacity-0 scale-[0.9]"
+          enter-to-class="opacity-100 scale-100"
+        >
+          <span class="grid h-12 w-12 place-items-center rounded-full bg-success/15 text-success">
+            <Check class="h-6 w-6" />
+          </span>
+        </Transition>
+        <h2 class="mt-4 text-[15px] font-semibold text-foreground">{{ domain.hostname }} is ready</h2>
+        <p class="mt-1 max-w-sm text-[13px] leading-relaxed text-muted">
+          You can now create short links on it. HTTPS may take a few minutes on the first visit.
+        </p>
+        <div class="mt-6 flex gap-2">
+          <Button variant="secondary" type="button" @click="router.visit(route('domains.index'))">View domains</Button>
+          <Button type="button" @click="router.visit(route('links.index'))"
+            ><Link2 class="h-4 w-4" /> Create a link</Button
+          >
+        </div>
+      </div>
+    </section>
+  </SettingsLayout>
 </template>

@@ -1,20 +1,35 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Crown, Link2, LogOut, Trash2, UserPlus, Users } from '@lucide/vue';
+import {
+  Copy,
+  Crown,
+  Eye,
+  Link2,
+  LogOut,
+  MoreHorizontal,
+  PencilLine,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  Users,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 
-import Dropdown from '@/Components/Dropdown.vue';
-import Modal from '@/Components/Modal.vue';
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
-import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
+import Dialog from '@/Components/ui/Dialog.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
-import Input from '@/Components/ui/Input.vue';
+import Menu from '@/Components/ui/Menu.vue';
+import MenuItem from '@/Components/ui/MenuItem.vue';
+import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import Select from '@/Components/ui/Select.vue';
+import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { confirmAction } from '@/lib/confirm';
+import { copyToClipboard, toast } from '@/lib/toast';
 
 type Workspace = { id: number; name: string; slug: string };
 type Member = {
@@ -45,52 +60,95 @@ const props = defineProps<{
 const page = usePage();
 const me = computed(() => (page.props.auth as { user: { id: number } }).user);
 const isOwner = computed(() => props.role === 'owner');
-const myMembership = computed(() => props.members.find((member) => member.user.id === me.value.id));
 
 const roleOptions = [
-  { value: 'admin', label: 'Admin', description: 'Manages members, domains, folders, and settings' },
-  { value: 'editor', label: 'Editor', description: 'Creates and edits links and QR codes' },
-  { value: 'viewer', label: 'Viewer', description: 'Read-only access to links and analytics' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
 ];
 
-const showInviteModal = ref(false);
+const roleDescriptions: Record<string, string> = {
+  admin: 'Manages members, domains, folders and settings',
+  editor: 'Creates and edits links and QR codes',
+  viewer: 'Read-only access to links and analytics',
+};
+
+const inviteRoles = [
+  { value: 'editor', label: 'Editor', icon: PencilLine },
+  { value: 'viewer', label: 'Viewer', icon: Eye },
+  { value: 'admin', label: 'Admin', icon: ShieldCheck },
+];
 
 const expiryOptions = [
   { value: '', label: 'Never' },
-  { value: '1', label: 'In 1 day' },
-  { value: '7', label: 'In 7 days' },
-  { value: '30', label: 'In 30 days' },
+  { value: '1', label: '1 day' },
+  { value: '7', label: '7 days' },
+  { value: '30', label: '30 days' },
 ];
 
+const usesOptions = [
+  { value: '', label: 'Unlimited' },
+  { value: '1', label: '1' },
+  { value: '10', label: '10' },
+  { value: '100', label: '100' },
+];
+
+const inviteOpen = ref(false);
 const linkForm = useForm({ role: 'editor', expires_in_days: '' as string, max_uses: '' as string });
 
+function openInvite() {
+  linkForm.reset();
+  linkForm.clearErrors();
+  inviteOpen.value = true;
+}
+
 function createInviteLink() {
+  const existing = new Set(props.inviteLinks.map((link) => link.id));
+
   linkForm
     .transform((data) => ({
       role: data.role,
       expires_in_days: data.expires_in_days === '' ? null : Number(data.expires_in_days),
       max_uses: data.max_uses === '' ? null : Number(data.max_uses),
     }))
-    .post(route('invite-links.store'), { preserveScroll: true, onSuccess: () => linkForm.reset() });
+    .post(route('invite-links.store'), {
+      preserveScroll: true,
+      onSuccess: () => {
+        linkForm.reset();
+        inviteOpen.value = false;
+        const created = props.inviteLinks.find((link) => !existing.has(link.id));
+        toast({
+          title: 'Invite link created',
+          description: created?.url,
+          tone: 'success',
+          duration: 8000,
+          action: created
+            ? { label: 'Copy', run: () => void copyToClipboard(created.url, 'Invite link copied') }
+            : undefined,
+        });
+      },
+    });
 }
 
-const copiedLinkId = ref<number | null>(null);
+async function revokeLink(link: InviteLink) {
+  const confirmed = await confirmAction({
+    title: 'Revoke this invite link?',
+    message: 'Anyone who has not used it yet will no longer be able to join.',
+    confirmLabel: 'Revoke link',
+    destructive: true,
+  });
 
-async function copyLink(link: InviteLink) {
-  await navigator.clipboard.writeText(link.url);
-  copiedLinkId.value = link.id;
-  setTimeout(() => {
-    if (copiedLinkId.value === link.id) copiedLinkId.value = null;
-  }, 2000);
-}
+  if (!confirmed) return;
 
-function revokeLink(link: InviteLink) {
-  router.delete(route('invite-links.destroy', link.token), { preserveScroll: true });
+  router.delete(route('invite-links.destroy', link.token), {
+    preserveScroll: true,
+    onSuccess: () => toast({ title: 'Invite link revoked' }),
+  });
 }
 
 function linkMeta(link: InviteLink) {
   const parts: string[] = [];
-  parts.push(link.expires_at ? `expires ${formatDate(link.expires_at)}` : 'never expires');
+  parts.push(link.expires_at ? `Expires ${formatDate(link.expires_at)}` : 'Never expires');
   if (link.max_uses !== null) {
     parts.push(`${link.uses}/${link.max_uses} uses`);
   } else if (link.uses > 0) {
@@ -103,58 +161,69 @@ function canEditMember(member: Member) {
   return props.canManageMembers && member.role !== 'owner' && member.user.id !== me.value.id;
 }
 
+function canLeave(member: Member) {
+  return member.user.id === me.value.id && member.role !== 'owner';
+}
+
 function changeRole(member: Member, role: string) {
   if (member.role === role) return;
-  router.patch(route('members.update', member.id), { role }, { preserveScroll: true });
-}
+  const label = roleOptions.find((option) => option.value === role)?.label ?? role;
 
-type Confirmation = { type: 'remove'; member: Member } | { type: 'transfer'; member: Member } | { type: 'leave' };
-
-const confirmation = ref<Confirmation | null>(null);
-const confirming = ref(false);
-
-function confirmAction() {
-  if (!confirmation.value) return;
-  const options = {
-    preserveScroll: true,
-    onStart: () => (confirming.value = true),
-    onFinish: () => {
-      confirming.value = false;
-      confirmation.value = null;
+  router.patch(
+    route('members.update', member.id),
+    { role },
+    {
+      preserveScroll: true,
+      onSuccess: () => toast({ title: `${member.user.name} is now ${label.toLowerCase()}`, tone: 'success' }),
     },
-  };
-
-  if (confirmation.value.type === 'remove') {
-    router.delete(route('members.destroy', confirmation.value.member.id), options);
-  } else if (confirmation.value.type === 'transfer') {
-    router.post(route('members.transfer-ownership', confirmation.value.member.id), {}, options);
-  } else {
-    router.post(route('members.leave'), {}, options);
-  }
+  );
 }
 
-const confirmText = computed(() => {
-  if (!confirmation.value) return { title: '', body: '', action: '' };
-  if (confirmation.value.type === 'remove') {
-    return {
-      title: `Remove ${confirmation.value.member.user.name}?`,
-      body: `They will immediately lose access to ${props.currentWorkspace.name}. Links they created stay in the workspace.`,
-      action: 'Remove member',
-    };
-  }
-  if (confirmation.value.type === 'transfer') {
-    return {
-      title: `Transfer ownership to ${confirmation.value.member.user.name}?`,
-      body: `They will become the owner of ${props.currentWorkspace.name} and you will become an admin. This cannot be undone by you.`,
-      action: 'Transfer ownership',
-    };
-  }
-  return {
+async function removeMember(member: Member) {
+  const confirmed = await confirmAction({
+    title: `Remove ${member.user.name}?`,
+    message: `They lose access to ${props.currentWorkspace.name} immediately. Links they created stay in the workspace.`,
+    confirmLabel: 'Remove member',
+    destructive: true,
+  });
+
+  if (!confirmed) return;
+
+  router.delete(route('members.destroy', member.id), {
+    preserveScroll: true,
+    onSuccess: () => toast({ title: `${member.user.name} removed` }),
+  });
+}
+
+async function transferOwnership(member: Member) {
+  const confirmed = await confirmAction({
+    title: `Transfer ownership to ${member.user.name}?`,
+    message: `They become the owner of ${props.currentWorkspace.name} and you become an admin. Only the new owner can undo this.`,
+    confirmLabel: 'Transfer ownership',
+  });
+
+  if (!confirmed) return;
+
+  router.post(
+    route('members.transfer-ownership', member.id),
+    {},
+    {
+      preserveScroll: true,
+      onSuccess: () => toast({ title: `${member.user.name} is now the owner`, tone: 'success' }),
+    },
+  );
+}
+
+async function leaveWorkspace() {
+  const confirmed = await confirmAction({
     title: `Leave ${props.currentWorkspace.name}?`,
-    body: 'You will immediately lose access to this workspace. An owner or admin will have to invite you again.',
-    action: 'Leave workspace',
-  };
-});
+    message: 'You lose access immediately. An owner or admin will have to invite you again.',
+    confirmLabel: 'Leave workspace',
+    destructive: true,
+  });
+
+  if (confirmed) router.post(route('members.leave'));
+}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -166,201 +235,187 @@ const sortedMembers = computed(() =>
     (a, b) => (roleRank[a.role] ?? 9) - (roleRank[b.role] ?? 9) || a.user.name.localeCompare(b.user.name),
   ),
 );
+
+const memberCount = computed(() => `${props.members.length} ${props.members.length === 1 ? 'person' : 'people'}`);
 </script>
 
 <template>
-  <Head title="Workspace members" />
+  <Head title="Members" />
 
-  <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold tracking-tight">Members</h1>
-          <p class="mt-1 text-sm text-muted">People with access to {{ currentWorkspace.name }}.</p>
+  <SettingsLayout title="Members" :description="`People with access to ${currentWorkspace.name}.`">
+    <template v-if="canManageMembers" #actions>
+      <Button type="button" @click="openInvite"><UserPlus class="h-4 w-4" /> Invite people</Button>
+    </template>
+
+    <SettingsGroup :title="memberCount">
+      <div v-for="member in sortedMembers" :key="member.id" class="flex items-center gap-3 px-4 py-3 sm:px-5">
+        <UserAvatar :name="member.user.name" :src="member.user.profile_avatar_url" />
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-foreground">
+            {{ member.user.name }}
+            <span v-if="member.user.id === me.id" class="font-normal text-faint">(you)</span>
+          </p>
+          <p class="truncate text-[13px] text-muted">
+            {{ member.user.email }}
+            <span class="hidden text-faint sm:inline"> · Joined {{ formatDate(member.created_at) }}</span>
+          </p>
         </div>
-        <Button v-if="canManageMembers" type="button" @click="showInviteModal = true">
-          <UserPlus class="h-4 w-4" /> Invite members
-        </Button>
+
+        <template v-if="canEditMember(member)">
+          <Select
+            :model-value="member.role"
+            :options="roleOptions"
+            size="sm"
+            class="w-28 shrink-0"
+            :aria-label="`Role for ${member.user.name}`"
+            :title="roleDescriptions[member.role]"
+            @update:model-value="changeRole(member, $event)"
+          />
+          <Menu width="w-56">
+            <template #trigger>
+              <button
+                type="button"
+                class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 data-[state=open]:bg-elevated data-[state=open]:text-foreground"
+                :aria-label="`Actions for ${member.user.name}`"
+              >
+                <MoreHorizontal class="h-4 w-4" />
+              </button>
+            </template>
+            <MenuItem v-if="isOwner" :icon="Crown" @select="transferOwnership(member)">Transfer ownership…</MenuItem>
+            <MenuSeparator v-if="isOwner" />
+            <MenuItem :icon="Trash2" destructive @select="removeMember(member)">Remove from workspace…</MenuItem>
+          </Menu>
+        </template>
+
+        <template v-else>
+          <Badge :variant="member.role === 'owner' ? 'accent' : 'outline'" class="shrink-0 capitalize">
+            <Crown v-if="member.role === 'owner'" class="h-3 w-3" />
+            {{ member.role }}
+          </Badge>
+          <Button
+            v-if="canLeave(member)"
+            variant="ghost"
+            size="sm"
+            type="button"
+            class="shrink-0"
+            @click="leaveWorkspace"
+          >
+            <LogOut class="h-3.5 w-3.5" /> Leave
+          </Button>
+          <span v-else-if="canManageMembers" class="w-8 shrink-0" />
+        </template>
       </div>
 
-      <section class="card-sheen rounded-lg border bg-surface">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b text-left text-[11px] font-medium uppercase tracking-wide text-faint">
-              <th class="px-4 py-2.5 font-medium">User</th>
-              <th class="hidden px-4 py-2.5 font-medium sm:table-cell">Member since</th>
-              <th class="w-44 px-4 py-2.5 font-medium">Role</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border/60">
-            <tr
-              v-for="member in sortedMembers"
-              :key="member.id"
-              class="transition-colors duration-100 hover:bg-elevated/40"
+      <EmptyState
+        v-if="members.length === 0"
+        title="No members yet"
+        description="Invite people to work in this workspace."
+      >
+        <template #icon><Users class="h-5 w-5" /></template>
+      </EmptyState>
+    </SettingsGroup>
+
+    <SettingsGroup
+      v-if="canManageMembers"
+      title="Invite links"
+      description="Anyone with an active link joins with the link's role."
+    >
+      <div v-for="link in inviteLinks" :key="link.id" class="flex items-center gap-3 px-4 py-3 sm:px-5">
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border bg-elevated text-faint">
+          <Link2 class="h-4 w-4" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-mono text-[13px] text-foreground" :title="link.url">{{ link.url }}</p>
+          <p class="truncate text-xs" :class="link.is_usable ? 'text-faint' : 'text-danger'">
+            {{ link.is_usable ? linkMeta(link) : 'No longer usable' }}
+          </p>
+        </div>
+        <Badge variant="outline" class="shrink-0 capitalize">{{ link.role }}</Badge>
+        <IconButton title="Copy invite link" @click="copyToClipboard(link.url, 'Invite link copied')">
+          <Copy class="h-3.5 w-3.5" />
+        </IconButton>
+        <IconButton variant="danger" title="Revoke invite link" @click="revokeLink(link)">
+          <Trash2 class="h-3.5 w-3.5" />
+        </IconButton>
+      </div>
+
+      <div v-if="inviteLinks.length === 0" class="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
+        <p class="text-[13px] text-muted">No active invite links.</p>
+        <Button variant="secondary" size="sm" type="button" @click="openInvite">Create link</Button>
+      </div>
+    </SettingsGroup>
+
+    <Dialog
+      v-model:open="inviteOpen"
+      size="lg"
+      :title="`Invite people to ${currentWorkspace.name}`"
+      description="Create a link and share it. People who open it join with the role you pick."
+    >
+      <form class="space-y-5 px-5 pb-5 pt-4" @submit.prevent="createInviteLink">
+        <fieldset>
+          <legend class="mb-2 text-[13px] font-medium text-foreground">Join as</legend>
+          <div class="grid gap-1.5" role="radiogroup">
+            <label
+              v-for="option in inviteRoles"
+              :key="option.value"
+              class="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40"
+              :class="
+                linkForm.role === option.value
+                  ? 'border-accent/50 bg-accent/[0.06]'
+                  : 'border-border hover:border-border-strong hover:bg-elevated/40'
+              "
             >
-              <td class="px-4 py-3">
-                <div class="flex min-w-0 items-center gap-3">
-                  <UserAvatar :name="member.user.name" :src="member.user.profile_avatar_url" />
-                  <div class="min-w-0">
-                    <p class="truncate font-medium text-foreground">
-                      {{ member.user.name }}
-                      <span v-if="member.user.id === me.id" class="text-xs font-normal text-faint">(you)</span>
-                    </p>
-                    <p class="truncate text-xs text-faint">{{ member.user.email }}</p>
-                  </div>
-                </div>
-              </td>
-              <td class="hidden px-4 py-3 text-muted sm:table-cell">
-                {{ formatDate(member.created_at) }}
-              </td>
-              <td class="px-4 py-3">
-                <Dropdown v-if="canEditMember(member)" align="right" width="72">
-                  <template #trigger>
-                    <button
-                      type="button"
-                      class="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-sm capitalize text-foreground transition-colors duration-100 hover:border-border hover:bg-elevated"
-                    >
-                      {{ member.role }}
-                      <ChevronDown class="h-3.5 w-3.5 text-faint" />
-                    </button>
-                  </template>
-                  <template #content>
-                    <button
-                      v-for="option in roleOptions"
-                      :key="option.value"
-                      type="button"
-                      class="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-100 hover:bg-elevated"
-                      @click="changeRole(member, option.value)"
-                    >
-                      <Check
-                        class="mt-0.5 h-3.5 w-3.5 shrink-0"
-                        :class="member.role === option.value ? 'text-foreground' : 'text-transparent'"
-                      />
-                      <span class="min-w-0">
-                        <span class="block text-sm font-medium text-foreground">{{ option.label }}</span>
-                        <span class="block text-xs text-faint">{{ option.description }}</span>
-                      </span>
-                    </button>
-                    <div class="mx-2 my-1 border-t border-border/60" />
-                    <button
-                      v-if="isOwner"
-                      type="button"
-                      class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-foreground transition-colors duration-100 hover:bg-elevated"
-                      @click="confirmation = { type: 'transfer', member }"
-                    >
-                      <Crown class="h-3.5 w-3.5 text-faint" /> Transfer ownership…
-                    </button>
-                    <button
-                      type="button"
-                      class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-danger transition-colors duration-100 hover:bg-danger/10"
-                      @click="confirmation = { type: 'remove', member }"
-                    >
-                      <Trash2 class="h-3.5 w-3.5" /> Remove from workspace…
-                    </button>
-                  </template>
-                </Dropdown>
-
-                <div v-else class="flex items-center gap-2">
-                  <Badge :variant="member.role === 'owner' ? 'accent' : 'outline'">
-                    <Crown v-if="member.role === 'owner'" class="h-3 w-3" />
-                    {{ member.role }}
-                  </Badge>
-                  <IconButton
-                    v-if="member.user.id === me.id && myMembership && myMembership.role !== 'owner'"
-                    variant="danger"
-                    title="Leave workspace"
-                    @click="confirmation = { type: 'leave' }"
-                  >
-                    <LogOut class="h-3.5 w-3.5" />
-                  </IconButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <EmptyState
-          v-if="members.length === 0"
-          title="No members yet"
-          description="Invite teammates to collaborate on this workspace."
-        >
-          <template #icon><Users class="h-5 w-5" /></template>
-        </EmptyState>
-      </section>
-
-      <Modal :show="showInviteModal" max-width="lg" @close="showInviteModal = false">
-        <div class="p-6">
-          <div class="flex items-start gap-3">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
-              <UserPlus class="h-4.5 w-4.5" />
-            </span>
-            <div>
-              <h2 class="text-base font-semibold text-foreground">Invite to {{ currentWorkspace.name }}</h2>
-              <p class="mt-0.5 text-sm text-muted">Anyone with a link joins this workspace with the link's role.</p>
-            </div>
+              <input v-model="linkForm.role" type="radio" name="invite-role" :value="option.value" class="sr-only" />
+              <component
+                :is="option.icon"
+                class="h-4 w-4 shrink-0"
+                :class="linkForm.role === option.value ? 'text-accent' : 'text-faint'"
+              />
+              <span class="min-w-0 flex-1">
+                <span class="block text-[13px] font-medium text-foreground">{{ option.label }}</span>
+                <span class="block text-xs text-muted">{{ roleDescriptions[option.value] }}</span>
+              </span>
+              <span
+                class="grid h-4 w-4 shrink-0 place-items-center rounded-full border"
+                :class="linkForm.role === option.value ? 'border-accent bg-accent' : 'border-border-strong'"
+              >
+                <span v-if="linkForm.role === option.value" class="h-1.5 w-1.5 rounded-full bg-white" />
+              </span>
+            </label>
           </div>
+          <p v-if="linkForm.errors.role" class="mt-1.5 text-xs text-danger">{{ linkForm.errors.role }}</p>
+        </fieldset>
 
-          <form class="mt-5 rounded-lg border bg-elevated/30 p-4" @submit.prevent="createInviteLink">
-            <div class="grid gap-3 sm:grid-cols-3">
-              <Field label="Role" :error="linkForm.errors.role">
-                <Select v-model="linkForm.role" :options="roleOptions" />
-              </Field>
-              <Field label="Expires" :error="linkForm.errors.expires_in_days">
-                <Select v-model="linkForm.expires_in_days" :options="expiryOptions" />
-              </Field>
-              <Field label="Max uses" :error="linkForm.errors.max_uses">
-                <Input v-model="linkForm.max_uses" type="number" min="1" placeholder="Unlimited" />
-              </Field>
-            </div>
-            <Button class="mt-3 w-full" :loading="linkForm.processing">
-              <Link2 class="h-4 w-4" /> Generate invite link
-            </Button>
-          </form>
-
-          <div v-if="inviteLinks.length" class="mt-5">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-faint">Active links</p>
-            <div class="mt-2 divide-y divide-border/60 rounded-lg border">
-              <div v-for="link in inviteLinks" :key="link.id" class="flex items-center gap-3 px-3 py-2.5">
-                <Badge variant="outline">{{ link.role }}</Badge>
-                <div class="min-w-0 flex-1">
-                  <code class="block truncate text-xs text-muted">{{ link.url }}</code>
-                  <p class="text-[11px]" :class="link.is_usable ? 'text-faint' : 'text-danger'">
-                    {{ link.is_usable ? linkMeta(link) : 'No longer usable' }}
-                  </p>
-                </div>
-                <IconButton :title="copiedLinkId === link.id ? 'Copied' : 'Copy link'" @click="copyLink(link)">
-                  <CopyCheckIcon :copied="copiedLinkId === link.id" />
-                </IconButton>
-                <IconButton variant="danger" title="Revoke link" @click="revokeLink(link)">
-                  <Trash2 class="h-3.5 w-3.5" />
-                </IconButton>
-              </div>
-            </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="mb-2 text-[13px] font-medium text-foreground">Expires</p>
+            <SegmentedControl
+              v-model="linkForm.expires_in_days"
+              :options="expiryOptions"
+              label="Expires"
+              class="w-full"
+            />
+            <p v-if="linkForm.errors.expires_in_days" class="mt-1.5 text-xs text-danger">
+              {{ linkForm.errors.expires_in_days }}
+            </p>
           </div>
-
-          <div class="mt-6 flex justify-end">
-            <Button variant="secondary" type="button" @click="showInviteModal = false">Done</Button>
+          <div>
+            <p class="mb-2 text-[13px] font-medium text-foreground">Number of uses</p>
+            <SegmentedControl
+              v-model="linkForm.max_uses"
+              :options="usesOptions"
+              label="Number of uses"
+              class="w-full"
+            />
+            <p v-if="linkForm.errors.max_uses" class="mt-1.5 text-xs text-danger">{{ linkForm.errors.max_uses }}</p>
           </div>
         </div>
-      </Modal>
 
-      <Modal :show="confirmation !== null" max-width="md" @close="confirmation = null">
-        <div class="p-6">
-          <h2 class="text-base font-semibold text-foreground">{{ confirmText.title }}</h2>
-          <p class="mt-2 text-sm text-muted">{{ confirmText.body }}</p>
-          <div class="mt-6 flex justify-end gap-3">
-            <Button variant="secondary" type="button" @click="confirmation = null">Cancel</Button>
-            <Button
-              :variant="confirmation?.type === 'transfer' ? 'primary' : 'danger'"
-              type="button"
-              :loading="confirming"
-              @click="confirmAction"
-            >
-              {{ confirmText.action }}
-            </Button>
-          </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" type="button" @click="inviteOpen = false">Cancel</Button>
+          <Button :loading="linkForm.processing"><Link2 v-if="!linkForm.processing" /> Create invite link</Button>
         </div>
-      </Modal>
-    </div>
-  </AuthenticatedLayout>
+      </form>
+    </Dialog>
+  </SettingsLayout>
 </template>

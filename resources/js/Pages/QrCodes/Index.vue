@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Download, Plus, QrCode } from '@lucide/vue';
-import { onUnmounted, ref, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Download, Link2, MoreHorizontal, Plus, QrCode, Search, SlidersHorizontal } from '@lucide/vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 
-import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import Input from '@/Components/ui/Input.vue';
+import Menu from '@/Components/ui/Menu.vue';
+import MenuItem from '@/Components/ui/MenuItem.vue';
+import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { displayUrl } from '@/lib/links';
 
-import CreateQrCodeDrawer from './CreateQrCodeDrawer.vue';
+import CreateQrCodeDialog from './CreateQrCodeDialog.vue';
 import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
-import { payloadDefaults, payloadIcon } from './types';
+import { payloadIcon } from './types';
 
 const props = defineProps<{
   qrCodes: QrCodeRecord[];
@@ -25,8 +28,10 @@ const props = defineProps<{
 
 const createOpen = ref(false);
 const search = ref(props.qrFilters.search);
+const searchInput = ref<HTMLInputElement | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 onUnmounted(() => clearTimeout(searchTimer));
+
 watch(search, () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
@@ -55,45 +60,23 @@ function goToPage(page: number) {
   );
 }
 
-const form = useForm({
-  name: '',
-  target_type: 'short_link',
-  short_link_id: '' as string | number,
-  payload_type: 'url',
-  payload: payloadDefaults('url', props.payloadDescriptors),
+const description = computed(() => {
+  const total = props.qrPagination.total;
+  return `${total.toLocaleString()} QR code${total === 1 ? '' : 's'} · Codes for links, Wi-Fi, contact cards and more`;
 });
 
-function setPayloadType(type: string) {
-  if (type === 'short_link') {
-    form.target_type = 'short_link';
-    form.clearErrors();
-    return;
-  }
-  form.target_type = 'direct';
-  if (type === form.payload_type) {
-    return;
-  }
-  form.payload_type = type;
-  form.payload = payloadDefaults(type, props.payloadDescriptors);
-  form.clearErrors();
+const formatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+
+function typeLabel(qr: QrCodeRecord) {
+  return qr.is_direct ? (props.payloadTypes[qr.payload_type ?? ''] ?? qr.payload_type ?? 'Content') : 'Short link';
 }
 
-function submit() {
-  form
-    .transform((data) =>
-      data.target_type === 'short_link'
-        ? { name: data.name, short_link_id: data.short_link_id }
-        : { name: data.name, payload_type: data.payload_type, payload: data.payload },
-    )
-    .post(route('qr-codes.store'), {
-      preserveScroll: true,
-      onSuccess: () => {
-        form.reset();
-        form.payload = payloadDefaults('url', props.payloadDescriptors);
-        form.target_type = 'short_link';
-        createOpen.value = false;
-      },
-    });
+function target(qr: QrCodeRecord) {
+  return qr.short_link ? displayUrl(qr.short_link.short_url) : (qr.content ?? '');
+}
+
+function download(qr: QrCodeRecord, format: 'png' | 'svg') {
+  window.location.href = route('qr-codes.export', [qr.token, format]);
 }
 </script>
 
@@ -101,94 +84,107 @@ function submit() {
   <Head title="QR codes" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-semibold tracking-tight">QR Codes</h1>
-          <p class="mt-1 max-w-2xl text-sm text-muted">
-            Scannable codes for web pages, Wi-Fi, contact cards, events and more.
-          </p>
+    <div class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader title="QR codes" :description="description">
+        <template v-if="canEditWorkspace" #actions>
+          <Button size="sm" type="button" @click="createOpen = true"> <Plus class="h-4 w-4" /> New QR code </Button>
+        </template>
+      </PageHeader>
+
+      <div class="mt-6 flex items-center gap-2">
+        <div class="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+          <input
+            ref="searchInput"
+            v-model="search"
+            type="search"
+            aria-label="Search QR codes"
+            placeholder="Search QR codes"
+            class="h-8 w-full rounded-lg border border-transparent bg-elevated/70 pl-8 pr-3 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-faint hover:bg-elevated focus-visible:border-accent/70 focus-visible:ring-2 focus-visible:ring-accent/15"
+            @keydown.escape="
+              search = '';
+              searchInput?.blur();
+            "
+          />
         </div>
-        <Button v-if="canEditWorkspace" @click="createOpen = true">
-          <Plus class="h-4 w-4" />
-          New QR code
-        </Button>
       </div>
 
-      <Input
-        v-model="search"
-        class="mb-5 w-full max-w-sm"
-        placeholder="Search QR Codes…"
-        aria-label="Search QR Codes"
-      />
+      <div v-if="qrCodes.length === 0" class="mt-4 rounded-xl border border-dashed">
+        <EmptyState
+          :title="search ? 'No QR codes match' : 'No QR codes yet'"
+          :description="
+            search
+              ? 'Try another name.'
+              : 'Point a code at a short link to track scans, or encode Wi-Fi, a contact card and more.'
+          "
+        >
+          <template #icon><QrCode class="h-5 w-5" /></template>
+          <template v-if="canEditWorkspace && !search" #action>
+            <Button size="sm" type="button" @click="createOpen = true"> <Plus class="h-4 w-4" /> New QR code </Button>
+          </template>
+        </EmptyState>
+      </div>
 
-      <EmptyState
-        v-if="qrCodes.length === 0"
-        :title="search ? 'No QR Codes match' : 'No QR Codes yet'"
-        :description="
-          search
-            ? 'Try another name.'
-            : 'Create a tracked QR Code for a Short Link or encode a native payload such as Wi-Fi or a contact card.'
-        "
-      >
-        <template #icon><QrCode class="h-5 w-5 text-faint" /></template>
-        <template v-if="canEditWorkspace" #action>
-          <Button @click="createOpen = true">
-            <Plus class="h-4 w-4" />
-            New QR code
-          </Button>
-        </template>
-      </EmptyState>
-
-      <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        <Link
+      <ul v-else class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <li
           v-for="qr in qrCodes"
           :key="qr.id"
-          :href="route('qr-codes.show', qr.token)"
-          class="card-sheen group grid grid-cols-1 gap-0 overflow-hidden rounded-lg border bg-surface transition-colors hover:border-border-strong"
+          class="group relative flex flex-col rounded-xl border bg-surface p-1.5 transition-[border-color] duration-150 focus-within:border-border-strong hover:border-border-strong"
         >
-          <div class="relative grid place-items-center border-b bg-white p-6">
+          <div class="grid aspect-square place-items-center rounded-lg bg-white p-1.5">
             <img
               :src="route('qr-codes.preview', qr.token)"
-              :alt="qr.name"
-              class="h-32 w-32 object-contain"
+              :alt="`${qr.name} QR code`"
+              class="h-full w-full object-contain"
               loading="lazy"
             />
-            <div
-              class="absolute inset-x-0 bottom-0 flex justify-center gap-1.5 bg-gradient-to-t from-black/40 to-transparent p-2 opacity-100 transition-opacity sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover:opacity-100"
-            >
-              <a
-                v-for="format in ['svg', 'png']"
-                :key="format"
-                :href="route('qr-codes.export', [qr.token, format])"
-                class="inline-flex h-7 items-center gap-1 rounded-md bg-white/90 px-2 text-xs font-medium text-zinc-900 shadow hover:bg-white"
-                @click.stop
+          </div>
+          <div class="flex items-start gap-2 px-2 pb-1.5 pt-2.5">
+            <div class="min-w-0 flex-1">
+              <Link
+                :href="route('qr-codes.show', qr.token)"
+                class="block truncate text-sm font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
               >
-                <Download class="h-3 w-3" /> {{ format.toUpperCase() }}
-              </a>
+                {{ qr.name }}
+              </Link>
+              <p class="mt-0.5 flex items-center gap-1.5 text-xs text-faint">
+                <Link2 v-if="!qr.is_direct" class="h-3 w-3 shrink-0" />
+                <component :is="payloadIcon(qr.payload_type ?? 'raw')" v-else class="h-3 w-3 shrink-0" />
+                <span class="truncate">{{ qr.is_direct ? typeLabel(qr) : target(qr) }}</span>
+              </p>
+              <p v-if="qr.is_direct" class="mt-1.5 text-xs text-faint">Scans not tracked</p>
+              <p v-else class="mt-1.5 text-xs tabular-nums text-muted">
+                <span class="font-medium text-foreground">{{ formatter.format(qr.scans ?? 0) }}</span>
+                scan{{ qr.scans === 1 ? '' : 's' }}
+              </p>
             </div>
+            <Menu width="w-48">
+              <template #trigger>
+                <button
+                  type="button"
+                  class="relative z-10 -mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 data-[state=open]:bg-elevated data-[state=open]:text-foreground"
+                  :aria-label="`Actions for ${qr.name}`"
+                >
+                  <MoreHorizontal class="h-4 w-4" />
+                </button>
+              </template>
+              <MenuItem :icon="SlidersHorizontal" @select="router.visit(route('qr-codes.show', qr.token))">
+                Open studio
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem :icon="Download" @select="download(qr, 'png')">Download PNG</MenuItem>
+              <MenuItem :icon="Download" @select="download(qr, 'svg')">Download SVG</MenuItem>
+            </Menu>
           </div>
-          <div class="grid grid-cols-1 gap-1.5 p-4">
-            <div class="flex items-center justify-between gap-2">
-              <h2 class="truncate text-sm font-semibold text-foreground">{{ qr.name }}</h2>
-              <Badge class="inline-flex shrink-0 items-center gap-1">
-                <QrCode v-if="!qr.is_direct" class="h-3 w-3" />
-                <component v-else :is="payloadIcon(qr.payload_type ?? 'raw')" class="h-3 w-3" />
-                {{ qr.is_direct ? (payloadTypes[qr.payload_type ?? ''] ?? qr.payload_type) : 'Short Link' }}
-              </Badge>
-            </div>
-            <p class="truncate font-mono text-xs text-faint">{{ qr.short_link?.short_url ?? qr.content }}</p>
-          </div>
-        </Link>
-      </div>
+        </li>
+      </ul>
+
       <nav
         v-if="qrPagination.lastPage > 1"
-        class="mt-5 flex items-center justify-between gap-3 text-sm"
-        aria-label="QR Code pages"
+        class="mt-6 flex items-center justify-between gap-3 text-[13px]"
+        aria-label="Pagination"
       >
-        <span class="text-faint"
-          >Page {{ qrPagination.currentPage }} of {{ qrPagination.lastPage }} · {{ qrPagination.total }} QR Codes</span
-        >
+        <span class="text-faint">Page {{ qrPagination.currentPage }} of {{ qrPagination.lastPage }}</span>
         <div class="flex gap-2">
           <Button
             variant="secondary"
@@ -210,15 +206,12 @@ function submit() {
       </nav>
     </div>
 
-    <CreateQrCodeDrawer
-      :show="createOpen"
-      :form="form"
+    <CreateQrCodeDialog
+      v-if="canEditWorkspace"
+      v-model:open="createOpen"
       :payload-types="payloadTypes"
       :payload-descriptors="payloadDescriptors"
       :short-links="shortLinks"
-      @close="createOpen = false"
-      @set-type="setPayloadType"
-      @submit="submit"
     />
   </AuthenticatedLayout>
 </template>

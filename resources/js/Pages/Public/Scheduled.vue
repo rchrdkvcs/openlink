@@ -85,11 +85,7 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
       </p>
 
       <div v-if="!done" class="mt-8 flex items-stretch justify-center gap-2 sm:gap-3">
-        <div
-          v-for="unit in units"
-          :key="unit.label"
-          class="card-sheen w-20 rounded-xl border bg-surface py-4 shadow-2xl shadow-black/30 sm:w-24 sm:py-5"
-        >
+        <div v-for="unit in units" :key="unit.label" class="w-20 rounded-xl border bg-surface py-4 sm:w-24 sm:py-5">
           <span class="block overflow-hidden text-4xl font-semibold tabular-nums text-foreground sm:text-5xl">
             <span :key="unit.value" class="digit block">{{ pad(unit.value) }}</span>
           </span>

@@ -42,6 +42,7 @@ class DashboardController extends Controller
             'search' => ['nullable', 'string', 'max:200'],
             'status' => ['nullable', 'in:active,scheduled,expired,disabled,archived'],
             'tag' => ['nullable', 'string', 'max:255'],
+            'folder' => ['nullable', 'regex:/^(unfiled|\d+)$/'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 

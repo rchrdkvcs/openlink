@@ -1,16 +1,39 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Download, ExternalLink, Link2, QrCode, Table2, TrendingUp } from '@lucide/vue';
+import {
+  ChartLine,
+  Download,
+  ExternalLink,
+  Folder,
+  GitBranch,
+  Globe,
+  ListFilter,
+  Plus,
+  QrCode,
+  Shuffle,
+  Table2,
+  Tag,
+  TrendingUp,
+  Waypoints,
+} from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 import BarList from '@/Components/analytics/BarList.vue';
 import BreakdownCard from '@/Components/analytics/BreakdownCard.vue';
+import FilterPill from '@/Components/analytics/FilterPill.vue';
 import KpiCard from '@/Components/analytics/KpiCard.vue';
+import LinkFilter from '@/Components/analytics/LinkFilter.vue';
 import TimeSeriesChart from '@/Components/analytics/TimeSeriesChart.vue';
+import Favicon from '@/Components/Links/Favicon.vue';
+import Button from '@/Components/ui/Button.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Input from '@/Components/ui/Input.vue';
+import Menu from '@/Components/ui/Menu.vue';
+import MenuItem from '@/Components/ui/MenuItem.vue';
+import MenuSub from '@/Components/ui/MenuSub.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
-import Select from '@/Components/ui/Select.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import {
   CHANNEL_LABELS,
@@ -22,19 +45,22 @@ import {
   formatNumber,
   languageName,
   type BreakdownTab,
+  type LinkOption,
   type RangePreset,
   type Report,
 } from '@/lib/analytics';
 import type { SelectOption } from '@/lib/controls';
+import { displayUrl } from '@/lib/links';
 
-type Option = { id: number; name?: string; slug?: string; hostname?: string };
+type Option = { id: number; name?: string; hostname?: string };
 
 const props = defineProps<{
   currentWorkspace: { id: number; name: string; slug: string };
   report: Report;
   filters: Record<string, string | number>;
   filterOptions: {
-    links: { id: number; slug: string; hostname: string | null }[];
+    links: LinkOption[];
+    qrCodes?: Option[];
     domains: Option[];
     folders: Option[];
     tags: Option[];
@@ -43,43 +69,67 @@ const props = defineProps<{
   };
 }>();
 
-const RANGES: { key: RangePreset; label: string }[] = [
-  { key: '24h', label: '24h' },
-  { key: '7d', label: '7d' },
-  { key: '14d', label: '14d' },
-  { key: '30d', label: '30d' },
-  { key: '90d', label: '90d' },
-  { key: '12m', label: '12m' },
-  { key: 'custom', label: 'Custom' },
+const RANGES: { value: RangePreset; label: string }[] = [
+  { value: '24h', label: '24h' },
+  { value: '7d', label: '7d' },
+  { value: '14d', label: '14d' },
+  { value: '30d', label: '30d' },
+  { value: '90d', label: '90d' },
+  { value: '12m', label: '12m' },
+  { value: 'custom', label: 'Custom' },
 ];
 
-const METRIC_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Visits + scans' },
-  { value: 'visit', label: 'Visits only' },
-  { value: 'scan', label: 'Scans only' },
-];
+type DimensionKey = 'domain' | 'folder' | 'tag' | 'qr' | 'rule' | 'variant' | 'metric';
 
-function withAll(allLabel: string, items: Option[], label: (item: Option) => string | undefined): SelectOption[] {
-  return [
-    { value: '', label: allLabel },
-    ...items.map((item) => ({ value: String(item.id), label: label(item) ?? '' })),
-  ];
+type Dimension = { key: DimensionKey; label: string; icon: unknown; options: SelectOption[] };
+
+function toOptions(items: Option[] | undefined, label: (item: Option) => string | undefined): SelectOption[] {
+  return (items ?? []).map((item) => ({ value: String(item.id), label: label(item) ?? String(item.id) }));
 }
 
-const linkOptions = computed<SelectOption[]>(() => [
-  { value: '', label: 'All links' },
-  ...props.filterOptions.links.map((link) => ({
-    value: String(link.id),
-    label: `${link.hostname ? `${link.hostname}/` : '/'}${link.slug}`,
-  })),
-]);
-
-const domainOptions = computed(() => withAll('All domains', props.filterOptions.domains, (domain) => domain.hostname));
-const folderOptions = computed(() => withAll('All folders', props.filterOptions.folders, (folder) => folder.name));
-const tagOptions = computed(() => withAll('All tags', props.filterOptions.tags, (tag) => tag.name));
-const ruleOptions = computed(() => withAll('All rules', props.filterOptions.routingRules, (rule) => rule.name));
-const variantOptions = computed(() =>
-  withAll('All variants', props.filterOptions.routingVariants, (variant) => variant.name),
+const dimensions = computed<Dimension[]>(() =>
+  [
+    {
+      key: 'metric' as const,
+      label: 'Traffic',
+      icon: Waypoints,
+      options: [
+        { value: 'visit', label: 'Visits only' },
+        { value: 'scan', label: 'Scans only' },
+      ],
+    },
+    {
+      key: 'domain' as const,
+      label: 'Domain',
+      icon: Globe,
+      options: toOptions(props.filterOptions.domains, (domain) => domain.hostname),
+    },
+    {
+      key: 'folder' as const,
+      label: 'Folder',
+      icon: Folder,
+      options: toOptions(props.filterOptions.folders, (folder) => folder.name),
+    },
+    { key: 'tag' as const, label: 'Tag', icon: Tag, options: toOptions(props.filterOptions.tags, (tag) => tag.name) },
+    {
+      key: 'qr' as const,
+      label: 'QR code',
+      icon: QrCode,
+      options: toOptions(props.filterOptions.qrCodes, (qr) => qr.name),
+    },
+    {
+      key: 'rule' as const,
+      label: 'Routing rule',
+      icon: GitBranch,
+      options: toOptions(props.filterOptions.routingRules, (rule) => rule.name),
+    },
+    {
+      key: 'variant' as const,
+      label: 'Variant',
+      icon: Shuffle,
+      options: toOptions(props.filterOptions.routingVariants, (variant) => variant.name),
+    },
+  ].filter((dimension) => dimension.options.length > 0 || Boolean(props.filters[dimension.key])),
 );
 
 const state = reactive({
@@ -90,10 +140,21 @@ const state = reactive({
   domain: String(props.filters.domain ?? ''),
   folder: String(props.filters.folder ?? ''),
   tag: String(props.filters.tag ?? ''),
+  qr: String(props.filters.qr ?? ''),
   rule: String(props.filters.rule ?? ''),
   variant: String(props.filters.variant ?? ''),
   metric: String(props.filters.metric ?? ''),
 });
+
+const FILTER_KEYS = ['link', 'domain', 'folder', 'tag', 'qr', 'rule', 'variant', 'metric'] as const;
+
+const activeDimensions = computed(() => dimensions.value.filter((dimension) => state[dimension.key] !== ''));
+const availableDimensions = computed(() => dimensions.value.filter((dimension) => state[dimension.key] === ''));
+const hasActiveFilters = computed(() => FILTER_KEYS.some((key) => state[key] !== ''));
+
+function clearFilters() {
+  for (const key of FILTER_KEYS) state[key] = '';
+}
 
 const loading = ref(false);
 
@@ -103,7 +164,7 @@ function query(): Record<string, string> {
     if (state.from) params.from = state.from;
     if (state.to) params.to = state.to;
   }
-  for (const key of ['link', 'domain', 'folder', 'tag', 'rule', 'variant', 'metric'] as const) {
+  for (const key of FILTER_KEYS) {
     if (state[key]) params[key] = state[key];
   }
   return params;
@@ -120,7 +181,7 @@ function reload() {
 }
 
 watch(
-  () => [state.range, state.link, state.domain, state.folder, state.tag, state.rule, state.variant, state.metric],
+  () => [state.range, ...FILTER_KEYS.map((key) => state[key])],
   () => {
     if (state.range !== 'custom' || (state.from && state.to)) reload();
   },
@@ -132,19 +193,40 @@ function applyCustomRange() {
 
 const exportUrl = computed(() => route('analytics.export') + '?' + new URLSearchParams(query()).toString());
 
+function exportCsv() {
+  window.location.href = exportUrl.value;
+}
+
 const summary = computed(() => props.report.summary);
 const hasEvents = computed(
   () => summary.value.visits + summary.value.scans + summary.value.blocked + summary.value.bots > 0,
 );
 
-const showTable = ref(false);
+const topLinkIds = computed(() => props.report.top_links.map((link) => link.id));
+
+const trafficView = ref<'chart' | 'table'>('chart');
+const TRAFFIC_VIEWS = [
+  { value: 'chart' as const, label: 'Chart', icon: ChartLine },
+  { value: 'table' as const, label: 'Table', icon: Table2 },
+];
+
+const rankingView = ref<'links' | 'qr'>('links');
+const RANKING_VIEWS = [
+  { value: 'links' as const, label: 'Links' },
+  { value: 'qr' as const, label: 'QR codes' },
+];
+const showQrRanking = computed(() => props.report.top_qr_codes.length > 0);
+
+watch(showQrRanking, (visible) => {
+  if (!visible) rankingView.value = 'links';
+});
 
 const sourceTabs = computed<BreakdownTab[]>(() => [
   {
     key: 'referrers',
     label: 'Referrers',
     rows: props.report.breakdowns.referrers,
-    empty: 'No referrer data yet — direct visits carry no referrer.',
+    empty: 'No referrers yet. Direct visits carry none.',
   },
   {
     key: 'channels',
@@ -165,7 +247,7 @@ const locationTabs = computed<BreakdownTab[]>(() => [
       display: countryName(row.label),
       prefix: countryFlag(row.label),
     })),
-    empty: 'No country data yet. Country detection needs a geo header from your proxy or CDN (e.g. Cloudflare).',
+    empty: 'No country data yet. Detection needs a geo header from your proxy or CDN.',
   },
   {
     key: 'languages',
@@ -192,7 +274,7 @@ const campaignTabs = computed<BreakdownTab[]>(() => [
     key: 'utm_campaigns',
     label: 'Campaigns',
     rows: props.report.breakdowns.utm_campaigns,
-    empty: 'No UTM parameters seen yet. Share links with ?utm_campaign=… to segment traffic here.',
+    empty: 'No UTM campaigns yet. Add ?utm_campaign=… to shared links.',
   },
   {
     key: 'utm_sources',
@@ -216,95 +298,97 @@ const outcomeRows = computed(() =>
     share: row.share,
   })),
 );
+
+const totalAttempts = computed(() => props.report.outcomes.reduce((sum, row) => sum + row.count, 0));
 </script>
 
 <template>
   <Head title="Analytics" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 class="text-xl font-semibold tracking-tight">Analytics</h1>
-          <p class="mt-1 text-sm text-muted">
-            Visits, scans, and audience across this workspace. Bots are excluded from every figure.
-          </p>
-        </div>
-        <a
-          :href="exportUrl"
-          class="inline-flex h-9 w-fit items-center gap-2 rounded-md border border-border bg-surface px-3.5 text-sm font-medium text-foreground transition-colors duration-150 hover:border-border-strong hover:bg-elevated"
-        >
-          <Download class="h-4 w-4" /> Export CSV
-        </a>
-      </div>
-
-      <div class="mb-6 flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-0.5 rounded-md border bg-surface p-0.5">
-          <button
-            v-for="range in RANGES"
-            :key="range.key"
-            type="button"
-            class="rounded-[5px] px-2.5 py-1.5 text-[13px] font-medium transition-colors duration-100"
-            :class="state.range === range.key ? 'bg-elevated text-foreground' : 'text-muted hover:text-foreground'"
-            @click="state.range = range.key"
-          >
-            {{ range.label }}
-          </button>
-        </div>
-
-        <template v-if="state.range === 'custom'">
-          <Input v-model="state.from" type="date" class="w-auto" @change="applyCustomRange" />
-          <span class="text-xs text-faint">to</span>
-          <Input v-model="state.to" type="date" class="w-auto" @change="applyCustomRange" />
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader title="Analytics" description="Visits, scans and audience across this workspace. Bots are excluded.">
+        <template #actions>
+          <Button variant="secondary" size="sm" type="button" @click="exportCsv"> <Download /> Export CSV </Button>
         </template>
+      </PageHeader>
 
-        <Select v-model="state.link" :options="linkOptions" class="w-auto min-w-36 max-w-56" />
+      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div class="flex max-w-full flex-wrap items-center gap-2">
+          <SegmentedControl
+            v-model="state.range"
+            :options="RANGES"
+            size="sm"
+            label="Date range"
+            class="max-w-full overflow-x-auto"
+          />
 
-        <Select
-          v-if="filterOptions.domains.length > 0"
-          v-model="state.domain"
-          :options="domainOptions"
-          class="w-auto min-w-32"
-        />
+          <template v-if="state.range === 'custom'">
+            <Input
+              v-model="state.from"
+              type="date"
+              size="sm"
+              class="w-auto"
+              aria-label="From"
+              @change="applyCustomRange"
+            />
+            <span class="text-xs text-faint">to</span>
+            <Input v-model="state.to" type="date" size="sm" class="w-auto" aria-label="To" @change="applyCustomRange" />
+          </template>
+        </div>
 
-        <Select
-          v-if="filterOptions.folders.length > 0"
-          v-model="state.folder"
-          :options="folderOptions"
-          class="w-auto min-w-32"
-        />
+        <div class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+          <LinkFilter v-model="state.link" :links="filterOptions.links" :top-link-ids="topLinkIds" />
 
-        <Select
-          v-if="filterOptions.tags.length > 0"
-          v-model="state.tag"
-          :options="tagOptions"
-          class="w-auto min-w-28"
-        />
+          <FilterPill
+            v-for="dimension in activeDimensions"
+            :key="dimension.key"
+            v-model="state[dimension.key]"
+            :label="dimension.label"
+            :icon="dimension.icon"
+            :options="dimension.options"
+            @remove="state[dimension.key] = ''"
+          />
 
-        <Select
-          v-if="filterOptions.routingRules.length > 0"
-          v-model="state.rule"
-          :options="ruleOptions"
-          class="w-auto min-w-32"
-        />
+          <Menu v-if="availableDimensions.length > 0" align="start" width="w-52">
+            <template #trigger>
+              <Button variant="ghost" size="sm" type="button">
+                <Plus v-if="activeDimensions.length > 0" />
+                <ListFilter v-else />
+                Add filter
+              </Button>
+            </template>
+            <MenuSub
+              v-for="dimension in availableDimensions"
+              :key="dimension.key"
+              :label="dimension.label"
+              :icon="dimension.icon"
+            >
+              <MenuItem
+                v-for="option in dimension.options"
+                :key="option.value"
+                @select="state[dimension.key] = option.value"
+              >
+                {{ option.label }}
+              </MenuItem>
+            </MenuSub>
+          </Menu>
 
-        <Select
-          v-if="filterOptions.routingVariants.length > 0"
-          v-model="state.variant"
-          :options="variantOptions"
-          class="w-auto min-w-32"
-        />
-
-        <Select v-model="state.metric" :options="METRIC_OPTIONS" class="w-auto min-w-28" />
+          <Button v-if="hasActiveFilters" variant="ghost" size="sm" type="button" @click="clearFilters"> Clear </Button>
+        </div>
       </div>
 
-      <div class="space-y-6 transition-opacity duration-150" :class="loading ? 'pointer-events-none opacity-50' : ''">
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div
+        class="mt-5 space-y-3 transition-opacity duration-150"
+        :class="loading ? 'pointer-events-none opacity-50' : ''"
+        :aria-busy="loading"
+      >
+        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             label="Visits"
             :value="summary.visits"
             :change="summary.visits_change"
-            detail="Successful redirects"
+            :detail="`${formatNumber(summary.active_links)} active ${summary.active_links === 1 ? 'link' : 'links'}`"
           />
           <KpiCard
             label="Visitors"
@@ -314,50 +398,35 @@ const outcomeRows = computed(() =>
           />
           <KpiCard label="QR scans" :value="summary.scans" :change="summary.scans_change" detail="Successful scans" />
           <KpiCard
-            label="Blocked"
-            :value="summary.blocked"
-            :change="summary.blocked_change"
-            :up-is-good="false"
-            detail="Failed attempts"
-          />
-          <KpiCard
             label="Success rate"
             :value="summary.success_rate === null ? '—' : `${summary.success_rate}%`"
-            detail="Of human attempts"
+            :detail="`${formatNumber(summary.blocked)} blocked ${summary.blocked === 1 ? 'attempt' : 'attempts'}`"
           />
-          <KpiCard label="Active links" :value="summary.active_links" detail="With traffic in period" />
         </section>
 
         <SectionCard
-          title="Traffic over time"
+          title="Traffic"
           :description="
             report.range.bucket === 'hour' ? 'Hourly' : report.range.bucket === 'month' ? 'Monthly' : 'Daily'
           "
         >
-          <template #icon><TrendingUp class="h-4 w-4 text-faint" /></template>
           <template #header>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground"
-              @click="showTable = !showTable"
-            >
-              <Table2 class="h-3.5 w-3.5" /> {{ showTable ? 'Chart' : 'Table' }}
-            </button>
+            <SegmentedControl v-model="trafficView" :options="TRAFFIC_VIEWS" size="sm" label="Traffic view" />
           </template>
 
-          <div v-if="!showTable" class="px-4 pb-3 pt-4">
+          <div v-if="trafficView === 'chart'" class="px-4 pb-3 pt-4">
             <TimeSeriesChart :points="report.timeseries" :bucket="report.range.bucket" />
           </div>
 
-          <div v-else class="max-h-80 overflow-y-auto">
+          <div v-else class="h-[19.5rem] overflow-y-auto">
             <table class="w-full text-[13px]">
-              <thead class="sticky top-0 bg-surface text-left text-xs uppercase tracking-wide text-faint">
+              <thead class="sticky top-0 bg-surface text-start text-xs text-faint">
                 <tr>
-                  <th class="px-5 py-2 font-medium">Period</th>
-                  <th class="px-5 py-2 text-right font-medium">Visits</th>
-                  <th class="px-5 py-2 text-right font-medium">Scans</th>
-                  <th class="px-5 py-2 text-right font-medium">Visitors</th>
-                  <th class="px-5 py-2 text-right font-medium">Blocked</th>
+                  <th class="px-5 py-2 text-start font-medium">Period</th>
+                  <th class="px-5 py-2 text-end font-medium">Visits</th>
+                  <th class="px-5 py-2 text-end font-medium">Scans</th>
+                  <th class="px-5 py-2 text-end font-medium">Visitors</th>
+                  <th class="px-5 py-2 text-end font-medium">Blocked</th>
                 </tr>
               </thead>
               <tbody>
@@ -365,51 +434,149 @@ const outcomeRows = computed(() =>
                   <td class="px-5 py-1.5 text-muted">
                     {{ formatBucket(point.bucket, report.range.bucket, 'long') }}
                   </td>
-                  <td class="px-5 py-1.5 text-right tabular-nums">
-                    {{ formatNumber(point.visits) }}
-                  </td>
-                  <td class="px-5 py-1.5 text-right tabular-nums">{{ formatNumber(point.scans) }}</td>
-                  <td class="px-5 py-1.5 text-right tabular-nums text-muted">
-                    {{ formatNumber(point.visitors) }}
-                  </td>
-                  <td class="px-5 py-1.5 text-right tabular-nums text-muted">
-                    {{ formatNumber(point.blocked) }}
-                  </td>
+                  <td class="px-5 py-1.5 text-end tabular-nums">{{ formatNumber(point.visits) }}</td>
+                  <td class="px-5 py-1.5 text-end tabular-nums">{{ formatNumber(point.scans) }}</td>
+                  <td class="px-5 py-1.5 text-end tabular-nums text-muted">{{ formatNumber(point.visitors) }}</td>
+                  <td class="px-5 py-1.5 text-end tabular-nums text-muted">{{ formatNumber(point.blocked) }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </SectionCard>
 
-        <EmptyState
-          v-if="!hasEvents"
-          title="No traffic in this period"
-          description="Share a short link or QR code and analytics will appear here within seconds — no extra setup needed."
-        >
-          <template #icon><TrendingUp class="h-5 w-5" /></template>
-        </EmptyState>
+        <div v-if="!hasEvents" class="rounded-xl border bg-surface">
+          <EmptyState
+            title="No traffic in this period"
+            :description="
+              hasActiveFilters
+                ? 'Nothing matches these filters. Widen the range or clear filters.'
+                : 'Share a short link or QR code. Visits and scans show up here within seconds.'
+            "
+          >
+            <template #icon><TrendingUp class="h-4 w-4" /></template>
+            <template v-if="hasActiveFilters" #action>
+              <Button variant="secondary" size="sm" type="button" @click="clearFilters">Clear filters</Button>
+            </template>
+          </EmptyState>
+        </div>
 
-        <section v-if="hasEvents" class="grid gap-6 lg:grid-cols-2">
-          <BreakdownCard title="Sources" :tabs="sourceTabs" />
-          <BreakdownCard title="Locations" :tabs="locationTabs" />
-          <BreakdownCard title="Devices" :tabs="deviceTabs" />
-          <BreakdownCard title="Campaigns (UTM)" :tabs="campaignTabs" />
+        <section v-if="hasEvents" class="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+          <SectionCard
+            :title="rankingView === 'qr' ? 'Top QR codes' : 'Top links'"
+            class="flex flex-col md:col-span-2 lg:col-span-6"
+          >
+            <template #header>
+              <SegmentedControl
+                v-if="showQrRanking"
+                v-model="rankingView"
+                :options="RANKING_VIEWS"
+                size="sm"
+                label="Ranking"
+              />
+              <span v-else class="flex h-7 items-center text-xs text-faint">By visits and scans</span>
+            </template>
+
+            <div class="h-72 overflow-y-auto">
+              <table v-if="rankingView === 'links' && report.top_links.length > 0" class="w-full text-[13px]">
+                <thead class="sticky top-0 z-10 bg-surface text-xs text-faint">
+                  <tr>
+                    <th class="py-2 pe-3 ps-4 text-start font-medium">Link</th>
+                    <th class="px-2 py-2 text-end font-medium">Visits</th>
+                    <th class="px-2 py-2 text-end font-medium">Scans</th>
+                    <th class="py-2 pe-4 ps-2 text-end font-medium">Visitors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="link in report.top_links" :key="link.id" class="group border-t">
+                    <td class="max-w-0 py-1.5 pe-3 ps-4">
+                      <div class="flex items-center gap-2.5">
+                        <Favicon :url="link.destination_url ?? ''" size="sm" />
+                        <div class="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            class="block max-w-full truncate rounded font-medium text-foreground outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-accent/40"
+                            :title="`Filter by /${link.slug}`"
+                            @click="state.link = String(link.id)"
+                          >
+                            {{ link.short_url ? displayUrl(link.short_url) : `/${link.slug}` }}
+                          </button>
+                          <p class="truncate text-xs text-faint">
+                            {{ link.destination_url ? displayUrl(link.destination_url) : '' }}
+                          </p>
+                        </div>
+                        <a
+                          v-if="link.short_url"
+                          :href="link.short_url"
+                          target="_blank"
+                          rel="noopener"
+                          class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-faint opacity-0 transition-opacity hover:bg-elevated hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                          :aria-label="`Open /${link.slug}`"
+                        >
+                          <ExternalLink class="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </td>
+                    <td class="px-2 py-1.5 text-end font-medium tabular-nums">{{ formatNumber(link.visits) }}</td>
+                    <td class="px-2 py-1.5 text-end tabular-nums text-muted">{{ formatNumber(link.scans) }}</td>
+                    <td class="py-1.5 pe-4 ps-2 text-end tabular-nums text-muted">{{ formatNumber(link.visitors) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-else-if="rankingView === 'qr'" class="space-y-0.5 p-2">
+                <button
+                  v-for="qr in report.top_qr_codes"
+                  :key="qr.id"
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-start text-[13px] outline-none transition-colors hover:bg-elevated focus-visible:ring-2 focus-visible:ring-accent/40"
+                  :title="`Filter by ${qr.name}`"
+                  @click="state.qr = String(qr.id)"
+                >
+                  <QrCode class="h-3.5 w-3.5 shrink-0 text-faint" />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-medium text-foreground">{{ qr.name }}</span>
+                    <span v-if="qr.link_slug" class="block truncate text-xs text-faint">/{{ qr.link_slug }}</span>
+                  </span>
+                  <span class="tabular-nums text-muted">{{ formatNumber(qr.scans) }}</span>
+                </button>
+              </div>
+
+              <div v-else class="flex h-full items-center justify-center px-6">
+                <p class="text-[13px] text-faint">No link traffic in this period.</p>
+              </div>
+            </div>
+          </SectionCard>
+
+          <BreakdownCard title="Sources" :tabs="sourceTabs" class="lg:col-span-3" />
+          <BreakdownCard title="Locations" :tabs="locationTabs" class="lg:col-span-3" />
+          <BreakdownCard title="Devices" :tabs="deviceTabs" class="lg:col-span-2" />
+          <BreakdownCard title="Campaigns" :tabs="campaignTabs" class="lg:col-span-2" />
+
+          <SectionCard title="Outcomes" class="flex flex-col md:col-span-2 lg:col-span-2">
+            <template #header>
+              <span class="flex h-7 items-center text-xs tabular-nums text-faint">
+                {{ formatNumber(totalAttempts) }} {{ totalAttempts === 1 ? 'attempt' : 'attempts' }}
+              </span>
+            </template>
+            <div class="h-72 overflow-y-auto">
+              <BarList :rows="outcomeRows" empty="No resolution attempts in this period." />
+            </div>
+          </SectionCard>
         </section>
 
         <SectionCard
           v-if="hasEvents && report.routing.length > 0"
-          title="Routing performance"
-          description="Traffic distribution across default destination, rules, and variants"
+          title="Routing"
+          description="How traffic splits across the default destination, rules and variants"
         >
-          <template #icon><TrendingUp class="h-4 w-4 text-faint" /></template>
           <div class="overflow-x-auto">
             <table class="w-full text-[13px]">
-              <thead class="text-left text-xs uppercase tracking-wide text-faint">
+              <thead class="text-xs text-faint">
                 <tr>
-                  <th class="px-5 py-2.5 font-medium">Destination path</th>
-                  <th class="px-3 py-2.5 text-right font-medium">Visits</th>
-                  <th class="px-3 py-2.5 text-right font-medium">Scans</th>
-                  <th class="px-5 py-2.5 text-right font-medium">Visitors</th>
+                  <th class="px-5 py-2.5 text-start font-medium">Destination</th>
+                  <th class="px-3 py-2.5 text-end font-medium">Visits</th>
+                  <th class="px-3 py-2.5 text-end font-medium">Scans</th>
+                  <th class="px-5 py-2.5 text-end font-medium">Visitors</th>
                 </tr>
               </thead>
               <tbody>
@@ -418,101 +585,23 @@ const outcomeRows = computed(() =>
                   :key="`${row.routing_rule_id ?? 'default'}-${row.routing_variant_id ?? 'none'}`"
                   class="border-t"
                 >
-                  <td class="max-w-0 px-5 py-2.5">
+                  <td class="max-w-0 px-5 py-2">
                     <span class="block truncate font-medium text-foreground">{{ row.rule_name }}</span>
                     <span v-if="row.variant_name" class="block truncate text-xs text-faint">{{
                       row.variant_name
                     }}</span>
                   </td>
-                  <td class="px-3 py-2.5 text-right font-medium tabular-nums">
-                    {{ formatNumber(row.visits) }}
-                  </td>
-                  <td class="px-3 py-2.5 text-right tabular-nums text-muted">
-                    {{ formatNumber(row.scans) }}
-                  </td>
-                  <td class="px-5 py-2.5 text-right tabular-nums text-muted">
-                    {{ formatNumber(row.visitors) }}
-                  </td>
+                  <td class="px-3 py-2 text-end font-medium tabular-nums">{{ formatNumber(row.visits) }}</td>
+                  <td class="px-3 py-2 text-end tabular-nums text-muted">{{ formatNumber(row.scans) }}</td>
+                  <td class="px-5 py-2 text-end tabular-nums text-muted">{{ formatNumber(row.visitors) }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </SectionCard>
 
-        <section v-if="hasEvents" class="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
-          <SectionCard title="Top links" description="By successful visits and scans in the period">
-            <template #icon><Link2 class="h-4 w-4 text-faint" /></template>
-
-            <div class="overflow-x-auto">
-              <table class="w-full text-[13px]">
-                <thead class="text-left text-xs uppercase tracking-wide text-faint">
-                  <tr>
-                    <th class="px-5 py-2.5 font-medium">Link</th>
-                    <th class="px-3 py-2.5 text-right font-medium">Visits</th>
-                    <th class="px-3 py-2.5 text-right font-medium">Scans</th>
-                    <th class="px-5 py-2.5 text-right font-medium">Visitors</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="link in report.top_links" :key="link.id" class="border-t">
-                    <td class="max-w-0 px-5 py-2.5">
-                      <a
-                        v-if="link.short_url"
-                        :href="link.short_url"
-                        target="_blank"
-                        rel="noopener"
-                        class="group inline-flex max-w-full items-center gap-1.5 font-medium text-foreground hover:text-accent"
-                      >
-                        <span class="truncate">/{{ link.slug }}</span>
-                        <ExternalLink class="h-3 w-3 shrink-0 text-faint group-hover:text-accent" />
-                      </a>
-                      <span v-else class="font-medium text-muted">{{ link.slug }}</span>
-                      <p class="truncate text-xs text-faint">{{ link.destination_url }}</p>
-                    </td>
-                    <td class="px-3 py-2.5 text-right font-medium tabular-nums">
-                      {{ formatNumber(link.visits) }}
-                    </td>
-                    <td class="px-3 py-2.5 text-right tabular-nums text-muted">
-                      {{ formatNumber(link.scans) }}
-                    </td>
-                    <td class="px-5 py-2.5 text-right tabular-nums text-muted">
-                      {{ formatNumber(link.visitors) }}
-                    </td>
-                  </tr>
-                  <tr v-if="report.top_links.length === 0">
-                    <td colspan="4" class="px-5 py-8 text-center text-faint">No link traffic in this period.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
-
-          <div class="space-y-6">
-            <SectionCard title="Outcomes" description="How resolution attempts ended">
-              <BarList :rows="outcomeRows" />
-            </SectionCard>
-
-            <SectionCard v-if="report.top_qr_codes.length > 0" title="Top QR codes">
-              <template #icon><QrCode class="h-4 w-4 text-faint" /></template>
-              <div class="space-y-1 p-3">
-                <div
-                  v-for="qr in report.top_qr_codes"
-                  :key="qr.id"
-                  class="flex items-center gap-3 rounded-[5px] px-2.5 py-1.5 text-[13px]"
-                >
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate font-medium text-foreground">{{ qr.name }}</span>
-                    <span v-if="qr.link_slug" class="block truncate text-xs text-faint">/{{ qr.link_slug }}</span>
-                  </span>
-                  <span class="tabular-nums text-muted">{{ formatNumber(qr.scans) }} scans</span>
-                </div>
-              </div>
-            </SectionCard>
-          </div>
-        </section>
-
-        <p v-if="hasEvents && summary.bots > 0" class="text-xs text-faint">
-          {{ formatNumber(summary.bots) }} bot and crawler requests were excluded from these figures in this period.
+        <p v-if="hasEvents && summary.bots > 0" class="px-1 pt-1 text-xs text-faint">
+          {{ formatNumber(summary.bots) }} bot and crawler requests were excluded in this period.
         </p>
       </div>
     </div>

@@ -24,6 +24,16 @@ export function isLikelyUrl(value: string): boolean {
   }
 }
 
+export function normalizeUrl(value: string): string {
+  const trimmed = value.trim();
+
+  if (trimmed === '' || /^[a-z][a-z\d+\-.]*:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return isLikelyUrl(`https://${trimmed}`) ? `https://${trimmed}` : trimmed;
+}
+
 export function hostOf(value: string): string {
   try {
     return new URL(value.includes('://') ? value : `https://${value}`).host;
@@ -40,4 +50,29 @@ export function originOf(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function displayUrl(url: string): string {
+  try {
+    const parsed = new URL(url.includes('://') ? url : `https://${url}`);
+    const path = parsed.pathname === '/' ? '' : parsed.pathname;
+
+    return `${parsed.host}${path}${parsed.search}`;
+  } catch {
+    return url.replace(/^https?:\/\//, '');
+  }
+}
+
+export function faviconFor(url: string): string | null {
+  const origin = originOf(url);
+
+  return origin ? route('favicons.show', { url: origin }) : null;
+}
+
+export function statusVariant(status: string) {
+  if (status === 'active') return 'success';
+  if (status === 'scheduled') return 'accent';
+  if (status === 'expired') return 'warning';
+  if (status === 'archived') return 'default';
+  return 'danger';
 }

@@ -2,7 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -34,52 +34,51 @@ const submit = () => {
 </script>
 
 <template>
-  <GuestLayout>
+  <GuestLayout title="Create your account" description="Shorten, share and measure links in minutes.">
     <Head title="Create an account" />
 
-    <div class="mb-6">
-      <h1 class="text-lg font-semibold text-foreground">Create your account</h1>
-      <p class="mt-1 text-sm text-muted">Start managing short links in minutes.</p>
-    </div>
-
-    <div v-if="invite" class="mb-5 rounded-md border border-accent/25 bg-accent/10 px-3 py-2.5 text-sm text-foreground">
-      You are joining <strong>{{ invite.workspace }}</strong> as <strong class="capitalize">{{ invite.role }}</strong
+    <p
+      v-if="invite"
+      class="mb-5 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2.5 text-[13px] leading-relaxed text-foreground"
+    >
+      You’re joining <span class="font-semibold">{{ invite.workspace }}</span> as
+      <span class="font-semibold capitalize">{{ invite.role }}</span
       >.
-    </div>
+    </p>
 
-    <form class="space-y-4" @submit.prevent="submit">
+    <form class="grid gap-4" @submit.prevent="submit">
       <Field label="Name" :error="form.errors.name">
-        <Input id="name" type="text" v-model="form.name" required autofocus autocomplete="name" />
+        <Input id="name" v-model="form.name" type="text" required autofocus autocomplete="name" />
       </Field>
 
       <Field label="Email" :error="form.errors.email">
-        <Input id="email" type="email" v-model="form.email" required autocomplete="username" />
+        <Input id="email" v-model="form.email" type="email" required autocomplete="username" />
       </Field>
 
       <Field label="Password" :error="form.errors.password">
-        <Input id="password" type="password" v-model="form.password" required autocomplete="new-password" />
+        <Input id="password" v-model="form.password" type="password" required autocomplete="new-password" />
       </Field>
 
-      <Field label="Confirm Password" :error="form.errors.password_confirmation">
+      <Field label="Confirm password" :error="form.errors.password_confirmation">
         <Input
           id="password_confirmation"
-          type="password"
           v-model="form.password_confirmation"
+          type="password"
           required
           autocomplete="new-password"
         />
       </Field>
 
-      <PrimaryButton class="w-full" :disabled="form.processing">Register</PrimaryButton>
+      <Button class="mt-1 w-full" :loading="form.processing">Create account</Button>
     </form>
 
     <OAuthButtons class="mt-5" :providers="oauthProviders" intent="register" :invite="invite?.token" />
 
     <template #footer>
-      <p class="mt-6 text-center text-sm text-muted">
-        Already registered?
-        <Link :href="route('login')" class="font-medium text-foreground underline-offset-4 hover:underline"
-          >Log in</Link
+      <p class="mt-6 text-center text-[13px] text-muted">
+        Already have an account?
+        <Link :href="route('login')" class="font-medium text-foreground hover:underline hover:underline-offset-4"
+          >Sign in</Link
         >
       </p>
     </template>

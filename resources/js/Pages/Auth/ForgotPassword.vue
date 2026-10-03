@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -20,31 +20,33 @@ const submit = () => {
 </script>
 
 <template>
-  <GuestLayout>
-    <Head title="Forgot your password" />
+  <GuestLayout
+    title="Reset your password"
+    description="Enter your email and we’ll send you a link to choose a new one."
+  >
+    <Head title="Reset your password" />
 
-    <div class="mb-6">
-      <h1 class="text-lg font-semibold text-foreground">Reset your password</h1>
-      <p class="mt-1 text-sm text-muted">Enter your email address and we will send you a password reset link.</p>
-    </div>
-
-    <div v-if="status" class="mb-4 rounded-md border border-success/25 bg-success/10 px-3 py-2 text-sm text-success">
+    <p
+      v-if="status"
+      role="status"
+      class="mb-5 rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-[13px] text-success"
+    >
       {{ status }}
-    </div>
+    </p>
 
-    <form class="space-y-4" @submit.prevent="submit">
+    <form class="grid gap-4" @submit.prevent="submit">
       <Field label="Email" :error="form.errors.email">
-        <Input id="email" type="email" v-model="form.email" required autofocus autocomplete="username" />
+        <Input id="email" v-model="form.email" type="email" required autofocus autocomplete="username" />
       </Field>
 
-      <PrimaryButton class="w-full" :disabled="form.processing">Email password reset link</PrimaryButton>
+      <Button class="mt-1 w-full" :loading="form.processing">Send reset link</Button>
     </form>
 
     <template #footer>
-      <p class="mt-6 text-center text-sm text-muted">
+      <p class="mt-6 text-center text-[13px] text-muted">
         Remembered it?
-        <Link :href="route('login')" class="font-medium text-foreground underline-offset-4 hover:underline"
-          >Back to log in</Link
+        <Link :href="route('login')" class="font-medium text-foreground hover:underline hover:underline-offset-4"
+          >Back to sign in</Link
         >
       </p>
     </template>

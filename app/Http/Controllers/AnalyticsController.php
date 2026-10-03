@@ -66,13 +66,20 @@ class AnalyticsController extends Controller
         $links = $workspace->shortLinks()
             ->with('domain:id,hostname')
             ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('id', $accessibleLinkIds))
-            ->orderBy('slug')
-            ->get(['id', 'slug', 'domain_id'])
+            ->latest('id')
+            ->get(['id', 'slug', 'domain_id', 'destination_url'])
             ->map(fn ($link) => [
                 'id' => $link->id,
                 'slug' => $link->slug,
                 'hostname' => $link->domain?->hostname,
+                'short_url' => $link->domain ? 'https://'.$link->domain->hostname.'/'.$link->slug : null,
+                'destination_url' => $link->destination_url,
             ]);
+
+        $qrCodes = $workspace->qrCodes()
+            ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('short_link_id', $accessibleLinkIds))
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         $rules = $workspace->shortLinks()
             ->with('routingRules.variants')
@@ -83,6 +90,7 @@ class AnalyticsController extends Controller
 
         return [
             'links' => $links,
+            'qrCodes' => $qrCodes,
             'domains' => $workspace->domains()->orderBy('hostname')->get(['id', 'hostname']),
             'folders' => $data->folders($view)->map->only(['id', 'name'])->values(),
             'tags' => $workspace->tags()->orderBy('name')->get(['id', 'name']),

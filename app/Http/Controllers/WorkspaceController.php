@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\Workspaces\CreateWorkspace;
 use App\Actions\Workspaces\DeleteWorkspace;
 use App\Actions\Workspaces\UpdateWorkspace;
 use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\Domain;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
@@ -13,6 +15,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class WorkspaceController extends Controller
 {
@@ -38,12 +42,33 @@ class WorkspaceController extends Controller
                 'domains.index',
                 'members.index',
                 'settings.index',
+                'settings.workspace',
             ])],
         ]);
 
         $access->selectCurrent($request, $workspace);
 
         return redirect()->route($data['destination'] ?? 'dashboard');
+    }
+
+    public function settings(Request $request, WorkspaceAccess $access, WorkspaceShellPayload $shell, WorkspacePayloads $payloads): Response|RedirectResponse
+    {
+        $user = $request->user();
+        $workspace = $access->requireCurrent($request);
+
+        if (! $access->canManageWorkspace($user, $workspace)) {
+            return redirect()->route('profile.edit');
+        }
+
+        $role = $access->role($user, $workspace);
+
+        return Inertia::render('Settings/Workspace', [
+            ...$shell->handle($workspace, $user),
+            'domains' => $payloads->domains($workspace)
+                ->filter(fn (array $domain) => $domain['is_default'] || $domain['status'] === 'active')
+                ->values(),
+            'canDelete' => $role === WorkspaceMember::ROLE_OWNER && $user->workspaces()->count() > 1,
+        ]);
     }
 
     public function manage(Request $request, Workspace $workspace, WorkspaceAccess $access): JsonResponse

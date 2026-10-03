@@ -304,24 +304,8 @@ export const WORKSPACE_ICONS: Record<string, Component> = Object.assign(
   ...WORKSPACE_ICON_CATEGORIES.map((category) => category.icons),
 );
 
-export const WORKSPACE_COLORS: Record<string, string> = {
-  slate: '#64748b',
-  red: '#ef4444',
-  orange: '#f97316',
-  amber: '#f59e0b',
-  green: '#22c55e',
-  teal: '#14b8a6',
-  blue: '#3b82f6',
-  violet: '#8b5cf6',
-  pink: '#ec4899',
-};
-
 export function workspaceIconComponent(key?: string | null): Component | null {
   return key ? (WORKSPACE_ICONS[key] ?? null) : null;
-}
-
-export function workspaceColorHex(key?: string | null): string | null {
-  return key ? (WORKSPACE_COLORS[key] ?? null) : null;
 }
 
 export function workspaceInitial(name?: string | null): string {

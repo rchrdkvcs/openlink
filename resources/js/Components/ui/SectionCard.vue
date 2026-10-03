@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-  <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
+  <section class="overflow-hidden rounded-xl border bg-surface">
     <header v-if="title || $slots.header" class="flex items-center justify-between gap-4 border-b px-5 py-3.5">
       <div class="flex min-w-0 items-center gap-2 text-foreground">
         <slot name="icon" />

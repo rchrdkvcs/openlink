@@ -25,7 +25,7 @@ function initial(name?: string | null) {
 
 <template>
   <span
-    class="grid shrink-0 place-items-center overflow-hidden rounded-full border bg-elevated font-semibold text-foreground"
+    class="grid shrink-0 place-items-center overflow-hidden rounded-full bg-elevated font-semibold text-foreground outline outline-1 -outline-offset-1 outline-white/10"
     :class="sizeClass[size]"
   >
     <img

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CalendarClock, ChevronLeft, ChevronRight } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'radix-vue';
+import { computed, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Select from '@/Components/ui/Select.vue';
@@ -31,12 +32,9 @@ const PRESETS = [
   { label: 'In a month', days: 30 },
 ];
 
-function toggle() {
-  open.value = !open.value;
-  if (open.value) {
-    view.value = selected.value ?? new Date();
-  }
-}
+watch(open, (value) => {
+  if (value) view.value = selected.value ?? new Date();
+});
 
 function shiftMonth(delta: number) {
   view.value = new Date(view.value.getFullYear(), view.value.getMonth() + delta, 1);
@@ -68,38 +66,35 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
 </script>
 
 <template>
-  <div class="relative" @keydown.escape.stop="open = false">
-    <button
-      type="button"
-      :class="
-        cn(controlVariants(), 'flex items-center justify-between gap-2', modelValue ? 'text-foreground' : 'text-faint')
-      "
-      @click="toggle"
-    >
-      <span class="truncate">{{ modelValue ? humanize(modelValue) : placeholder }}</span>
-      <CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />
-    </button>
-
-    <button v-if="open" type="button" class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="open = false" />
-    <Transition
-      enter-active-class="transition ease-emphasized-out duration-150"
-      enter-from-class="opacity-0 scale-[0.97] -translate-y-0.5"
-      enter-to-class="opacity-100 scale-100 translate-y-0"
-      leave-active-class="transition ease-out duration-100"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-[0.97] -translate-y-0.5"
-    >
-      <div
-        v-if="open"
-        class="absolute z-30 mt-2 w-[19rem] max-w-[calc(100vw-2rem)] rounded-xl bg-overlay p-3 shadow-popover"
-        :class="align === 'end' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'"
+  <PopoverRoot v-model:open="open">
+    <PopoverTrigger as-child>
+      <button
+        type="button"
+        :class="
+          cn(
+            controlVariants(),
+            'flex items-center justify-between gap-2',
+            modelValue ? 'text-foreground' : 'text-faint',
+          )
+        "
+      >
+        <span class="truncate">{{ modelValue ? humanize(modelValue) : placeholder }}</span>
+        <CalendarClock class="h-3.5 w-3.5 shrink-0 text-faint" />
+      </button>
+    </PopoverTrigger>
+    <PopoverPortal>
+      <PopoverContent
+        :align="align"
+        :side-offset="6"
+        :collision-padding="12"
+        class="z-[90] w-[19rem] max-w-[calc(100vw-2rem)] origin-[var(--radix-popover-content-transform-origin)] rounded-xl bg-overlay p-3 shadow-popover outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97]"
       >
         <div class="mb-2 flex flex-wrap gap-1.5">
           <button
             v-for="preset in PRESETS"
             :key="preset.label"
             type="button"
-            class="rounded-full border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-foreground"
+            class="h-6 rounded-md bg-elevated px-2 text-xs text-muted transition-colors hover:bg-border-strong hover:text-foreground"
             @click="applyPreset(preset.days)"
           >
             {{ preset.label }}
@@ -136,7 +131,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
               modelValue && day.key === modelValue.slice(0, 10)
                 ? '!bg-accent font-semibold !text-white'
                 : day.isToday
-                  ? 'border border-accent/40'
+                  ? 'text-accent'
                   : '',
             ]"
             @click="pickDay(day.date)"
@@ -170,7 +165,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
             <Button variant="secondary" size="sm" type="button" @click="open = false">Done</Button>
           </div>
         </div>
-      </div>
-    </Transition>
-  </div>
+      </PopoverContent>
+    </PopoverPortal>
+  </PopoverRoot>
 </template>

@@ -211,7 +211,7 @@ const tooltip = computed(() => {
 
     <div
       v-if="tooltip"
-      class="pointer-events-none absolute top-3 z-10 min-w-[150px] rounded-md border bg-overlay px-3 py-2 shadow-popover"
+      class="pointer-events-none absolute top-3 z-10 min-w-[150px] rounded-lg bg-overlay px-3 py-2 shadow-popover"
       :style="{ left: tooltip.left, right: tooltip.right }"
     >
       <p class="text-[11px] font-medium text-muted">{{ formatBucket(tooltip.point.bucket, bucket, 'long') }}</p>

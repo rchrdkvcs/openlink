@@ -67,7 +67,7 @@ function select(key: string) {
       <SelectContent
         position="popper"
         :side-offset="5"
-        class="z-[70] max-h-[min(var(--radix-select-content-available-height),20rem)] min-w-[var(--radix-select-trigger-width)] max-w-[min(32rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border-strong bg-overlay p-1 shadow-drawer"
+        class="z-[95] max-h-[min(var(--radix-select-content-available-height),20rem)] min-w-[var(--radix-select-trigger-width)] max-w-[min(32rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-overlay p-1 shadow-popover"
       >
         <SelectScrollUpButton class="flex justify-center py-1 text-muted"
           ><ChevronUp class="h-4 w-4"
@@ -77,7 +77,7 @@ function select(key: string) {
             v-for="(option, index) in options"
             :key="normalize(option.value)"
             :value="String(index)"
-            class="relative flex cursor-default select-none items-center rounded-md py-2 pe-8 ps-2.5 text-[13px] text-foreground outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-elevated data-[state=checked]:text-accent data-[disabled]:opacity-50"
+            class="relative flex cursor-default select-none items-center rounded-lg py-1.5 pe-8 ps-2.5 text-[13px] text-foreground outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-elevated data-[state=checked]:text-accent data-[disabled]:opacity-50"
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
             <SelectItemIndicator class="absolute end-2"><Check class="h-3.5 w-3.5" /></SelectItemIndicator>

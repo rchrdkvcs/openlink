@@ -74,9 +74,7 @@ export type RoutingPerformanceRow = {
 
 export type BarListRow = {
   label: string;
-
   display?: string;
-
   prefix?: string;
   count: number;
   share: number;
@@ -88,6 +86,18 @@ export type BreakdownTab = {
   rows: BarListRow[];
   empty?: string;
 };
+
+export type LinkOption = {
+  id: number;
+  slug: string;
+  hostname: string | null;
+  short_url: string | null;
+  destination_url: string | null;
+};
+
+export function shortLabel(link: Pick<LinkOption, 'slug' | 'hostname'>): string {
+  return link.hostname ? `${link.hostname}/${link.slug}` : `/${link.slug}`;
+}
 
 export type Report = {
   range: ReportRange;

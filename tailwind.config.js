@@ -18,6 +18,7 @@ export default {
       },
       colors: {
         background: 'hsl(var(--background) / <alpha-value>)',
+        canvas: 'hsl(var(--canvas) / <alpha-value>)',
         surface: 'hsl(var(--surface) / <alpha-value>)',
         elevated: 'hsl(var(--elevated) / <alpha-value>)',
         overlay: 'hsl(var(--overlay) / <alpha-value>)',
@@ -35,8 +36,9 @@ export default {
         DEFAULT: 'hsl(var(--border) / 1)',
       },
       boxShadow: {
-        popover: '0 0 0 1px hsl(var(--border) / 1), 0 8px 24px rgb(0 0 0 / 0.5)',
-        drawer: '-24px 0 48px rgb(0 0 0 / 0.45)',
+        popover: '0 0 0 1px hsl(var(--border-strong) / 1), 0 16px 40px -12px rgb(0 0 0 / 0.55)',
+        drawer: '0 0 0 1px hsl(var(--border) / 1)',
+        dialog: '0 0 0 1px hsl(var(--border-strong) / 1), 0 24px 64px -16px rgb(0 0 0 / 0.6)',
       },
       keyframes: {
         'fade-in': {

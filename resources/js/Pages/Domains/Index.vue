@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowRightLeft, Ban, Globe, Plus, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ArrowRightLeft, Ban, Globe, MoreHorizontal, Plus, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import Dialog from '@/Components/ui/Dialog.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Field from '@/Components/ui/Field.vue';
-import IconButton from '@/Components/ui/IconButton.vue';
+import Input from '@/Components/ui/Input.vue';
+import Menu from '@/Components/ui/Menu.vue';
+import MenuItem from '@/Components/ui/MenuItem.vue';
+import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
 import Select from '@/Components/ui/Select.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { confirmAction } from '@/lib/confirm';
+import { toast } from '@/lib/toast';
 
 type Workspace = { id: number; name: string; slug: string };
 type Domain = {
@@ -29,61 +35,129 @@ const props = defineProps<{
   domains: Domain[];
 }>();
 
-const transferMenuFor = ref<number | null>(null);
-const transferForm = useForm({ workspace_id: '' as number | '' });
+const addOpen = ref(false);
+const addForm = useForm({ hostname: '' });
 
-function verifyDomain(domain: Domain) {
-  useForm({}).post(route('domains.verify', domain.id), { preserveScroll: true });
+function openAdd() {
+  addForm.reset();
+  addForm.clearErrors();
+  addOpen.value = true;
 }
 
-function disableDomain(domain: Domain) {
-  useForm({}).post(route('domains.disable', domain.id), { preserveScroll: true });
-}
-
-function openTransfer(domain: Domain) {
-  transferForm.clearErrors();
-  transferForm.workspace_id = '';
-  transferMenuFor.value = transferMenuFor.value === domain.id ? null : domain.id;
-}
-
-function transferDomain(domain: Domain) {
-  transferForm.post(route('domains.transfer', domain.id), {
-    preserveScroll: true,
+function submitAdd() {
+  addForm.post(route('domains.store'), {
     onSuccess: () => {
-      transferMenuFor.value = null;
-      transferForm.reset();
+      addOpen.value = false;
     },
   });
 }
 
-function deleteDomain(domain: Domain) {
-  if (confirm(`Delete ${domain.hostname}? Links using this domain will be deleted too.`)) {
-    useForm({}).delete(route('domains.destroy', domain.id), { preserveScroll: true });
-  }
+const transferDomainTarget = ref<Domain | null>(null);
+const transferForm = useForm({ workspace_id: '' as number | '' });
+
+const transferOpen = computed({
+  get: () => transferDomainTarget.value !== null,
+  set: (value: boolean) => {
+    if (!value) transferDomainTarget.value = null;
+  },
+});
+
+function openTransfer(domain: Domain) {
+  transferForm.reset();
+  transferForm.clearErrors();
+  transferDomainTarget.value = domain;
+}
+
+function submitTransfer() {
+  const domain = transferDomainTarget.value;
+  if (!domain) return;
+  const target = targetWorkspaceOptions.value.find((option) => option.value === transferForm.workspace_id);
+
+  transferForm.post(route('domains.transfer', domain.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      transferDomainTarget.value = null;
+      transferForm.reset();
+      toast({ title: `${domain.hostname} transferred`, description: target?.label, tone: 'success' });
+    },
+  });
+}
+
+function verifyDomain(domain: Domain) {
+  router.post(route('domains.verify', domain.id), {}, { preserveScroll: true });
+}
+
+async function disableDomain(domain: Domain) {
+  const confirmed = await confirmAction({
+    title: `Disable ${domain.hostname}?`,
+    message: 'Short links on this domain stop redirecting.',
+    confirmLabel: 'Disable domain',
+    destructive: true,
+  });
+
+  if (!confirmed) return;
+
+  router.post(
+    route('domains.disable', domain.id),
+    {},
+    {
+      preserveScroll: true,
+      onSuccess: () => toast({ title: `${domain.hostname} disabled` }),
+    },
+  );
+}
+
+async function deleteDomain(domain: Domain) {
+  const confirmed = await confirmAction({
+    title: `Delete ${domain.hostname}?`,
+    message: 'Links using this domain are deleted too. This cannot be undone.',
+    confirmLabel: 'Delete domain',
+    destructive: true,
+  });
+
+  if (!confirmed) return;
+
+  router.delete(route('domains.destroy', domain.id), {
+    preserveScroll: true,
+    onSuccess: () => toast({ title: `${domain.hostname} deleted` }),
+  });
 }
 
 function statusVariant(domain: Domain) {
   if (domain.is_default) return 'outline';
   if (domain.status === 'active') return 'success';
   if (domain.status === 'failed_verification') return 'danger';
+  if (domain.status === 'disabled') return 'default';
   return 'warning';
 }
 
 function statusLabel(domain: Domain) {
-  if (domain.is_default) return 'default';
+  if (domain.is_default) return 'Default';
   return (
     {
-      active: 'active',
-      ownership_verified: 'almost ready',
-      pending_verification: 'setup needed',
-      failed_verification: 'setup needed',
-      disabled: 'disabled',
+      active: 'Active',
+      ownership_verified: 'Almost ready',
+      pending_verification: 'Setup needed',
+      failed_verification: 'Setup needed',
+      disabled: 'Disabled',
     }[domain.status] ?? domain.status
   );
 }
 
+function subtitle(domain: Domain) {
+  if (domain.is_default) return 'Instance default, available to every workspace';
+  if (domain.status === 'active') return 'DNS configured';
+  if (domain.status === 'disabled') return 'Not serving links';
+  if (domain.status === 'ownership_verified') return 'Ownership verified, waiting for DNS to point here';
+  return 'Waiting for DNS records';
+}
+
 function needsSetup(domain: Domain) {
   return !domain.is_default && domain.status !== 'active' && domain.status !== 'disabled';
+}
+
+function canAct(domain: Domain) {
+  return props.canManageWorkspace && !domain.is_default;
 }
 
 const targetWorkspaceOptions = computed(() =>
@@ -94,115 +168,118 @@ const targetWorkspaceOptions = computed(() =>
 </script>
 
 <template>
-  <Head title="Domains & DNS" />
+  <Head title="Domains" />
 
-  <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6 flex items-end justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-semibold tracking-tight">Domains</h1>
-          <p class="mt-1 text-sm text-muted">Manage hostnames and DNS verification for this workspace.</p>
-        </div>
-        <Link v-if="canManageWorkspace" :href="route('domains.create')">
-          <Button class="shrink-0"><Plus class="h-4 w-4" /> Add domain</Button>
-        </Link>
-      </div>
+  <SettingsLayout title="Domains" description="Hostnames your short links can use, and their DNS status.">
+    <template v-if="canManageWorkspace" #actions>
+      <Button type="button" @click="openAdd"><Plus class="h-4 w-4" /> Add domain</Button>
+    </template>
 
-      <section class="card-sheen rounded-lg border bg-surface">
-        <div
-          class="hidden grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-faint lg:grid"
-        >
-          <span>Hostname</span>
-          <span>Status</span>
-          <span>DNS record</span>
-          <span class="text-right">Actions</span>
-        </div>
-
-        <div class="divide-y divide-border/60">
-          <article
-            v-for="domain in domains"
-            :key="domain.id"
-            class="grid gap-3 px-4 py-3.5 transition-colors duration-100 last:rounded-b-lg hover:bg-elevated/40 lg:grid-cols-[minmax(220px,1fr)_120px_minmax(260px,1fr)_160px] lg:items-start"
+    <section class="overflow-hidden rounded-xl border bg-surface">
+      <ul v-if="domains.length" class="divide-y divide-border">
+        <li v-for="domain in domains" :key="domain.id" class="flex items-center gap-4 px-4 py-3.5 sm:px-5">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border bg-elevated text-faint">
+            <Globe class="h-4 w-4" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-foreground">{{ domain.hostname }}</p>
+            <p class="mt-0.5 truncate text-[13px] text-muted">{{ subtitle(domain) }}</p>
+            <p v-if="domain.failure_reason" class="mt-1 text-xs text-danger">{{ domain.failure_reason }}</p>
+          </div>
+          <Link
+            v-if="canManageWorkspace && needsSetup(domain)"
+            :href="route('domains.setup', domain.id)"
+            class="hidden h-8 items-center rounded-lg border bg-elevated/60 px-3 text-[13px] font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated sm:inline-flex"
           >
-            <div>
-              <p class="truncate text-sm font-medium text-foreground">{{ domain.hostname }}</p>
-              <p class="mt-0.5 text-xs text-faint">
-                {{ domain.is_default ? 'Application default' : 'Workspace domain' }}
-              </p>
-            </div>
-            <div>
-              <Badge :variant="statusVariant(domain)" dot>{{ statusLabel(domain) }}</Badge>
-            </div>
-            <div class="min-w-0">
-              <Link v-if="canManageWorkspace && needsSetup(domain)" :href="route('domains.setup', domain.id)">
-                <Button variant="secondary" size="sm"><Settings2 class="h-3.5 w-3.5" /> Continue setup</Button>
-              </Link>
-              <p v-else-if="!domain.is_default && domain.status === 'active'" class="text-xs text-muted">
-                DNS configured
-              </p>
-              <p v-if="domain.failure_reason" class="mt-1.5 text-xs text-danger">
-                {{ domain.failure_reason }}
-              </p>
-            </div>
-            <div class="flex gap-0.5 lg:justify-end">
-              <IconButton
-                v-if="canManageWorkspace && !domain.is_default"
-                title="Verify DNS"
-                @click="verifyDomain(domain)"
+            Continue setup
+          </Link>
+          <Badge :variant="statusVariant(domain)" dot class="shrink-0">{{ statusLabel(domain) }}</Badge>
+          <Menu v-if="canAct(domain)" width="w-56">
+            <template #trigger>
+              <button
+                type="button"
+                class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 data-[state=open]:bg-elevated data-[state=open]:text-foreground"
+                :aria-label="`Actions for ${domain.hostname}`"
               >
-                <RefreshCw class="h-4 w-4" />
-              </IconButton>
-              <div v-if="canManageWorkspace && !domain.is_default" class="relative">
-                <IconButton title="Transfer domain" @click="openTransfer(domain)">
-                  <ArrowRightLeft class="h-4 w-4" />
-                </IconButton>
-                <template v-if="transferMenuFor === domain.id">
-                  <button class="fixed inset-0 z-20 cursor-default" tabindex="-1" @click="transferMenuFor = null" />
-                  <form
-                    class="absolute right-0 top-full z-30 mt-1 grid w-64 gap-2 rounded-lg bg-overlay p-3 shadow-popover"
-                    @submit.prevent="transferDomain(domain)"
-                  >
-                    <Field label="Transfer to" :error="transferForm.errors.workspace_id">
-                      <Select
-                        v-model="transferForm.workspace_id"
-                        :options="targetWorkspaceOptions"
-                        placeholder="Choose workspace"
-                      />
-                    </Field>
-                    <Button size="sm" :loading="transferForm.processing" :disabled="!transferForm.workspace_id"
-                      >Transfer</Button
-                    >
-                  </form>
-                </template>
-              </div>
-              <IconButton
-                v-if="canManageWorkspace && !domain.is_default"
-                variant="danger"
-                title="Disable domain"
-                @click="disableDomain(domain)"
-              >
-                <Ban class="h-4 w-4" />
-              </IconButton>
-              <IconButton
-                v-if="canManageWorkspace && !domain.is_default"
-                variant="danger"
-                title="Delete domain"
-                @click="deleteDomain(domain)"
-              >
-                <Trash2 class="h-4 w-4" />
-              </IconButton>
-            </div>
-          </article>
-        </div>
+                <MoreHorizontal class="h-4 w-4" />
+              </button>
+            </template>
+            <MenuItem :icon="RefreshCw" @select="verifyDomain(domain)">Check DNS now</MenuItem>
+            <MenuItem
+              v-if="needsSetup(domain)"
+              :icon="Settings2"
+              @select="router.visit(route('domains.setup', domain.id))"
+            >
+              Continue setup
+            </MenuItem>
+            <MenuItem
+              :icon="ArrowRightLeft"
+              :disabled="targetWorkspaceOptions.length === 0"
+              @select="openTransfer(domain)"
+            >
+              Transfer to…
+            </MenuItem>
+            <MenuSeparator />
+            <MenuItem v-if="domain.status !== 'disabled'" :icon="Ban" destructive @select="disableDomain(domain)">
+              Disable
+            </MenuItem>
+            <MenuItem :icon="Trash2" destructive @select="deleteDomain(domain)">Delete</MenuItem>
+          </Menu>
+          <span v-else-if="canManageWorkspace" class="w-8 shrink-0" />
+        </li>
+      </ul>
 
-        <EmptyState
-          v-if="domains.length === 0"
-          title="No domains configured"
-          description="Add a domain to start using branded short URLs."
-        >
-          <template #icon><Globe class="h-5 w-5" /></template>
-        </EmptyState>
-      </section>
-    </div>
-  </AuthenticatedLayout>
+      <EmptyState v-else title="No domains yet" description="Add a domain you own to use branded short URLs.">
+        <template #icon><Globe class="h-5 w-5" /></template>
+        <template v-if="canManageWorkspace" #action>
+          <Button type="button" size="sm" @click="openAdd"><Plus class="h-4 w-4" /> Add domain</Button>
+        </template>
+      </EmptyState>
+    </section>
+
+    <Dialog
+      v-model:open="addOpen"
+      title="Add a domain"
+      description="Use a domain or subdomain you own, like go.yourcompany.com. You will add DNS records next."
+    >
+      <form class="px-5 pb-5 pt-4" @submit.prevent="submitAdd">
+        <Field label="Hostname" :error="addForm.errors.hostname">
+          <Input
+            v-model="addForm.hostname"
+            placeholder="go.example.com"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+            required
+          />
+        </Field>
+        <div class="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="addOpen = false">Cancel</Button>
+          <Button :loading="addForm.processing" :disabled="!addForm.hostname.trim()">Continue</Button>
+        </div>
+      </form>
+    </Dialog>
+
+    <Dialog
+      v-model:open="transferOpen"
+      size="sm"
+      :title="transferDomainTarget ? `Transfer ${transferDomainTarget.hostname}` : 'Transfer domain'"
+      description="Only domains without links can be moved to another workspace you manage."
+    >
+      <form class="px-5 pb-5 pt-4" @submit.prevent="submitTransfer">
+        <Field label="Workspace" :error="transferForm.errors.workspace_id">
+          <Select
+            v-model="transferForm.workspace_id"
+            :options="targetWorkspaceOptions"
+            placeholder="Choose a workspace"
+            aria-label="Workspace"
+          />
+        </Field>
+        <div class="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" type="button" @click="transferOpen = false">Cancel</Button>
+          <Button :loading="transferForm.processing" :disabled="!transferForm.workspace_id">Transfer</Button>
+        </div>
+      </form>
+    </Dialog>
+  </SettingsLayout>
 </template>

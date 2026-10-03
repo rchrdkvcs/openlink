@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
-import { Link2, Plus, UserPlus } from '@lucide/vue';
-import { ref } from 'vue';
+import { Copy, Link2 } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
-import Modal from '@/Components/Modal.vue';
 import Button from '@/Components/ui/Button.vue';
-import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
+import Dialog from '@/Components/ui/Dialog.vue';
 import Field from '@/Components/ui/Field.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
-import WorkspaceColorPicker from '@/Components/Workspaces/WorkspaceColorPicker.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
 import { fetchJson, HttpError } from '@/lib/http';
+import { copyToClipboard } from '@/lib/toast';
 
 defineProps<{ show: boolean }>();
 
@@ -22,7 +21,7 @@ const page = usePage();
 const step = ref<'details' | 'invite'>('details');
 const createdWorkspace = ref<{ id: number; name: string } | null>(null);
 
-const form = useForm({ name: '', icon: '', color: '' });
+const form = useForm({ name: '', icon: '' });
 
 const roleOptions = [
   { value: 'admin', label: 'Admin' },
@@ -34,14 +33,22 @@ const inviteRole = ref('editor');
 const inviteUrl = ref<string | null>(null);
 const inviteError = ref<string | null>(null);
 const generating = ref(false);
-const copied = ref(false);
+
+const title = computed(() =>
+  step.value === 'details' ? 'New workspace' : `Invite people to ${createdWorkspace.value?.name ?? 'your workspace'}`,
+);
+
+const description = computed(() =>
+  step.value === 'details'
+    ? 'Keep links, domains, folders and members separate.'
+    : 'Anyone with the link joins with the role you choose. You can also do this later.',
+);
 
 function submit() {
   form
     .transform((data) => ({
       name: data.name,
       icon: data.icon || null,
-      color: data.color || null,
     }))
     .post(route('workspaces.store'), {
       preserveScroll: true,
@@ -68,19 +75,15 @@ async function generateInvite() {
   } catch (error) {
     inviteError.value =
       error instanceof HttpError && error.status === 422
-        ? 'Invalid role selected.'
-        : 'Could not generate an invite link. You can do it later from the Members page.';
+        ? 'Choose a valid role.'
+        : 'Couldn’t create an invite link. You can create one later in Settings.';
   } finally {
     generating.value = false;
   }
 }
 
-async function copyInviteUrl() {
-  if (!inviteUrl.value) return;
-
-  await navigator.clipboard.writeText(inviteUrl.value);
-  copied.value = true;
-  setTimeout(() => (copied.value = false), 2000);
+function copyInviteUrl() {
+  if (inviteUrl.value) copyToClipboard(inviteUrl.value, 'Invite link copied');
 }
 
 function close() {
@@ -94,81 +97,62 @@ function close() {
     inviteRole.value = 'editor';
     inviteUrl.value = null;
     inviteError.value = null;
-    copied.value = false;
   }, 250);
+}
+
+function onOpenChange(value: boolean) {
+  if (!value) close();
 }
 </script>
 
 <template>
-  <Modal :show="show" max-width="lg" @close="close">
-    <div class="p-6">
-      <template v-if="step === 'details'">
-        <div class="flex items-start gap-3">
-          <WorkspaceIconPicker v-model:icon="form.icon" :name="form.name" :color="form.color" />
-          <div>
-            <h2 class="text-base font-semibold text-foreground">Create workspace</h2>
-            <p class="mt-0.5 text-sm text-muted">
-              Use a workspace when links, members, domains, or folders should be isolated. Click the icon to change it.
-            </p>
-          </div>
-        </div>
-
-        <form class="mt-6 grid gap-5" @submit.prevent="submit">
-          <Field label="Name" :error="form.errors.name">
+  <Dialog :open="show" :title="title" :description="description" @update:open="onOpenChange">
+    <form v-if="step === 'details'" @submit.prevent="submit">
+      <div class="grid gap-5 px-5 pb-5 pt-4">
+        <div class="flex items-end gap-3">
+          <WorkspaceIconPicker v-model:icon="form.icon" :name="form.name" />
+          <Field label="Name" :error="form.errors.name" class="min-w-0 flex-1">
             <Input v-model="form.name" placeholder="Acme Events" autofocus />
           </Field>
+        </div>
+        <p v-if="form.errors.icon" class="-mt-3 text-xs text-danger">{{ form.errors.icon }}</p>
+      </div>
 
-          <WorkspaceColorPicker v-model:color="form.color" :name="form.name" />
-          <p v-if="form.errors.icon || form.errors.color" class="text-xs text-danger">
-            {{ form.errors.icon ?? form.errors.color }}
-          </p>
+      <footer class="flex items-center justify-end gap-2 border-t px-5 py-3.5">
+        <Button variant="ghost" type="button" @click="close">Cancel</Button>
+        <Button :loading="form.processing">Create workspace</Button>
+      </footer>
+    </form>
 
-          <div class="flex justify-end gap-3">
-            <Button variant="secondary" type="button" @click="close">Cancel</Button>
-            <Button :loading="form.processing"> <Plus class="h-4 w-4" /> Create workspace </Button>
-          </div>
-        </form>
-      </template>
-
-      <template v-else>
-        <div class="flex items-start gap-3">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
-            <UserPlus class="h-4.5 w-4.5" />
-          </span>
-          <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold text-foreground">
-              Invite members to {{ createdWorkspace?.name }}
-            </h2>
-            <p class="mt-0.5 text-sm text-muted">
-              Anyone with the link joins this workspace with the link's role. You can skip this and invite later.
-            </p>
-          </div>
+    <template v-else>
+      <div class="grid gap-3 px-5 pb-5 pt-4">
+        <div class="flex items-end gap-2">
+          <Field label="Role" class="min-w-0 flex-1">
+            <Select v-model="inviteRole" :options="roleOptions" />
+          </Field>
+          <Button variant="secondary" type="button" :loading="generating" @click="generateInvite">
+            <Link2 class="h-4 w-4" /> {{ inviteUrl ? 'New link' : 'Create link' }}
+          </Button>
         </div>
 
-        <div class="mt-5 rounded-lg border bg-elevated/30 p-4">
-          <div class="flex items-end gap-3">
-            <Field label="Role" class="flex-1">
-              <Select v-model="inviteRole" :options="roleOptions" />
-            </Field>
-            <Button type="button" :loading="generating" @click="generateInvite">
-              <Link2 class="h-4 w-4" /> Generate invite link
-            </Button>
-          </div>
+        <p v-if="inviteError" class="text-xs text-danger">{{ inviteError }}</p>
 
-          <p v-if="inviteError" class="mt-3 text-xs text-danger">{{ inviteError }}</p>
-
-          <div v-if="inviteUrl" class="mt-3 flex items-center gap-2 rounded-md border bg-surface px-3 py-2">
-            <code class="block min-w-0 flex-1 truncate text-xs text-muted">{{ inviteUrl }}</code>
-            <IconButton :title="copied ? 'Copied' : 'Copy link'" @click="copyInviteUrl">
-              <CopyCheckIcon :copied="copied" />
-            </IconButton>
-          </div>
+        <div
+          v-if="inviteUrl"
+          class="flex items-center gap-2 rounded-lg border border-transparent bg-elevated/70 py-1 pl-3 pr-1"
+        >
+          <code class="block min-w-0 flex-1 truncate font-mono text-xs text-muted">{{ inviteUrl }}</code>
+          <IconButton title="Copy invite link" @click="copyInviteUrl">
+            <Copy class="h-4 w-4" />
+          </IconButton>
         </div>
+      </div>
 
-        <div class="mt-6 flex justify-end">
-          <Button type="button" @click="close">{{ inviteUrl ? 'Done' : 'Skip for now' }}</Button>
-        </div>
-      </template>
-    </div>
-  </Modal>
+      <footer class="flex items-center justify-end gap-2 border-t px-5 py-3.5">
+        <Button type="button" :variant="inviteUrl ? 'primary' : 'ghost'" @click="close">
+          {{ inviteUrl ? 'Done' : 'Skip for now' }}
+        </Button>
+      </footer>
+    </template>
+  </Dialog>
 </template>

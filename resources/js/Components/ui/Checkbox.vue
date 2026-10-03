@@ -13,7 +13,7 @@ const model = defineModel<boolean>({ default: false });
     type="checkbox"
     :class="
       cn(
-        'form-checkbox h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong bg-surface p-0 text-accent shadow-none transition-colors focus:ring-2 focus:ring-accent/25 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50',
+        'form-checkbox h-4 w-4 shrink-0 cursor-pointer rounded-[5px] border-border-strong bg-elevated/40 p-0 text-accent shadow-none transition-colors focus:ring-2 focus:ring-accent/15 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50',
         $attrs.class as string,
       )
     "

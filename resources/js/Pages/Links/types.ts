@@ -18,6 +18,8 @@ export type ShortLink = {
   visits: number;
   scans: number;
   is_enabled: boolean;
+  archived_at?: string | null;
+  created_at?: string | null;
   activates_at?: string | null;
   expires_at?: string | null;
   visit_limit?: number | null;
@@ -105,9 +107,7 @@ export type EditLinkFormData = {
   routing_rules: RoutingRuleDraft[];
 };
 
-export type LinkFilters = { search: string; status: string; tag: string };
-
-export type LinkGroup = { key: string; folder: Folder | null; links: ShortLink[] };
+export type LinkFilters = { search: string; status: string; tag: string; folder: string };
 
 export type LinksPageProps = {
   currentWorkspace: Workspace;

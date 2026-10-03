@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Link2Off, UserPlus } from '@lucide/vue';
 import { computed } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
@@ -28,63 +29,73 @@ function join() {
   <GuestLayout>
     <Head :title="`Join ${invite.workspace}`" />
 
-    <template v-if="!invite.usable">
-      <div class="text-center">
-        <h1 class="text-lg font-semibold text-foreground">This invite link is no longer valid</h1>
-        <p class="mt-2 text-sm text-muted">
-          It may have expired, reached its usage limit, or been revoked. Ask a workspace admin for a new link.
+    <div class="text-center">
+      <span
+        class="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl border"
+        :class="invite.usable ? 'border-accent/25 bg-accent/10 text-accent' : 'bg-elevated text-muted'"
+      >
+        <UserPlus v-if="invite.usable" class="h-5 w-5" />
+        <Link2Off v-else class="h-5 w-5" />
+      </span>
+
+      <template v-if="!invite.usable">
+        <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">This invite has expired</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted">
+          It may have reached its limit or been revoked. Ask a workspace admin for a new link.
         </p>
         <Link
           :href="route('home')"
-          class="mt-6 inline-block text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          class="mt-6 inline-flex text-[13px] font-medium text-foreground hover:underline hover:underline-offset-4"
         >
           Back to Openlink
         </Link>
-      </div>
-    </template>
+      </template>
 
-    <template v-else-if="isMember">
-      <div class="text-center">
-        <h1 class="text-lg font-semibold text-foreground">You're already a member</h1>
-        <p class="mt-2 text-sm text-muted">
-          You already belong to <strong>{{ invite.workspace }}</strong
+      <template v-else-if="isMember">
+        <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">You’re already a member</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted">
+          You already belong to <span class="font-medium text-foreground">{{ invite.workspace }}</span
           >.
         </p>
         <Button class="mt-6 w-full" type="button" @click="join">Open workspace</Button>
-      </div>
-    </template>
+      </template>
 
-    <template v-else-if="isAuthenticated">
-      <div class="text-center">
-        <h1 class="text-lg font-semibold text-foreground">Join {{ invite.workspace }}</h1>
-        <p class="mt-2 text-sm text-muted">
-          You've been invited to join as <strong class="capitalize">{{ invite.role }}</strong
+      <template v-else-if="isAuthenticated">
+        <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">Join {{ invite.workspace }}</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted">
+          You’ve been invited as <span class="font-medium capitalize text-foreground">{{ invite.role }}</span
           >.
         </p>
         <Button class="mt-6 w-full" type="button" @click="join">Join workspace</Button>
-      </div>
-    </template>
+      </template>
 
-    <template v-else>
-      <div class="text-center">
-        <h1 class="text-lg font-semibold text-foreground">Join {{ invite.workspace }}</h1>
-        <p class="mt-2 text-sm text-muted">
-          You've been invited to join as <strong class="capitalize">{{ invite.role }}</strong
+      <template v-else>
+        <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">Join {{ invite.workspace }}</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted">
+          You’ve been invited as <span class="font-medium capitalize text-foreground">{{ invite.role }}</span
           >. Sign in or create an account to continue.
         </p>
-        <div class="mt-6 grid gap-3">
-          <Link v-if="canRegister" :href="route('register', { invite: invite.token })">
-            <Button class="w-full" type="button">Create an account</Button>
-          </Link>
-          <Link :href="route('login')">
-            <Button class="w-full" variant="secondary" type="button">Log in</Button>
-          </Link>
+        <div class="mt-6 grid gap-2">
+          <Button
+            v-if="canRegister"
+            class="w-full"
+            type="button"
+            @click="router.visit(route('register', { invite: invite.token }))"
+          >
+            Create an account
+          </Button>
+          <Button class="w-full" variant="secondary" type="button" @click="router.visit(route('login'))">
+            Sign in
+          </Button>
         </div>
-        <p v-if="!canRegister" class="mt-3 text-xs text-faint">
-          Registration is closed on this instance — sign in with an existing account, then open this link again.
+        <p class="mt-4 text-xs leading-relaxed text-faint">
+          {{
+            canRegister
+              ? 'Already have an account? Sign in, then open this invite again.'
+              : 'Registration is closed. Sign in with an existing account, then open this invite again.'
+          }}
         </p>
-        <p v-else class="mt-3 text-xs text-faint">Already have an account? Log in, then open this invite link again.</p>
-      </div>
-    </template>
+      </template>
+    </div>
   </GuestLayout>
 </template>

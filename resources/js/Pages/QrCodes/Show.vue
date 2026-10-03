@@ -1,23 +1,42 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, ArrowLeft, Download, ImageOff, LinkIcon, Trash2, Upload } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Copy,
+  Download,
+  FileText,
+  ImageOff,
+  Link2,
+  MoreHorizontal,
+  Trash2,
+  Upload,
+} from '@lucide/vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
-import Checkbox from '@/Components/ui/Checkbox.vue';
-import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
-import SectionCard from '@/Components/ui/SectionCard.vue';
+import Menu from '@/Components/ui/Menu.vue';
+import MenuItem from '@/Components/ui/MenuItem.vue';
+import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
+import PageHeader from '@/Components/ui/PageHeader.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import Select from '@/Components/ui/Select.vue';
+import Switch from '@/Components/ui/Switch.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { confirmAction } from '@/lib/confirm';
 import type { SelectOption } from '@/lib/controls';
+import { displayUrl } from '@/lib/links';
+import { copyToClipboard, toast } from '@/lib/toast';
 
 import PayloadFields from './PayloadFields.vue';
+import ShortLinkPicker from './ShortLinkPicker.vue';
 import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
 import { payloadDefaults } from './types';
 import { useShortLinkSearch } from './useShortLinkSearch';
+
+type TargetType = 'short_link' | 'direct';
 
 const props = defineProps<{
   qr: QrCodeRecord;
@@ -39,12 +58,14 @@ const EYE_STYLES = [
   { value: 'circle', label: 'Circle' },
 ];
 
-const EXPORT_SIZES = [512, 1024, 2048, 4096];
-const EXPORT_SIZE_OPTIONS: SelectOption<number>[] = EXPORT_SIZES.map((size) => ({ value: size, label: `${size} px` }));
+const EXPORT_SIZE_OPTIONS: SelectOption<number>[] = [512, 1024, 2048, 4096].map((size) => ({
+  value: size,
+  label: `${size} px`,
+}));
 
-const TARGET_OPTIONS: SelectOption[] = [
-  { value: 'short_link', label: 'Short Link' },
-  { value: 'direct', label: 'Direct payload' },
+const TARGET_OPTIONS: { value: TargetType; label: string; icon: unknown }[] = [
+  { value: 'short_link', label: 'Short link', icon: Link2 },
+  { value: 'direct', label: 'Content', icon: FileText },
 ];
 
 const ERROR_CORRECTION_OPTIONS: SelectOption[] = [
@@ -59,7 +80,7 @@ const originalWasDirect = props.qr.is_direct;
 
 const form = useForm({
   name: props.qr.name,
-  target_type: props.qr.is_direct ? 'direct' : 'short_link',
+  target_type: (props.qr.is_direct ? 'direct' : 'short_link') as TargetType,
   short_link_id: props.qr.short_link_id ?? ('' as string | number),
   payload_type: props.qr.payload_type ?? 'url',
   payload: {
@@ -80,15 +101,10 @@ const form = useForm({
 
 const exportSize = ref(props.qr.size);
 
-const {
-  search: shortLinkSearch,
-  links: availableShortLinks,
-  options: shortLinkOptions,
-} = useShortLinkSearch(
+const { search: shortLinkSearch, links: availableShortLinks } = useShortLinkSearch(
   props.shortLinks,
   computed(() => form.short_link_id),
 );
-const copied = ref(false);
 const previewVersion = ref(0);
 const logoInput = ref<HTMLInputElement | null>(null);
 
@@ -108,22 +124,68 @@ const previewUrl = computed(() => {
   return `${route('qr-codes.preview', props.qr.token)}?${params.toString()}`;
 });
 
-const isDirty = computed(() => form.isDirty || form.logo !== null || form.remove_logo);
+type Panel = 'content' | 'style' | 'advanced';
 
-function setPayloadType(type: string) {
-  form.target_type = 'direct';
-  form.payload_type = type;
-  form.payload = payloadDefaults(type, props.payloadDescriptors);
+const PANELS: { value: Panel; label: string }[] = [
+  { value: 'content', label: 'Content' },
+  { value: 'style', label: 'Style' },
+  { value: 'advanced', label: 'Advanced' },
+];
+
+const panel = ref<Panel>('content');
+
+const PANEL_FIELDS: Record<Panel, string[]> = {
+  content: ['name', 'short_link_id', 'payload_type', 'payload'],
+  style: ['style', 'eye_style', 'foreground_color', 'background_color', 'background_transparent', 'logo'],
+  advanced: ['margin', 'error_correction', 'size'],
+};
+
+function revealErrors() {
+  const keys = Object.keys(form.errors);
+  const target = PANELS.find(({ value }) =>
+    keys.some((key) => PANEL_FIELDS[value].some((field) => key === field || key.startsWith(`${field}.`))),
+  );
+  if (target) panel.value = target.value;
 }
 
-function exportUrl(format: 'png' | 'svg') {
-  return `${route('qr-codes.export', [props.qr.token, format])}?size=${exportSize.value}`;
+const isDirty = computed(() => form.isDirty || form.logo !== null || form.remove_logo);
+
+const typeLabel = computed(() =>
+  form.target_type === 'short_link' ? 'Short link' : (props.payloadTypes[form.payload_type] ?? form.payload_type),
+);
+
+const description = computed(() => {
+  if (props.qr.is_direct) return `${typeLabel.value} · Scans not tracked`;
+  return `${typeLabel.value} · ${props.qr.scans.toLocaleString()} scan${props.qr.scans === 1 ? '' : 's'}`;
+});
+
+const selectedShortLink = computed(() =>
+  availableShortLinks.value.find((link) => link.id === Number(form.short_link_id)),
+);
+
+const logoLabel = computed(() => {
+  if (form.logo) return form.logo.name;
+  return props.qr.has_logo && !form.remove_logo ? 'Replace logo' : 'Upload logo';
+});
+
+const hasLogo = computed(() => (props.qr.has_logo && !form.remove_logo) || form.logo !== null);
+
+function setPayloadType(type: string | number | null) {
+  form.target_type = 'direct';
+  form.payload_type = String(type ?? 'url');
+  form.payload = payloadDefaults(form.payload_type, props.payloadDescriptors);
+}
+
+function download(format: 'png' | 'svg') {
+  window.location.href = `${route('qr-codes.export', [props.qr.token, format])}?size=${exportSize.value}`;
+}
+
+function clearLogoInput() {
+  if (logoInput.value) logoInput.value.value = '';
 }
 
 function save() {
-  if (!props.canEditWorkspace) {
-    return;
-  }
+  if (!props.canEditWorkspace || form.processing) return;
 
   form
     .transform((data) => ({
@@ -147,82 +209,100 @@ function save() {
       onSuccess: () => {
         form.logo = null;
         form.remove_logo = false;
-        if (logoInput.value) {
-          logoInput.value.value = '';
-        }
+        clearLogoInput();
         previewVersion.value += 1;
         form.defaults({ ...form.data(), logo: null, remove_logo: false });
+        toast({ title: 'QR code saved', tone: 'success' });
       },
+      onError: revealErrors,
     });
+}
+
+function discard() {
+  form.reset();
+  form.clearErrors();
+  form.logo = null;
+  form.remove_logo = false;
+  clearLogoInput();
 }
 
 function pickLogo(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0] ?? null;
   form.logo = file;
-  if (file) {
-    form.remove_logo = false;
-  }
+  if (file) form.remove_logo = false;
 }
 
 function removeLogo() {
   form.logo = null;
   form.remove_logo = true;
-  if (logoInput.value) {
-    logoInput.value.value = '';
+  clearLogoInput();
+}
+
+async function destroy() {
+  const confirmed = await confirmAction({
+    title: `Delete “${props.qr.name}”?`,
+    message: 'Exported and printed copies that point to this code will stop resolving.',
+    confirmLabel: 'Delete QR code',
+    destructive: true,
+  });
+  if (confirmed) router.delete(route('qr-codes.destroy', props.qr.token));
+}
+
+function copyPublicUrl() {
+  copyToClipboard(props.qr.public_url, 'Public URL copied');
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+    event.preventDefault();
+    if (isDirty.value) save();
   }
 }
 
-function destroy() {
-  if (confirm(`Delete the QR Code “${props.qr.name}”? Exported images will stop resolving.`)) {
-    router.delete(route('qr-codes.destroy', props.qr.token));
-  }
-}
-
-async function copyPublicUrl() {
-  try {
-    await navigator.clipboard.writeText(props.qr.public_url);
-    copied.value = true;
-    setTimeout(() => (copied.value = false), 1500);
-  } catch {}
-}
+onMounted(() => document.addEventListener('keydown', onKeydown));
+onUnmounted(() => document.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
-  <Head :title="`QR Code — ${qr.name}`" />
+  <Head :title="qr.name" />
 
   <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6">
-        <Link
-          :href="route('qr-codes.index')"
-          class="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-foreground"
-        >
-          <ArrowLeft class="h-3.5 w-3.5" /> Back to QR Codes
-        </Link>
-        <div class="mt-2 flex flex-wrap items-center gap-2">
-          <h1 class="text-xl font-semibold tracking-tight">QR Code — {{ qr.name }}</h1>
-          <Badge>{{
-            form.target_type === 'short_link' ? 'Short Link' : (payloadTypes[form.payload_type] ?? form.payload_type)
-          }}</Badge>
-        </div>
-      </div>
+    <div class="flex flex-col xl:h-full xl:flex-row">
+      <div
+        class="flex min-w-0 flex-1 flex-col px-4 py-6 [scrollbar-gutter:stable] sm:px-6 lg:px-8 lg:py-8 xl:overflow-y-auto xl:overscroll-contain"
+      >
+        <PageHeader :title="qr.name" :description="description">
+          <template #eyebrow>
+            <Link
+              :href="route('qr-codes.index')"
+              class="mb-1 inline-flex items-center gap-1 text-xs font-medium text-faint transition-colors hover:text-foreground"
+            >
+              <ArrowLeft class="h-3.5 w-3.5" /> QR codes
+            </Link>
+          </template>
+          <template #actions>
+            <Menu width="w-52">
+              <template #trigger>
+                <Button variant="secondary" size="sm" type="button" class="w-7 px-0" aria-label="More actions">
+                  <MoreHorizontal />
+                </Button>
+              </template>
+              <MenuItem :icon="Copy" @select="copyPublicUrl">Copy public URL</MenuItem>
+              <MenuItem :icon="Download" @select="download('png')">Download PNG</MenuItem>
+              <MenuItem :icon="Download" @select="download('svg')">Download SVG</MenuItem>
+              <template v-if="canEditWorkspace">
+                <MenuSeparator />
+                <MenuItem :icon="Trash2" destructive @select="destroy">Delete QR code</MenuItem>
+              </template>
+            </Menu>
+          </template>
+        </PageHeader>
 
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <div class="grid content-start gap-6">
-          <SectionCard>
-            <div class="grid grid-cols-1 gap-5 p-5">
-              <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-medium text-foreground">
-                    {{ form.target_type === 'short_link' ? 'Tracked QR URL' : 'Public payload URL' }}
-                  </p>
-                  <p class="mt-0.5 truncate font-mono text-xs text-faint">{{ qr.public_url }}</p>
-                </div>
-                <LinkIcon class="h-4 w-4 shrink-0 text-faint" />
-              </div>
-
+        <div class="flex flex-1 items-center justify-center py-8 xl:py-10">
+          <div class="w-full max-w-[380px]">
+            <div class="rounded-2xl border bg-surface p-2">
               <div
-                class="mx-auto w-full max-w-md rounded-xl border p-6"
+                class="grid place-items-center rounded-xl p-2"
                 :style="
                   form.background_transparent
                     ? {
@@ -232,222 +312,217 @@ async function copyPublicUrl() {
                     : { backgroundColor: form.background_color }
                 "
               >
-                <img :src="previewUrl" :alt="`${qr.name} QR code preview`" class="mx-auto aspect-square w-full" />
-              </div>
-              <p v-if="form.logo" class="text-center text-xs text-faint">
-                Save to see the uploaded logo in the preview.
-              </p>
-
-              <div class="flex items-center gap-2 rounded-md border bg-elevated/40 px-3 py-2">
-                <p class="min-w-0 flex-1 truncate font-mono text-xs text-muted">{{ qr.public_url }}</p>
-                <button
-                  type="button"
-                  class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-xs font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                  @click="copyPublicUrl"
-                >
-                  <CopyCheckIcon :copied="copied" />
-                  {{ copied ? 'Copied' : 'Copy' }}
-                </button>
-              </div>
-
-              <div class="flex flex-wrap items-center justify-center gap-2 border-t pt-4">
-                <Select v-model="exportSize" :options="EXPORT_SIZE_OPTIONS" class="w-28" />
-                <a
-                  :href="exportUrl('png')"
-                  class="inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
-                >
-                  <Download class="h-4 w-4" /> PNG
-                </a>
-                <a
-                  :href="exportUrl('svg')"
-                  class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated"
-                >
-                  <Download class="h-4 w-4" /> SVG
-                </a>
+                <img :src="previewUrl" :alt="`${qr.name} QR code preview`" class="aspect-square w-full" />
               </div>
             </div>
-          </SectionCard>
+            <p v-if="form.logo" class="pt-2.5 text-center text-xs text-faint">Save to see the new logo.</p>
 
-          <SectionCard :title="form.target_type === 'short_link' ? 'Linked Short Link' : 'Encoded payload'">
-            <div v-if="form.target_type === 'short_link'" class="p-5 text-sm">
-              <p class="font-medium text-foreground">
-                {{
-                  availableShortLinks.find((link) => link.id === Number(form.short_link_id))?.short_url ??
-                  'Select a Short Link'
-                }}
-              </p>
-              <p class="mt-1 truncate text-xs text-faint">
-                {{ availableShortLinks.find((link) => link.id === Number(form.short_link_id))?.destination_url }}
-              </p>
+            <button
+              type="button"
+              class="group mt-4 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-elevated/60"
+              @click="copyPublicUrl"
+            >
+              <span class="min-w-0 flex-1">
+                <span class="block text-xs text-faint">{{
+                  form.target_type === 'short_link' ? 'Tracked URL' : 'Public URL'
+                }}</span>
+                <span class="block truncate text-[13px] text-foreground">{{ displayUrl(qr.public_url) }}</span>
+              </span>
+              <Copy class="h-3.5 w-3.5 shrink-0 text-faint transition-colors group-hover:text-foreground" />
+            </button>
+
+            <div class="mt-3 flex items-center gap-2">
+              <Select
+                v-model="exportSize"
+                :options="EXPORT_SIZE_OPTIONS"
+                size="sm"
+                aria-label="Export size"
+                class="w-28"
+              />
+              <div class="ml-auto flex gap-1.5">
+                <Button variant="secondary" size="sm" type="button" @click="download('svg')"> <Download /> SVG </Button>
+                <Button size="sm" type="button" @click="download('png')"><Download /> PNG</Button>
+              </div>
             </div>
-            <pre
-              v-else
-              class="max-h-80 overflow-auto whitespace-pre-wrap break-words p-5 font-mono text-xs text-muted"
-              >{{ qr.content }}</pre>
-          </SectionCard>
+          </div>
+        </div>
+      </div>
+
+      <aside class="flex flex-col border-t bg-canvas xl:h-full xl:w-[420px] xl:shrink-0 xl:border-l xl:border-t-0">
+        <div class="px-5 pb-4 pt-5">
+          <SegmentedControl v-model="panel" :options="PANELS" label="Settings section" class="w-full" />
         </div>
 
-        <SectionCard>
-          <form class="grid grid-cols-1 gap-5 p-5" @submit.prevent="save">
-            <Field label="Name" :error="form.errors.name">
-              <Input v-model="form.name" />
-            </Field>
+        <form class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6" @submit.prevent="save">
+          <fieldset :disabled="!canEditWorkspace" class="contents">
+            <div v-show="panel === 'content'" class="grid gap-5">
+              <Field label="Name" :error="form.errors.name">
+                <Input v-model="form.name" />
+              </Field>
 
-            <Field label="Target" :error="form.errors.short_link_id">
-              <Select v-model="form.target_type" :options="TARGET_OPTIONS" />
-            </Field>
+              <div class="grid gap-1.5">
+                <span class="text-[13px] font-medium text-foreground">Opens</span>
+                <SegmentedControl v-model="form.target_type" :options="TARGET_OPTIONS" label="Target" class="w-full" />
+              </div>
 
-            <Field v-if="form.target_type === 'short_link'" label="Short Link" :error="form.errors.short_link_id">
-              <Input v-model="shortLinkSearch" class="mb-2" placeholder="Search Short Links…" />
-              <Select v-model="form.short_link_id" :options="shortLinkOptions" placeholder="Select a Short Link…" />
-            </Field>
+              <template v-if="form.target_type === 'short_link'">
+                <ShortLinkPicker
+                  v-model="form.short_link_id"
+                  v-model:search="shortLinkSearch"
+                  :links="availableShortLinks"
+                  :error="form.errors.short_link_id"
+                />
+                <p v-if="selectedShortLink" class="-mt-2 truncate text-xs text-faint">
+                  Scans redirect to {{ displayUrl(selectedShortLink.destination_url) }}
+                </p>
+              </template>
 
-            <div
-              v-if="originalWasDirect !== (form.target_type === 'direct')"
-              class="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
-            >
-              <AlertTriangle class="h-4 w-4 shrink-0" />
-              <p>
-                Changing to or from a direct payload cannot update previously exported native QR images. Export and
-                reprint the QR Code after saving.
-              </p>
+              <template v-else>
+                <Field label="Type" :error="form.errors.payload_type">
+                  <Select
+                    :model-value="form.payload_type"
+                    :options="typeOptions"
+                    @update:model-value="setPayloadType"
+                  />
+                </Field>
+                <PayloadFields
+                  v-model="form.payload"
+                  :type="form.payload_type"
+                  :descriptors="payloadDescriptors"
+                  :errors="form.errors"
+                />
+                <details v-if="qr.is_direct && qr.content" class="group rounded-lg bg-surface">
+                  <summary class="cursor-pointer select-none px-3 py-2 text-[13px] text-muted hover:text-foreground">
+                    Encoded content
+                  </summary>
+                  <pre
+                    class="max-h-60 overflow-auto whitespace-pre-wrap break-words border-t px-3 py-2.5 font-mono text-xs text-muted"
+                    >{{ qr.content }}</pre>
+                </details>
+              </template>
+
+              <div
+                v-if="originalWasDirect !== (form.target_type === 'direct')"
+                class="flex gap-2.5 rounded-lg bg-warning/10 px-3 py-2.5 text-[13px] leading-relaxed text-warning"
+              >
+                <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0" />
+                <p>Codes you’ve already exported won’t update. Export and reprint this QR code after saving.</p>
+              </div>
             </div>
 
-            <Field v-if="form.target_type === 'direct'" label="Type" :error="form.errors.payload_type">
-              <Select :model-value="form.payload_type" :options="typeOptions" @update:model-value="setPayloadType" />
-            </Field>
+            <div v-show="panel === 'style'" class="grid gap-5">
+              <div class="grid gap-1.5">
+                <span class="text-[13px] font-medium text-foreground">Modules</span>
+                <SegmentedControl v-model="form.style" :options="STYLES" label="Module style" class="w-full" />
+                <span v-if="form.errors.style" class="text-xs text-danger">{{ form.errors.style }}</span>
+              </div>
 
-            <PayloadFields
-              v-if="form.target_type === 'direct'"
-              v-model="form.payload"
-              :type="form.payload_type"
-              :descriptors="payloadDescriptors"
-              :errors="form.errors"
-            />
+              <div class="grid gap-1.5">
+                <span class="text-[13px] font-medium text-foreground">Corners</span>
+                <SegmentedControl v-model="form.eye_style" :options="EYE_STYLES" label="Eye style" class="w-full" />
+                <span v-if="form.errors.eye_style" class="text-xs text-danger">{{ form.errors.eye_style }}</span>
+              </div>
 
-            <div class="border-t pt-5">
-              <p class="mb-3 text-[13px] font-medium text-foreground">Appearance</p>
-
-              <div class="grid gap-5">
-                <Field label="Module style" :error="form.errors.style">
-                  <div class="grid grid-cols-3 gap-2">
-                    <button
-                      v-for="style in STYLES"
-                      :key="style.value"
-                      type="button"
-                      class="h-9 rounded-md border text-[13px] font-medium transition-colors"
-                      :class="
-                        form.style === style.value
-                          ? 'border-foreground bg-elevated text-foreground'
-                          : 'text-muted hover:border-border-strong hover:text-foreground'
-                      "
-                      @click="form.style = style.value"
-                    >
-                      {{ style.label }}
-                    </button>
-                  </div>
-                </Field>
-
-                <Field label="Eye style" :error="form.errors.eye_style">
-                  <div class="grid grid-cols-3 gap-2">
-                    <button
-                      v-for="eye in EYE_STYLES"
-                      :key="eye.value"
-                      type="button"
-                      class="h-9 rounded-md border text-[13px] font-medium transition-colors"
-                      :class="
-                        form.eye_style === eye.value
-                          ? 'border-foreground bg-elevated text-foreground'
-                          : 'text-muted hover:border-border-strong hover:text-foreground'
-                      "
-                      @click="form.eye_style = eye.value"
-                    >
-                      {{ eye.label }}
-                    </button>
-                  </div>
-                </Field>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <Field label="Foreground" :error="form.errors.foreground_color">
+              <div class="grid grid-cols-2 gap-3">
+                <Field label="Foreground" :error="form.errors.foreground_color">
+                  <span
+                    class="flex h-8 items-center gap-2.5 rounded-lg border border-transparent bg-elevated/70 pl-1.5 pr-3 transition-[border-color,background-color] focus-within:border-accent/60 hover:bg-elevated"
+                  >
                     <input
                       v-model="form.foreground_color"
                       type="color"
-                      class="h-9 w-full cursor-pointer rounded-md border bg-surface p-1"
+                      aria-label="Foreground color"
+                      class="h-5 w-5 shrink-0 cursor-pointer rounded-[5px] border-0 bg-transparent p-0 outline-none [&::-moz-color-swatch]:rounded-[5px] [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[5px] [&::-webkit-color-swatch]:border-0"
                     />
-                  </Field>
-                  <Field label="Background" :error="form.errors.background_color">
+                    <span class="font-mono text-[13px] text-muted">{{ form.foreground_color.toUpperCase() }}</span>
+                  </span>
+                </Field>
+                <Field label="Background" :error="form.errors.background_color">
+                  <span
+                    class="flex h-8 items-center gap-2.5 rounded-lg border border-transparent bg-elevated/70 pl-1.5 pr-3 transition-[border-color,background-color,opacity] focus-within:border-accent/60 hover:bg-elevated"
+                    :class="form.background_transparent ? 'opacity-50' : ''"
+                  >
                     <input
                       v-model="form.background_color"
                       type="color"
-                      class="h-9 w-full cursor-pointer rounded-md border bg-surface p-1"
+                      aria-label="Background color"
                       :disabled="form.background_transparent"
+                      class="h-5 w-5 shrink-0 cursor-pointer rounded-[5px] border-0 bg-transparent p-0 outline-none disabled:cursor-not-allowed [&::-moz-color-swatch]:rounded-[5px] [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[5px] [&::-webkit-color-swatch]:border-0"
                     />
-                  </Field>
-                </div>
-
-                <label class="flex items-center justify-between gap-3 rounded-md border bg-elevated/40 px-3 py-2.5">
-                  <span>
-                    <span class="block text-[13px] font-medium text-foreground">Transparent background</span>
-                    <span class="block text-xs text-faint">PNG and SVG exports keep the background see-through.</span>
+                    <span class="font-mono text-[13px] text-muted">{{
+                      form.background_transparent ? 'None' : form.background_color.toUpperCase()
+                    }}</span>
                   </span>
-                  <Checkbox v-model="form.background_transparent" />
-                </label>
-
-                <Field
-                  label="Logo"
-                  hint="PNG, JPG or WebP, 2 MB max. Error correction is raised automatically."
-                  :error="form.errors.logo"
-                >
-                  <div class="flex items-center gap-2">
-                    <label
-                      class="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
-                    >
-                      <Upload class="h-3.5 w-3.5" />
-                      {{
-                        form.logo ? form.logo.name : qr.has_logo && !form.remove_logo ? 'Replace logo' : 'Upload logo'
-                      }}
-                      <input
-                        ref="logoInput"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        class="hidden"
-                        @change="pickLogo"
-                      />
-                    </label>
-                    <button
-                      v-if="(qr.has_logo && !form.remove_logo) || form.logo"
-                      type="button"
-                      class="inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium text-muted transition-colors hover:border-danger/50 hover:text-danger"
-                      @click="removeLogo"
-                    >
-                      <ImageOff class="h-3.5 w-3.5" /> Remove
-                    </button>
-                  </div>
                 </Field>
-
-                <div class="grid gap-4 sm:grid-cols-3">
-                  <Field label="Margin" hint="Quiet zone." :error="form.errors.margin">
-                    <Input v-model="form.margin" type="number" min="0" max="16" />
-                  </Field>
-                  <Field label="Error correction" :error="form.errors.error_correction">
-                    <Select v-model="form.error_correction" :options="ERROR_CORRECTION_OPTIONS" />
-                  </Field>
-                  <Field label="Default size" :error="form.errors.size">
-                    <Input v-model="form.size" type="number" min="128" max="4096" />
-                  </Field>
-                </div>
               </div>
+
+              <label class="flex cursor-pointer items-center justify-between gap-4">
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-medium text-foreground">Transparent background</span>
+                  <span class="mt-0.5 block text-xs text-faint">PNG and SVG exports stay see-through.</span>
+                </span>
+                <Switch v-model="form.background_transparent" aria-label="Transparent background" />
+              </label>
+
+              <Field
+                label="Logo"
+                hint="PNG, JPG or WebP up to 2 MB. Error correction is raised automatically."
+                :error="form.errors.logo"
+              >
+                <div class="flex items-center gap-2">
+                  <label
+                    class="inline-flex h-8 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-elevated px-3 text-[13px] font-medium text-foreground transition-colors focus-within:ring-2 focus-within:ring-accent/40 hover:bg-border-strong"
+                  >
+                    <Upload class="h-3.5 w-3.5 shrink-0 text-muted" />
+                    <span class="truncate">{{ logoLabel }}</span>
+                    <input
+                      ref="logoInput"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      class="sr-only"
+                      @change="pickLogo"
+                    />
+                  </label>
+                  <Button v-if="hasLogo" variant="ghost" type="button" @click="removeLogo"><ImageOff /> Remove</Button>
+                </div>
+              </Field>
             </div>
 
-            <div v-if="canEditWorkspace" class="flex items-center justify-between border-t pt-4">
-              <Button variant="danger" type="button" size="sm" @click="destroy">
-                <Trash2 class="h-3.5 w-3.5" /> Delete
-              </Button>
-              <Button :loading="form.processing" :disabled="!isDirty">Save changes</Button>
+            <div v-show="panel === 'advanced'" class="grid gap-5">
+              <Field label="Margin" hint="Quiet zone around the code, in modules." :error="form.errors.margin">
+                <Input v-model="form.margin" type="number" min="0" max="16" />
+              </Field>
+              <Field
+                label="Error correction"
+                hint="Higher levels survive damage and logos, at the cost of density."
+                :error="form.errors.error_correction"
+              >
+                <Select v-model="form.error_correction" :options="ERROR_CORRECTION_OPTIONS" />
+              </Field>
+              <Field label="Default size" hint="Export size in pixels." :error="form.errors.size">
+                <Input v-model="form.size" type="number" min="128" max="4096" />
+              </Field>
             </div>
-          </form>
-        </SectionCard>
-      </div>
+          </fieldset>
+        </form>
+
+        <Transition
+          enter-active-class="transition duration-200 ease-emphasized-out"
+          enter-from-class="translate-y-full"
+          leave-active-class="transition duration-150 ease-out"
+          leave-to-class="translate-y-full"
+        >
+          <div v-if="canEditWorkspace && isDirty" class="flex items-center gap-2 border-t bg-overlay px-5 py-3">
+            <p class="min-w-0 flex-1 truncate text-[13px]" :class="form.hasErrors ? 'text-danger' : 'text-muted'">
+              {{ form.hasErrors ? 'Some fields need attention.' : 'Unsaved changes' }}
+            </p>
+            <Button variant="ghost" size="sm" type="button" :disabled="form.processing" @click="discard"
+              >Discard</Button
+            >
+            <Button size="sm" type="button" :loading="form.processing" @click="save">Save</Button>
+          </div>
+        </Transition>
+      </aside>
     </div>
   </AuthenticatedLayout>
 </template>

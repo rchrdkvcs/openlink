@@ -163,23 +163,25 @@ useLinkListKeyboard({
       </div>
 
       <Transition
-        enter-active-class="transition duration-300 ease-emphasized-out"
-        enter-from-class="translate-x-4 opacity-0"
-        leave-active-class="transition duration-150 ease-out"
-        leave-to-class="translate-x-4 opacity-0"
+        enter-active-class="transition-[width,translate,opacity] duration-300 ease-drawer motion-reduce:transition-none"
+        enter-from-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0"
+        leave-active-class="transition-[width,translate,opacity] duration-200 ease-drawer motion-reduce:transition-none"
+        leave-to-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0"
       >
         <div
           v-if="selected"
-          class="fixed inset-0 z-40 xl:static xl:z-auto xl:h-full xl:w-[440px] xl:shrink-0 xl:border-l 2xl:w-[480px]"
+          class="fixed inset-0 z-40 xl:static xl:z-auto xl:h-full xl:w-[440px] xl:shrink-0 xl:overflow-hidden xl:border-l 2xl:w-[480px]"
         >
-          <LinkInspector
-            :link="selected"
-            :domains="usableDomains"
-            :folders="folders"
-            :known-tags="tags"
-            :routing-schema="routingSchema"
-            @close="selectedId = null"
-          />
+          <div class="h-full xl:w-[440px] 2xl:w-[480px]">
+            <LinkInspector
+              :link="selected"
+              :domains="usableDomains"
+              :folders="folders"
+              :known-tags="tags"
+              :routing-schema="routingSchema"
+              @close="selectedId = null"
+            />
+          </div>
         </div>
       </Transition>
     </div>

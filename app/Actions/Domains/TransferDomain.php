@@ -2,26 +2,26 @@
 
 namespace App\Actions\Domains;
 
-use App\Actions\Workspaces\WorkspaceAccess;
 use App\Models\Domain;
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Workspace;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Validation\ValidationException;
 
 class TransferDomain
 {
-    public function __construct(private readonly WorkspaceAccess $access) {}
+    public function __construct(private readonly Gate $gate) {}
 
-    public function handle(Request $request, Domain $domain, int $targetWorkspaceId): Domain
+    public function handle(User $actor, Domain $domain, int $targetWorkspaceId): Domain
     {
-        $workspace = $this->access->requireManagedDomain($request, $domain);
+        $gate = $this->gate->forUser($actor);
+        $gate->authorize('manage', $domain);
         abort_if($domain->is_default, 403);
 
-        $targetWorkspace = $request->user()
-            ->workspaces()
-            ->where('workspaces.id', $targetWorkspaceId)
-            ->first();
+        $workspace = $domain->workspace;
+        $targetWorkspace = Workspace::query()->find($targetWorkspaceId);
 
-        abort_unless($targetWorkspace && $this->access->canManageWorkspace($request->user(), $targetWorkspace), 403);
+        abort_unless($targetWorkspace && $gate->allows('manage', $targetWorkspace), 403);
 
         if ($targetWorkspace->id === $workspace->id) {
             return $domain;
@@ -37,7 +37,7 @@ class TransferDomain
             $workspace->forceFill(['preferred_domain_id' => null])->save();
         }
 
-        $domain->update(['workspace_id' => $targetWorkspace->id]);
+        $domain->workspace()->associate($targetWorkspace)->save();
 
         return $domain;
     }

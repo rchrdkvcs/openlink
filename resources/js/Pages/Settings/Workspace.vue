@@ -12,22 +12,18 @@ import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
 import { confirmAction } from '@/lib/confirm';
 import type { SelectOption } from '@/lib/controls';
+import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
-
-type Workspace = {
-  id: number;
-  name: string;
-  slug: string;
-  icon?: string | null;
-  preferred_domain_id?: number | null;
-};
+import type { Domain, WorkspaceSummary } from '@/types/payloads';
 
 const props = defineProps<{
-  currentWorkspace: Workspace;
+  currentWorkspace: WorkspaceSummary;
   role: string;
-  domains: { id: number; hostname: string; is_default: boolean }[];
+  domains: Domain[];
   canDelete: boolean;
 }>();
+
+const { isOwner } = useShell();
 
 const form = useForm({
   name: props.currentWorkspace.name,
@@ -112,7 +108,7 @@ async function destroy() {
       />
     </form>
 
-    <SettingsGroup v-if="role === 'owner'" title="Danger zone">
+    <SettingsGroup v-if="isOwner" title="Danger zone">
       <SettingsRow
         label="Delete workspace"
         :description="

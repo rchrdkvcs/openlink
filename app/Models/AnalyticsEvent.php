@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Analytics\Outcome;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,6 +53,6 @@ class AnalyticsEvent extends Model
 
     public function scopeSuccessful(Builder $query): Builder
     {
-        return $query->where('outcome', 'success')->where('is_bot', false);
+        return $query->where('outcome', Outcome::SUCCESS)->where('is_bot', false);
     }
 }

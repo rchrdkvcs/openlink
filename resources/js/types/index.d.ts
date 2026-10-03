@@ -1,3 +1,5 @@
+import type { Folder, WorkspaceSummary } from './payloads';
+
 export interface User {
   id: number;
   name: string;
@@ -7,17 +9,9 @@ export interface User {
   profile_avatar_url?: string | null;
 }
 
-export type ShellWorkspace = {
-  id: number;
-  name: string;
-  slug: string;
-  icon?: string | null;
-  color?: string | null;
-  preferred_domain_id?: number | null;
-  pivot?: { role?: string };
-};
+export type ShellWorkspace = WorkspaceSummary & { pivot?: { role?: string } };
 
-export type NavigationFolder = { id: number; name: string; links_count: number };
+export type NavigationFolder = Folder & { links_count: number };
 
 export type Navigation = {
   folders: NavigationFolder[];
@@ -30,10 +24,10 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
   auth: {
     user: User;
   };
-  currentWorkspace?: ShellWorkspace;
+  currentWorkspace?: ShellWorkspace | null;
   workspaces?: ShellWorkspace[];
   role?: string | null;
   canManageWorkspace?: boolean;
   canEditWorkspace?: boolean;
-  navigation?: Navigation;
+  navigation?: Navigation | null;
 };

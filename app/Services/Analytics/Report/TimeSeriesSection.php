@@ -2,6 +2,7 @@
 
 namespace App\Services\Analytics\Report;
 
+use App\Enums\AnalyticsMetric;
 use App\Services\Analytics\Outcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -17,15 +18,15 @@ class TimeSeriesSection
         $successful = $slice->query()
             ->successful()
             ->selectRaw("{$expression} as bucket")
-            ->selectRaw("sum(case when metric = 'visit' then 1 else 0 end) as visits")
-            ->selectRaw("sum(case when metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as visits', [AnalyticsMetric::Visit->value])
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as scans', [AnalyticsMetric::Scan->value])
             ->selectRaw('count(distinct visitor_hash) as visitors')
             ->groupBy('bucket')
             ->get()
             ->keyBy('bucket');
 
         $blocked = $slice->query()
-            ->where('outcome', '!=', Outcome::SUCCESS)
+            ->whereIn('outcome', Outcome::blocked())
             ->where('is_bot', false)
             ->selectRaw("{$expression} as bucket, count(*) as blocked")
             ->groupBy('bucket')

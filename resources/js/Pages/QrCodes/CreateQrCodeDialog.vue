@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { FileText, Link2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
@@ -8,16 +7,14 @@ import Dialog from '@/Components/ui/Dialog.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
-import Select from '@/Components/ui/Select.vue';
-import type { SelectOption } from '@/lib/controls';
 
-import PayloadFields from './PayloadFields.vue';
+import PayloadEditor from './PayloadEditor.vue';
+import { TARGET_OPTIONS } from './qrOptions';
+import { DEFAULT_PAYLOAD_TYPE, payloadDefaults, payloadHint } from './qrPayload';
+import { blankTarget, toTargetPayload } from './qrTarget';
 import ShortLinkPicker from './ShortLinkPicker.vue';
-import type { PayloadDescriptors, ShortLinkOption } from './types';
-import { payloadDefaults, payloadHint } from './types';
+import type { PayloadDescriptors, ShortLinkOption, TargetType } from './types';
 import { useShortLinkSearch } from './useShortLinkSearch';
-
-type TargetType = 'short_link' | 'direct';
 
 const props = defineProps<{
   payloadTypes: Record<string, string>;
@@ -27,26 +24,11 @@ const props = defineProps<{
 
 const open = defineModel<boolean>('open', { required: true });
 
-const form = useForm({
-  name: '',
-  target_type: 'short_link' as TargetType,
-  short_link_id: '' as string | number,
-  payload_type: 'url',
-  payload: payloadDefaults('url', props.payloadDescriptors),
-});
+const form = useForm({ name: '', ...blankTarget(props.payloadDescriptors) });
 
 const { search, links } = useShortLinkSearch(
   props.shortLinks,
   computed(() => form.short_link_id),
-);
-
-const targetOptions: { value: TargetType; label: string; icon: unknown }[] = [
-  { value: 'short_link', label: 'Short link', icon: Link2 },
-  { value: 'direct', label: 'Content', icon: FileText },
-];
-
-const typeOptions = computed<SelectOption[]>(() =>
-  Object.entries(props.payloadTypes).map(([value, label]) => ({ value, label })),
 );
 
 const targetType = computed<TargetType>({
@@ -71,18 +53,10 @@ const hint = computed(() =>
     : payloadHint(form.payload_type, props.payloadDescriptors),
 );
 
-function setPayloadType(type: string | number | null) {
-  const next = String(type ?? 'url');
-  if (next === form.payload_type) return;
-  form.payload_type = next;
-  form.payload = payloadDefaults(next, props.payloadDescriptors);
-  form.clearErrors();
-}
-
 function resetForm() {
   form.reset();
   form.clearErrors();
-  form.payload = payloadDefaults('url', props.payloadDescriptors);
+  form.payload = payloadDefaults(DEFAULT_PAYLOAD_TYPE, props.payloadDescriptors);
   search.value = '';
 }
 
@@ -98,11 +72,7 @@ function onOpenChange(value: boolean) {
 
 function submit() {
   form
-    .transform((data) =>
-      data.target_type === 'short_link'
-        ? { name: data.name, short_link_id: data.short_link_id }
-        : { name: data.name, payload_type: data.payload_type, payload: data.payload },
-    )
+    .transform((data) => toTargetPayload(data, 'create'))
     .post(route('qr-codes.store'), {
       preserveScroll: true,
       onSuccess: () => close(),
@@ -121,7 +91,7 @@ function submit() {
     <form @submit.prevent="submit">
       <div class="grid max-h-[min(60vh,560px)] gap-5 overflow-y-auto px-5 pb-5 pt-4">
         <div class="grid gap-2">
-          <SegmentedControl v-model="targetType" :options="targetOptions" label="QR code target" class="w-full" />
+          <SegmentedControl v-model="targetType" :options="TARGET_OPTIONS" label="QR code target" class="w-full" />
           <p class="text-xs leading-relaxed text-faint">{{ hint }}</p>
         </div>
 
@@ -133,17 +103,7 @@ function submit() {
           :error="form.errors.short_link_id"
         />
 
-        <template v-else>
-          <Field label="Type" :error="form.errors.payload_type">
-            <Select :model-value="form.payload_type" :options="typeOptions" @update:model-value="setPayloadType" />
-          </Field>
-          <PayloadFields
-            v-model="form.payload"
-            :type="form.payload_type"
-            :descriptors="payloadDescriptors"
-            :errors="form.errors"
-          />
-        </template>
+        <PayloadEditor v-else :form="form" :payload-types="payloadTypes" :payload-descriptors="payloadDescriptors" />
 
         <Field label="Name" :error="form.errors.name">
           <Input v-model="form.name" placeholder="Lobby Wi-Fi, business card, event poster" />

@@ -2,46 +2,46 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Pages\WorkspaceShellPayload;
 use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
-use App\Actions\QrCodes\QrCodeAppearance;
+use App\Actions\QrCodes\QrCodeImages;
 use App\Actions\QrCodes\QrCodePayload;
+use App\Actions\QrCodes\ShortLinkOptions;
 use App\Actions\QrCodes\UpdateQrCode;
-use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\CurrentWorkspace;
+use App\Http\Requests\QrCodes\ExportQrCodeRequest;
+use App\Http\Requests\QrCodes\PreviewQrCodeRequest;
+use App\Http\Requests\QrCodes\StoreQrCodeRequest;
+use App\Http\Requests\QrCodes\UpdateQrCodeRequest;
 use App\Models\QrCode;
-use App\Models\ShortLink;
-use App\Models\Workspace;
 use App\Services\QrCodes\QrCodeContent;
-use App\Services\QrCodes\QrCodeRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 class QrCodeController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspaceShellPayload $shell): \Inertia\Response
+    public function index(Request $request, CurrentWorkspace $current, ShortLinkOptions $options): \Inertia\Response
     {
-        $workspace = $access->requireCurrent($request);
-        $user = $request->user();
+        $workspace = $current->require();
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:200'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
+        $search = trim($filters['search'] ?? '');
 
         $qrCodes = $workspace->qrCodes()
             ->with('shortLink.domain')
-            ->withCount(['analyticsEvents as scans_count' => fn ($events) => $events->successful()->where('metric', 'scan')])
-            ->when(trim($filters['search'] ?? '') !== '', fn ($query) => $query->whereRaw('LOWER(name) LIKE LOWER(?)', ['%'.trim($filters['search']).'%']))
+            ->withScanCount()
+            ->when($search !== '', fn ($query) => $query->whereRaw('LOWER(name) LIKE LOWER(?)', ['%'.$search.'%']))
             ->orderByDesc('created_at')->orderByDesc('id')
             ->paginate(24, ['*'], 'page', $filters['page'] ?? 1)
             ->through(fn (QrCode $qrCode) => QrCodePayload::make($qrCode));
 
         return Inertia::render('QrCodes/Index', [
-            ...$shell->handle($workspace, $user),
             'qrCodes' => $qrCodes->items(),
             'qrPagination' => [
                 'currentPage' => $qrCodes->currentPage(),
@@ -51,71 +51,42 @@ class QrCodeController extends Controller
             'qrFilters' => ['search' => $filters['search'] ?? ''],
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
-            'shortLinks' => $this->shortLinkOptions($workspace),
+            'shortLinks' => $options->for($workspace),
         ]);
     }
 
-    public function store(Request $request, CreateQrCode $action): RedirectResponse
+    public function store(StoreQrCodeRequest $request, CreateQrCode $action): RedirectResponse
     {
-        $qrCode = $action->handle($request, $request->validate(QrCodePayload::unifiedRules()));
+        $qrCode = $action->handle($request, $request->validated());
 
         return redirect()->route('qr-codes.show', $qrCode);
     }
 
-    public function show(Request $request, QrCode $qrCode, WorkspaceAccess $access, WorkspaceShellPayload $shell): \Inertia\Response
+    public function show(Request $request, QrCode $qrCode, CurrentWorkspace $current, ShortLinkOptions $options): \Inertia\Response
     {
-        $workspace = $access->requireViewableQrCode($request, $qrCode);
-        $user = $request->user();
+        $workspace = $current->require();
+        Gate::authorize('view', $qrCode);
+        abort_unless($qrCode->workspace_id === $workspace->id, 403);
 
         return Inertia::render('QrCodes/Show', [
-            ...$shell->handle($workspace, $user),
             'qr' => QrCodePayload::make($qrCode),
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
-            'shortLinks' => $this->shortLinkOptions($workspace, selectedId: $qrCode->short_link_id),
+            'shortLinks' => $options->for($workspace, selectedId: $qrCode->short_link_id),
         ]);
     }
 
-    public function shortLinks(Request $request, WorkspaceAccess $access): JsonResponse
+    public function shortLinks(Request $request, CurrentWorkspace $current, ShortLinkOptions $options): JsonResponse
     {
-        $workspace = $access->requireCurrent($request);
+        $workspace = $current->require();
         $filters = $request->validate(['search' => ['nullable', 'string', 'max:200']]);
 
-        return response()->json(['data' => $this->shortLinkOptions($workspace, $filters['search'] ?? '')]);
+        return response()->json(['data' => $options->for($workspace, $filters['search'] ?? '')]);
     }
 
-    private function shortLinkOptions(Workspace $workspace, string $search = '', ?int $selectedId = null): array
+    public function update(UpdateQrCodeRequest $request, QrCode $qrCode, UpdateQrCode $action): RedirectResponse
     {
-        $query = $workspace->shortLinks()->with('domain')->primary();
-        $search = trim($search);
-        if ($search !== '') {
-            $query->where(function ($query) use ($search): void {
-                $term = '%'.$search.'%';
-                $query->whereRaw('LOWER(slug) LIKE LOWER(?)', [$term])
-                    ->orWhereRaw('LOWER(destination_url) LIKE LOWER(?)', [$term])
-                    ->orWhereHas('domain', fn ($domain) => $domain
-                        ->whereRaw("LOWER('https://' || domains.hostname || '/' || short_links.slug) LIKE LOWER(?)", [$term]));
-            });
-        }
-
-        $links = $query->orderByDesc('created_at')->orderByDesc('id')->limit(50)->get();
-        if ($selectedId && ! $links->contains('id', $selectedId)) {
-            $selected = $workspace->shortLinks()->with('domain')->whereKey($selectedId)->first();
-            if ($selected) {
-                $links->prepend($selected);
-            }
-        }
-
-        return $links->map(fn (ShortLink $link) => [
-            'id' => $link->id,
-            'short_url' => 'https://'.$link->domain->hostname.'/'.$link->slug,
-            'destination_url' => $link->destination_url,
-        ])->all();
-    }
-
-    public function update(Request $request, QrCode $qrCode, UpdateQrCode $action): RedirectResponse
-    {
-        $action->handle($request, $qrCode, $request->validate(QrCodePayload::unifiedRules(creating: false)));
+        $action->handle($request, $qrCode, $request->validated());
 
         return back();
     }
@@ -127,37 +98,13 @@ class QrCodeController extends Controller
         return redirect()->route('qr-codes.index');
     }
 
-    public function export(Request $request, QrCode $qrCode, string $format, WorkspaceAccess $access, QrCodeRenderer $renderer): Response
+    public function export(ExportQrCodeRequest $request, QrCode $qrCode, string $format, QrCodeImages $images): Response
     {
-        $access->requireViewableQrCode($request, $qrCode);
-        abort_unless(in_array($format, ['png', 'svg'], true), 404);
-
-        $size = $request->validate(['size' => ['nullable', 'integer', 'min:128', 'max:4096']])['size'] ?? null;
-
-        $encodedContent = $qrCode->encodedContent();
-        $contents = $format === 'png' ? $renderer->png($qrCode, $encodedContent, $size) : $renderer->svg($qrCode, $encodedContent, $size);
-        $filename = (Str::slug($qrCode->name) ?: $qrCode->token).'.'.$format;
-
-        return response($contents, 200, [
-            'Content-Type' => $format === 'png' ? 'image/png' : 'image/svg+xml',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
+        return $images->export($qrCode, $format, $request->size());
     }
 
-    public function preview(Request $request, QrCode $qrCode, WorkspaceAccess $access, QrCodeRenderer $renderer, QrCodeAppearance $appearance): Response
+    public function preview(PreviewQrCodeRequest $request, QrCode $qrCode, QrCodeImages $images): Response
     {
-        $access->requireViewableQrCode($request, $qrCode);
-
-        $rules = $qrCode->hasDirectPayload()
-            ? QrCodePayload::directRules(creating: false)
-            : QrCodePayload::rules(creating: false);
-
-        $qrCode->fill($appearance->previewOverrides($request->validate($rules)));
-
-        return response($renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
-            'Content-Type' => 'image/svg+xml',
-            'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
-            'Cache-Control' => 'no-store',
-        ]);
+        return $images->preview($qrCode, $request->validated());
     }
 }

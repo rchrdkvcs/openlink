@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WorkspaceRole;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -120,5 +121,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Workspace::class, 'workspace_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    public function roleIn(Workspace $workspace): ?WorkspaceRole
+    {
+        $role = $this->workspaceMemberships()
+            ->where('workspace_id', $workspace->getKey())
+            ->value('role');
+
+        return $role === null ? null : WorkspaceRole::from($role);
     }
 }

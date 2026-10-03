@@ -4,10 +4,11 @@ import { QrCode } from '@lucide/vue';
 import { ref } from 'vue';
 
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
+import type { PayloadType } from '@/Pages/QrCodes/types';
 
 const props = defineProps<{
   name: string;
-  payloadType: string;
+  payloadType: PayloadType;
   payloadTypeLabel: string;
   content: string;
 }>();

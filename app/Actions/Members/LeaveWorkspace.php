@@ -2,29 +2,18 @@
 
 namespace App\Actions\Members;
 
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Models\WorkspaceMember;
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Workspace;
+use Illuminate\Contracts\Auth\Access\Gate;
 
 class LeaveWorkspace
 {
-    public function __construct(private readonly WorkspaceAccess $access) {}
+    public function __construct(private readonly Gate $gate) {}
 
-    public function handle(Request $request): void
+    public function handle(User $user, Workspace $workspace): void
     {
-        $workspace = $this->access->requireCurrent($request);
+        $this->gate->forUser($user)->authorize('leave', $workspace);
 
-        $member = WorkspaceMember::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
-
-        abort_if($member->role === WorkspaceMember::ROLE_OWNER, 403);
-
-        RemoveWorkspaceMember::detach($member);
-
-        if ($request->hasSession()) {
-            $request->session()->forget('workspace_id');
-        }
+        $workspace->members()->where('user_id', $user->id)->delete();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Analytics\Report;
 
+use App\Enums\AnalyticsMetric;
 use App\Models\QrCode;
 use App\Models\RoutingRule;
 use App\Models\RoutingVariant;
@@ -15,8 +16,8 @@ class EntityRankingSection
             ->successful()
             ->whereNotNull('short_link_id')
             ->selectRaw('short_link_id, count(*) as total')
-            ->selectRaw("sum(case when metric = 'visit' then 1 else 0 end) as visits")
-            ->selectRaw("sum(case when metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as visits', [AnalyticsMetric::Visit->value])
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as scans', [AnalyticsMetric::Scan->value])
             ->selectRaw('count(distinct visitor_hash) as visitors')
             ->groupBy('short_link_id')
             ->orderByDesc('total')
@@ -31,7 +32,7 @@ class EntityRankingSection
             return [
                 'id' => $row->short_link_id,
                 'slug' => $link?->slug ?? '(deleted link)',
-                'short_url' => $link && $link->domain ? 'https://'.$link->domain->hostname.'/'.$link->slug : null,
+                'short_url' => $link?->domain ? $link->shortUrl() : null,
                 'destination_url' => $link?->destination_url,
                 'visits' => (int) $row->visits,
                 'scans' => (int) $row->scans,
@@ -72,8 +73,8 @@ class EntityRankingSection
         $rows = $slice->query()
             ->successful()
             ->selectRaw('routing_rule_id, routing_variant_id, count(*) as total')
-            ->selectRaw("sum(case when metric = 'visit' then 1 else 0 end) as visits")
-            ->selectRaw("sum(case when metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as visits', [AnalyticsMetric::Visit->value])
+            ->selectRaw('sum(case when metric = ? then 1 else 0 end) as scans', [AnalyticsMetric::Scan->value])
             ->selectRaw('count(distinct visitor_hash) as visitors')
             ->groupBy('routing_rule_id', 'routing_variant_id')
             ->orderByDesc('total')

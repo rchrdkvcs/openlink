@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Pages\WorkspaceShellPayload;
-use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\OAuth\OAuthProviderRegistry;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -19,10 +17,9 @@ use Throwable;
 
 class ProfileController extends Controller
 {
-    public function edit(Request $request, OAuthProviderRegistry $providers, WorkspaceAccess $access, WorkspaceShellPayload $shell): Response
+    public function edit(Request $request, OAuthProviderRegistry $providers): Response
     {
         $user = $request->user();
-        $workspace = $access->current($request);
         $user->refreshProfileAvatarSource();
         $pendingSecret = $user->two_factor_secret && ! $user->two_factor_confirmed_at
             ? Crypt::decryptString($user->two_factor_secret)
@@ -42,7 +39,6 @@ class ProfileController extends Controller
             ]);
 
         return Inertia::render('Profile/Edit', [
-            ...($workspace ? $shell->handle($workspace, $user) : []),
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'profileAvatar' => [

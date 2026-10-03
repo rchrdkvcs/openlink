@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Actions\Domains\DomainLifecycle;
+use App\Enums\DomainStatus;
 use App\Models\Domain;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -16,7 +17,7 @@ class VerifyPendingDomains extends Command
     {
         $limit = max(1, (int) $this->option('limit'));
         $domains = Domain::query()
-            ->whereIn('status', [Domain::STATUS_PENDING, Domain::STATUS_FAILED, Domain::STATUS_OWNERSHIP_VERIFIED])
+            ->whereIn('status', DomainStatus::awaitingChecks())
             ->whereNull('disabled_at')
             ->oldest('last_checked_at')
             ->limit($limit)

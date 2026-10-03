@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Check, Copy, Link2 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { Copy, Link2 } from '@lucide/vue';
 
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -10,100 +9,27 @@ import IconButton from '@/Components/ui/IconButton.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import Toaster from '@/Components/ui/Toaster.vue';
-import { copyToClipboard } from '@/lib/toast';
+import { roleOptions } from '@/lib/permissions';
 
-type Domain = { id: number; hostname: string; is_default: boolean };
-type InviteLink = { id: number; role: string; url: string };
+import OnboardingProgress from './OnboardingProgress.vue';
+import { type OnboardingProps, useOnboardingFlow } from './useOnboardingFlow';
 
-const props = defineProps<{
-  workspace: { id: number; name: string; slug: string } | null;
-  domains: Domain[];
-  inviteLinks: InviteLink[];
-  hasLink: boolean;
-}>();
+const props = defineProps<OnboardingProps>();
 
-const step = ref(props.workspace ? 2 : 1);
-
-watch(
-  () => props.workspace,
-  (workspace) => {
-    if (workspace && step.value === 1) {
-      step.value = 2;
-    }
-  },
-);
-
-const workspaceForm = useForm({ name: '' });
-
-function createWorkspace() {
-  workspaceForm.post(route('onboarding.workspace'));
-}
-
-function firstDomainId() {
-  return props.domains[0]?.id ?? null;
-}
-
-const domainOptions = computed(() => props.domains.map((domain) => ({ value: domain.id, label: domain.hostname })));
-
-const linkForm = useForm({
-  domain_id: firstDomainId(),
-  destination_url: '',
-  slug: '',
-});
-
-watch(
-  () => props.domains,
-  () => {
-    if (!linkForm.domain_id) {
-      linkForm.domain_id = firstDomainId();
-    }
-  },
-  { immediate: true },
-);
-
-function createFirstLink() {
-  linkForm.post(route('short-links.store'), {
-    preserveScroll: true,
-    onSuccess: () => (step.value = 3),
-  });
-}
-
-const roleOptions = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'editor', label: 'Editor' },
-  { value: 'viewer', label: 'Viewer' },
-];
-
-const inviteForm = useForm({ role: 'editor', expires_in_days: null, max_uses: null });
-
-function createInviteLink() {
-  inviteForm.post(route('invite-links.store'), { preserveScroll: true });
-}
-
-const teamInviteLink = computed(() => props.inviteLinks[0] ?? null);
-
-function copyInviteLink() {
-  if (teamInviteLink.value) copyToClipboard(teamInviteLink.value.url, 'Invite link copied');
-}
-
-function finish() {
-  router.post(route('onboarding.complete'));
-}
-
-const steps = [
-  { number: 1, label: 'Workspace' },
-  { number: 2, label: 'First link' },
-  { number: 3, label: 'Team' },
-];
-
-const heading = computed(
-  () =>
-    ({
-      1: { title: 'Create your workspace', description: 'A workspace holds your links, domains and team.' },
-      2: { title: 'Shorten your first link', description: 'Paste a long URL and we’ll create the short link.' },
-      3: { title: 'Invite your team', description: 'Anyone with the link joins with the role you choose.' },
-    })[step.value] ?? { title: '', description: '' },
-);
+const {
+  step,
+  heading,
+  workspaceForm,
+  linkForm,
+  inviteForm,
+  domainOptions,
+  teamInviteLink,
+  createWorkspace,
+  createFirstLink,
+  createInviteLink,
+  copyInviteLink,
+  finish,
+} = useOnboardingFlow(props);
 </script>
 
 <template>
@@ -119,23 +45,7 @@ const heading = computed(
         <ApplicationLogo class="h-9 w-auto" />
       </div>
 
-      <ol class="mb-6 flex items-center justify-center gap-2" aria-label="Setup progress">
-        <template v-for="(item, index) in steps" :key="item.number">
-          <li class="flex items-center gap-2" :aria-current="step === item.number ? 'step' : undefined">
-            <span
-              class="grid h-5 w-5 place-items-center rounded-full text-[11px] font-semibold tabular-nums transition-colors duration-200"
-              :class="step >= item.number ? 'bg-foreground text-background' : 'border border-border-strong text-faint'"
-            >
-              <Check v-if="step > item.number" class="h-3 w-3" />
-              <template v-else>{{ item.number }}</template>
-            </span>
-            <span class="text-xs font-medium" :class="step >= item.number ? 'text-foreground' : 'text-faint'">{{
-              item.label
-            }}</span>
-          </li>
-          <li v-if="index < steps.length - 1" class="h-px w-6 bg-border" aria-hidden="true" />
-        </template>
-      </ol>
+      <OnboardingProgress :step="step" />
 
       <div class="overflow-hidden rounded-2xl border bg-surface p-6 sm:p-8">
         <Transition

@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\ShortLinks\LinksQuery;
 use App\Actions\ShortLinks\ShortLinkMutation;
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Actions\Workspaces\WorkspacePayloads;
-use App\Actions\Workspaces\WorkspaceViewFactory;
+use App\Actions\ShortLinks\ShortLinkPayload;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ShortLinks\MoveShortLinkRequest;
+use App\Http\Requests\ShortLinks\StoreShortLinkRequest;
+use App\Http\Requests\ShortLinks\UpdateShortLinkRequest;
 use App\Models\ShortLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Gate;
 
 class ShortLinkController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, WorkspaceViewFactory $views): JsonResponse
+    public function index(Request $request, CurrentWorkspace $current, LinksQuery $links): JsonResponse
     {
-        $workspace = $access->requireCurrent($request);
-
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:200'],
-            'status' => ['nullable', 'in:active,scheduled,expired,disabled,archived'],
-            'tag' => ['nullable', 'string', 'max:255'],
-            'page' => ['nullable', 'integer', 'min:1'],
-        ]);
-        $page = $data->linksPage($views->make($workspace, $request->user()), [
+        $workspace = $current->require();
+        $filters = $request->validate(Arr::except(LinksQuery::rules(), 'folder'));
+        $page = $links->paginate($workspace, [
             ...$filters,
-            'status' => $filters['status'] ?? 'all',
+            'status' => $filters['status'] ?? LinksQuery::ALL_STATUSES,
         ]);
 
         return response()->json([
@@ -39,44 +38,44 @@ class ShortLinkController extends Controller
         ]);
     }
 
-    public function show(Request $request, ShortLink $shortLink, WorkspaceAccess $access, WorkspacePayloads $data): JsonResponse
+    public function show(ShortLink $shortLink, ShortLinkPayload $payload): JsonResponse
     {
-        $access->requireViewableShortLink($request, $shortLink);
+        Gate::authorize('view', $shortLink);
 
-        return response()->json(['data' => $data->linkPayload($shortLink)]);
+        return response()->json(['data' => $payload->handle($shortLink)]);
     }
 
-    public function store(Request $request, ShortLinkMutation $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
+    public function store(StoreShortLinkRequest $request, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->create($request);
+        $shortLink = $shortLinks->create($request->user(), $request->workspace(), $request->validated());
 
-        return response()->json(['data' => $workspaceData->linkPayload($shortLink)], 201);
+        return response()->json(['data' => $payload->handle($shortLink)], 201);
     }
 
-    public function update(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
+    public function update(UpdateShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->update($request, $shortLink);
+        $shortLink = $shortLinks->update($request->user(), $shortLink, $request->validated());
 
-        return response()->json(['data' => $workspaceData->linkPayload($shortLink)]);
+        return response()->json(['data' => $payload->handle($shortLink)]);
     }
 
-    public function move(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
+    public function move(MoveShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->move($request, $shortLink);
+        $shortLink = $shortLinks->move($request->user(), $shortLink, $request->folderId());
 
-        return response()->json(['data' => $workspaceData->linkPayload($shortLink->fresh(['domain', 'folder', 'tags', 'qrCodes']))]);
+        return response()->json(['data' => $payload->handle($shortLink->fresh(['domain', 'folder', 'tags', 'qrCodes']))]);
     }
 
-    public function archive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, WorkspacePayloads $workspaceData): JsonResponse
+    public function archive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->archive($request, $shortLink);
+        $shortLink = $shortLinks->archive($request->user(), $shortLink);
 
-        return response()->json(['data' => $workspaceData->linkPayload($shortLink)]);
+        return response()->json(['data' => $payload->handle($shortLink)]);
     }
 
     public function destroy(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): JsonResponse
     {
-        $shortLinks->delete($request, $shortLink);
+        $shortLinks->delete($request->user(), $shortLink);
 
         return response()->json(['message' => 'Short link deleted.']);
     }

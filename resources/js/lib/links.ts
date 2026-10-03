@@ -68,11 +68,3 @@ export function faviconFor(url: string): string | null {
 
   return origin ? route('favicons.show', { url: origin }) : null;
 }
-
-export function statusVariant(status: string) {
-  if (status === 'active') return 'success';
-  if (status === 'scheduled') return 'accent';
-  if (status === 'expired') return 'warning';
-  if (status === 'archived') return 'default';
-  return 'danger';
-}

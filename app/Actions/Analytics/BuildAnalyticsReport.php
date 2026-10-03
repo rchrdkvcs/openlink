@@ -2,8 +2,6 @@
 
 namespace App\Actions\Analytics;
 
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Analytics\Report\AnalyticsEventSlice;
@@ -16,8 +14,20 @@ use Generator;
 
 class BuildAnalyticsReport
 {
+    private const BREAKDOWNS = [
+        'referrers' => 'referrer_host',
+        'channels' => 'referrer_channel',
+        'countries' => 'country',
+        'languages' => 'language',
+        'devices' => 'device_type',
+        'browsers' => 'browser',
+        'os' => 'os',
+        'utm_sources' => 'utm_source',
+        'utm_mediums' => 'utm_medium',
+        'utm_campaigns' => 'utm_campaign',
+    ];
+
     public function __construct(
-        private readonly WorkspaceAccess $access,
         private readonly SummarySection $summary,
         private readonly TimeSeriesSection $timeSeries,
         private readonly BreakdownSection $breakdowns,
@@ -25,9 +35,9 @@ class BuildAnalyticsReport
         private readonly ExportRowsSection $exports,
     ) {}
 
-    public function report(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
+    public function report(Workspace $workspace, AnalyticsFilters $filters): array
     {
-        $slice = $this->slice($workspace, $filters, $accessibleLinkIds);
+        $slice = new AnalyticsEventSlice($workspace, $filters);
 
         return [
             'range' => [
@@ -36,20 +46,9 @@ class BuildAnalyticsReport
                 'to' => $filters->to->toIso8601String(),
                 'bucket' => $filters->bucketUnit(),
             ],
-            'summary' => $this->summary($workspace, $filters, $accessibleLinkIds),
+            'summary' => $this->summary($workspace, $filters),
             'timeseries' => $this->timeSeries->build($slice),
-            'breakdowns' => [
-                'referrers' => $this->breakdowns->dimension($slice, 'referrer_host'),
-                'channels' => $this->breakdowns->dimension($slice, 'referrer_channel'),
-                'countries' => $this->breakdowns->dimension($slice, 'country'),
-                'languages' => $this->breakdowns->dimension($slice, 'language'),
-                'devices' => $this->breakdowns->dimension($slice, 'device_type'),
-                'browsers' => $this->breakdowns->dimension($slice, 'browser'),
-                'os' => $this->breakdowns->dimension($slice, 'os'),
-                'utm_sources' => $this->breakdowns->dimension($slice, 'utm_source'),
-                'utm_mediums' => $this->breakdowns->dimension($slice, 'utm_medium'),
-                'utm_campaigns' => $this->breakdowns->dimension($slice, 'utm_campaign'),
-            ],
+            'breakdowns' => array_map(fn (string $column) => $this->breakdowns->dimension($slice, $column), self::BREAKDOWNS),
             'outcomes' => $this->breakdowns->outcomes($slice),
             'routing' => $this->rankings->routingPerformance($slice),
             'top_links' => $this->rankings->topLinks($slice),
@@ -57,56 +56,26 @@ class BuildAnalyticsReport
         ];
     }
 
-    public function summary(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
+    public function summary(Workspace $workspace, AnalyticsFilters $filters): array
     {
         return $this->summary->build(
-            $this->slice($workspace, $filters, $accessibleLinkIds),
-            $this->slice($workspace, $filters->previous(), $accessibleLinkIds),
+            new AnalyticsEventSlice($workspace, $filters),
+            new AnalyticsEventSlice($workspace, $filters->previous()),
         );
     }
 
-    public function timeseries(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
+    public function timeseries(Workspace $workspace, AnalyticsFilters $filters): array
     {
-        return $this->timeSeries->build($this->slice($workspace, $filters, $accessibleLinkIds));
+        return $this->timeSeries->build(new AnalyticsEventSlice($workspace, $filters));
     }
 
-    public function breakdown(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds, string $column): array
+    public function topLinks(Workspace $workspace, AnalyticsFilters $filters, int $limit = 10): array
     {
-        return $this->breakdowns->dimension($this->slice($workspace, $filters, $accessibleLinkIds), $column);
+        return $this->rankings->topLinks(new AnalyticsEventSlice($workspace, $filters), $limit);
     }
 
-    public function outcomes(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
+    public function exportRows(Workspace $workspace, AnalyticsFilters $filters): Generator
     {
-        return $this->breakdowns->outcomes($this->slice($workspace, $filters, $accessibleLinkIds));
-    }
-
-    public function topLinks(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null, int $limit = 10): array
-    {
-        return $this->rankings->topLinks($this->slice($workspace, $filters, $accessibleLinkIds), $limit);
-    }
-
-    public function topQrCodes(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null, int $limit = 10): array
-    {
-        return $this->rankings->topQrCodes($this->slice($workspace, $filters, $accessibleLinkIds), $limit);
-    }
-
-    public function routingPerformance(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): array
-    {
-        return $this->rankings->routingPerformance($this->slice($workspace, $filters, $accessibleLinkIds));
-    }
-
-    public function accessibleLinkIds(Workspace $workspace, User $user): ?array
-    {
-        return $this->access->isMember($user, $workspace) ? null : [];
-    }
-
-    public function exportRows(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds = null): Generator
-    {
-        return $this->exports->rows($this->slice($workspace, $filters, $accessibleLinkIds));
-    }
-
-    private function slice(Workspace $workspace, AnalyticsFilters $filters, ?array $accessibleLinkIds): AnalyticsEventSlice
-    {
-        return new AnalyticsEventSlice($workspace, $filters, $accessibleLinkIds);
+        return $this->exports->rows(new AnalyticsEventSlice($workspace, $filters));
     }
 }

@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Workspaces\CreateWorkspace;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Actions\Workspaces\DeleteWorkspace;
 use App\Actions\Workspaces\UpdateWorkspace;
-use App\Actions\Workspaces\WorkspaceAccess;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
+use App\Http\Requests\Workspaces\UpdateWorkspaceRequest;
 use App\Models\Workspace;
-use App\Models\WorkspaceMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class WorkspaceController extends Controller
 {
@@ -34,11 +34,10 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function current(Request $request, WorkspaceAccess $access): JsonResponse
+    public function current(Request $request, CurrentWorkspace $current): JsonResponse
     {
-        $workspace = $access->requireCurrent($request);
-
-        $user = $request->user();
+        $workspace = $current->require();
+        $role = $request->user()->roleIn($workspace);
 
         return response()->json([
             'data' => [
@@ -48,16 +47,16 @@ class WorkspaceController extends Controller
                 'icon' => $workspace->icon,
                 'color' => $workspace->color,
                 'preferred_domain_id' => $workspace->preferred_domain_id,
-                'role' => $access->role($user, $workspace),
-                'can_manage' => $access->canManageWorkspace($user, $workspace),
-                'can_edit' => $access->canEditWorkspace($user, $workspace),
+                'role' => $role?->value,
+                'can_manage' => $role?->canManageWorkspace() ?? false,
+                'can_edit' => $role?->canEditContent() ?? false,
             ],
         ]);
     }
 
-    public function store(Request $request, CreateWorkspace $workspaces): JsonResponse
+    public function store(StoreWorkspaceRequest $request, CreateWorkspace $workspaces): JsonResponse
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validated();
 
         $workspace = $workspaces->handle($request->user(), $data['name'], $data['icon'] ?? null, $data['color'] ?? null);
 
@@ -66,40 +65,24 @@ class WorkspaceController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Workspace $workspace, WorkspaceAccess $access, UpdateWorkspace $workspaces): JsonResponse
+    public function update(UpdateWorkspaceRequest $request, Workspace $workspace, UpdateWorkspace $workspaces): JsonResponse
     {
-        abort_unless($access->canManageWorkspace($request->user(), $workspace), 403);
+        $data = $request->validated();
 
-        $data = $request->validate([
-            ...$this->rules(),
-            'preferred_domain_id' => ['nullable', 'integer'],
-        ]);
-
-        $workspace = $workspaces->handle($workspace, $data['name'], $data['preferred_domain_id'] ?? null, $data['icon'] ?? null, $data['color'] ?? null);
+        $workspace = $workspaces->handle($request->user(), $workspace, $data['name'], $data['preferred_domain_id'] ?? null, $data['icon'] ?? null, $data['color'] ?? null);
 
         return response()->json([
             'data' => $workspace->only(['id', 'name', 'slug', 'icon', 'color', 'preferred_domain_id']),
         ]);
     }
 
-    public function destroy(Request $request, Workspace $workspace, WorkspaceAccess $access, DeleteWorkspace $workspaces): JsonResponse
+    public function destroy(Request $request, Workspace $workspace, DeleteWorkspace $workspaces): JsonResponse
     {
-        abort_unless($access->role($request->user(), $workspace) === WorkspaceMember::ROLE_OWNER, 403);
-
         $nextWorkspace = $workspaces->handle($request->user(), $workspace);
 
         return response()->json([
             'message' => 'Workspace deleted.',
             'next_workspace_id' => $nextWorkspace->id,
         ]);
-    }
-
-    private function rules(): array
-    {
-        return [
-            'name' => ['required', 'string', 'max:120'],
-            'icon' => ['nullable', 'string', Rule::in(Workspace::ICONS)],
-            'color' => ['nullable', 'string', Rule::in(Workspace::COLORS)],
-        ];
     }
 }

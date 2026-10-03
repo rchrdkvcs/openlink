@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\ShortLinkController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Middleware\EnsureApiEmailIsVerified;
+use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -36,7 +37,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/instance-settings', [InstanceSettingsController::class, 'show'])->name('instance-settings.show');
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
 
-        Route::middleware(EnsureApiEmailIsVerified::class)->group(function () {
+        Route::middleware([EnsureApiEmailIsVerified::class, ScopeBindingsToCurrentWorkspace::class])->group(function () {
             Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
             Route::post('/workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
             Route::get('/workspaces/current', [WorkspaceController::class, 'current'])->name('workspaces.current');
@@ -79,7 +80,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/invite-links', [InviteLinkController::class, 'index'])->name('invite-links.index');
             Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
             Route::delete('/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');
-            Route::post('/invite-links/{inviteLink}/join', [InviteLinkController::class, 'join'])->name('invite-links.join');
+            Route::post('/invite-links/{inviteLink}/join', [InviteLinkController::class, 'join'])
+                ->withoutMiddleware(ScopeBindingsToCurrentWorkspace::class)
+                ->name('invite-links.join');
 
             Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         });

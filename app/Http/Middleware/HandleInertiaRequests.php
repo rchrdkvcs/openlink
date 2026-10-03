@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Workspaces\WorkspaceShell;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -26,6 +27,7 @@ class HandleInertiaRequests extends Middleware
                     'profile_avatar_url' => $user->profileAvatarUrl(),
                 ] : null,
             ],
+            ...app(WorkspaceShell::class, ['request' => $request])->props(),
         ];
     }
 }

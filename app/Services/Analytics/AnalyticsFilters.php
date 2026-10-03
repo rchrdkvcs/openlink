@@ -2,7 +2,7 @@
 
 namespace App\Services\Analytics;
 
-use App\Actions\Analytics\RecordAnalytics;
+use App\Enums\AnalyticsMetric;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
@@ -52,7 +52,7 @@ class AnalyticsFilters
             tagId: self::id($request, 'tag'),
             routingRuleId: self::id($request, 'rule'),
             routingVariantId: self::id($request, 'variant'),
-            metric: in_array($metric, [RecordAnalytics::METRIC_VISIT, RecordAnalytics::METRIC_SCAN], true) ? $metric : null,
+            metric: is_string($metric) ? AnalyticsMetric::tryFrom($metric)?->value : null,
         );
     }
 

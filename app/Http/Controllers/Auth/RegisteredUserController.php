@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Controllers\Controller;
 use App\Models\InviteLink;
 use App\Models\User;
@@ -43,7 +44,7 @@ class RegisteredUserController extends Controller
         ]);
     }
 
-    public function store(Request $request, JoinWorkspaceViaInviteLink $joiner, AccountRegistration $registration): RedirectResponse
+    public function store(Request $request, JoinWorkspaceViaInviteLink $joiner, AccountRegistration $registration, CurrentWorkspace $current): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -59,7 +60,7 @@ class RegisteredUserController extends Controller
         abort_if($inviteLink && ! $inviteLink->isUsable(), 410);
         abort_unless($registration->allowsNewUser($inviteLink), 403);
 
-        $user = DB::transaction(function () use ($request, $inviteLink, $joiner, $registration) {
+        $user = DB::transaction(function () use ($request, $inviteLink, $joiner, $registration, $current) {
             $user = $registration->createUser([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -68,7 +69,7 @@ class RegisteredUserController extends Controller
 
             if ($inviteLink) {
                 $member = $joiner->handle($user, $inviteLink);
-                $request->session()->put('workspace_id', $member->workspace_id);
+                $current->select($member->workspace);
             }
 
             return $user;

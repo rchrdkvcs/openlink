@@ -2,21 +2,20 @@
 
 namespace App\Actions\Members;
 
-use App\Actions\Workspaces\WorkspaceAccess;
+use App\Enums\WorkspaceRole;
+use App\Models\User;
 use App\Models\WorkspaceMember;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Auth\Access\Gate;
 
 class UpdateMemberRole
 {
-    public function __construct(private readonly WorkspaceAccess $access) {}
+    public function __construct(private readonly Gate $gate) {}
 
-    public function handle(Request $request, WorkspaceMember $member, string $role): WorkspaceMember
+    public function handle(User $actor, WorkspaceMember $member, WorkspaceRole $role): WorkspaceMember
     {
-        $workspace = $this->access->requireManagedWorkspace($request);
-        abort_unless($member->workspace_id === $workspace->id, 404);
-        abort_if($member->role === WorkspaceMember::ROLE_OWNER, 403);
+        $this->gate->forUser($actor)->authorize('update', $member);
 
-        $member->update(['role' => $role]);
+        $member->update(['role' => $role->ensureAssignable()->value]);
 
         return $member;
     }

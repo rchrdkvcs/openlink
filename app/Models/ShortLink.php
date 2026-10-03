@@ -73,6 +73,11 @@ class ShortLink extends Model
         return filled($this->password_hash);
     }
 
+    public function shortUrl(): string
+    {
+        return 'https://'.$this->domain->hostname.'/'.$this->slug;
+    }
+
     protected static function booted(): void
     {
         $forget = function (ShortLink $shortLink): void {

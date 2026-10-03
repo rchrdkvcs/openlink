@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Services\UpdateStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class InstanceUpdateController extends Controller
 {
     public function store(Request $request, UpdateStatus $updates): RedirectResponse
     {
-        abort_unless($request->user()?->is_instance_admin, 403);
+        Gate::authorize('administer-instance');
 
         $status = $updates->get();
         abort_unless($status['canUpdate'], 403);

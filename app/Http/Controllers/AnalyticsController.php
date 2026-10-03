@@ -3,11 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\BuildAnalyticsReport;
-use App\Actions\Pages\WorkspaceShellPayload;
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Actions\Workspaces\WorkspacePayloads;
-use App\Actions\Workspaces\WorkspaceView;
-use App\Actions\Workspaces\WorkspaceViewFactory;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
 use Illuminate\Http\Request;
@@ -17,32 +13,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, WorkspaceViewFactory $views, BuildAnalyticsReport $reporter, WorkspaceShellPayload $shell): Response
+    public function index(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter): Response
     {
-        $workspace = $access->requireCurrent($request);
-
-        $user = $request->user();
+        $workspace = $current->require();
         $filters = AnalyticsFilters::fromRequest($request);
-        $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $user);
 
         return Inertia::render('Analytics/Index', [
-            ...$shell->handle($workspace, $user),
-            'report' => $reporter->report($workspace, $filters, $accessibleLinkIds),
+            'report' => $reporter->report($workspace, $filters),
             'filters' => $filters->toQuery() + ['range' => $filters->range],
-            'filterOptions' => $this->filterOptions($workspace, $accessibleLinkIds, $data, $views->make($workspace, $user)),
+            'filterOptions' => $this->filterOptions($workspace),
         ]);
     }
 
-    public function export(Request $request, WorkspaceAccess $access, BuildAnalyticsReport $reporter): StreamedResponse
+    public function export(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter): StreamedResponse
     {
-        $workspace = $access->requireCurrent($request);
-
+        $workspace = $current->require();
         $filters = AnalyticsFilters::fromRequest($request);
-        $accessibleLinkIds = $reporter->accessibleLinkIds($workspace, $request->user());
-
         $filename = sprintf('openlink-analytics-%s-%s.csv', $workspace->slug, now()->format('Y-m-d'));
 
-        return response()->streamDownload(function () use ($reporter, $workspace, $filters, $accessibleLinkIds): void {
+        return response()->streamDownload(function () use ($reporter, $workspace, $filters): void {
             $out = fopen('php://output', 'w');
 
             fputcsv($out, [
@@ -53,7 +42,7 @@ class AnalyticsController extends Controller
                 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
             ]);
 
-            foreach ($reporter->exportRows($workspace, $filters, $accessibleLinkIds) as $row) {
+            foreach ($reporter->exportRows($workspace, $filters) as $row) {
                 fputcsv($out, $row);
             }
 
@@ -61,38 +50,31 @@ class AnalyticsController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    private function filterOptions(Workspace $workspace, ?array $accessibleLinkIds, WorkspacePayloads $data, WorkspaceView $view): array
+    private function filterOptions(Workspace $workspace): array
     {
         $links = $workspace->shortLinks()
             ->with('domain:id,hostname')
-            ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('id', $accessibleLinkIds))
             ->latest('id')
             ->get(['id', 'slug', 'domain_id', 'destination_url'])
             ->map(fn ($link) => [
                 'id' => $link->id,
                 'slug' => $link->slug,
                 'hostname' => $link->domain?->hostname,
-                'short_url' => $link->domain ? 'https://'.$link->domain->hostname.'/'.$link->slug : null,
+                'short_url' => $link->domain ? $link->shortUrl() : null,
                 'destination_url' => $link->destination_url,
             ]);
 
-        $qrCodes = $workspace->qrCodes()
-            ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('short_link_id', $accessibleLinkIds))
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
         $rules = $workspace->shortLinks()
             ->with('routingRules.variants')
-            ->when($accessibleLinkIds !== null, fn ($query) => $query->whereIn('id', $accessibleLinkIds))
             ->get()
             ->flatMap(fn ($link) => $link->routingRules)
             ->values();
 
         return [
             'links' => $links,
-            'qrCodes' => $qrCodes,
+            'qrCodes' => $workspace->qrCodes()->orderBy('name')->get(['id', 'name']),
             'domains' => $workspace->domains()->orderBy('hostname')->get(['id', 'hostname']),
-            'folders' => $data->folders($view)->map->only(['id', 'name'])->values(),
+            'folders' => $workspace->folders()->orderBy('name')->get()->map->only(['id', 'name'])->values(),
             'tags' => $workspace->tags()->orderBy('name')->get(['id', 'name']),
             'routingRules' => $rules->map(fn ($rule) => ['id' => $rule->id, 'name' => $rule->name])->values(),
             'routingVariants' => $rules

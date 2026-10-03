@@ -3,6 +3,7 @@
 namespace App\Services\OAuth;
 
 use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Models\InviteLink;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -16,6 +17,7 @@ class OAuthSignIn
     public function __construct(
         private readonly JoinWorkspaceViaInviteLink $joiner,
         private readonly AccountRegistration $registration,
+        private readonly CurrentWorkspace $currentWorkspace,
     ) {}
 
     public function userFor(OAuthProfile $profile, array $context = []): User
@@ -98,10 +100,7 @@ class OAuthSignIn
 
             $this->createSocialAccount($user, $profile);
 
-            if ($inviteLink) {
-                $member = $this->joiner->handle($user, $inviteLink);
-                session()->put('workspace_id', $member->workspace_id);
-            }
+            $this->joinViaInviteIfPresent($user, $inviteLink);
 
             return [$user, true];
         });
@@ -131,7 +130,7 @@ class OAuthSignIn
         }
 
         $member = $this->joiner->handle($user, $inviteLink);
-        session()->put('workspace_id', $member->workspace_id);
+        $this->currentWorkspace->select($member->workspace);
     }
 
     private function createSocialAccount(User $user, OAuthProfile $profile): SocialAccount

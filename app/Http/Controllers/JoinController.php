@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\InviteLinks\JoinWorkspaceViaInviteLink;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Models\InviteLink;
-use App\Models\WorkspaceMember;
 use App\Services\InstanceSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,12 +16,6 @@ class JoinController extends Controller
     public function show(Request $request, InviteLink $inviteLink, InstanceSettings $settings): Response
     {
         $inviteLink->load('workspace:id,name');
-        $user = $request->user();
-
-        $isMember = $user && WorkspaceMember::query()
-            ->where('workspace_id', $inviteLink->workspace_id)
-            ->where('user_id', $user->id)
-            ->exists();
 
         return Inertia::render('Join', [
             'invite' => [
@@ -30,16 +24,16 @@ class JoinController extends Controller
                 'role' => $inviteLink->role,
                 'usable' => $inviteLink->isUsable(),
             ],
-            'isMember' => $isMember,
+            'isMember' => $request->user()?->roleIn($inviteLink->workspace) !== null,
             'canRegister' => $settings->get('registration_mode') !== 'closed',
         ]);
     }
 
-    public function store(Request $request, InviteLink $inviteLink, JoinWorkspaceViaInviteLink $joiner): RedirectResponse
+    public function store(Request $request, InviteLink $inviteLink, JoinWorkspaceViaInviteLink $joiner, CurrentWorkspace $current): RedirectResponse
     {
         $member = $joiner->handle($request->user(), $inviteLink);
 
-        $request->session()->put('workspace_id', $member->workspace_id);
+        $current->select($member->workspace);
 
         return redirect()->route('dashboard');
     }

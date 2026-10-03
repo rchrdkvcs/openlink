@@ -31,7 +31,7 @@ function disabled(field: PayloadField) {
     <template v-for="field in fields()" :key="field.key">
       <label
         v-if="field.control === 'checkbox'"
-        class="flex items-center justify-between gap-3 rounded-md border bg-elevated/40 px-3 py-2.5"
+        class="flex h-8 cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background/30 px-3"
       >
         <span class="text-[13px] font-medium text-foreground">{{ field.label }}</span>
         <Checkbox v-model="payload[field.key]" />

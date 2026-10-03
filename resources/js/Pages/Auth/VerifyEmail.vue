@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { MailCheck } from '@lucide/vue';
 import { computed } from 'vue';
 
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Button from '@/Components/ui/Button.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 const props = defineProps<{
@@ -22,35 +23,38 @@ const verificationLinkSent = computed(() => props.status === 'verification-link-
   <GuestLayout>
     <Head title="Verify your email" />
 
-    <div class="mb-6">
-      <h1 class="text-lg font-semibold text-foreground">Verify your email</h1>
-      <p class="mt-1 text-sm text-muted">
-        Thanks for signing up! Please verify your email address by clicking the link we just sent you. Didn't receive
-        it? We will gladly send another.
+    <div class="mb-6 text-center">
+      <span class="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl border bg-elevated text-muted">
+        <MailCheck class="h-5 w-5" />
+      </span>
+      <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">Check your inbox</h1>
+      <p class="mt-1.5 text-sm leading-relaxed text-muted">
+        We sent you a verification link. Open it to activate your account.
       </p>
     </div>
 
-    <div
+    <p
       v-if="verificationLinkSent"
-      class="mb-4 rounded-md border border-success/25 bg-success/10 px-3 py-2 text-sm text-success"
+      role="status"
+      class="mb-5 rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-[13px] text-success"
     >
-      A new verification link has been sent to the email address you provided during registration.
-    </div>
+      A new verification link is on its way.
+    </p>
 
-    <form class="space-y-4" @submit.prevent="submit">
+    <form class="grid gap-3" @submit.prevent="submit">
       <p v-if="form.errors.email" class="text-xs text-danger">{{ form.errors.email }}</p>
-      <PrimaryButton class="w-full" :disabled="form.processing">Resend verification email</PrimaryButton>
+      <Button variant="secondary" class="w-full" :loading="form.processing">Resend email</Button>
     </form>
 
     <template #footer>
-      <p class="mt-6 text-center text-sm text-muted">
+      <p class="mt-6 text-center text-[13px] text-muted">
         <Link
           :href="route('logout')"
           method="post"
           as="button"
-          class="font-medium text-foreground underline-offset-4 hover:underline"
+          class="font-medium text-foreground hover:underline hover:underline-offset-4"
         >
-          Log out
+          Sign out
         </Link>
       </p>
     </template>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import { Info } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
 
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
 
 import ApiTokensForm from './Partials/ApiTokensForm.vue';
 import ConnectedIdentitiesForm from './Partials/ConnectedIdentitiesForm.vue';
@@ -49,95 +50,72 @@ const props = defineProps<{
   };
 }>();
 
-const tabs = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'connected-identities', label: 'Connected Identities' },
-  { id: 'api-tokens', label: 'API Tokens' },
-  { id: 'security', label: 'Security' },
-  { id: 'danger-zone', label: 'Danger Zone' },
-];
+type Section = 'profile' | 'connected-identities' | 'security' | 'api-tokens' | 'danger-zone';
 
-const urlTab = new URLSearchParams(window.location.search).get('tab');
-const activeTab = ref(tabs.some((tab) => tab.id === urlTab) ? String(urlTab) : 'profile');
-const activeLabel = computed(() => tabs.find((tab) => tab.id === activeTab.value)?.label ?? 'Profile');
+const sections: Record<Section, { title: string; description: string }> = {
+  profile: { title: 'Profile', description: 'How you appear to your teammates.' },
+  'connected-identities': {
+    title: 'Sign-in methods',
+    description: 'Accounts you can use to sign in to Openlink.',
+  },
+  security: { title: 'Security', description: 'Your password and two-factor authentication.' },
+  'api-tokens': { title: 'API tokens', description: 'Credentials for scripts, extensions and other clients.' },
+  'danger-zone': { title: 'Delete account', description: 'Permanently remove your account and its data.' },
+};
 
-function selectTab(tab: string) {
-  activeTab.value = tab;
-  router.get(route('profile.edit'), { tab }, { preserveScroll: true, preserveState: true, replace: true });
-}
+const page = usePage();
+
+const lastTab = ref<Section>('profile');
+
+const tab = computed<Section>(() => {
+  const value = new URL(page.url, window.location.origin).searchParams.get('tab');
+  if (value && value in sections) return value as Section;
+  return value === null ? lastTab.value : 'profile';
+});
+
+watch(tab, (value) => (lastTab.value = value), { immediate: true });
+
+const section = computed(() => sections[tab.value]);
+
+const banner = computed(() => (props.status && props.status !== 'verification-link-sent' ? props.status : null));
 </script>
 
 <template>
-  <Head title="Profile settings" />
+  <Head :title="section.title" />
 
-  <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mb-6">
-        <h1 class="text-xl font-semibold tracking-tight">Profile</h1>
-        <p class="mt-1 text-sm text-muted">
-          Your identity, connected sign-in methods, API tokens, and security settings.
-        </p>
-      </div>
-
-      <div v-if="status" class="mb-4 rounded-lg border bg-surface px-4 py-3 text-sm text-muted">
-        {{ status }}
-      </div>
-
-      <div class="mb-5 overflow-x-auto border-b">
-        <div class="flex min-w-max gap-1">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            class="-mb-px h-10 border-b-2 px-3 text-sm font-medium transition-colors"
-            :class="
-              activeTab === tab.id
-                ? 'border-foreground text-foreground'
-                : 'border-transparent text-muted hover:text-foreground'
-            "
-            @click="selectTab(tab.id)"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-      </div>
-
-      <div class="card-sheen rounded-lg border bg-surface p-5 sm:p-6">
-        <div class="mb-5 sm:hidden">
-          <p class="text-sm font-medium text-foreground">{{ activeLabel }}</p>
-        </div>
-
-        <div v-show="activeTab === 'profile'" class="max-w-3xl space-y-8">
-          <ProfileAvatarForm :identities="connectedIdentities" :profile-avatar="profileAvatar" />
-          <div class="border-t" />
-          <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status" />
-        </div>
-
-        <ConnectedIdentitiesForm
-          v-show="activeTab === 'connected-identities'"
-          class="max-w-3xl"
-          :identities="connectedIdentities"
-          :providers="oauthProviders"
-        />
-
-        <ApiTokensForm
-          v-show="activeTab === 'api-tokens'"
-          class="max-w-3xl"
-          :tokens="apiTokens"
-          :new-token="newApiToken"
-          :can-create="canCreateApiTokens"
-        />
-
-        <div v-show="activeTab === 'security'" class="max-w-xl space-y-8">
-          <UpdatePasswordForm />
-          <div class="border-t" />
-          <TwoFactorForm :two-factor="twoFactor" />
-        </div>
-
-        <div v-show="activeTab === 'danger-zone'" class="max-w-xl">
-          <DeleteUserForm />
-        </div>
-      </div>
+  <SettingsLayout :title="section.title" :description="section.description">
+    <div
+      v-if="banner"
+      role="status"
+      class="flex items-start gap-2.5 rounded-xl border bg-surface px-4 py-3 text-[13px] text-muted"
+    >
+      <Info class="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+      <p>{{ banner }}</p>
     </div>
-  </AuthenticatedLayout>
+
+    <template v-if="tab === 'profile'">
+      <ProfileAvatarForm :identities="connectedIdentities" :profile-avatar="profileAvatar" />
+      <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status" />
+    </template>
+
+    <ConnectedIdentitiesForm
+      v-else-if="tab === 'connected-identities'"
+      :identities="connectedIdentities"
+      :providers="oauthProviders"
+    />
+
+    <template v-else-if="tab === 'security'">
+      <UpdatePasswordForm />
+      <TwoFactorForm :two-factor="twoFactor" />
+    </template>
+
+    <ApiTokensForm
+      v-else-if="tab === 'api-tokens'"
+      :tokens="apiTokens"
+      :new-token="newApiToken"
+      :can-create="canCreateApiTokens"
+    />
+
+    <DeleteUserForm v-else />
+  </SettingsLayout>
 </template>

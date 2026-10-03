@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { BarChart3, CheckCircle2, CircleAlert, Download, Globe2, Link2, Lock, Mail, UserPlus } from '@lucide/vue';
+import { CircleAlert, Lock, Mail, UserPlus } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
-import Checkbox from '@/Components/ui/Checkbox.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
-import SectionCard from '@/Components/ui/SectionCard.vue';
+import SaveBar from '@/Components/ui/SaveBar.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
+import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
+import SettingsRow from '@/Components/ui/SettingsRow.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
+import Switch from '@/Components/ui/Switch.vue';
 import Textarea from '@/Components/ui/Textarea.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { toast } from '@/lib/toast';
+
+type RegistrationMode = 'closed' | 'invite_only' | 'open';
 
 const props = defineProps<{
   settings: Record<string, any>;
@@ -53,11 +58,30 @@ function requestUpdate() {
   );
 }
 
+const updateInProgress = computed(
+  () => props.updateStatus?.state === 'pending' || props.updateStatus?.state === 'running',
+);
+
+const updateFailed = computed(() => props.updateStatus?.state === 'failed');
+
+const updateMessage = computed(() => {
+  const status = props.updateStatus;
+  if (status?.state === 'pending') return 'Update requested…';
+  if (status?.state === 'running') return 'Updating containers…';
+  if (status?.state === 'failed') return 'Update failed. Check the updater logs and retry.';
+  if (status?.available && !status.canUpdate)
+    return 'A new release is available. Update through your deployment platform.';
+  if (status?.available) return 'A new release is available.';
+  if (!status || status.current === 'dev') return 'Development builds have no release version.';
+  if (status.latest) return 'Up to date.';
+  return 'Release information is temporarily unavailable.';
+});
+
 const isInstanceAdmin = computed(() => Object.keys(props.settings).length > 0);
 
 const settingsForm = useForm({
-  registration_mode: props.settings.registration_mode ?? 'invite_only',
-  require_email_verification: props.settings.require_email_verification ?? false,
+  registration_mode: (props.settings.registration_mode ?? 'invite_only') as RegistrationMode,
+  require_email_verification: Boolean(props.settings.require_email_verification ?? false),
   default_domain: props.settings.default_domain ?? 'localhost',
   dns_target: props.settings.dns_target ?? '',
   slug_length: String(props.settings.slug_length ?? 6),
@@ -68,7 +92,7 @@ const settingsForm = useForm({
   public_unavailable_message: props.settings.public_unavailable_message ?? 'The link cannot be opened right now.',
 });
 
-const registrationModes = [
+const registrationModes: { value: RegistrationMode; label: string; description: string; icon: unknown }[] = [
   {
     value: 'closed',
     label: 'Closed',
@@ -89,6 +113,10 @@ const registrationModes = [
   },
 ];
 
+const registrationDescription = computed(
+  () => registrationModes.find((mode) => mode.value === settingsForm.registration_mode)?.description,
+);
+
 const retentionHint = computed(() => {
   const days = Number(settingsForm.analytics_retention_days);
   if (!Number.isFinite(days) || days < 30) return 'Visit events older than this are pruned. Minimum 30 days.';
@@ -100,13 +128,13 @@ const retentionHint = computed(() => {
   return `Visit events are kept for about ${Math.round(days / 30)} months, then pruned.`;
 });
 
-const hasErrors = computed(() => Object.keys(settingsForm.errors).length > 0);
-const showSaveBar = computed(() => settingsForm.isDirty || settingsForm.processing || settingsForm.recentlySuccessful);
-
 function updateSettings() {
   settingsForm.patch(route('instance-settings.update'), {
     preserveScroll: true,
-    onSuccess: () => settingsForm.defaults(),
+    onSuccess: () => {
+      settingsForm.defaults();
+      toast({ title: 'Instance settings saved', tone: 'success' });
+    },
   });
 }
 
@@ -117,295 +145,207 @@ function discardChanges() {
 </script>
 
 <template>
-  <Head title="Settings" />
+  <Head title="Instance settings" />
 
-  <AuthenticatedLayout>
-    <div class="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div class="mx-auto w-full max-w-4xl">
-        <div class="mb-6">
-          <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
-          <p class="mt-1 text-sm text-muted">Instance-level behaviour for this Openlink installation.</p>
-        </div>
+  <SettingsLayout title="Instance settings" description="Behaviour for everyone on this Openlink installation.">
+    <SettingsGroup v-if="!isInstanceAdmin">
+      <EmptyState
+        title="Reserved for instance administrators"
+        description="Only an instance administrator can view and change these settings. Workspace options live in workspace settings."
+      >
+        <template #icon><Lock class="h-5 w-5" /></template>
+      </EmptyState>
+    </SettingsGroup>
 
-        <SectionCard v-if="!isInstanceAdmin">
-          <EmptyState
-            title="Reserved for instance administrators"
-            description="Only an instance administrator can view and change these settings. Workspace options — name, appearance, and preferred domain — live in the workspace switcher."
-          >
-            <template #icon><Lock class="h-5 w-5" /></template>
-          </EmptyState>
-        </SectionCard>
-
-        <SectionCard
-          v-else
-          title="Application updates"
-          description="Version installed on this Openlink instance."
-          class="mb-4"
+    <template v-else>
+      <SettingsGroup title="Updates">
+        <SettingsRow
+          label="Installed version"
+          :description="updateFailed ? undefined : updateMessage"
+          :error="updateFailed ? updateMessage : undefined"
         >
-          <template #icon><Download class="h-4 w-4 text-faint" /></template>
-          <div class="flex flex-wrap items-center justify-between gap-4 p-5">
-            <div class="text-sm">
-              <p>
-                Installed: <span class="font-medium">{{ updateStatus?.current ?? 'dev' }}</span>
-              </p>
-              <p v-if="updateStatus?.latest" class="mt-1 text-muted">
-                Latest stable release:
-                <a
-                  :href="updateStatus.latest.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent underline"
-                >
-                  {{ updateStatus.latest.version }}
-                </a>
-              </p>
-              <p v-else class="mt-1 text-muted">Release information is temporarily unavailable.</p>
-              <p v-if="updateStatus?.state === 'pending'" class="mt-2 text-muted">Update requested…</p>
-              <p v-else-if="updateStatus?.state === 'running'" class="mt-2 text-muted">Updating containers…</p>
-              <p v-else-if="updateStatus?.state === 'failed'" class="mt-2 text-danger">
-                Update failed. Check the updater logs and retry.
-              </p>
-              <p v-else-if="updateStatus?.available && !updateStatus.canUpdate" class="mt-2 text-muted">
-                A new release is available. Update this installation through your deployment platform.
-              </p>
-              <p v-else-if="updateStatus?.current === 'dev'" class="mt-2 text-muted">
-                This development build has no release version.
-              </p>
-              <p v-else-if="!updateStatus?.available && updateStatus?.latest" class="mt-2 text-muted">Up to date.</p>
-            </div>
+          <div class="flex items-center gap-3 sm:justify-end">
+            <span class="font-mono text-[13px] text-foreground">{{ updateStatus?.current ?? 'dev' }}</span>
             <Button
               v-if="updateStatus?.available && updateStatus.canUpdate"
               type="button"
-              :loading="requestingUpdate"
-              :disabled="updateStatus.state === 'pending' || updateStatus.state === 'running'"
+              size="sm"
+              :loading="requestingUpdate || updateInProgress"
               @click="requestUpdate"
             >
               Update now
             </Button>
           </div>
-        </SectionCard>
-
-        <form v-if="isInstanceAdmin" class="space-y-4" @submit.prevent="updateSettings">
-          <SectionCard title="Access" description="Who can create an account on this instance.">
-            <template #icon><UserPlus class="h-4 w-4 text-faint" /></template>
-
-            <div class="p-5">
-              <fieldset class="grid gap-2 sm:grid-cols-3">
-                <label
-                  v-for="mode in registrationModes"
-                  :key="mode.value"
-                  class="flex cursor-pointer flex-col gap-1.5 rounded-md border p-3 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40"
-                  :class="
-                    settingsForm.registration_mode === mode.value
-                      ? 'border-accent/60 bg-accent/5'
-                      : 'border-border hover:border-border-strong hover:bg-elevated/40'
-                  "
-                >
-                  <input
-                    v-model="settingsForm.registration_mode"
-                    type="radio"
-                    name="registration_mode"
-                    :value="mode.value"
-                    class="sr-only"
-                  />
-                  <span class="flex items-center gap-2">
-                    <component
-                      :is="mode.icon"
-                      class="h-4 w-4 shrink-0"
-                      :class="settingsForm.registration_mode === mode.value ? 'text-accent' : 'text-faint'"
-                    />
-                    <span class="text-[13px] font-medium text-foreground">{{ mode.label }}</span>
-                  </span>
-                  <span class="text-xs leading-relaxed text-muted">{{ mode.description }}</span>
-                </label>
-              </fieldset>
-              <p v-if="settingsForm.errors.registration_mode" class="mt-2 text-xs text-danger">
-                {{ settingsForm.errors.registration_mode }}
-              </p>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Email verification"
-            description="Control whether people must confirm their email address before using Openlink."
-          >
-            <template #icon><Mail class="h-4 w-4 text-faint" /></template>
-            <label class="flex cursor-pointer items-start gap-3 p-5">
-              <Checkbox v-model="settingsForm.require_email_verification" class="mt-0.5" />
-              <span>
-                <span class="block text-sm font-medium text-foreground">Require email verification</span>
-                <span class="mt-1 block text-xs text-muted"
-                  >When enabled, unverified users need a working mail server to access the dashboard and API. Disabled
-                  by default.</span
-                >
-              </span>
-            </label>
-            <p v-if="settingsForm.errors.require_email_verification" class="px-5 pb-4 text-xs text-danger">
-              {{ settingsForm.errors.require_email_verification }}
-            </p>
-          </SectionCard>
-
-          <SectionCard title="Domains &amp; DNS" description="Hostnames used to publish and serve short URLs.">
-            <template #icon><Globe2 class="h-4 w-4 text-faint" /></template>
-
-            <div class="grid gap-5 p-5 sm:grid-cols-2">
-              <Field
-                label="Default domain"
-                hint="Available to every workspace for short URLs, without DNS setup."
-                :error="settingsForm.errors.default_domain"
-              >
-                <Input v-model="settingsForm.default_domain" placeholder="localhost" />
-              </Field>
-              <Field
-                label="DNS target"
-                hint="Where workspace domains should point. Leave empty to use the default domain."
-                :error="settingsForm.errors.dns_target"
-              >
-                <Input v-model="settingsForm.dns_target" placeholder="203.0.113.10 or app.example.com" />
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Short links" description="Slug generation and the reserved namespace.">
-            <template #icon><Link2 class="h-4 w-4 text-faint" /></template>
-
-            <div class="grid gap-5 p-5 sm:grid-cols-2">
-              <Field
-                label="Generated slug length"
-                hint="Between 4 and 32 characters."
-                class="sm:max-w-52"
-                :error="settingsForm.errors.slug_length"
-              >
-                <StepperInput v-model="settingsForm.slug_length" :min="4" />
-              </Field>
-              <div class="hidden sm:block" />
-              <Field
-                label="Reserved slugs"
-                hint="One per line. These can never be claimed by a short link."
-                :error="settingsForm.errors.reserved_slugs"
-              >
-                <Textarea
-                  v-model="settingsForm.reserved_slugs"
-                  class="font-mono text-[13px]"
-                  rows="6"
-                  placeholder="admin&#10;login&#10;settings"
-                />
-              </Field>
-              <Field
-                label="Reserved prefixes"
-                hint="One per line. Slugs starting with these are rejected."
-                :error="settingsForm.errors.reserved_prefixes"
-              >
-                <Textarea
-                  v-model="settingsForm.reserved_prefixes"
-                  class="font-mono text-[13px]"
-                  rows="6"
-                  placeholder="api/&#10;qr/"
-                />
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Analytics" description="How long visit data is kept.">
-            <template #icon><BarChart3 class="h-4 w-4 text-faint" /></template>
-
-            <div class="p-5">
-              <Field
-                label="Retention (days)"
-                :hint="retentionHint"
-                class="sm:max-w-52"
-                :error="settingsForm.errors.analytics_retention_days"
-              >
-                <StepperInput v-model="settingsForm.analytics_retention_days" :step="30" :min="30" />
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Unavailable page"
-            description="Shown when a short link is expired, disabled, or scheduled."
-          >
-            <template #icon><CircleAlert class="h-4 w-4 text-faint" /></template>
-
-            <div class="grid gap-5 p-5 lg:grid-cols-2">
-              <div class="grid content-start gap-5">
-                <Field label="Title" :error="settingsForm.errors.public_unavailable_title">
-                  <Input v-model="settingsForm.public_unavailable_title" placeholder="This link is unavailable" />
-                </Field>
-                <Field label="Message" :error="settingsForm.errors.public_unavailable_message">
-                  <Textarea
-                    v-model="settingsForm.public_unavailable_message"
-                    rows="3"
-                    placeholder="The link cannot be opened right now."
-                  />
-                </Field>
-              </div>
-
-              <div class="relative overflow-hidden rounded-lg border bg-background">
-                <div
-                  class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,hsl(var(--warning)/0.08),transparent_65%)]"
-                />
-                <p class="absolute left-3 top-2.5 text-[11px] font-medium uppercase tracking-wide text-faint">
-                  Preview
-                </p>
-                <div class="grid min-h-full place-items-center px-6 py-10">
-                  <div
-                    class="card-sheen relative w-full max-w-xs rounded-xl border bg-surface p-5 text-center shadow-2xl shadow-black/30"
-                  >
-                    <div
-                      class="mx-auto mb-3 grid h-9 w-9 place-items-center rounded-lg border bg-elevated text-warning"
-                    >
-                      <CircleAlert class="h-4 w-4" />
-                    </div>
-                    <p class="break-words text-sm font-semibold text-foreground">
-                      {{ settingsForm.public_unavailable_title || 'This link is unavailable' }}
-                    </p>
-                    <p class="mt-1.5 break-words text-[13px] text-muted">
-                      {{ settingsForm.public_unavailable_message || 'The link cannot be opened right now.' }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-
-          <div class="pointer-events-none sticky bottom-4 z-20">
-            <Transition
-              enter-active-class="transition duration-200 ease-emphasized-out"
-              enter-from-class="translate-y-2 opacity-0"
-              enter-to-class="translate-y-0 opacity-100"
-              leave-active-class="transition duration-150 ease-in-out"
-              leave-to-class="translate-y-2 opacity-0"
+        </SettingsRow>
+        <SettingsRow label="Latest stable release">
+          <div class="flex sm:justify-end">
+            <a
+              v-if="updateStatus?.latest"
+              :href="updateStatus.latest.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-mono text-[13px] text-accent hover:underline"
             >
-              <div
-                v-if="showSaveBar"
-                class="pointer-events-auto mx-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-lg border bg-overlay/95 py-2 pl-4 pr-2 shadow-2xl shadow-black/40 backdrop-blur-md"
-              >
-                <p v-if="hasErrors" class="truncate text-[13px] text-danger">Some fields need attention.</p>
-                <p v-else-if="settingsForm.isDirty || settingsForm.processing" class="truncate text-[13px] text-muted">
-                  You have unsaved changes.
-                </p>
-                <p v-else class="inline-flex items-center gap-1.5 truncate text-[13px] text-success">
-                  <CheckCircle2 class="h-4 w-4 shrink-0" /> Instance settings saved.
-                </p>
+              {{ updateStatus.latest.version }}
+            </a>
+            <span v-else class="text-[13px] text-faint">Unavailable</span>
+          </div>
+        </SettingsRow>
+      </SettingsGroup>
 
-                <div v-if="settingsForm.isDirty || settingsForm.processing" class="flex shrink-0 items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    :disabled="settingsForm.processing"
-                    @click="discardChanges"
-                  >
-                    Discard
-                  </Button>
-                  <Button size="sm" :loading="settingsForm.processing">Save changes</Button>
+      <form class="space-y-8" @submit.prevent="updateSettings">
+        <SettingsGroup title="Access">
+          <SettingsRow
+            label="Registration"
+            :description="registrationDescription"
+            :error="settingsForm.errors.registration_mode"
+            stacked
+          >
+            <SegmentedControl
+              v-model="settingsForm.registration_mode"
+              :options="registrationModes"
+              label="Registration"
+              class="w-full sm:w-auto"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Require email verification"
+            description="Unverified users cannot use the dashboard or API. Needs a working mail server."
+            :error="settingsForm.errors.require_email_verification"
+          >
+            <div class="flex sm:justify-end">
+              <Switch v-model="settingsForm.require_email_verification" aria-label="Require email verification" />
+            </div>
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup title="Domains and DNS">
+          <SettingsRow
+            label="Default domain"
+            description="Available to every workspace without DNS setup."
+            for="default-domain"
+            :error="settingsForm.errors.default_domain"
+          >
+            <Input id="default-domain" v-model="settingsForm.default_domain" placeholder="localhost" />
+          </SettingsRow>
+          <SettingsRow
+            label="DNS target"
+            description="Where workspace domains should point. Empty uses the default domain."
+            for="dns-target"
+            :error="settingsForm.errors.dns_target"
+          >
+            <Input id="dns-target" v-model="settingsForm.dns_target" placeholder="203.0.113.10 or app.example.com" />
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup title="Short links">
+          <SettingsRow
+            label="Generated slug length"
+            description="Between 4 and 32 characters."
+            :error="settingsForm.errors.slug_length"
+          >
+            <div class="sm:ml-auto sm:w-40">
+              <StepperInput v-model="settingsForm.slug_length" :min="4" />
+            </div>
+          </SettingsRow>
+          <SettingsRow
+            label="Reserved slugs"
+            description="One per line. These can never be claimed by a short link."
+            for="reserved-slugs"
+            :error="settingsForm.errors.reserved_slugs"
+            stacked
+          >
+            <Textarea
+              id="reserved-slugs"
+              v-model="settingsForm.reserved_slugs"
+              class="font-mono text-[13px]"
+              rows="5"
+              placeholder="admin&#10;login&#10;settings"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Reserved prefixes"
+            description="One per line. Slugs starting with these are rejected."
+            for="reserved-prefixes"
+            :error="settingsForm.errors.reserved_prefixes"
+            stacked
+          >
+            <Textarea
+              id="reserved-prefixes"
+              v-model="settingsForm.reserved_prefixes"
+              class="font-mono text-[13px]"
+              rows="4"
+              placeholder="api/&#10;qr/"
+            />
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup title="Analytics">
+          <SettingsRow
+            label="Retention in days"
+            :description="retentionHint"
+            :error="settingsForm.errors.analytics_retention_days"
+          >
+            <div class="sm:ml-auto sm:w-40">
+              <StepperInput v-model="settingsForm.analytics_retention_days" :step="30" :min="30" />
+            </div>
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup
+          title="Unavailable page"
+          description="Shown when a short link is expired, disabled or not yet scheduled."
+        >
+          <SettingsRow label="Title" for="unavailable-title" :error="settingsForm.errors.public_unavailable_title">
+            <Input
+              id="unavailable-title"
+              v-model="settingsForm.public_unavailable_title"
+              placeholder="This link is unavailable"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Message"
+            for="unavailable-message"
+            :error="settingsForm.errors.public_unavailable_message"
+            stacked
+          >
+            <Textarea
+              id="unavailable-message"
+              v-model="settingsForm.public_unavailable_message"
+              rows="3"
+              placeholder="The link cannot be opened right now."
+            />
+          </SettingsRow>
+          <SettingsRow label="Preview" stacked>
+            <div class="relative overflow-hidden rounded-lg border bg-background">
+              <div
+                class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,hsl(var(--warning)/0.08),transparent_65%)]"
+              />
+              <div class="grid place-items-center px-6 py-10">
+                <div class="relative w-full max-w-xs rounded-xl border bg-surface p-5 text-center">
+                  <div class="mx-auto mb-3 grid h-9 w-9 place-items-center rounded-lg border bg-elevated text-warning">
+                    <CircleAlert class="h-4 w-4" />
+                  </div>
+                  <p class="break-words text-sm font-semibold text-foreground">
+                    {{ settingsForm.public_unavailable_title || 'This link is unavailable' }}
+                  </p>
+                  <p class="mt-1.5 break-words text-[13px] text-muted">
+                    {{ settingsForm.public_unavailable_message || 'The link cannot be opened right now.' }}
+                  </p>
                 </div>
               </div>
-            </Transition>
-          </div>
-        </form>
-      </div>
-    </div>
-  </AuthenticatedLayout>
+            </div>
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SaveBar
+          :dirty="settingsForm.isDirty"
+          :processing="settingsForm.processing"
+          :has-errors="settingsForm.hasErrors"
+          @discard="discardChanges"
+          @save="updateSettings"
+        />
+      </form>
+    </template>
+  </SettingsLayout>
 </template>

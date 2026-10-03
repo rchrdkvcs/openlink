@@ -53,3 +53,34 @@ export function addDays(base: Date, days: number): Date {
   d.setDate(d.getDate() + days);
   return d;
 }
+
+const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+export function relativeTime(value: string | null | undefined): string {
+  if (!value) return '';
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return '';
+
+  const seconds = Math.round((time - Date.now()) / 1000);
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['week', 604800],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ];
+
+  for (const [unit, size] of units) {
+    if (Math.abs(seconds) >= size) return relativeFormatter.format(Math.round(seconds / size), unit);
+  }
+
+  return 'just now';
+}
+
+export function shortDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

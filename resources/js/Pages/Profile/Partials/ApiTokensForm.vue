@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { KeyRound, Trash2 } from '@lucide/vue';
+import { Copy, KeyRound } from '@lucide/vue';
 
 import Button from '@/Components/ui/Button.vue';
-import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
+import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
+import SettingsRow from '@/Components/ui/SettingsRow.vue';
+import { confirmAction } from '@/lib/confirm';
+import { relativeTime } from '@/lib/datetime';
+import { copyToClipboard, toast } from '@/lib/toast';
 
 type ApiToken = {
   id: number;
@@ -28,53 +32,80 @@ function createToken() {
   });
 }
 
-function revoke(token: ApiToken) {
-  router.delete(route('profile.api-tokens.destroy', token.id), { preserveScroll: true });
+async function revoke(token: ApiToken) {
+  const confirmed = await confirmAction({
+    title: `Revoke ${token.name}?`,
+    message: 'Any client using this token loses access immediately. This cannot be undone.',
+    confirmLabel: 'Revoke token',
+    destructive: true,
+  });
+
+  if (!confirmed) return;
+
+  router.delete(route('profile.api-tokens.destroy', token.id), {
+    preserveScroll: true,
+    onSuccess: () => toast({ title: 'Token revoked', tone: 'success' }),
+  });
 }
 
-function formatDate(value: string | null) {
-  if (!value) return 'Never';
+function formatDate(value: string) {
   return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 </script>
 
 <template>
-  <section>
-    <header>
-      <h2 class="text-base font-semibold text-foreground">API Tokens</h2>
-      <p class="mt-1 text-sm text-muted">Create revocable credentials for external clients.</p>
-    </header>
-
-    <div v-if="newToken" class="mt-6 rounded-lg border border-success/25 bg-success/10 p-4">
-      <p class="text-sm font-medium text-success">{{ newToken.name }} token created</p>
-      <code class="mt-3 block break-all rounded-md border bg-background px-3 py-2 font-mono text-sm text-foreground">{{
-        newToken.token
-      }}</code>
+  <div v-if="newToken" role="status" class="rounded-xl border border-success/25 bg-success/10 p-4 sm:p-5">
+    <p class="text-sm font-medium text-foreground">{{ newToken.name }} is ready</p>
+    <p class="mt-0.5 text-[13px] text-muted">Copy it now. For your security, it won't be shown again.</p>
+    <div class="mt-3 flex items-center gap-2">
+      <code
+        class="min-w-0 flex-1 truncate rounded-lg border bg-background px-3 py-2 font-mono text-[13px] text-foreground"
+        >{{ newToken.token }}</code
+      >
+      <Button type="button" @click="copyToClipboard(newToken.token, 'Token copied')">
+        <Copy class="h-4 w-4" /> Copy
+      </Button>
     </div>
+  </div>
 
-    <form class="mt-6 flex max-w-md items-end gap-3" @submit.prevent="createToken">
-      <div class="flex-1">
-        <Field label="Token name" :error="form.errors.name">
-          <Input id="token_name" v-model="form.name" placeholder="Browser extension" :disabled="!canCreate" />
-        </Field>
-        <p v-if="!canCreate" class="mt-2 text-xs text-warning">Verify your email before creating API tokens.</p>
-      </div>
-      <Button :loading="form.processing" :disabled="!canCreate"> <KeyRound class="h-4 w-4" /> Create </Button>
-    </form>
-
-    <div class="mt-6 divide-y divide-border/60 rounded-lg border">
-      <div v-for="token in tokens" :key="token.id" class="flex flex-wrap items-center gap-3 px-4 py-3">
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium text-foreground">{{ token.name }}</p>
-          <p class="text-xs text-faint">
-            Created {{ formatDate(token.created_at) }} · Last used {{ formatDate(token.last_used_at) }}
-          </p>
+  <form @submit.prevent="createToken">
+    <SettingsGroup title="New token">
+      <SettingsRow
+        label="Name"
+        for="token_name"
+        :description="
+          canCreate ? 'Helps you recognise where the token is used.' : 'Verify your email before creating API tokens.'
+        "
+        :error="form.errors.name"
+      >
+        <div class="flex gap-2">
+          <Input
+            id="token_name"
+            v-model="form.name"
+            placeholder="Browser extension"
+            autocomplete="off"
+            :disabled="!canCreate"
+          />
+          <Button :loading="form.processing" :disabled="!canCreate || !form.name.trim()">Create</Button>
         </div>
-        <Button type="button" variant="danger" size="sm" @click="revoke(token)">
-          <Trash2 class="h-3.5 w-3.5" /> Revoke
-        </Button>
+      </SettingsRow>
+    </SettingsGroup>
+  </form>
+
+  <SettingsGroup title="Active tokens">
+    <div v-for="token in tokens" :key="token.id" class="flex items-center gap-3 px-4 py-3 sm:px-5">
+      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border bg-elevated/60 text-muted">
+        <KeyRound class="h-4 w-4" />
+      </span>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium text-foreground">{{ token.name }}</p>
+        <p class="truncate text-xs text-faint">
+          Created {{ formatDate(token.created_at) }} ·
+          {{ token.last_used_at ? `Last used ${relativeTime(token.last_used_at)}` : 'Never used' }}
+        </p>
       </div>
-      <p v-if="tokens.length === 0" class="px-4 py-6 text-sm text-muted">No API tokens yet.</p>
+      <Button type="button" variant="danger" size="sm" @click="revoke(token)"> Revoke </Button>
     </div>
-  </section>
+    <p v-if="tokens.length === 0" class="px-4 py-6 text-center text-[13px] text-muted sm:px-5">No API tokens yet.</p>
+  </SettingsGroup>
 </template>

@@ -37,6 +37,13 @@ class WorkspacePayloads
             });
         }
 
+        $folder = $filters['folder'] ?? null;
+        if ($folder === 'unfiled') {
+            $query->whereNull('folder_id');
+        } elseif ($folder !== null && $folder !== '') {
+            $query->where('folder_id', (int) $folder);
+        }
+
         $tag = $filters['tag'] ?? null;
         if ($tag !== null && $tag !== '') {
             $query->whereHas('tags', fn ($tags) => $tags->where('name', $tag));
@@ -111,6 +118,7 @@ class WorkspacePayloads
             'scans' => (int) $link->scans_count,
             'is_enabled' => $link->is_enabled,
             'archived_at' => $link->archived_at,
+            'created_at' => $link->created_at,
             'activates_at' => $link->activates_at,
             'expires_at' => $link->expires_at,
             'visit_limit' => $link->visit_limit,

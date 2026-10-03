@@ -38,6 +38,7 @@ class LinksPagePayload
                 'search' => $filters['search'] ?? '',
                 'status' => $filters['status'] ?? '',
                 'tag' => $filters['tag'] ?? '',
+                'folder' => (string) ($filters['folder'] ?? ''),
             ],
             'routingSchema' => $this->routing->editorPayload(),
         ];

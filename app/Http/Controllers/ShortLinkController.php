@@ -3,15 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ShortLinks\ShortLinkMutation;
+use App\Actions\Workspaces\WorkspacePayloads;
 use App\Models\ShortLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ShortLinkController extends Controller
 {
-    public function store(Request $request, ShortLinkMutation $shortLinks): RedirectResponse
+    public function store(Request $request, ShortLinkMutation $shortLinks, WorkspacePayloads $payloads): RedirectResponse
     {
-        $shortLinks->create($request);
+        $link = $shortLinks->create($request);
+
+        Inertia::flash('createdLink', $payloads->linkPayload($link));
 
         return back();
     }

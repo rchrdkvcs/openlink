@@ -42,10 +42,14 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
-        Route::get('/domains', [DashboardController::class, 'domains'])->name('domains.index');
-        Route::get('/domains/new', [DomainController::class, 'create'])->name('domains.create');
-        Route::get('/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
-        Route::get('/members', [DashboardController::class, 'members'])->name('members.index');
+        Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
+        Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
+        Route::get('/settings/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
+        Route::get('/settings/members', [DashboardController::class, 'members'])->name('members.index');
+        Route::get('/settings/workspace', [WorkspaceController::class, 'settings'])->name('settings.workspace');
+        Route::redirect('/settings', '/settings/workspace')->name('settings');
+        Route::get('/domains', fn () => redirect()->route('domains.index'));
+        Route::get('/members', fn () => redirect()->route('members.index'));
     });
 
     Route::middleware(['auth', 'verified'])->group(function () {
@@ -56,10 +60,11 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
-        Route::get('/settings', [DashboardController::class, 'settings'])
+        Route::get('/settings/instance', [DashboardController::class, 'settings'])
             ->middleware(EnsureHasWorkspace::class)
             ->name('settings.index');
-        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::get('/settings/account', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::get('/profile', fn () => redirect()->route('profile.edit', request()->query()));
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::patch('/profile/avatar', [ProfileAvatarController::class, 'update'])->name('profile.avatar.update');

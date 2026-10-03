@@ -16,7 +16,7 @@ const providerLabel = (provider: string) => providerLabels[provider] ?? provider
 
 const providerButtonClass = (provider: string) =>
   [
-    'inline-flex h-10 items-center justify-center gap-2 rounded-md px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+    'inline-flex h-8 items-center justify-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
     provider === 'google'
       ? 'border border-border bg-white text-[#1f1f1f] hover:bg-[#f8fafd]'
       : 'border border-[#5865f2] bg-[#5865f2] text-white hover:bg-[#4752c4]',
@@ -27,7 +27,7 @@ const providerButtonClass = (provider: string) =>
   <div v-if="providerEntries(providers).length" class="space-y-4">
     <div class="flex items-center gap-3">
       <div class="h-px flex-1 bg-border" />
-      <span class="text-xs font-medium uppercase text-faint">or</span>
+      <span class="text-xs text-faint">or</span>
       <div class="h-px flex-1 bg-border" />
     </div>
 

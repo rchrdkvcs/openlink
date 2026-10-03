@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useForm, usePage } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
+import { computed } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
-import Button from '@/Components/ui/Button.vue';
+import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
+import { toast } from '@/lib/toast';
 import type { PageProps } from '@/types';
 
 type ConnectedIdentity = {
@@ -21,7 +23,9 @@ const props = defineProps<{
   profileAvatar: { url: string | null; source_id: number | null };
 }>();
 
-const user = usePage<PageProps>().props.auth.user;
+const page = usePage<PageProps>();
+const user = computed(() => page.props.auth.user);
+
 const form = useForm({
   profile_avatar_social_account_id: props.profileAvatar.source_id as number | null,
 });
@@ -31,58 +35,71 @@ const providerLabels: Record<string, string> = {
   discord: 'Discord',
 };
 
-function select(identity: ConnectedIdentity | null) {
-  form.profile_avatar_social_account_id = identity?.id ?? null;
-  form.patch(route('profile.avatar.update'), { preserveScroll: true });
+function providerLabel(provider: string) {
+  return providerLabels[provider] ?? provider;
 }
+
+function select(identity: ConnectedIdentity | null) {
+  const id = identity?.id ?? null;
+  if (id === props.profileAvatar.source_id || form.processing) return;
+
+  form.profile_avatar_social_account_id = id;
+  form.patch(route('profile.avatar.update'), {
+    preserveScroll: true,
+    onSuccess: () => toast({ title: 'Avatar updated', tone: 'success' }),
+  });
+}
+
+const optionClass =
+  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-100 hover:bg-elevated/50 focus-visible:bg-elevated/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent sm:px-5';
 </script>
 
 <template>
-  <section>
-    <header>
-      <h2 class="text-base font-semibold text-foreground">Profile Avatar</h2>
-      <p class="mt-1 text-sm text-muted">Choose the connected identity image shown across Openlink.</p>
-    </header>
-
-    <div class="mt-6 flex items-center gap-4">
+  <SettingsGroup title="Avatar" description="Use your initials or a photo from a connected account.">
+    <div class="flex items-center gap-4 px-4 py-4 sm:px-5">
       <UserAvatar :name="user.name" :src="profileAvatar.url" size="lg" />
       <div class="min-w-0">
         <p class="truncate text-sm font-medium text-foreground">{{ user.name }}</p>
-        <p class="truncate text-xs text-faint">{{ user.email }}</p>
+        <p class="truncate text-[13px] text-muted">{{ user.email }}</p>
       </div>
     </div>
 
-    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+    <div role="radiogroup" aria-label="Avatar source" class="divide-y divide-border">
+      <button
+        type="button"
+        role="radio"
+        :aria-checked="profileAvatar.source_id === null"
+        :class="optionClass"
+        :disabled="form.processing"
+        @click="select(null)"
+      >
+        <UserAvatar :name="user.name" />
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-foreground">Initials</span>
+          <span class="block text-[13px] text-muted">Generated from your name</span>
+        </span>
+        <Check v-if="profileAvatar.source_id === null" class="h-4 w-4 text-accent" />
+      </button>
+
       <button
         v-for="identity in identities"
         :key="identity.id"
         type="button"
-        class="flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-elevated/60 disabled:cursor-not-allowed disabled:opacity-60"
-        :class="identity.is_avatar_source ? 'border-accent bg-accent/10' : 'border-border bg-surface'"
+        role="radio"
+        :aria-checked="profileAvatar.source_id === identity.id"
+        :class="optionClass"
         :disabled="!identity.is_valid || !identity.avatar_url || form.processing"
         @click="select(identity)"
       >
-        <UserAvatar :name="providerLabels[identity.provider] ?? identity.provider" :src="identity.avatar_url" />
+        <UserAvatar :name="providerLabel(identity.provider)" :src="identity.avatar_url" />
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm font-medium text-foreground">{{
-            providerLabels[identity.provider] ?? identity.provider
-          }}</span>
-          <span class="block truncate text-xs text-faint">{{ identity.email }}</span>
+          <span class="block truncate text-sm font-medium text-foreground">{{ providerLabel(identity.provider) }}</span>
+          <span class="block truncate text-[13px] text-muted">{{ identity.email }}</span>
         </span>
-        <Badge v-if="!identity.is_valid" variant="warning">Mismatch</Badge>
-        <Check v-else-if="identity.is_avatar_source" class="h-4 w-4 text-accent" />
+        <Badge v-if="!identity.is_valid" variant="warning">Email mismatch</Badge>
+        <span v-else-if="!identity.avatar_url" class="text-xs text-faint">No photo</span>
+        <Check v-else-if="profileAvatar.source_id === identity.id" class="h-4 w-4 text-accent" />
       </button>
     </div>
-
-    <div class="mt-4">
-      <Button
-        type="button"
-        variant="secondary"
-        :disabled="profileAvatar.source_id === null || form.processing"
-        @click="select(null)"
-      >
-        Use initials
-      </Button>
-    </div>
-  </section>
+  </SettingsGroup>
 </template>

@@ -238,7 +238,10 @@ class AnalyticsTest extends TestCase
                 ->where('report.range.preset', '7d')
                 ->has('report.summary')
                 ->has('report.timeseries')
-                ->has('filterOptions.links', 1));
+                ->has('filterOptions.links', 1)
+                ->where('filterOptions.links.0.short_url', 'https://localhost/page-link')
+                ->where('filterOptions.links.0.destination_url', 'https://example.com/landing')
+                ->has('filterOptions.qrCodes', 0));
     }
 
     public function test_editor_overview_displays_workspace_link_statistics(): void

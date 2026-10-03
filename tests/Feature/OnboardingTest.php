@@ -20,7 +20,7 @@ class OnboardingTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->get('/dashboard')->assertRedirect(route('onboarding.show', absolute: false));
-        $this->actingAs($user)->get('/members')->assertRedirect(route('onboarding.show', absolute: false));
+        $this->actingAs($user)->get(route('members.index'))->assertRedirect(route('onboarding.show', absolute: false));
         $this->actingAs($user)->get(route('onboarding.show'))->assertOk();
     }
 

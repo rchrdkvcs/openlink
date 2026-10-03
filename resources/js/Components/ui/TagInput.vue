@@ -63,14 +63,14 @@ function popLast() {
       :class="
         cn(
           controlVariants(),
-          'flex h-auto min-h-9 flex-wrap items-center gap-1.5 px-2 py-1.5 focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25',
+          'flex h-auto min-h-8 flex-wrap items-center gap-1 px-1.5 py-1 focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/25',
         )
       "
     >
       <span
         v-for="tag in pills"
         :key="tag"
-        class="inline-flex items-center gap-1 rounded bg-elevated px-1.5 py-0.5 text-xs text-muted"
+        class="inline-flex h-5 items-center gap-1 rounded-md bg-border-strong px-1.5 text-xs text-foreground"
       >
         #{{ tag }}
         <button type="button" class="text-faint hover:text-foreground" @click="remove(tag)">
@@ -92,7 +92,7 @@ function popLast() {
         v-for="suggestion in availableSuggestions"
         :key="suggestion.id"
         type="button"
-        class="rounded-full border border-dashed px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-accent/50 hover:text-foreground"
+        class="h-5 rounded-md px-1.5 text-[11px] text-faint transition-colors hover:bg-elevated hover:text-foreground"
         @click="update([...pills, suggestion.name])"
       >
         + {{ suggestion.name }}

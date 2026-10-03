@@ -36,7 +36,7 @@ async function copyContent() {
         <h1 class="mt-1 text-xl font-semibold tracking-tight">{{ name }}</h1>
       </div>
 
-      <section class="card-sheen overflow-hidden rounded-lg border bg-surface">
+      <section class="overflow-hidden rounded-lg border bg-surface">
         <div class="flex items-center justify-between gap-3 border-b px-4 py-3">
           <p class="truncate text-sm font-medium text-foreground">Current payload</p>
           <button

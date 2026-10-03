@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 
-import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
@@ -28,34 +28,29 @@ const submit = () => {
 </script>
 
 <template>
-  <GuestLayout>
+  <GuestLayout title="Choose a new password" description="Use a long, unique password you don’t use anywhere else.">
     <Head title="Reset your password" />
 
-    <div class="mb-6">
-      <h1 class="text-lg font-semibold text-foreground">Choose a new password</h1>
-      <p class="mt-1 text-sm text-muted">Pick a long, unique password for your account.</p>
-    </div>
-
-    <form class="space-y-4" @submit.prevent="submit">
+    <form class="grid gap-4" @submit.prevent="submit">
       <Field label="Email" :error="form.errors.email">
-        <Input id="email" type="email" v-model="form.email" required autofocus autocomplete="username" />
+        <Input id="email" v-model="form.email" type="email" required autofocus autocomplete="username" />
       </Field>
 
-      <Field label="Password" :error="form.errors.password">
-        <Input id="password" type="password" v-model="form.password" required autocomplete="new-password" />
+      <Field label="New password" :error="form.errors.password">
+        <Input id="password" v-model="form.password" type="password" required autocomplete="new-password" />
       </Field>
 
-      <Field label="Confirm Password" :error="form.errors.password_confirmation">
+      <Field label="Confirm password" :error="form.errors.password_confirmation">
         <Input
           id="password_confirmation"
-          type="password"
           v-model="form.password_confirmation"
+          type="password"
           required
           autocomplete="new-password"
         />
       </Field>
 
-      <PrimaryButton class="w-full" :disabled="form.processing">Reset password</PrimaryButton>
+      <Button class="mt-1 w-full" :loading="form.processing">Reset password</Button>
     </form>
   </GuestLayout>
 </template>

@@ -22,12 +22,13 @@
     color-scheme: dark;
 
     --background: 240 6% 4%;
-    --surface: 240 5% 7%;
+    --canvas: 240 5% 5.5%;
+    --surface: 240 5% 7.5%;
     --elevated: 240 5% 11%;
     --overlay: 240 5% 9%;
 
-    --border: 240 5% 14%;
-    --border-strong: 240 5% 22%;
+    --border: 240 5% 11.5%;
+    --border-strong: 240 5% 17%;
 
     --foreground: 220 10% 94%;
     --muted: 220 5% 64%;
@@ -45,9 +46,25 @@
     text-rendering: optimizeLegibility;
   }
 
+  @media (max-width: 1023px) {
+    html {
+      scrollbar-gutter: stable;
+    }
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  .lucide {
+    stroke-width: 1.5;
   }
 
   ::selection {
@@ -104,7 +121,15 @@
     transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  .card-sheen {
-    background-image: linear-gradient(180deg, hsl(var(--foreground) / 0.02), transparent 32px);
+  .material {
+    background-color: hsl(var(--overlay) / 0.82);
+    backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .material {
+      background-color: hsl(var(--overlay));
+      backdrop-filter: none;
+    }
   }
 }

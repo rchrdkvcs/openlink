@@ -12,10 +12,15 @@ concurrency:
   group: production-deployment
   cancel-in-progress: false
 
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
 jobs:
-  publish-image:
+  check-release:
     if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
     steps:
       - name: Check that this is the latest release
         id: release
@@ -28,42 +33,104 @@ jobs:
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+  build-image:
+    needs: check-release
+    if: needs.check-release.outputs.publish == 'true'
+    name: Build ${{ matrix.platform }} image
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            cache-scope: image-linux-amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            cache-scope: image-linux-arm64
+    steps:
       - name: Check out release
-        if: steps.release.outputs.publish == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Docker Buildx
-        if: steps.release.outputs.publish == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Sign in to GHCR
-        if: steps.release.outputs.publish == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish versioned and latest images
-        if: steps.release.outputs.publish == 'true'
+      - name: Build and push image by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository }}:latest
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.cache-scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache-scope }}
           build-args: |
             OPENLINK_VERSION=${{ github.event.release.tag_name }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ github.event.release.tag_name }}
 
+      - name: Export image digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload image digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.cache-scope }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-image:
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download image digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish versioned and latest manifests
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE:$TAG" \
+            --tag "$IMAGE:latest" \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect published image
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: docker buildx imagetools inspect "$IMAGE:$TAG"
+
   deploy:
-    if: github.event.release.prerelease == false
     needs: publish-image
     runs-on: ubuntu-latest
     steps:

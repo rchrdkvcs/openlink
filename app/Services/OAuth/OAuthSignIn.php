@@ -41,7 +41,7 @@ class OAuthSignIn
                 $user = $account->user()->firstOrFail();
 
                 $matchingEmailUser = User::query()
-                    ->where('email', $profile->email)
+                    ->whereRaw('LOWER(TRIM(email)) = ?', [$profile->email])
                     ->whereKeyNot($user->id)
                     ->first();
 
@@ -51,7 +51,7 @@ class OAuthSignIn
                     ]);
                 }
 
-                if (! hash_equals((string) $user->email, (string) $profile->email)) {
+                if (! $user->matchesEmail($profile->email)) {
                     throw ValidationException::withMessages([
                         'oauth' => 'This sign-in method no longer matches this account email.',
                     ]);
@@ -69,7 +69,7 @@ class OAuthSignIn
             }
 
             $user = User::query()
-                ->where('email', $profile->email)
+                ->whereRaw('LOWER(TRIM(email)) = ?', [$profile->email])
                 ->lockForUpdate()
                 ->first();
 

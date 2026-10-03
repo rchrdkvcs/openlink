@@ -11,19 +11,13 @@ class ConnectedIdentityManager
 {
     public function link(User $user, OAuthProfile $profile): SocialAccount
     {
-        if (! $user->hasVerifiedEmail()) {
-            throw ValidationException::withMessages([
-                'oauth' => 'Verify your email before connecting this sign-in method.',
-            ]);
-        }
-
         if (! $profile->email || ! $profile->emailVerified) {
             throw ValidationException::withMessages([
                 'oauth' => 'This provider did not return a verified email address.',
             ]);
         }
 
-        if (! hash_equals((string) $user->email, (string) $profile->email)) {
+        if (! $user->matchesEmail($profile->email)) {
             throw ValidationException::withMessages([
                 'oauth' => 'This provider email must match your Openlink email address.',
             ]);
@@ -67,6 +61,10 @@ class ConnectedIdentityManager
                     'email_verified' => $profile->emailVerified,
                     'avatar_url' => $profile->avatarUrl,
                 ])->save();
+            }
+
+            if (! $user->hasVerifiedEmail()) {
+                $user->forceFill(['email_verified_at' => now()])->save();
             }
 
             $user->refresh();

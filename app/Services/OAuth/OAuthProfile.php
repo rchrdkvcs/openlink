@@ -18,7 +18,7 @@ class OAuthProfile
     public static function fromSocialiteUser(string $provider, SocialiteUser $user): self
     {
         $raw = method_exists($user, 'getRaw') ? $user->getRaw() : [];
-        $email = $user->getEmail();
+        $email = self::cleanString($user->getEmail());
 
         return new self(
             provider: $provider,

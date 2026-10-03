@@ -13,7 +13,6 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 
-import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useShell } from '@/lib/shell';
 
@@ -22,19 +21,18 @@ defineProps<{
   description?: string;
 }>();
 
-const { user, workspace, canManage, query } = useShell();
+const { user, canManage, query } = useShell();
 
 type NavItem = { label: string; href: string; icon: unknown; active: boolean };
 
 const accountTab = computed(() => (route().current('profile.edit') ? (query.value.get('tab') ?? 'profile') : null));
 
 const groups = computed(() => {
-  const result: { label: string; workspace?: boolean; items: NavItem[] }[] = [];
+  const result: { label: string; items: NavItem[] }[] = [];
 
   if (canManage.value) {
     result.push({
-      label: workspace.value?.name ?? 'Workspace',
-      workspace: true,
+      label: 'Workspace',
       items: [
         {
           label: 'General',
@@ -109,10 +107,7 @@ const groups = computed(() => {
         <p class="mb-4 hidden px-2 text-[22px] font-semibold tracking-[-0.015em] lg:block">Settings</p>
         <div class="flex gap-6 overflow-x-auto pb-1 lg:block lg:space-y-6 lg:overflow-visible lg:pb-0">
           <div v-for="group in groups" :key="group.label" class="shrink-0">
-            <p class="mb-1 flex items-center gap-2 px-2 text-xs font-medium text-faint">
-              <WorkspaceAvatar v-if="group.workspace" :name="workspace?.name" :icon="workspace?.icon" size="sm" />
-              <span class="truncate">{{ group.label }}</span>
-            </p>
+            <p class="mb-1 truncate px-2 text-xs font-medium text-faint">{{ group.label }}</p>
             <div class="flex gap-px lg:block lg:space-y-px">
               <Link
                 v-for="item in group.items"

@@ -1,4 +1,4 @@
-FROM composer:2 AS vendor
+FROM --platform=$BUILDPLATFORM composer:2 AS vendor
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN composer install \
     --no-progress \
     --prefer-dist \
     --no-scripts \
-    --optimize-autoloader
+    --no-autoloader
 
 COPY app ./app
 COPY bootstrap ./bootstrap
@@ -21,7 +21,7 @@ RUN mkdir -p bootstrap/cache storage/framework/views \
     && composer dump-autoload --no-dev --classmap-authoritative
 
 
-FROM node:24-alpine AS assets
+FROM --platform=$BUILDPLATFORM node:24-alpine AS assets
 
 WORKDIR /app
 
@@ -42,16 +42,11 @@ FROM dunglas/frankenphp:1-php8.4-alpine AS production
 
 WORKDIR /app
 
-ARG OPENLINK_VERSION=dev
-ENV OPENLINK_VERSION=${OPENLINK_VERSION}
-
 RUN install-php-extensions \
     gd \
-    intl \
     opcache \
     pcntl \
-    pdo_pgsql \
-    zip
+    pdo_pgsql
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
@@ -59,6 +54,7 @@ ENV APP_ENV=production \
     LOG_STACK=stderr \
     SERVER_NAME=:8080
 
+COPY --chown=www-data:www-data --from=vendor /app/vendor ./vendor
 COPY --chown=www-data:www-data app ./app
 COPY --chown=www-data:www-data bootstrap ./bootstrap
 COPY --chown=www-data:www-data config ./config
@@ -68,12 +64,15 @@ COPY --chown=www-data:www-data resources/views ./resources/views
 COPY --chown=www-data:www-data routes ./routes
 COPY --chown=www-data:www-data storage ./storage
 COPY --chown=www-data:www-data artisan composer.json composer.lock ./
-COPY --from=vendor --chown=www-data:www-data /app/vendor ./vendor
-COPY --from=assets --chown=www-data:www-data /app/public/build ./public/build
+COPY --chown=www-data:www-data --from=assets /app/public/build ./public/build
 
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && php artisan package:discover --ansi \
-    && chown -R www-data:www-data /app /data/caddy /config/caddy
+    && chown www-data:www-data /app \
+    && chown -R www-data:www-data storage bootstrap/cache /data/caddy /config/caddy
+
+ARG OPENLINK_VERSION=dev
+ENV OPENLINK_VERSION=${OPENLINK_VERSION}
 
 USER www-data
 

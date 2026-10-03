@@ -21,16 +21,45 @@ env:
   PNPM_VERSION: '12.6.0'
 
 jobs:
-  docker-vendor-build:
-    name: Build production vendor stage
-    runs-on: ubuntu-latest
+  docker-image-build:
+    name: Build ${{ matrix.platform }} image
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            cache-scope: image-linux-amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            cache-scope: image-linux-arm64
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Build vendor stage
-        run: docker build --target vendor .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: openlink:ci
+          cache-from: type=gha,scope=${{ matrix.cache-scope }}
+          cache-to: ${{ github.event_name == 'push' && format('type=gha,mode=max,scope={0}', matrix.cache-scope) || '' }}
+
+      - name: Smoke test production image
+        run: |
+          docker run --rm --entrypoint php openlink:ci artisan --version
+          modules="$(docker run --rm --entrypoint php openlink:ci -m)"
+          for module in gd pcntl pdo_pgsql 'Zend OPcache'; do
+            grep -qx "$module" <<< "$modules" || { echo "::error::Missing PHP module $module"; exit 1; }
+          done
+          docker run --rm --entrypoint php openlink:ci -r 'exit(function_exists("imagecreatetruecolor") && function_exists("imagepng") ? 0 : 1);'
 
   backend-tests:
     name: Backend tests
@@ -65,6 +94,17 @@ jobs:
       - name: Validate Composer configuration
         run: composer validate --strict
 
+      - name: Locate Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -92,6 +132,17 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           coverage: none
+
+      - name: Locate Composer cache
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress

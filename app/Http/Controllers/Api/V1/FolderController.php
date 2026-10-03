@@ -2,42 +2,36 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Actions\Workspaces\WorkspacePayloads;
-use App\Actions\Workspaces\WorkspaceViewFactory;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class FolderController extends Controller
 {
-    public function index(Request $request, WorkspaceAccess $access, WorkspacePayloads $data, WorkspaceViewFactory $views): JsonResponse
+    public function index(CurrentWorkspace $current): JsonResponse
     {
-        $workspace = $access->requireCurrent($request);
-
-        return response()->json(['data' => $data->folders($views->make($workspace, $request->user()))]);
+        return response()->json(['data' => $current->require()->folders()->orderBy('name')->get()]);
     }
 
-    public function store(Request $request, WorkspaceAccess $access): JsonResponse
+    public function store(Request $request, CurrentWorkspace $current): JsonResponse
     {
-        $workspace = $access->requireManagedWorkspace($request);
+        $workspace = $current->require('manage');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $folder = Folder::create([
-            'workspace_id' => $workspace->id,
-            'name' => $data['name'],
-        ]);
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => $data['name']]);
 
         return response()->json(['data' => $folder], 201);
     }
 
-    public function update(Request $request, Folder $folder, WorkspaceAccess $access): JsonResponse
+    public function update(Request $request, Folder $folder): JsonResponse
     {
-        $access->requireManagedFolder($request, $folder);
+        Gate::authorize('update', $folder);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -48,9 +42,9 @@ class FolderController extends Controller
         return response()->json(['data' => $folder]);
     }
 
-    public function destroy(Request $request, Folder $folder, WorkspaceAccess $access): JsonResponse
+    public function destroy(Folder $folder): JsonResponse
     {
-        $access->requireManagedFolder($request, $folder);
+        Gate::authorize('delete', $folder);
 
         $folder->delete();
 

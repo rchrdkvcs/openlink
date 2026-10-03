@@ -21,6 +21,7 @@ use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsureHasWorkspace;
+use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
 use App\Models\User;
 use App\Services\ApplicationHost;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +37,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
             : redirect()->route('register');
     })->name('home');
 
-    Route::middleware(['auth', 'verified', EnsureHasWorkspace::class])->group(function () {
+    Route::middleware(['auth', 'verified', EnsureHasWorkspace::class, ScopeBindingsToCurrentWorkspace::class])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'overview'])->name('dashboard');
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
@@ -59,7 +60,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
     });
 
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', ScopeBindingsToCurrentWorkspace::class])->group(function () {
         Route::get('/settings/instance', [DashboardController::class, 'settings'])
             ->middleware(EnsureHasWorkspace::class)
             ->name('settings.index');
@@ -100,7 +101,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/members/leave', [MemberController::class, 'leave'])->name('members.leave');
         Route::post('/members/{member}/transfer-ownership', [MemberController::class, 'transferOwnership'])->name('members.transfer-ownership');
 
-        Route::post('/join/{inviteLink}', [JoinController::class, 'store'])->name('join.store');
+        Route::post('/join/{inviteLink}', [JoinController::class, 'store'])
+            ->withoutMiddleware(ScopeBindingsToCurrentWorkspace::class)
+            ->name('join.store');
 
         Route::post('/short-links', [ShortLinkController::class, 'store'])->name('short-links.store');
         Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');

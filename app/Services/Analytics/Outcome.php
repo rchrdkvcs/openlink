@@ -8,6 +8,8 @@ final class Outcome
 
     public const PASSWORD_FAILED = 'password_failed';
 
+    public const PASSWORD_REQUIRED = 'password_required';
+
     public const EXPIRED = 'expired';
 
     public const DISABLED = 'disabled';
@@ -26,6 +28,7 @@ final class Outcome
     {
         return [
             self::SUCCESS,
+            self::PASSWORD_REQUIRED,
             self::PASSWORD_FAILED,
             self::EXPIRED,
             self::DISABLED,
@@ -39,6 +42,6 @@ final class Outcome
 
     public static function blocked(): array
     {
-        return array_values(array_diff(self::all(), [self::SUCCESS]));
+        return array_values(array_diff(self::all(), [self::SUCCESS, self::PASSWORD_REQUIRED]));
     }
 }

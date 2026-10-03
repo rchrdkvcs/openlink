@@ -2,6 +2,9 @@
 
 namespace App\Services\Analytics\Report;
 
+use App\Enums\AnalyticsMetric;
+use App\Services\Analytics\Outcome;
+
 class SummarySection
 {
     public function build(AnalyticsEventSlice $current, AnalyticsEventSlice $previous): array
@@ -24,11 +27,14 @@ class SummarySection
 
     private function totals(AnalyticsEventSlice $slice): array
     {
+        $blocked = Outcome::blocked();
+        $placeholders = implode(', ', array_fill(0, count($blocked), '?'));
+
         $row = $slice->query()
-            ->selectRaw("sum(case when outcome = 'success' and is_bot = false and metric = 'visit' then 1 else 0 end) as visits")
-            ->selectRaw("sum(case when outcome = 'success' and is_bot = false and metric = 'scan' then 1 else 0 end) as scans")
+            ->selectRaw("sum(case when outcome = 'success' and is_bot = false and metric = ? then 1 else 0 end) as visits", [AnalyticsMetric::Visit->value])
+            ->selectRaw("sum(case when outcome = 'success' and is_bot = false and metric = ? then 1 else 0 end) as scans", [AnalyticsMetric::Scan->value])
             ->selectRaw("count(distinct case when outcome = 'success' and is_bot = false then visitor_hash end) as visitors")
-            ->selectRaw("sum(case when outcome != 'success' and is_bot = false then 1 else 0 end) as blocked")
+            ->selectRaw("sum(case when outcome in ({$placeholders}) and is_bot = false then 1 else 0 end) as blocked", $blocked)
             ->selectRaw('sum(case when is_bot = true then 1 else 0 end) as bots')
             ->selectRaw("count(distinct case when outcome = 'success' and is_bot = false then short_link_id end) as active_links")
             ->first();

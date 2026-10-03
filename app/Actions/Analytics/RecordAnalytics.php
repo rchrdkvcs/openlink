@@ -2,85 +2,57 @@
 
 namespace App\Actions\Analytics;
 
+use App\Enums\AnalyticsMetric;
 use App\Jobs\RecordAnalyticsEvent;
-use App\Models\AnalyticsEvent;
 use App\Models\QrCode;
-use App\Models\RoutingRule;
-use App\Models\RoutingVariant;
 use App\Models\ShortLink;
 use App\Services\ResolutionContext;
 use App\Services\ResolutionContextFactory;
+use App\Services\RoutingDecision;
 use Illuminate\Http\Request;
 
 class RecordAnalytics
 {
-    public const METRIC_VISIT = 'visit';
-
-    public const METRIC_SCAN = 'scan';
-
     public function __construct(private readonly ResolutionContextFactory $contexts) {}
 
     public function record(
         Request $request,
-        ?ShortLink $shortLink,
+        ShortLink $shortLink,
         ?QrCode $qrCode,
-        string $metric,
         string $outcome,
         ?ResolutionContext $context = null,
-        ?RoutingRule $routingRule = null,
-        ?RoutingVariant $routingVariant = null,
+        ?RoutingDecision $decision = null,
     ): void {
-        $event = $this->capture($request, $shortLink, $qrCode, $metric, $outcome, $context, $routingRule, $routingVariant);
-
-        if ($event === null) {
+        if (! $shortLink->workspace_id) {
             return;
         }
 
-        $job = new RecordAnalyticsEvent($event);
+        $context ??= $this->contexts->fromRequest($request);
+        $job = new RecordAnalyticsEvent($this->event($shortLink, $qrCode, $outcome, $context, $decision));
 
         config('openlink.analytics.via_queue')
             ? dispatch($job)
             : dispatch($job)->afterResponse();
     }
 
-    public function persist(array $event): void
-    {
-        try {
-            AnalyticsEvent::query()->create($event);
-        } catch (\Throwable $exception) {
-            report($exception);
-        }
-    }
-
-    public function capture(
-        Request $request,
-        ?ShortLink $shortLink,
+    private function event(
+        ShortLink $shortLink,
         ?QrCode $qrCode,
-        string $metric,
         string $outcome,
-        ?ResolutionContext $context = null,
-        ?RoutingRule $routingRule = null,
-        ?RoutingVariant $routingVariant = null,
-    ): ?array {
-        $shortLink ??= $qrCode?->shortLink;
-        $workspaceId = $shortLink?->workspace_id;
-
-        if (! $workspaceId) {
-            return null;
-        }
-
-        $context ??= $this->contexts->fromRequest($request);
+        ResolutionContext $context,
+        ?RoutingDecision $decision,
+    ): array {
         $dimensions = $context->analyticsDimensions();
 
         return [
-            'workspace_id' => $workspaceId,
+            'workspace_id' => $shortLink->workspace_id,
             'short_link_id' => $shortLink->id,
             'qr_code_id' => $qrCode?->id,
             'domain_id' => $shortLink->domain_id,
-            'routing_rule_id' => $routingRule?->id,
-            'routing_variant_id' => $routingVariant?->id,
+            'routing_rule_id' => $decision?->rule?->id,
+            'routing_variant_id' => $decision?->variant?->id,
             'occurred_at' => $context->occurredAt->toDateTimeString(),
-            'metric' => $metric,
+            'metric' => AnalyticsMetric::forEntry($qrCode)->value,
             'outcome' => $outcome,
             'is_bot' => $dimensions['is_bot'],
             'visitor_hash' => $context->visitorHash,

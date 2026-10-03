@@ -8,46 +8,61 @@ use Illuminate\Support\Facades\Cache;
 
 class ShortUrlCache
 {
+    private const TTL_MINUTES = 10;
+
+    public function shortLinkId(Domain $domain, string $slug): ?int
+    {
+        return Cache::remember(
+            $this->key($domain, $slug),
+            now()->addMinutes(self::TTL_MINUTES),
+            fn (): ?int => ShortLink::query()
+                ->where('domain_id', $domain->id)
+                ->where('slug', $slug)
+                ->value('id'),
+        );
+    }
+
     public function forgetForShortLink(ShortLink $shortLink): void
     {
-        $keys = [];
-        $domain = $shortLink->domain()->first();
+        $previous = $shortLink->getPrevious();
+        $addresses = [[$shortLink->domain_id, $shortLink->slug]];
 
-        if ($domain) {
-            $keys[] = $this->key($domain, $shortLink->slug);
+        if (array_key_exists('slug', $previous) || array_key_exists('domain_id', $previous)) {
+            $addresses[] = [
+                $previous['domain_id'] ?? $shortLink->domain_id,
+                $previous['slug'] ?? $shortLink->slug,
+            ];
         }
 
-        $originalSlug = $shortLink->getOriginal('slug');
-        $originalDomainId = $shortLink->getOriginal('domain_id');
+        $hostnames = Domain::query()
+            ->whereKey(array_unique(array_column($addresses, 0)))
+            ->pluck('hostname', 'id');
 
-        if ($originalSlug !== null && ($originalSlug !== $shortLink->slug || $originalDomainId !== $shortLink->domain_id)) {
-            $originalDomain = $originalDomainId === $shortLink->domain_id
-                ? $domain
-                : Domain::query()->find($originalDomainId);
-
-            if ($originalDomain) {
-                $keys[] = $this->key($originalDomain, $originalSlug);
+        foreach ($addresses as [$domainId, $slug]) {
+            if ($slug !== null && $hostnames->has($domainId)) {
+                Cache::forget($this->keyFor($hostnames[$domainId], $slug));
             }
-        }
-
-        foreach (array_unique($keys) as $key) {
-            Cache::forget($key);
         }
     }
 
     public function forgetForDomain(Domain $domain, ?string $previousHostname = null): void
     {
-        $domain->shortLinks()->pluck('slug')->each(function (string $slug) use ($domain, $previousHostname): void {
-            Cache::forget($this->key($domain, $slug));
+        $hostnames = array_unique(array_filter([$domain->hostname, $previousHostname]));
 
-            if ($previousHostname !== null && $previousHostname !== $domain->hostname) {
-                Cache::forget("resolution:{$previousHostname}:{$slug}");
+        $domain->shortLinks()->pluck('slug')->each(function (string $slug) use ($hostnames): void {
+            foreach ($hostnames as $hostname) {
+                Cache::forget($this->keyFor($hostname, $slug));
             }
         });
     }
 
     public function key(Domain $domain, string $slug): string
     {
-        return "resolution:{$domain->hostname}:{$slug}";
+        return $this->keyFor($domain->hostname, $slug);
+    }
+
+    private function keyFor(string $hostname, string $slug): string
+    {
+        return "resolution:{$hostname}:{$slug}";
     }
 }

@@ -1,223 +1,40 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import {
-  ArrowRight,
-  BarChart3,
-  Building2,
-  Folder,
-  Globe2,
-  Home,
-  KeyRound,
-  Link2,
-  QrCode,
-  Search,
-  Server,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  User,
-  Users,
-} from '@lucide/vue';
+import { ArrowRight, Search, Settings } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
+import { commandActions } from '@/Components/Shell/commandActions';
+import { cycleIndex, groupCommands, queryCommands } from '@/Components/Shell/commandQuery';
+import { type Command, navigationCommands } from '@/Components/Shell/commands';
 import Dialog from '@/Components/ui/Dialog.vue';
 import Kbd from '@/Components/ui/Kbd.vue';
 import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
-import { displayUrl, isLikelyUrl, normalizeUrl } from '@/lib/links';
 import { useShell } from '@/lib/shell';
-import { copyToClipboard, toast, writeClipboard } from '@/lib/toast';
 
 const open = defineModel<boolean>('open', { default: false });
 
 const { user, workspace, workspaces, navigation, canManage, canEdit } = useShell();
-
-type Command = {
-  id: string;
-  group: string;
-  label: string;
-  hint?: string;
-  icon?: unknown;
-  workspace?: { name: string; icon?: string | null };
-  keywords?: string;
-  run: () => void;
-};
 
 const query = ref('');
 const activeIndex = ref(0);
 const input = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 
-function visit(name: string, params?: Record<string, unknown>) {
-  router.visit(route(name, params));
-}
-
-function shorten(url: string) {
-  router.post(
-    route('short-links.store'),
-    { destination_url: url, is_enabled: true },
+const available = computed(() =>
+  navigationCommands(
     {
-      preserveScroll: true,
-      preserveState: true,
-      onSuccess: async (page) => {
-        const link = (page.flash as { createdLink?: { id: number; short_url: string } }).createdLink;
-        if (!link) return;
-        const copied = await writeClipboard(link.short_url);
-        toast({
-          title: copied ? 'Short link created and copied' : 'Short link created',
-          description: displayUrl(link.short_url),
-          tone: 'success',
-          duration: 6000,
-          action: copied
-            ? { label: 'Show', run: () => visit('links.index', { link: link.id }) }
-            : { label: 'Copy', run: () => void copyToClipboard(link.short_url) },
-        });
-      },
-      onError: (errors) => toast({ title: Object.values(errors)[0] ?? 'Could not create link', tone: 'danger' }),
+      folders: navigation.value?.folders ?? [],
+      canManage: canManage.value,
+      isInstanceAdmin: Boolean(user.value.is_instance_admin),
+      workspaces: workspaces.value,
+      currentWorkspaceId: workspace.value?.id,
     },
-  );
-}
+    commandActions,
+  ),
+);
 
-const staticCommands = computed<Command[]>(() => {
-  const commands: Command[] = [
-    { id: 'home', group: 'Go to', label: 'Home', icon: Home, run: () => visit('dashboard') },
-    { id: 'links', group: 'Go to', label: 'All links', icon: Link2, run: () => visit('links.index') },
-    { id: 'qr', group: 'Go to', label: 'QR codes', icon: QrCode, run: () => visit('qr-codes.index') },
-    { id: 'analytics', group: 'Go to', label: 'Analytics', icon: BarChart3, run: () => visit('analytics.index') },
-    ...(navigation.value?.folders ?? []).map((folder) => ({
-      id: `folder-${folder.id}`,
-      group: 'Folders',
-      label: folder.name,
-      hint: `${folder.links_count} link${folder.links_count === 1 ? '' : 's'}`,
-      icon: Folder,
-      run: () => visit('links.index', { folder: folder.id }),
-    })),
-  ];
+const commands = computed(() => queryCommands(query.value, canEdit.value, available.value, commandActions));
 
-  if (canManage.value) {
-    commands.push(
-      {
-        id: 'ws-settings',
-        group: 'Settings',
-        label: 'Workspace settings',
-        icon: Building2,
-        keywords: 'name icon color preferred domain',
-        run: () => visit('settings.workspace'),
-      },
-      {
-        id: 'domains',
-        group: 'Settings',
-        label: 'Domains',
-        icon: Globe2,
-        keywords: 'dns hostname',
-        run: () => visit('domains.index'),
-      },
-      {
-        id: 'members',
-        group: 'Settings',
-        label: 'Members',
-        icon: Users,
-        keywords: 'invite team people roles',
-        run: () => visit('members.index'),
-      },
-    );
-  }
-
-  commands.push(
-    {
-      id: 'profile',
-      group: 'Settings',
-      label: 'Profile',
-      icon: User,
-      run: () => visit('profile.edit', { tab: 'profile' }),
-    },
-    {
-      id: 'security',
-      group: 'Settings',
-      label: 'Security',
-      icon: ShieldCheck,
-      keywords: 'password two-factor 2fa',
-      run: () => visit('profile.edit', { tab: 'security' }),
-    },
-    {
-      id: 'tokens',
-      group: 'Settings',
-      label: 'API tokens',
-      icon: KeyRound,
-      run: () => visit('profile.edit', { tab: 'api-tokens' }),
-    },
-  );
-
-  if (user.value.is_instance_admin) {
-    commands.push({
-      id: 'instance',
-      group: 'Settings',
-      label: 'Instance settings',
-      icon: Server,
-      keywords: 'registration updates reserved slugs',
-      run: () => visit('settings.index'),
-    });
-  }
-
-  for (const item of workspaces.value) {
-    if (item.id === workspace.value?.id) continue;
-    commands.push({
-      id: `ws-${item.id}`,
-      group: 'Switch workspace',
-      label: item.name,
-      workspace: item,
-      run: () =>
-        router.post(route('workspaces.switch', item.id), { destination: 'dashboard' }, { preserveState: false }),
-    });
-  }
-
-  return commands;
-});
-
-const commands = computed<Command[]>(() => {
-  const term = query.value.trim().toLowerCase();
-  const url = normalizeUrl(query.value);
-  const result: Command[] = [];
-
-  if (canEdit.value && isLikelyUrl(url)) {
-    result.push({
-      id: 'shorten',
-      group: 'Create',
-      label: `Shorten ${displayUrl(url)}`,
-      hint: 'Creates and copies the short link',
-      icon: Sparkles,
-      run: () => shorten(url),
-    });
-  }
-
-  if (!term) return [...result, ...staticCommands.value];
-
-  if (canEdit.value && !isLikelyUrl(url)) {
-    result.push({
-      id: 'search-links',
-      group: 'Search',
-      label: `Search links for “${query.value.trim()}”`,
-      icon: Search,
-      run: () => visit('links.index', { search: query.value.trim() }),
-    });
-  }
-
-  return [
-    ...result,
-    ...staticCommands.value.filter((command) =>
-      `${command.label} ${command.group} ${command.keywords ?? ''}`.toLowerCase().includes(term),
-    ),
-  ];
-});
-
-const grouped = computed(() => {
-  const groups = new Map<string, { command: Command; index: number }[]>();
-  commands.value.forEach((command, index) => {
-    const bucket = groups.get(command.group) ?? [];
-    bucket.push({ command, index });
-    groups.set(command.group, bucket);
-  });
-  return [...groups.entries()];
-});
+const grouped = computed(() => groupCommands(commands.value));
 
 watch(query, () => (activeIndex.value = 0));
 watch(open, (value) => {
@@ -236,7 +53,7 @@ function run(command: Command | undefined) {
 function move(delta: number) {
   const count = commands.value.length;
   if (!count) return;
-  activeIndex.value = (activeIndex.value + delta + count) % count;
+  activeIndex.value = cycleIndex(activeIndex.value, delta, count);
   nextTick(() => list.value?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' }));
 }
 </script>

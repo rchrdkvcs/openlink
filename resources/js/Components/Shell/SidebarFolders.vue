@@ -1,18 +1,14 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { Archive, Folder, FolderOpen, Inbox, MoreHorizontal, Pencil, Plus, Trash2 } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed } from 'vue';
 
 import SidebarItem from '@/Components/Shell/SidebarItem.vue';
+import { useFolderEditing } from '@/Components/Shell/useFolderEditing';
+import { useLinkDrop } from '@/Components/Shell/useLinkDrop';
 import Menu from '@/Components/ui/Menu.vue';
 import MenuItem from '@/Components/ui/MenuItem.vue';
 import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
-import { confirmAction } from '@/lib/confirm';
-import { draggedLink } from '@/lib/dragLink';
-import { moveLinkToFolder } from '@/lib/linkActions';
 import { useShell } from '@/lib/shell';
-import { toast } from '@/lib/toast';
-import type { NavigationFolder } from '@/types';
 
 const { navigation, canManage, query } = useShell();
 
@@ -22,90 +18,21 @@ const activeStatus = computed(() => (onLinks.value ? (query.value.get('status') 
 
 const folders = computed(() => navigation.value?.folders ?? []);
 
-const creating = ref(false);
-const newName = ref('');
-const newInput = ref<HTMLInputElement | null>(null);
-const renamingId = ref<number | null>(null);
-const renameValue = ref('');
-const renameInput = ref<HTMLInputElement[]>([]);
-const dropKey = ref<string | null>(null);
+const {
+  creating,
+  newName,
+  newInput,
+  renamingId,
+  renameValue,
+  renameInput,
+  startCreate,
+  commitCreate,
+  startRename,
+  commitRename,
+  remove,
+} = useFolderEditing(activeFolder);
 
-function startCreate() {
-  creating.value = true;
-  newName.value = '';
-  nextTick(() => newInput.value?.focus());
-}
-
-function commitCreate() {
-  const name = newName.value.trim();
-  creating.value = false;
-  if (!name) return;
-
-  router.post(
-    route('folders.store'),
-    { name },
-    {
-      preserveScroll: true,
-      preserveState: true,
-      onSuccess: () => toast({ title: `Folder “${name}” created`, tone: 'success' }),
-      onError: (errors) => toast({ title: errors.name ?? 'Could not create folder', tone: 'danger' }),
-    },
-  );
-}
-
-function startRename(folder: NavigationFolder) {
-  renamingId.value = folder.id;
-  renameValue.value = folder.name;
-  nextTick(() => {
-    renameInput.value[0]?.focus();
-    renameInput.value[0]?.select();
-  });
-}
-
-function commitRename(folder: NavigationFolder) {
-  if (renamingId.value !== folder.id) return;
-  const name = renameValue.value.trim();
-  renamingId.value = null;
-  if (!name || name === folder.name) return;
-
-  router.patch(route('folders.update', folder.id), { name }, { preserveScroll: true, preserveState: true });
-}
-
-async function remove(folder: NavigationFolder) {
-  const confirmed = await confirmAction({
-    title: `Delete “${folder.name}”?`,
-    message:
-      folder.links_count > 0
-        ? `The ${folder.links_count} link${folder.links_count === 1 ? '' : 's'} inside will move to Unfiled. Nothing is deleted.`
-        : 'This folder is empty.',
-    confirmLabel: 'Delete folder',
-    destructive: true,
-  });
-  if (!confirmed) return;
-
-  router.delete(route('folders.destroy', folder.id), {
-    preserveScroll: true,
-    onSuccess: () => {
-      toast({ title: 'Folder deleted' });
-      if (activeFolder.value === String(folder.id)) router.visit(route('links.index'));
-    },
-  });
-}
-
-function onDragOver(key: string, event: DragEvent) {
-  if (!draggedLink.value) return;
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  dropKey.value = key;
-}
-
-function onDrop(folder: NavigationFolder | null) {
-  const link = draggedLink.value;
-  dropKey.value = null;
-  draggedLink.value = null;
-  if (!link || link.folderId === (folder?.id ?? null)) return;
-  moveLinkToFolder(link, folder?.id ?? null, folder?.name);
-}
+const { dropKey, onDragOver, onDragLeave, onDrop } = useLinkDrop();
 </script>
 
 <template>
@@ -129,7 +56,7 @@ function onDrop(folder: NavigationFolder | null) {
         v-for="folder in folders"
         :key="folder.id"
         @dragover="onDragOver(String(folder.id), $event)"
-        @dragleave="dropKey = null"
+        @dragleave="onDragLeave"
         @drop.prevent="onDrop(folder)"
       >
         <div v-if="renamingId === folder.id" class="flex h-8 items-center gap-2.5 rounded-lg bg-elevated px-2">
@@ -198,7 +125,7 @@ function onDrop(folder: NavigationFolder | null) {
       <div
         v-if="folders.length"
         @dragover="onDragOver('unfiled', $event)"
-        @dragleave="dropKey = null"
+        @dragleave="onDragLeave"
         @drop.prevent="onDrop(null)"
       >
         <SidebarItem

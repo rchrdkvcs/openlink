@@ -3,12 +3,18 @@
 namespace App\Actions\Workspaces;
 
 use App\Models\Domain;
+use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Contracts\Auth\Access\Gate;
 
 class UpdateWorkspace
 {
-    public function handle(Workspace $workspace, string $name, ?int $preferredDomainId, ?string $icon = null, ?string $color = null): Workspace
+    public function __construct(private readonly Gate $gate) {}
+
+    public function handle(User $actor, Workspace $workspace, string $name, ?int $preferredDomainId, ?string $icon = null, ?string $color = null): Workspace
     {
+        $this->gate->forUser($actor)->authorize('update', $workspace);
+
         $preferredDomainId = $preferredDomainId ?: null;
 
         if ($preferredDomainId) {

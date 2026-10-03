@@ -1,42 +1,67 @@
-import { computed, onUnmounted, ref, watch, type Ref } from 'vue';
+import { onUnmounted, ref, watch, type Ref } from 'vue';
 
 import type { ShortLinkOption } from './types';
 
-export function useShortLinkSearch(initial: ShortLinkOption[], selectedId: Ref<string | number>) {
+export type ShortLinkFetcher = (term: string) => Promise<ShortLinkOption[] | null>;
+
+export const SHORT_LINK_SEARCH_DELAY = 250;
+
+export function keepSelected(
+  results: ShortLinkOption[],
+  current: ShortLinkOption[],
+  selectedId: string | number,
+): ShortLinkOption[] {
+  const selected = current.find((link) => link.id === Number(selectedId));
+
+  return selected && !results.some((link) => link.id === selected.id) ? [selected, ...results] : results;
+}
+
+export async function fetchShortLinks(term: string): Promise<ShortLinkOption[] | null> {
+  const response = await fetch(route('qr-codes.short-links', { search: term }), {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+
+  return ((await response.json()) as { data: ShortLinkOption[] }).data;
+}
+
+export function createLatestOnly() {
+  let latest = 0;
+
+  return {
+    next: () => ++latest,
+    isLatest: (request: number) => request === latest,
+  };
+}
+
+export function useShortLinkSearch(
+  initial: ShortLinkOption[],
+  selectedId: Ref<string | number>,
+  fetcher: ShortLinkFetcher = fetchShortLinks,
+) {
   const search = ref('');
   const links = ref(initial);
-  const options = computed(() =>
-    links.value.map((link) => ({ value: link.id, label: `${link.short_url} → ${link.destination_url}` })),
-  );
+  const requests = createLatestOnly();
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let requestNumber = 0;
 
   watch(search, (term) => {
     clearTimeout(timer);
-    const currentRequest = ++requestNumber;
+    const request = requests.next();
     timer = setTimeout(async () => {
       if (!term.trim()) {
-        const selected = links.value.find((link) => link.id === Number(selectedId.value));
-        links.value = selected && !initial.some((link) => link.id === selected.id) ? [selected, ...initial] : initial;
+        links.value = keepSelected(initial, links.value, selectedId.value);
         return;
       }
 
       try {
-        const response = await fetch(route('qr-codes.short-links', { search: term }), {
-          headers: { Accept: 'application/json' },
-        });
-        if (!response.ok || currentRequest !== requestNumber) return;
-
-        const result = (await response.json()) as { data: ShortLinkOption[] };
-        if (currentRequest !== requestNumber) return;
-        const selected = links.value.find((link) => link.id === Number(selectedId.value));
-        links.value =
-          selected && !result.data.some((link) => link.id === selected.id) ? [selected, ...result.data] : result.data;
+        const results = await fetcher(term);
+        if (results === null || !requests.isLatest(request)) return;
+        links.value = keepSelected(results, links.value, selectedId.value);
       } catch {}
-    }, 250);
+    }, SHORT_LINK_SEARCH_DELAY);
   });
 
   onUnmounted(() => clearTimeout(timer));
 
-  return { search, links, options };
+  return { search, links };
 }

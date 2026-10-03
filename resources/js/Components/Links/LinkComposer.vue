@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { ArrowRight, Check, Copy, CornerDownLeft, Dices, PencilLine, QrCode, X } from '@lucide/vue';
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { CornerDownLeft } from '@lucide/vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import Favicon from '@/Components/Links/Favicon.vue';
 import Button from '@/Components/ui/Button.vue';
-import Kbd from '@/Components/ui/Kbd.vue';
-import Select from '@/Components/ui/Select.vue';
-import { createQrCodeFor } from '@/lib/linkActions';
-import { displayUrl, isLikelyUrl, normalizeUrl, randomSlug } from '@/lib/links';
+import { isLikelyUrl, normalizeUrl } from '@/lib/links';
+import {
+  folderField,
+  newQuickLinkForm,
+  initialDomainId,
+  selectableDomains,
+  toPayload,
+} from '@/lib/shortLinks/shortLinkForm';
 import { copyToClipboard } from '@/lib/toast';
+import type { Domain, Folder } from '@/types/payloads';
 
-export type ComposerLink = { id: number; short_url: string; destination_url: string; slug: string };
+import type { ComposerLink } from './composerLink';
+import ComposerOptions from './ComposerOptions.vue';
+import CreatedLinkBanner from './CreatedLinkBanner.vue';
+import { useUrlPasteCapture } from './useUrlPasteCapture';
 
-type Domain = { id: number; hostname: string; status: string; is_default: boolean };
-type Folder = { id: number; name: string };
+export type { ComposerLink } from './composerLink';
 
 const props = withDefaults(
   defineProps<{
@@ -31,26 +38,21 @@ const props = withDefaults(
 
 const emit = defineEmits<{ created: [link: ComposerLink]; edit: [link: ComposerLink] }>();
 
-const usableDomains = computed(() => props.domains.filter((domain) => domain.status === 'active'));
-const initialDomain = () =>
-  usableDomains.value.find((domain) => domain.id === props.preferredDomainId)?.id ?? usableDomains.value[0]?.id ?? '';
+const usableDomains = computed(() => selectableDomains(props.domains));
+const initialDomain = () => initialDomainId(usableDomains.value, props.preferredDomainId);
 
-const form = useForm({
-  destination_url: '',
-  domain_id: initialDomain() as number | string,
-  folder_id: props.folderId ? String(props.folderId) : '',
-  slug: '',
-  is_enabled: true,
-});
+const form = useForm(newQuickLinkForm(initialDomain(), props.folderId));
 
 watch(
   () => props.folderId,
-  (id) => (form.folder_id = id ? String(id) : ''),
+  (id) => (form.folder_id = folderField(id)),
 );
 
 const input = ref<HTMLInputElement | null>(null);
 const focused = ref(false);
 const root = ref<HTMLFormElement | null>(null);
+const created = ref<ComposerLink | null>(null);
+const copied = ref(false);
 
 function onFocusOut() {
   requestAnimationFrame(() => {
@@ -60,27 +62,18 @@ function onFocusOut() {
     focused.value = insideForm || insidePopover;
   });
 }
-const created = ref<ComposerLink | null>(null);
-const copied = ref(false);
 
 const normalized = computed(() => normalizeUrl(form.destination_url));
 const valid = computed(() => isLikelyUrl(normalized.value));
 const expanded = computed(() => focused.value || form.destination_url !== '' || form.slug !== '');
 const selectedDomain = computed(() => usableDomains.value.find((domain) => domain.id === Number(form.domain_id)));
-const domainOptions = computed(() =>
-  usableDomains.value.map((domain) => ({ value: domain.id, label: domain.hostname })),
-);
-const folderOptions = computed(() => [
-  { value: '', label: 'No folder' },
-  ...props.folders.map((folder) => ({ value: String(folder.id), label: folder.name })),
-]);
 const error = computed(() => form.errors.destination_url ?? form.errors.slug ?? form.errors.domain_id);
 
 function submit() {
   if (!valid.value || form.processing) return;
 
   form
-    .transform((data) => ({ ...data, destination_url: normalized.value }))
+    .transform((data) => toPayload(data))
     .post(route('short-links.store'), {
       preserveScroll: true,
       preserveState: true,
@@ -104,31 +97,19 @@ function focus() {
   input.value?.focus();
 }
 
-function onDocumentPaste(event: ClipboardEvent) {
-  if (!props.capturePaste) return;
-  const target = event.target as HTMLElement | null;
-  if (
-    target &&
-    (target.closest('input, textarea, select, [contenteditable="true"]') || target.closest('[role="dialog"]'))
-  ) {
-    return;
-  }
+useUrlPasteCapture(
+  () => props.capturePaste,
+  (url) => {
+    form.destination_url = url;
+    created.value = null;
+    nextTick(focus);
+  },
+);
 
-  const text = event.clipboardData?.getData('text') ?? '';
-  if (!isLikelyUrl(normalizeUrl(text))) return;
-
-  event.preventDefault();
-  form.destination_url = text.trim();
-  created.value = null;
-  nextTick(focus);
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    form.reset('destination_url', 'slug');
-    form.clearErrors();
-    input.value?.blur();
-  }
+function clear() {
+  form.reset('destination_url', 'slug');
+  form.clearErrors();
+  input.value?.blur();
 }
 
 watch(
@@ -144,10 +125,8 @@ watch(usableDomains, () => {
 });
 
 onMounted(() => {
-  document.addEventListener('paste', onDocumentPaste);
   if (props.autofocus) requestAnimationFrame(focus);
 });
-onUnmounted(() => document.removeEventListener('paste', onDocumentPaste));
 
 defineExpose({ focus });
 </script>
@@ -174,7 +153,7 @@ defineExpose({ focus });
         class="h-full min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-faint"
         :class="size === 'lg' ? 'text-[15px]' : 'text-sm'"
         placeholder="Paste a long URL to shorten it"
-        @keydown="onKeydown"
+        @keydown.escape="clear"
       />
       <Button size="md" :loading="form.processing" :disabled="!valid || usableDomains.length === 0" class="shrink-0">
         Shorten
@@ -187,54 +166,14 @@ defineExpose({ focus });
       :class="expanded && !created ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
     >
       <div class="min-h-0 overflow-hidden">
-        <div class="flex flex-wrap items-center gap-1.5 border-t px-2.5 py-2">
-          <div
-            class="flex h-7 min-w-0 flex-1 items-center rounded-lg border border-transparent bg-elevated/70 transition-colors focus-within:border-accent/60 sm:max-w-sm"
-          >
-            <Select
-              v-model="form.domain_id"
-              :options="domainOptions"
-              size="sm"
-              aria-label="Domain"
-              class="h-full w-auto max-w-[55%] rounded-l-lg rounded-r-none border-0 border-r bg-transparent font-medium hover:border-r-border focus-visible:ring-0"
-            />
-            <span class="px-1.5 font-mono text-[13px] text-faint">/</span>
-            <input
-              v-model="form.slug"
-              type="text"
-              spellcheck="false"
-              autocomplete="off"
-              aria-label="Custom slug"
-              placeholder="auto"
-              class="h-full min-w-0 flex-1 bg-transparent font-mono text-[13px] text-foreground outline-none placeholder:text-faint"
-            />
-            <button
-              type="button"
-              class="grid h-full w-7 shrink-0 place-items-center rounded-r-lg text-faint transition-colors hover:text-foreground"
-              title="Random slug"
-              aria-label="Random slug"
-              @mousedown.prevent
-              @click="form.slug = randomSlug()"
-            >
-              <Dices class="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <Select
-            v-if="folders.length"
-            v-model="form.folder_id"
-            :options="folderOptions"
-            size="sm"
-            aria-label="Folder"
-            class="w-auto min-w-32 max-w-48"
-          />
-          <p v-if="error" class="basis-full px-1 text-xs text-danger">{{ error }}</p>
-          <p v-else-if="usableDomains.length === 0" class="basis-full px-1 text-xs text-warning">
-            Add and verify a domain before creating links.
-          </p>
-          <p v-else class="ml-auto hidden items-center gap-1.5 text-xs text-faint lg:flex">
-            <Kbd>↵</Kbd> to shorten · <Kbd>Esc</Kbd> to clear
-          </p>
-        </div>
+        <ComposerOptions
+          v-model:domain-id="form.domain_id"
+          v-model:slug="form.slug"
+          v-model:folder-id="form.folder_id"
+          :domains="usableDomains"
+          :folders="folders"
+          :error="error"
+        />
       </div>
     </div>
 
@@ -244,49 +183,14 @@ defineExpose({ focus });
       leave-active-class="transition duration-150 ease-out"
       leave-to-class="opacity-0"
     >
-      <div v-if="created" class="flex flex-wrap items-center gap-2.5 border-t px-3.5 py-2.5">
-        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success/15 text-success">
-          <Check class="h-3.5 w-3.5" />
-        </span>
-        <div class="min-w-0 flex-1">
-          <a
-            :href="created.short_url"
-            target="_blank"
-            rel="noopener"
-            class="block truncate text-[13px] font-semibold text-foreground hover:text-accent"
-            >{{ displayUrl(created.short_url) }}</a
-          >
-          <p class="truncate text-xs text-faint">
-            <ArrowRight class="mr-1 inline h-3 w-3" />{{ displayUrl(created.destination_url) }}
-          </p>
-        </div>
-        <div class="flex shrink-0 items-center gap-1">
-          <Button variant="secondary" size="sm" type="button" @click="copyCreated">
-            <component :is="copied ? Check : Copy" class="h-3.5 w-3.5" />
-            {{ copied ? 'Copied' : 'Copy' }}
-          </Button>
-          <Button variant="ghost" size="sm" type="button" @click="emit('edit', created)">
-            <PencilLine class="h-3.5 w-3.5" /> Details
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            class="hidden sm:inline-flex"
-            @click="createQrCodeFor(created)"
-          >
-            <QrCode class="h-3.5 w-3.5" /> QR code
-          </Button>
-          <button
-            type="button"
-            class="grid h-8 w-8 place-items-center rounded-lg text-faint transition-colors hover:bg-elevated hover:text-foreground"
-            aria-label="Dismiss"
-            @click="created = null"
-          >
-            <X class="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
+      <CreatedLinkBanner
+        v-if="created"
+        :link="created"
+        :copied="copied"
+        @copy="copyCreated"
+        @edit="emit('edit', created)"
+        @dismiss="created = null"
+      />
     </Transition>
   </form>
 </template>

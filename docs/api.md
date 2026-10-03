@@ -132,7 +132,7 @@ The link list returns 50 items per page in `data` and pagination details in `met
 | `POST` | `/api/v1/domains/{id}/transfer` | Transfer to another managed workspace (`workspace_id`) |
 | `DELETE` | `/api/v1/domains/{id}` | Delete the domain |
 
-Domain `status` is one of `pending_verification`, `failed_verification`, `ownership_verified` (TXT found, DNS not yet pointing to the server), `active` (serves short links), or `disabled`. An `ownership_verified` domain also becomes `active` when a real request reaches the server on that hostname. Payloads include `dns_record` (`type` + `value` the domain should point to, from the instance `dns_target` setting, falling back to the default domain) and `dns_check_error` when the pointing check fails.
+Domain `status` is one of `pending_verification`, `failed_verification`, `ownership_verified` (TXT found, DNS not yet pointing to the server), `active` (serves short links), or `disabled`. An `ownership_verified` domain also becomes `active` when a real request reaches the server on that hostname. A `disabled` domain is never re-verified or re-activated by DNS checks, scheduled rechecks, or traffic. Payloads include `dns_record` (`type` + `value` the domain should point to, from the instance `dns_target` setting, falling back to the default domain) and `dns_check_error` when the pointing check fails.
 
 ### Folders and tags
 
@@ -180,15 +180,17 @@ A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter thr
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/v1/instance-settings` | Read instance settings |
-| `PATCH` | `/api/v1/instance-settings` | Update instance settings (same fields as the web form) |
+| `PATCH` | `/api/v1/instance-settings` | Update instance settings (same fields and validation as the web form) |
+
+`registration_mode`, `require_email_verification`, `default_domain`, `slug_length`, `analytics_retention_days`, `public_unavailable_title`, and `public_unavailable_message` are required. `dns_target`, `reserved_slugs`, and `reserved_prefixes` are optional: omit them to keep their current values, or send `null`/an empty string to clear them. Saving makes `default_domain` the active Default Domain.
 
 ## Errors
 
 Responses follow Laravel conventions, always as JSON on `/api/*`:
 
 - `401` missing or invalid token
-- `403` no accessible workspace, or insufficient role
-- `404` unknown resource (or resource outside the active workspace)
+- `403` no accessible workspace, insufficient role, or a link, QR code, domain, folder, or invite link outside the active workspace
+- `404` unknown resource, or a member outside the active workspace
 - `410` invite link expired, revoked, or out of uses
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 

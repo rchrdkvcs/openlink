@@ -11,25 +11,22 @@ import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import WorkspaceIconPicker from '@/Components/Workspaces/WorkspaceIconPicker.vue';
 import { fetchJson, HttpError } from '@/lib/http';
+import { type AssignableRole, defaultInviteRole, roleOptions } from '@/lib/permissions';
 import { copyToClipboard } from '@/lib/toast';
+import type { PageProps } from '@/types';
+import type { WorkspaceSummary } from '@/types/payloads';
 
 defineProps<{ show: boolean }>();
 
 const emit = defineEmits<{ close: [] }>();
 
-const page = usePage();
+const page = usePage<PageProps>();
 const step = ref<'details' | 'invite'>('details');
-const createdWorkspace = ref<{ id: number; name: string } | null>(null);
+const createdWorkspace = ref<Pick<WorkspaceSummary, 'id' | 'name'> | null>(null);
 
 const form = useForm({ name: '', icon: '' });
 
-const roleOptions = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'editor', label: 'Editor' },
-  { value: 'viewer', label: 'Viewer' },
-];
-
-const inviteRole = ref('editor');
+const inviteRole = ref<AssignableRole>(defaultInviteRole);
 const inviteUrl = ref<string | null>(null);
 const inviteError = ref<string | null>(null);
 const generating = ref(false);
@@ -53,7 +50,7 @@ function submit() {
     .post(route('workspaces.store'), {
       preserveScroll: true,
       onSuccess: () => {
-        createdWorkspace.value = (page.props.currentWorkspace as { id: number; name: string } | undefined) ?? null;
+        createdWorkspace.value = page.props.currentWorkspace ?? null;
         step.value = 'invite';
       },
     });
@@ -94,7 +91,7 @@ function close() {
     createdWorkspace.value = null;
     form.reset();
     form.clearErrors();
-    inviteRole.value = 'editor';
+    inviteRole.value = defaultInviteRole;
     inviteUrl.value = null;
     inviteError.value = null;
   }, 250);

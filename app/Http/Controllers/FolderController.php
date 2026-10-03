@@ -2,32 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Workspaces\WorkspaceAccess;
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Models\Folder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class FolderController extends Controller
 {
-    public function store(Request $request, WorkspaceAccess $access): RedirectResponse
+    public function store(Request $request, CurrentWorkspace $current): RedirectResponse
     {
-        $workspace = $access->requireManagedWorkspace($request);
+        $workspace = $current->require('manage');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        Folder::create([
-            'workspace_id' => $workspace->id,
-            'name' => $data['name'],
-        ]);
+        Folder::create(['workspace_id' => $workspace->id, 'name' => $data['name']]);
 
         return back();
     }
 
-    public function update(Request $request, Folder $folder, WorkspaceAccess $access): RedirectResponse
+    public function update(Request $request, Folder $folder): RedirectResponse
     {
-        $access->requireManagedFolder($request, $folder);
+        Gate::authorize('update', $folder);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -38,9 +36,9 @@ class FolderController extends Controller
         return back();
     }
 
-    public function destroy(Request $request, Folder $folder, WorkspaceAccess $access): RedirectResponse
+    public function destroy(Folder $folder): RedirectResponse
     {
-        $access->requireManagedFolder($request, $folder);
+        Gate::authorize('delete', $folder);
 
         $folder->delete();
 

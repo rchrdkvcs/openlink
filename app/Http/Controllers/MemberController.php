@@ -6,45 +6,39 @@ use App\Actions\Members\LeaveWorkspace;
 use App\Actions\Members\RemoveWorkspaceMember;
 use App\Actions\Members\TransferWorkspaceOwnership;
 use App\Actions\Members\UpdateMemberRole;
+use App\Actions\Workspaces\CurrentWorkspace;
+use App\Http\Requests\Members\UpdateMemberRoleRequest;
 use App\Models\WorkspaceMember;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
 {
-    public function update(Request $request, WorkspaceMember $member, UpdateMemberRole $roles): RedirectResponse
+    public function update(UpdateMemberRoleRequest $request, WorkspaceMember $member, UpdateMemberRole $roles): RedirectResponse
     {
-        $data = $request->validate([
-            'role' => ['required', Rule::in([
-                WorkspaceMember::ROLE_ADMIN,
-                WorkspaceMember::ROLE_EDITOR,
-                WorkspaceMember::ROLE_VIEWER,
-            ])],
-        ]);
-
-        $roles->handle($request, $member, $data['role']);
+        $roles->handle($request->user(), $member, $request->role());
 
         return back();
     }
 
     public function destroy(Request $request, WorkspaceMember $member, RemoveWorkspaceMember $remover): RedirectResponse
     {
-        $remover->handle($request, $member);
+        $remover->handle($request->user(), $member);
 
         return back();
     }
 
-    public function leave(Request $request, LeaveWorkspace $leaver): RedirectResponse
+    public function leave(Request $request, CurrentWorkspace $current, LeaveWorkspace $leaver): RedirectResponse
     {
-        $leaver->handle($request);
+        $leaver->handle($request->user(), $current->require());
+        $current->forget();
 
         return redirect()->route('dashboard');
     }
 
     public function transferOwnership(Request $request, WorkspaceMember $member, TransferWorkspaceOwnership $transfer): RedirectResponse
     {
-        $transfer->handle($request, $member);
+        $transfer->handle($request->user(), $member);
 
         return back();
     }

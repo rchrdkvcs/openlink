@@ -2,40 +2,49 @@
 
 namespace App\Actions\Settings;
 
-use App\Models\Domain;
+use App\Actions\Domains\DomainLifecycle;
+use App\Models\User;
 use App\Services\InstanceSettings;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Contracts\Auth\Access\Gate;
 
 class UpdateInstanceSettings
 {
-    public function __construct(private readonly InstanceSettings $settings) {}
+    private const SCALAR_KEYS = [
+        'registration_mode',
+        'require_email_verification',
+        'slug_length',
+        'analytics_retention_days',
+        'public_unavailable_title',
+        'public_unavailable_message',
+    ];
 
-    public function handle(Request $request, array $data): void
+    private const LIST_KEYS = ['reserved_slugs', 'reserved_prefixes'];
+
+    public function __construct(
+        private readonly InstanceSettings $settings,
+        private readonly DomainLifecycle $domains,
+        private readonly Gate $gate,
+    ) {}
+
+    public function handle(User $actor, array $data): void
     {
-        abort_unless($request->user()?->is_instance_admin, 403);
+        $this->gate->forUser($actor)->authorize('administer-instance');
 
-        foreach (['registration_mode', 'require_email_verification', 'default_domain', 'slug_length', 'analytics_retention_days', 'public_unavailable_title', 'public_unavailable_message'] as $key) {
+        foreach (self::SCALAR_KEYS as $key) {
             $this->settings->set($key, $data[$key]);
         }
 
-        $this->settings->set('dns_target', trim((string) ($data['dns_target'] ?? '')));
+        if (array_key_exists('dns_target', $data)) {
+            $this->settings->set('dns_target', trim((string) $data['dns_target']));
+        }
 
-        Domain::query()->where('is_default', true)->update(['is_default' => false]);
-        Domain::query()->updateOrCreate([
-            'hostname' => strtolower(trim($data['default_domain'])),
-        ], [
-            'workspace_id' => null,
-            'status' => Domain::STATUS_ACTIVE,
-            'verification_token' => Str::random(40),
-            'is_default' => true,
-            'verified_at' => now(),
-            'dns_pointed_at' => now(),
-            'disabled_at' => null,
-        ]);
+        foreach (self::LIST_KEYS as $key) {
+            if (array_key_exists($key, $data)) {
+                $this->settings->set($key, $this->lines((string) $data[$key]));
+            }
+        }
 
-        $this->settings->set('reserved_slugs', $this->lines($data['reserved_slugs'] ?? ''));
-        $this->settings->set('reserved_prefixes', $this->lines($data['reserved_prefixes'] ?? ''));
+        $this->domains->ensureDefaultDomain($data['default_domain']);
     }
 
     private function lines(string $value): array

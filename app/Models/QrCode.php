@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\AnalyticsMetric;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -55,6 +57,25 @@ class QrCode extends Model
     public function analyticsEvents(): HasMany
     {
         return $this->hasMany(AnalyticsEvent::class);
+    }
+
+    public function scans(): HasMany
+    {
+        return $this->analyticsEvents()->successful()->where('metric', AnalyticsMetric::Scan->value);
+    }
+
+    public function scopeWithScanCount(Builder $query): Builder
+    {
+        return $query->withCount('scans');
+    }
+
+    public function scanCount(): int
+    {
+        if ($this->hasDirectPayload()) {
+            return 0;
+        }
+
+        return (int) ($this->scans_count ?? $this->scans()->count());
     }
 
     public function publicUrl(): string

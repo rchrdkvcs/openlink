@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Domains\DomainPayload;
+use App\Actions\InviteLinks\InviteLinkPayload;
 use App\Actions\Workspaces\CreateWorkspace;
-use App\Actions\Workspaces\WorkspaceAccess;
-use App\Actions\Workspaces\WorkspacePayloads;
+use App\Actions\Workspaces\CurrentWorkspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,7 +13,7 @@ use Inertia\Response;
 
 class OnboardingController extends Controller
 {
-    public function show(Request $request, WorkspaceAccess $access, WorkspacePayloads $data): Response|RedirectResponse
+    public function show(Request $request, CurrentWorkspace $current, DomainPayload $domains): Response|RedirectResponse
     {
         $user = $request->user();
         $hasWorkspace = $user->workspaceMemberships()->exists();
@@ -30,17 +31,17 @@ class OnboardingController extends Controller
             ]);
         }
 
-        $workspace = $access->requireCurrent($request);
+        $workspace = $current->require();
 
         return Inertia::render('Onboarding/Index', [
             'workspace' => $workspace->only(['id', 'name', 'slug']),
-            'domains' => $data->domains($workspace),
-            'inviteLinks' => $data->inviteLinks($workspace),
+            'domains' => $domains->forWorkspace($workspace),
+            'inviteLinks' => InviteLinkPayload::active($workspace),
             'hasLink' => $workspace->shortLinks()->exists(),
         ]);
     }
 
-    public function storeWorkspace(Request $request, CreateWorkspace $workspaces, WorkspaceAccess $access): RedirectResponse
+    public function storeWorkspace(Request $request, CreateWorkspace $workspaces, CurrentWorkspace $current): RedirectResponse
     {
         if ($request->user()->workspaceMemberships()->exists()) {
             return redirect()->route('onboarding.show');
@@ -50,9 +51,7 @@ class OnboardingController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $workspace = $workspaces->handle($request->user(), $data['name']);
-
-        $access->selectCurrent($request, $workspace);
+        $current->select($workspaces->handle($request->user(), $data['name']));
         $request->session()->put('onboarding.active', true);
 
         return redirect()->route('onboarding.show');

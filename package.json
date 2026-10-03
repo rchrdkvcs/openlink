@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "build": "vue-tsc && vite build",
-    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
     "dev": "vite",
-    "format": "oxfmt resources/js resources/css vite.config.js tailwind.config.js tsconfig.json components.json package.json .oxlintrc.json .oxfmtrc.json",
+    "format": "oxfmt resources/js resources/css vite.config.js vitest.config.js tailwind.config.js tsconfig.json components.json package.json .oxlintrc.json .oxfmtrc.json",
     "format:check": "pnpm run format --check",
     "lint": "oxlint resources/js --deny-warnings",
     "lint:fix": "pnpm run lint --fix",
+    "test": "vitest run",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vite": "^8.3.1",
+    "vitest": "^5.0.3",
     "vue": "^3.5.43",
     "vue-tsc": "^3.3.11"
   },

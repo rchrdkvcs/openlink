@@ -8,7 +8,7 @@ class DomainDnsTarget
 {
     public function __construct(
         private readonly InstanceSettings $settings,
-        private readonly DnsResolver $resolver,
+        private readonly DnsLookup $resolver,
     ) {}
 
     public function value(): string

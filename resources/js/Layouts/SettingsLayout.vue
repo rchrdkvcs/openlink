@@ -17,14 +17,10 @@ import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useShell } from '@/lib/shell';
 
-withDefaults(
-  defineProps<{
-    title: string;
-    description?: string;
-    width?: 'md' | 'lg';
-  }>(),
-  { width: 'md' },
-);
+defineProps<{
+  title: string;
+  description?: string;
+}>();
 
 const { user, workspace, canManage, query } = useShell();
 
@@ -141,7 +137,7 @@ const groups = computed(() => {
       </nav>
 
       <div class="min-w-0 flex-1">
-        <div class="w-full" :class="width === 'lg' ? 'max-w-4xl' : 'max-w-2xl'">
+        <div class="w-full">
           <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div class="min-w-0">
               <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">{{ title }}</h1>

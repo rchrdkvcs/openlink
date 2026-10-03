@@ -58,7 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return $relation->whereRaw('1 = 0');
         }
 
-        return $relation->where('email', $this->email);
+        return $relation->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim((string) $this->email))]);
     }
 
     public function hasPassword(): bool
@@ -66,12 +66,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return filled($this->password);
     }
 
+    public function matchesEmail(string $email): bool
+    {
+        return hash_equals(strtolower(trim((string) $this->email)), strtolower(trim($email)));
+    }
+
     public function isValidConnectedIdentity(SocialAccount $account): bool
     {
         return $this->hasVerifiedEmail()
             && $account->user_id === $this->id
             && $account->email_verified
-            && hash_equals((string) $this->email, (string) $account->email);
+            && $this->matchesEmail((string) $account->email);
     }
 
     public function validSignInMethodCount(?int $excludingSocialAccountId = null): int

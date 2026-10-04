@@ -49,10 +49,23 @@ export default {
           from: { opacity: '0', transform: 'translateY(6px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        'dash-flow': {
+          to: { strokeDashoffset: '-20' },
+        },
+        'orbit-spin': {
+          to: { transform: 'rotate(360deg)' },
+        },
+        'hub-pulse': {
+          '0%': { opacity: '0.55', transform: 'scale(1)' },
+          '100%': { opacity: '0', transform: 'scale(1.6)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.2s ease-out',
         'slide-up': 'slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        'dash-flow': 'dash-flow 1s linear infinite',
+        'orbit-spin': 'orbit-spin 90s linear infinite',
+        'hub-pulse': 'hub-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite',
       },
     },
   },

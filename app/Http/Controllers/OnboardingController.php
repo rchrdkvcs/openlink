@@ -27,17 +27,21 @@ class OnboardingController extends Controller
                 'workspace' => null,
                 'domains' => [],
                 'inviteLinks' => [],
-                'hasLink' => false,
+                'firstLink' => null,
             ]);
         }
 
         $workspace = $current->require();
+        $firstLink = $workspace->shortLinks()->whereHas('domain')->with('domain')->oldest()->first();
 
         return Inertia::render('Onboarding/Index', [
             'workspace' => $workspace->only(['id', 'name', 'slug']),
             'domains' => $domains->forWorkspace($workspace),
             'inviteLinks' => InviteLinkPayload::active($workspace),
-            'hasLink' => $workspace->shortLinks()->exists(),
+            'firstLink' => $firstLink ? [
+                'short_url' => $firstLink->shortUrl(),
+                'destination_url' => $firstLink->destination_url,
+            ] : null,
         ]);
     }
 

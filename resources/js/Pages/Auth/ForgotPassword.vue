@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
+import { KeyRound } from '@lucide/vue';
 
+import AuthIcon from '@/Components/Auth/AuthIcon.vue';
+import AuthLink from '@/Components/Auth/AuthLink.vue';
+import AuthNotice from '@/Components/Auth/AuthNotice.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
@@ -26,29 +30,30 @@ const submit = () => {
   >
     <Head title="Reset your password" />
 
-    <p
-      v-if="status"
-      role="status"
-      class="mb-5 rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-[13px] text-success"
-    >
-      {{ status }}
-    </p>
+    <template #icon>
+      <AuthIcon><KeyRound /></AuthIcon>
+    </template>
 
-    <form class="grid gap-4" @submit.prevent="submit">
+    <AuthNotice v-if="status" class="mb-6">{{ status }}</AuthNotice>
+
+    <form class="grid gap-5" @submit.prevent="submit">
       <Field label="Email" :error="form.errors.email">
-        <Input id="email" v-model="form.email" type="email" required autofocus autocomplete="username" />
+        <Input
+          id="email"
+          v-model="form.email"
+          size="lg"
+          type="email"
+          placeholder="you@company.com"
+          required
+          autofocus
+          autocomplete="username"
+          :aria-invalid="Boolean(form.errors.email)"
+        />
       </Field>
 
-      <Button class="mt-1 w-full" :loading="form.processing">Send reset link</Button>
+      <Button class="mt-1 w-full" size="lg" :loading="form.processing">Send reset link</Button>
     </form>
 
-    <template #footer>
-      <p class="mt-6 text-center text-[13px] text-muted">
-        Remembered it?
-        <Link :href="route('login')" class="font-medium text-foreground hover:underline hover:underline-offset-4"
-          >Back to sign in</Link
-        >
-      </p>
-    </template>
+    <template #footer> Remembered it? <AuthLink :href="route('login')">Back to sign in</AuthLink> </template>
   </GuestLayout>
 </template>

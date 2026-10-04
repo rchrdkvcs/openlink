@@ -3,44 +3,47 @@ import { Link } from '@inertiajs/vue3';
 
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
-withDefaults(
-  defineProps<{
-    title?: string;
-    description?: string;
-    width?: 'sm' | 'md';
-  }>(),
-  { width: 'sm' },
-);
+defineProps<{
+  title?: string;
+  description?: string;
+}>();
 </script>
 
 <template>
-  <div class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-12">
+  <main class="relative flex min-h-screen flex-col overflow-hidden bg-background">
     <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.1),transparent_65%)]"
+      class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.08),transparent_65%)]"
     />
 
-    <div class="relative w-full animate-slide-up" :class="width === 'md' ? 'max-w-md' : 'max-w-[380px]'">
-      <div class="mb-8 flex justify-center">
-        <Link
-          href="/"
-          aria-label="Openlink"
-          class="rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-        >
-          <ApplicationLogo class="h-9 w-auto" />
-        </Link>
-      </div>
+    <header class="relative px-5 pt-6 sm:px-10 sm:pt-8">
+      <Link
+        href="/"
+        aria-label="Openlink"
+        class="-m-1 inline-flex rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+      >
+        <ApplicationLogo class="h-8 w-auto" />
+      </Link>
+    </header>
 
-      <slot name="header" />
-
-      <div class="rounded-2xl border bg-surface p-6 sm:p-8">
-        <div v-if="title" class="mb-6 text-center">
-          <h1 class="text-[22px] font-semibold tracking-[-0.015em] text-foreground">{{ title }}</h1>
-          <p v-if="description" class="mt-1.5 text-sm leading-relaxed text-muted">{{ description }}</p>
+    <div class="relative flex flex-1 items-center px-5 py-12 sm:px-10 sm:pb-24">
+      <div class="mx-auto w-full max-w-[380px] animate-slide-up">
+        <div v-if="$slots.icon" class="mb-6">
+          <slot name="icon" />
         </div>
-        <slot />
-      </div>
 
-      <slot name="footer" />
+        <div v-if="title" class="mb-8">
+          <h1 class="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-foreground">{{ title }}</h1>
+          <p v-if="description || $slots.description" class="mt-2 text-sm leading-relaxed text-muted">
+            <slot name="description">{{ description }}</slot>
+          </p>
+        </div>
+
+        <slot />
+
+        <div v-if="$slots.footer" class="mt-8 border-t pt-6 text-[13px] text-muted">
+          <slot name="footer" />
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 </template>

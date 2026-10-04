@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
 
+import AuthLink from '@/Components/Auth/AuthLink.vue';
+import AuthNotice from '@/Components/Auth/AuthNotice.vue';
 import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
 import Button from '@/Components/ui/Button.vue';
 import Checkbox from '@/Components/ui/Checkbox.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
+import PasswordInput from '@/Components/ui/PasswordInput.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps<{
@@ -30,20 +34,26 @@ const submit = () => {
 </script>
 
 <template>
-  <GuestLayout title="Sign in to Openlink" description="Welcome back. Enter your details to continue.">
+  <GuestLayout title="Welcome back" description="Sign in to your Openlink workspace.">
     <Head title="Sign in" />
 
-    <p
-      v-if="status"
-      role="status"
-      class="mb-5 rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-[13px] text-success"
-    >
-      {{ status }}
-    </p>
+    <AuthNotice v-if="status" class="mb-6">{{ status }}</AuthNotice>
 
-    <form class="grid gap-4" @submit.prevent="submit">
+    <OAuthButtons class="mb-6" :providers="oauthProviders" intent="login" />
+
+    <form class="grid gap-5" @submit.prevent="submit">
       <Field label="Email" :error="form.errors.email">
-        <Input id="email" v-model="form.email" type="email" required autofocus autocomplete="username" />
+        <Input
+          id="email"
+          v-model="form.email"
+          size="lg"
+          type="email"
+          placeholder="you@company.com"
+          required
+          autofocus
+          autocomplete="username"
+          :aria-invalid="Boolean(form.errors.email)"
+        />
       </Field>
 
       <div class="grid gap-1.5">
@@ -52,12 +62,19 @@ const submit = () => {
           <Link
             v-if="canResetPassword"
             :href="route('password.request')"
-            class="text-xs text-muted transition-colors hover:text-foreground"
+            class="rounded-sm text-xs text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             Forgot password?
           </Link>
         </div>
-        <Input id="password" v-model="form.password" type="password" required autocomplete="current-password" />
+        <PasswordInput
+          id="password"
+          v-model="form.password"
+          size="lg"
+          required
+          autocomplete="current-password"
+          :aria-invalid="Boolean(form.errors.password)"
+        />
         <p v-if="form.errors.password" class="text-xs text-danger">{{ form.errors.password }}</p>
       </div>
 
@@ -66,18 +83,12 @@ const submit = () => {
         <span class="text-[13px] text-muted">Keep me signed in</span>
       </label>
 
-      <Button class="mt-1 w-full" :loading="form.processing">Sign in</Button>
+      <Button class="mt-1 w-full" size="lg" :loading="form.processing">
+        Sign in
+        <ArrowRight v-if="!form.processing" />
+      </Button>
     </form>
 
-    <OAuthButtons class="mt-5" :providers="oauthProviders" intent="login" />
-
-    <template #footer>
-      <p class="mt-6 text-center text-[13px] text-muted">
-        New to Openlink?
-        <Link :href="route('register')" class="font-medium text-foreground hover:underline hover:underline-offset-4"
-          >Create an account</Link
-        >
-      </p>
-    </template>
+    <template #footer> New to Openlink? <AuthLink :href="route('register')">Create an account</AuthLink> </template>
   </GuestLayout>
 </template>

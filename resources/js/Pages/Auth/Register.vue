@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
 
+import AuthLink from '@/Components/Auth/AuthLink.vue';
+import AuthNotice from '@/Components/Auth/AuthNotice.vue';
 import OAuthButtons from '@/Components/Auth/OAuthButtons.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
+import PasswordInput from '@/Components/ui/PasswordInput.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import { roleLabel } from '@/lib/permissions';
 
 const props = defineProps<{
   invite?: {
@@ -34,53 +39,74 @@ const submit = () => {
 </script>
 
 <template>
-  <GuestLayout title="Create your account" description="Shorten, share and measure links in minutes.">
+  <GuestLayout
+    :title="invite ? `Join ${invite.workspace}` : 'Create your account'"
+    description="Shorten, share and measure links in minutes."
+  >
     <Head title="Create an account" />
 
-    <p
-      v-if="invite"
-      class="mb-5 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2.5 text-[13px] leading-relaxed text-foreground"
-    >
+    <AuthNotice v-if="invite" tone="accent" class="mb-6">
       You’re joining <span class="font-semibold">{{ invite.workspace }}</span> as
-      <span class="font-semibold capitalize">{{ invite.role }}</span
+      <span class="font-semibold">{{ roleLabel(invite.role) }}</span
       >.
-    </p>
+    </AuthNotice>
 
-    <form class="grid gap-4" @submit.prevent="submit">
+    <OAuthButtons class="mb-6" :providers="oauthProviders" intent="register" :invite="invite?.token" />
+
+    <form class="grid gap-5" @submit.prevent="submit">
       <Field label="Name" :error="form.errors.name">
-        <Input id="name" v-model="form.name" type="text" required autofocus autocomplete="name" />
-      </Field>
-
-      <Field label="Email" :error="form.errors.email">
-        <Input id="email" v-model="form.email" type="email" required autocomplete="username" />
-      </Field>
-
-      <Field label="Password" :error="form.errors.password">
-        <Input id="password" v-model="form.password" type="password" required autocomplete="new-password" />
-      </Field>
-
-      <Field label="Confirm password" :error="form.errors.password_confirmation">
         <Input
-          id="password_confirmation"
-          v-model="form.password_confirmation"
-          type="password"
+          id="name"
+          v-model="form.name"
+          size="lg"
+          type="text"
+          placeholder="Ada Lovelace"
           required
-          autocomplete="new-password"
+          autofocus
+          autocomplete="name"
+          :aria-invalid="Boolean(form.errors.name)"
         />
       </Field>
 
-      <Button class="mt-1 w-full" :loading="form.processing">Create account</Button>
+      <Field label="Email" :error="form.errors.email">
+        <Input
+          id="email"
+          v-model="form.email"
+          size="lg"
+          type="email"
+          placeholder="you@company.com"
+          required
+          autocomplete="username"
+          :aria-invalid="Boolean(form.errors.email)"
+        />
+      </Field>
+
+      <Field label="Password" hint="At least 8 characters." :error="form.errors.password">
+        <PasswordInput
+          id="password"
+          v-model="form.password"
+          size="lg"
+          required
+          :aria-invalid="Boolean(form.errors.password)"
+        />
+      </Field>
+
+      <Field label="Confirm password" :error="form.errors.password_confirmation">
+        <PasswordInput
+          id="password_confirmation"
+          v-model="form.password_confirmation"
+          size="lg"
+          required
+          :aria-invalid="Boolean(form.errors.password_confirmation)"
+        />
+      </Field>
+
+      <Button class="mt-1 w-full" size="lg" :loading="form.processing">
+        Create account
+        <ArrowRight v-if="!form.processing" />
+      </Button>
     </form>
 
-    <OAuthButtons class="mt-5" :providers="oauthProviders" intent="register" :invite="invite?.token" />
-
-    <template #footer>
-      <p class="mt-6 text-center text-[13px] text-muted">
-        Already have an account?
-        <Link :href="route('login')" class="font-medium text-foreground hover:underline hover:underline-offset-4"
-          >Sign in</Link
-        >
-      </p>
-    </template>
+    <template #footer> Already have an account? <AuthLink :href="route('login')">Sign in</AuthLink> </template>
   </GuestLayout>
 </template>

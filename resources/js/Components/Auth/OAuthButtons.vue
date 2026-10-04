@@ -14,29 +14,18 @@ const providerLabels: Record<string, string> = {
 
 const providerLabel = (provider: string) => providerLabels[provider] ?? provider;
 
-const providerButtonClass = (provider: string) =>
-  [
-    'inline-flex h-8 items-center justify-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
-    provider === 'google'
-      ? 'border border-border bg-white text-[#1f1f1f] hover:bg-[#f8fafd]'
-      : 'border border-[#5865f2] bg-[#5865f2] text-white hover:bg-[#4752c4]',
-  ].join(' ');
+const providerButtonClass =
+  'inline-flex h-10 items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface px-4 text-sm font-medium text-foreground transition-[background-color,border-color,transform] duration-150 ease-out hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]';
 </script>
 
 <template>
-  <div v-if="providerEntries(providers).length" class="space-y-4">
-    <div class="flex items-center gap-3">
-      <div class="h-px flex-1 bg-border" />
-      <span class="text-xs text-faint">or</span>
-      <div class="h-px flex-1 bg-border" />
-    </div>
-
+  <div v-if="providerEntries(providers).length" class="grid gap-6">
     <div class="grid gap-2">
       <a
         v-for="provider in providerEntries(providers)"
         :key="provider"
         :href="route('oauth.redirect', { provider, intent, invite })"
-        :class="providerButtonClass(provider)"
+        :class="providerButtonClass"
       >
         <svg v-if="provider === 'google'" class="h-4 w-4" viewBox="0 0 18 18" aria-hidden="true">
           <path
@@ -59,7 +48,7 @@ const providerButtonClass = (provider: string) =>
 
         <svg
           v-else-if="provider === 'discord'"
-          class="h-4 w-4"
+          class="h-4 w-4 text-[#5865f2]"
           viewBox="0 0 24 24"
           fill="currentColor"
           aria-hidden="true"
@@ -71,6 +60,12 @@ const providerButtonClass = (provider: string) =>
 
         Continue with {{ providerLabel(provider) }}
       </a>
+    </div>
+
+    <div class="flex items-center gap-3" role="separator">
+      <div class="h-px flex-1 bg-border" />
+      <span class="text-xs text-faint">or continue with email</span>
+      <div class="h-px flex-1 bg-border" />
     </div>
   </div>
 </template>

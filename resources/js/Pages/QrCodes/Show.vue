@@ -53,10 +53,10 @@ useSaveShortcut(() => {
 <template>
   <Head :title="qr.name" />
 
-  <AuthenticatedLayout>
-    <div class="flex flex-col xl:h-full xl:flex-row">
+  <AuthenticatedLayout panels>
+    <div class="flex flex-col lg:gap-2 xl:h-full xl:flex-row">
       <div
-        class="flex min-w-0 flex-1 flex-col px-4 py-6 [scrollbar-gutter:stable] sm:px-6 lg:px-8 lg:py-8 xl:overflow-y-auto xl:overscroll-contain"
+        class="flex min-w-0 flex-1 flex-col px-4 py-6 [scrollbar-gutter:stable] sm:px-6 lg:rounded-xl lg:border lg:bg-canvas lg:px-8 lg:py-8 xl:overflow-y-auto xl:overscroll-contain"
       >
         <PageHeader :title="qr.name" :description="description">
           <template #eyebrow>
@@ -85,7 +85,9 @@ useSaveShortcut(() => {
         </div>
       </div>
 
-      <aside class="flex flex-col border-t bg-canvas xl:h-full xl:w-[420px] xl:shrink-0 xl:border-l xl:border-t-0">
+      <aside
+        class="flex flex-col border-t bg-canvas lg:overflow-hidden lg:rounded-xl lg:border xl:h-full xl:w-[420px] xl:shrink-0"
+      >
         <div class="px-5 pb-4 pt-5">
           <SegmentedControl v-model="panel" :options="PANELS" label="Settings section" class="w-full" />
         </div>

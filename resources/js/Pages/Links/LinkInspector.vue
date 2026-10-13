@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { Archive, Trash2 } from '@lucide/vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 import ShortUrlComposer from '@/Components/Links/ShortUrlComposer.vue';
-import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import Switch from '@/Components/ui/Switch.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
-import { archiveLink, deleteLink } from '@/lib/linkActions';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
 import type { Domain, Folder, Tag } from '@/types/payloads';
@@ -139,27 +136,6 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :has-errors="routingHasErrors"
             :default-destination="form.destination_url"
           />
-        </div>
-
-        <div v-if="canEdit" class="flex items-center gap-1 px-3 pb-6">
-          <Button
-            v-if="link.status !== 'archived'"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="archiveLink(link, () => emit('close'))"
-          >
-            <Archive class="h-3.5 w-3.5" /> Archive
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            class="hover:bg-danger/10 hover:text-danger"
-            @click="deleteLink(link, () => emit('close'))"
-          >
-            <Trash2 class="h-3.5 w-3.5" /> Delete
-          </Button>
         </div>
       </fieldset>
     </form>

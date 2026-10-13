@@ -17,6 +17,14 @@ export default {
         mono: ['JetBrains Mono', ...defaultTheme.fontFamily.mono],
       },
       colors: {
+        sidebar: {
+          DEFAULT: 'hsl(var(--background) / <alpha-value>)',
+          foreground: 'hsl(var(--foreground) / <alpha-value>)',
+          accent: 'hsl(var(--elevated) / <alpha-value>)',
+          'accent-foreground': 'hsl(var(--foreground) / <alpha-value>)',
+          border: 'hsl(var(--border-strong) / <alpha-value>)',
+          ring: 'hsl(var(--accent) / <alpha-value>)',
+        },
         background: 'hsl(var(--background) / <alpha-value>)',
         canvas: 'hsl(var(--canvas) / <alpha-value>)',
         surface: 'hsl(var(--surface) / <alpha-value>)',

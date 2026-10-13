@@ -39,13 +39,18 @@ function switchTo(id: number) {
     <template #trigger>
       <button
         type="button"
-        class="group flex h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors duration-150 hover:bg-elevated/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 data-[state=open]:bg-elevated/70"
+        :aria-label="workspace?.name ?? 'Openlink'"
+        :title="workspace?.name ?? 'Openlink'"
+        class="group flex h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors duration-150 hover:bg-elevated/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 data-[state=open]:bg-elevated/70 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
       >
         <WorkspaceAvatar :name="workspace?.name" :icon="workspace?.icon" />
-        <span class="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{{
-          workspace?.name ?? 'Openlink'
-        }}</span>
-        <ChevronsUpDown class="h-3.5 w-3.5 shrink-0 text-faint transition-colors group-hover:text-muted" />
+        <span
+          class="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em] group-data-[collapsible=icon]:hidden"
+          >{{ workspace?.name ?? 'Openlink' }}</span
+        >
+        <ChevronsUpDown
+          class="h-3.5 w-3.5 shrink-0 text-faint transition-colors group-hover:text-muted group-data-[collapsible=icon]:hidden"
+        />
       </button>
     </template>
 

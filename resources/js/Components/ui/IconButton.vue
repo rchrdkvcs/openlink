@@ -23,7 +23,7 @@ withDefaults(
     :aria-label="title"
     :class="
       cn(
-        'grid shrink-0 place-items-center rounded-lg text-muted transition-[color,background-color,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-95',
+        'grid shrink-0 place-items-center rounded-lg text-muted transition-[color,background-color,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50',
         size === 'sm' ? 'h-6 w-6 [&_svg]:h-3.5 [&_svg]:w-3.5' : 'h-7 w-7 [&_svg]:h-4 [&_svg]:w-4',
         variant === 'danger' ? 'hover:bg-danger/15 hover:text-danger' : 'hover:bg-elevated hover:text-foreground',
       )

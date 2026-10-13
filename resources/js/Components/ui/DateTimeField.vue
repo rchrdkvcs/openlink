@@ -105,6 +105,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
           <button
             type="button"
             class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
+            aria-label="Previous month"
             @click="shiftMonth(-1)"
           >
             <ChevronLeft class="h-4 w-4" />
@@ -113,6 +114,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: pad
           <button
             type="button"
             class="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-elevated hover:text-foreground"
+            aria-label="Next month"
             @click="shiftMonth(1)"
           >
             <ChevronRight class="h-4 w-4" />

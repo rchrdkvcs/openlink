@@ -77,7 +77,7 @@ function select(key: string) {
             v-for="(option, index) in options"
             :key="normalize(option.value)"
             :value="String(index)"
-            class="relative flex cursor-default select-none items-center rounded-lg py-1.5 pe-8 ps-2.5 text-[13px] text-foreground outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-elevated data-[state=checked]:text-accent data-[disabled]:opacity-50"
+            class="relative flex select-none items-center rounded-lg py-1.5 pe-8 ps-2.5 text-[13px] text-foreground outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-elevated data-[state=checked]:text-accent data-[disabled]:opacity-50"
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
             <SelectItemIndicator class="absolute end-2"><Check class="h-3.5 w-3.5" /></SelectItemIndicator>

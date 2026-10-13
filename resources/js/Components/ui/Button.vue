@@ -47,6 +47,7 @@ withDefaults(
   <button
     :type="type"
     :disabled="disabled || loading"
+    :aria-busy="loading || undefined"
     :class="cn(buttonVariants({ variant, size }), $attrs.class as string)"
   >
     <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />

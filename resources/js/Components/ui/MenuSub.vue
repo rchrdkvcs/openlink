@@ -18,7 +18,7 @@ withDefaults(
 <template>
   <DropdownMenuSub>
     <DropdownMenuSubTrigger
-      class="flex h-8 cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground outline-none transition-colors duration-75 data-[highlighted]:bg-elevated data-[state=open]:bg-elevated"
+      class="flex h-8 select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground outline-none transition-colors duration-75 data-[highlighted]:bg-elevated data-[state=open]:bg-elevated"
     >
       <component :is="icon" v-if="icon" class="h-3.5 w-3.5 shrink-0 text-muted" />
       <span class="min-w-0 flex-1 truncate">{{ label }}</span>

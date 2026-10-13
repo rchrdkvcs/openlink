@@ -50,7 +50,7 @@ function onDragStart(event: DragEvent) {
     :aria-selected="selected"
     tabindex="-1"
     :data-link-id="link.id"
-    class="group/row relative flex cursor-default items-center gap-3 rounded-lg px-3 py-2 outline-none transition-colors duration-100"
+    class="group/row relative flex items-center gap-3 rounded-lg px-3 py-2 outline-none transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
     :class="[selected ? 'bg-elevated' : 'hover:bg-elevated/50', draggedLink?.id === link.id ? 'opacity-40' : '']"
     :draggable="canEdit"
     @click="emit('select')"

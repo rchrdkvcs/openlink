@@ -123,7 +123,7 @@ function onKeydown(event: KeyboardEvent) {
               :key="entry.key"
               role="option"
               :aria-selected="entryValue(entry) === model"
-              class="flex cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px]"
+              class="flex select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px]"
               :class="[
                 entry.link?.destination_url ? 'py-1.5' : 'h-8',
                 offsets[groupIndex] + entryIndex === activeIndex ? 'bg-elevated' : '',

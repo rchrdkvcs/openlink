@@ -32,15 +32,21 @@ const emit = defineEmits<{ open: [id: number] }>();
       <div
         v-for="link in links"
         :key="link.id"
-        class="flex cursor-default items-center gap-3 px-3.5 py-2 transition-colors hover:bg-elevated/40"
-        @click="emit('open', link.id)"
+        class="relative flex items-center gap-3 px-3.5 py-2 transition-colors focus-within:bg-elevated/40 hover:bg-elevated/40"
       >
+        <button
+          type="button"
+          class="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+          :aria-label="`Open ${displayUrl(link.short_url)}`"
+          @click="emit('open', link.id)"
+        />
         <Favicon :url="link.destination_url" />
         <div class="min-w-0 flex-1">
           <button
             type="button"
-            class="group/copy -mx-1 inline-flex max-w-full items-center gap-1.5 rounded-md px-1 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-border-strong/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            class="group/copy relative z-10 -mx-1 inline-flex max-w-full items-center gap-1.5 rounded-md px-1 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-border-strong/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             title="Copy short link"
+            :aria-label="`Copy ${displayUrl(link.short_url)}`"
             @click.stop="copyToClipboard(link.short_url)"
           >
             <span class="truncate">{{ displayUrl(link.short_url) }}</span>

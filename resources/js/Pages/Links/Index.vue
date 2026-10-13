@@ -87,10 +87,10 @@ useLinkListKeyboard({
 <template>
   <Head :title="view.title" />
 
-  <AuthenticatedLayout>
-    <div class="flex xl:h-full">
+  <AuthenticatedLayout panels>
+    <div class="flex lg:h-full">
       <div
-        class="min-w-0 flex-1 px-4 py-6 [scrollbar-gutter:stable] sm:px-6 lg:px-8 lg:py-8 xl:overflow-y-auto xl:overscroll-contain"
+        class="min-w-0 flex-1 px-4 py-6 [scrollbar-gutter:stable] sm:px-6 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border lg:bg-canvas lg:px-8 lg:py-8"
       >
         <div class="mx-auto w-full max-w-5xl">
           <PageHeader :title="view.title" :description="view.description">
@@ -163,16 +163,18 @@ useLinkListKeyboard({
       </div>
 
       <Transition
-        enter-active-class="transition-[width,translate,opacity] duration-300 ease-drawer motion-reduce:transition-none"
-        enter-from-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0"
-        leave-active-class="transition-[width,translate,opacity] duration-200 ease-drawer motion-reduce:transition-none"
-        leave-to-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0"
+        enter-active-class="transition-[width,padding,translate,opacity] duration-300 ease-drawer motion-reduce:transition-none"
+        enter-from-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0 xl:pl-0!"
+        leave-active-class="transition-[width,padding,translate,opacity] duration-200 ease-drawer motion-reduce:transition-none"
+        leave-to-class="translate-x-4 opacity-0 xl:w-0! xl:translate-x-0 xl:pl-0!"
       >
         <div
           v-if="selected"
-          class="fixed inset-0 z-40 xl:static xl:z-auto xl:h-full xl:w-[440px] xl:shrink-0 xl:overflow-hidden xl:border-l 2xl:w-[480px]"
+          class="fixed inset-0 z-40 sm:inset-y-2 sm:left-auto sm:right-2 sm:w-[440px] sm:max-w-[calc(100vw-1rem)] xl:static xl:z-auto xl:h-full xl:w-[448px] xl:max-w-none xl:shrink-0 xl:overflow-hidden xl:pl-2 2xl:w-[488px]"
         >
-          <div class="h-full xl:w-[440px] 2xl:w-[480px]">
+          <div
+            class="h-full overflow-hidden sm:rounded-xl sm:shadow-dialog xl:w-[440px] xl:border xl:shadow-none 2xl:w-[480px]"
+          >
             <LinkInspector
               :link="selected"
               :domains="usableDomains"

@@ -11,6 +11,8 @@ import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import CreateWorkspaceModal from '@/Components/Workspaces/CreateWorkspaceModal.vue';
 import { useShell } from '@/lib/shell';
 
+const props = withDefaults(defineProps<{ panels?: boolean }>(), { panels: false });
+
 const mobileNavOpen = ref(false);
 const paletteOpen = ref(false);
 const showCreateWorkspace = ref(false);
@@ -68,13 +70,13 @@ onUnmounted(() => {
       </Transition>
       <Transition
         enter-active-class="transition-transform ease-emphasized-out duration-300"
-        enter-from-class="-translate-x-full"
+        enter-from-class="-translate-x-[calc(100%+0.5rem)]"
         leave-active-class="transition-transform ease-drawer duration-200"
-        leave-to-class="-translate-x-full"
+        leave-to-class="-translate-x-[calc(100%+0.5rem)]"
       >
         <aside
           v-if="mobileNavOpen"
-          class="fixed inset-y-0 left-0 z-50 w-72 border-r bg-background shadow-drawer lg:hidden"
+          class="fixed inset-y-2 left-2 z-50 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl bg-background shadow-dialog lg:hidden"
           aria-label="Sidebar"
         >
           <SidebarContent @search="openPalette" @create-workspace="openCreateWorkspace" />
@@ -108,7 +110,10 @@ onUnmounted(() => {
 
       <main
         id="app-scroll"
-        class="flex-1 bg-canvas [scrollbar-gutter:stable] lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border"
+        :class="[
+          'flex-1 bg-canvas lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain',
+          props.panels ? 'lg:bg-transparent' : '[scrollbar-gutter:stable] lg:rounded-xl lg:border',
+        ]"
       >
         <div class="lg:h-full">
           <slot />

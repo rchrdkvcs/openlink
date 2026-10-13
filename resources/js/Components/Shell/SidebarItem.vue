@@ -18,13 +18,18 @@ withDefaults(
 
 <template>
   <SidebarMenuItem
-    class="group/item relative flex h-8 items-center rounded-lg transition-colors duration-100"
+    class="group/item relative flex h-8 items-center rounded-lg transition-colors duration-100 group-data-[collapsible=icon]:size-8"
     :class="[
       active ? 'bg-elevated text-foreground' : 'text-muted hover:bg-elevated/50 hover:text-foreground',
       dropActive ? 'bg-accent/15 text-foreground ring-1 ring-inset ring-accent/60' : '',
     ]"
   >
-    <SidebarMenuButton as-child :is-active="active" :tooltip="label" class="p-0 text-[13px]">
+    <SidebarMenuButton
+      as-child
+      :is-active="active"
+      :tooltip="label"
+      class="p-0 text-[13px] group-data-[collapsible=icon]:justify-center"
+    >
       <Link
         :href="href"
         :aria-label="label"

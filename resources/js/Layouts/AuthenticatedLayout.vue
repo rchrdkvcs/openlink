@@ -53,7 +53,7 @@ onUnmounted(() => {
     :data-resizing="resizingSidebar"
     :style="{ '--sidebar-width': `${sidebarWidth}px`, '--sidebar-width-icon': '3.5rem' }"
   >
-    <Sidebar collapsible="icon" class="border-r-0">
+    <Sidebar collapsible="icon" class="group-data-[side=left]:border-r-0">
       <SidebarContent @search="openPalette" @create-workspace="openCreateWorkspace" />
       <SidebarResize v-model="sidebarWidth" @resizing="resizingSidebar = $event" />
     </Sidebar>

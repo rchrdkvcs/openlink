@@ -131,7 +131,7 @@ const { dropKey, onDragOver, onDragLeave, onDrop } = useLinkDrop();
           type="button"
           aria-label="New folder"
           title="New folder"
-          class="flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[13px] text-faint transition-colors hover:bg-elevated/50 hover:text-muted"
+          class="flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[13px] text-faint transition-colors hover:bg-elevated/50 hover:text-muted group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
           @click="
             expandFolders();
             startCreate();

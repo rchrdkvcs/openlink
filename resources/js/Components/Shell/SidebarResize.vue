@@ -57,7 +57,7 @@ function keydown(event: KeyboardEvent) {
     :aria-valuemax="384"
     tabindex="0"
     title="Drag to resize · Double-click to reset"
-    class="absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none outline-none after:absolute after:inset-y-3 after:left-1/2 after:w-0.5 after:rounded-full hover:after:bg-accent/60 focus-visible:after:bg-accent"
+    class="absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none outline-none after:absolute after:inset-y-3 after:left-1/2 after:w-px after:-translate-x-1/2 after:rounded-full hover:after:bg-border-strong focus-visible:after:bg-accent"
     :class="dragging ? 'after:bg-accent' : ''"
     @pointerdown.prevent="start"
     @pointermove="move"

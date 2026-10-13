@@ -48,7 +48,7 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
 
 <template>
   <div class="flex h-full flex-col">
-    <SidebarHeader class="gap-2 px-3 pt-3 group-data-[collapsible=icon]:px-2">
+    <SidebarHeader class="gap-2 px-3 pt-3">
       <div class="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
         <div class="min-w-0 flex-1 group-data-[collapsible=icon]:flex-none">
           <WorkspaceMenu @create="createWorkspace" />
@@ -70,7 +70,7 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
     </SidebarHeader>
 
     <SidebarContent class="gap-0">
-      <nav class="mt-4 min-h-0 flex-1 px-3 pb-3 group-data-[collapsible=icon]:px-2" aria-label="Main">
+      <nav class="mt-4 min-h-0 flex-1 px-3 pb-3" aria-label="Main">
         <SidebarMenu class="gap-px">
           <SidebarItem :href="route('dashboard')" :icon="Home" label="Home" :active="route().current('dashboard')" />
           <SidebarItem
@@ -98,7 +98,7 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
       </nav>
     </SidebarContent>
 
-    <SidebarFooter class="px-3 pb-3 pt-2 group-data-[collapsible=icon]:px-2">
+    <SidebarFooter class="px-3 pb-3 pt-2">
       <UserMenu />
     </SidebarFooter>
   </div>

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Copy, ExternalLink, QrCode, X } from '@lucide/vue';
+import { Archive, Copy, ExternalLink, QrCode, Trash2, X } from '@lucide/vue';
 
 import Favicon from '@/Components/Links/Favicon.vue';
 import Button from '@/Components/ui/Button.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
-import { createQrCodeFor } from '@/lib/linkActions';
+import { archiveLink, createQrCodeFor, deleteLink } from '@/lib/linkActions';
 import { displayUrl } from '@/lib/links';
 import { useShell } from '@/lib/shell';
 import { copyToClipboard } from '@/lib/toast';
@@ -32,7 +32,19 @@ const { canEdit } = useShell();
         {{ displayUrl(link.destination_url) }}
       </p>
     </div>
-    <IconButton title="Close" @click="emit('close')"><X class="h-4 w-4" /></IconButton>
+    <div class="flex shrink-0 items-center gap-1">
+      <IconButton
+        v-if="canEdit && link.status !== 'archived'"
+        title="Archive"
+        @click="archiveLink(link, () => emit('close'))"
+      >
+        <Archive class="h-4 w-4" />
+      </IconButton>
+      <IconButton v-if="canEdit" title="Delete" variant="danger" @click="deleteLink(link, () => emit('close'))">
+        <Trash2 class="h-4 w-4" />
+      </IconButton>
+      <IconButton title="Close" @click="emit('close')"><X class="h-4 w-4" /></IconButton>
+    </div>
   </header>
 
   <div class="flex items-center gap-1.5 border-b px-5 pb-3">

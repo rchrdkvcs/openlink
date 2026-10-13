@@ -141,7 +141,7 @@ defineExpose({ focus });
     @submit.prevent="submit"
   >
     <div class="flex items-center gap-2.5 pl-3.5 pr-1.5" :class="size === 'lg' ? 'h-12' : 'h-11'">
-      <Favicon :url="normalized" size="sm" />
+      <Favicon :url="normalized" :size="size === 'lg' ? 'lg' : 'sm'" />
       <input
         ref="input"
         v-model="form.destination_url"

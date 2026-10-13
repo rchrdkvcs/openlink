@@ -37,12 +37,18 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
   <Sheet v-else-if="isMobile" :open="openMobile" v-bind="$attrs" @update:open="setOpenMobile">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-40 bg-black/60" />
+      <DialogOverlay
+        class="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] data-[state=closed]:duration-150 data-[state=open]:duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+      />
       <SheetContent
         data-sidebar="sidebar"
         data-mobile="true"
-        :class="side === 'left' ? 'left-0' : 'right-0'"
-        class="fixed inset-y-0 z-50 w-[var(--sidebar-width)] border-r bg-sidebar p-0 text-sidebar-foreground outline-none [&>button]:hidden"
+        :class="
+          side === 'left'
+            ? 'left-2 data-[state=closed]:slide-out-to-left-[calc(100%+0.5rem)] data-[state=open]:slide-in-from-left-[calc(100%+0.5rem)]'
+            : 'right-2 data-[state=closed]:slide-out-to-right-[calc(100%+0.5rem)] data-[state=open]:slide-in-from-right-[calc(100%+0.5rem)]'
+        "
+        class="fixed inset-y-2 z-50 w-[var(--sidebar-width)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl bg-sidebar p-0 text-sidebar-foreground shadow-dialog outline-none data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:[animation-timing-function:cubic-bezier(0.16,1,0.3,1)] data-[state=closed]:[animation-timing-function:cubic-bezier(0.32,0.72,0,1)] [&>button]:hidden"
         :style="{
           '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
         }"

@@ -101,9 +101,12 @@ const groups = computed(() => {
 </script>
 
 <template>
-  <AuthenticatedLayout>
-    <div class="flex flex-col gap-8 px-4 py-6 sm:px-6 lg:flex-row lg:gap-10 lg:px-8 lg:py-8">
-      <nav class="shrink-0 lg:sticky lg:top-8 lg:w-52 lg:self-start" aria-label="Settings">
+  <AuthenticatedLayout panels>
+    <div class="flex flex-col gap-8 px-4 py-6 sm:px-6 lg:h-full lg:flex-row lg:gap-2 lg:p-0">
+      <nav
+        class="shrink-0 lg:w-60 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border lg:bg-canvas lg:px-3 lg:py-6"
+        aria-label="Settings"
+      >
         <p class="mb-4 hidden px-2 text-[22px] font-semibold tracking-[-0.015em] lg:block">Settings</p>
         <div class="flex gap-6 overflow-x-auto pb-1 lg:block lg:space-y-6 lg:overflow-visible lg:pb-0">
           <div v-for="group in groups" :key="group.label" class="shrink-0">
@@ -131,7 +134,9 @@ const groups = computed(() => {
         </div>
       </nav>
 
-      <div class="min-w-0 flex-1">
+      <div
+        class="min-w-0 flex-1 [scrollbar-gutter:stable] lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border lg:bg-canvas lg:px-8 lg:py-8"
+      >
         <div class="w-full">
           <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div class="min-w-0">

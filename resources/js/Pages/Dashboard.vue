@@ -65,7 +65,6 @@ function onEdit(link: ComposerLink) {
           v-if="canEdit"
           class="mt-7"
           size="lg"
-          autofocus
           :domains="domains"
           :folders="folders"
           :preferred-domain-id="workspace?.preferred_domain_id ?? null"

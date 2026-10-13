@@ -13,6 +13,8 @@ import WorkspaceAvatar from '@/Components/WorkspaceAvatar.vue';
 import CreateWorkspaceModal from '@/Components/Workspaces/CreateWorkspaceModal.vue';
 import { useShell } from '@/lib/shell';
 
+const props = withDefaults(defineProps<{ panels?: boolean }>(), { panels: false });
+
 const sidebarWidth = useStorage('openlink-sidebar-width', 240);
 sidebarWidth.value = Number.isFinite(sidebarWidth.value) ? Math.min(384, Math.max(208, sidebarWidth.value)) : 240;
 const resizingSidebar = ref(false);
@@ -75,7 +77,10 @@ onUnmounted(() => {
 
       <main
         id="app-scroll"
-        class="flex-1 bg-canvas [scrollbar-gutter:stable] lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border"
+        :class="[
+          'flex-1 bg-canvas lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain',
+          props.panels ? 'lg:bg-transparent' : '[scrollbar-gutter:stable] lg:rounded-xl lg:border',
+        ]"
       >
         <div class="lg:h-full">
           <slot />

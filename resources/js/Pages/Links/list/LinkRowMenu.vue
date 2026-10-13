@@ -57,7 +57,7 @@ function openShortUrl() {
       <MenuSeparator />
       <DropdownMenuSub v-if="folders.length">
         <DropdownMenuSubTrigger
-          class="flex h-8 cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground outline-none data-[highlighted]:bg-elevated data-[state=open]:bg-elevated"
+          class="flex h-8 select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-foreground outline-none data-[highlighted]:bg-elevated data-[state=open]:bg-elevated"
         >
           <FolderInput class="h-4 w-4 text-muted" />
           <span class="flex-1">Move to</span>

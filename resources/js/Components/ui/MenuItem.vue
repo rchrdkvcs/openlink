@@ -19,7 +19,7 @@ const emit = defineEmits<{ select: [event: Event] }>();
 <template>
   <DropdownMenuItem
     :disabled="disabled"
-    class="flex h-8 cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] outline-none transition-colors duration-75 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+    class="flex h-8 select-none items-center gap-2.5 rounded-lg px-2.5 text-[13px] outline-none transition-colors duration-75 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
     :class="
       destructive ? 'text-danger data-[highlighted]:bg-danger/15' : 'text-foreground data-[highlighted]:bg-elevated'
     "

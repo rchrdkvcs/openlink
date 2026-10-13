@@ -33,7 +33,7 @@ defineProps<{
       <div class="min-w-0 flex-1">
         <Link
           :href="route('qr-codes.show', qr.token)"
-          class="block truncate text-sm font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
+          class="block truncate text-sm font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-accent"
         >
           {{ qr.name }}
         </Link>

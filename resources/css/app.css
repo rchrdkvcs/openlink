@@ -10,10 +10,39 @@
     border-color: hsl(var(--border));
   }
 
-  button:not(:disabled),
-  [role='button']:not([aria-disabled='true']),
-  ::file-selector-button {
+  :where(
+      button,
+      a[href],
+      summary,
+      select,
+      input[type='checkbox'],
+      input[type='radio'],
+      input[type='color'],
+      input[type='button'],
+      input[type='submit'],
+      input[type='reset'],
+      [role='button'],
+      [role='link'],
+      [role='menuitem'],
+      [role='menuitemcheckbox'],
+      [role='menuitemradio'],
+      [role='option'],
+      [role='tab'],
+      [role='switch'],
+      [role='radio'],
+      [role='checkbox']
+    ):not(:disabled):not([aria-disabled='true']):not([data-disabled]),
+  input:not(:disabled)::file-selector-button {
     cursor: pointer;
+  }
+
+  :where(:disabled, [aria-disabled='true'], [data-disabled]) {
+    cursor: not-allowed;
+  }
+
+  :where(button, a[href], summary, select, input, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
   }
 }
 

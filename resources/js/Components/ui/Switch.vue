@@ -11,7 +11,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
     type="button"
     role="switch"
     :aria-checked="modelValue"
-    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50"
     :class="modelValue ? 'bg-accent' : 'bg-border-strong'"
     @click="emit('update:modelValue', !modelValue)"
   >

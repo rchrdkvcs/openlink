@@ -73,7 +73,12 @@ function popLast() {
         class="inline-flex h-5 items-center gap-1 rounded-md bg-border-strong px-1.5 text-xs text-foreground"
       >
         #{{ tag }}
-        <button type="button" class="text-faint hover:text-foreground" @click="remove(tag)">
+        <button
+          type="button"
+          class="rounded-sm text-faint hover:text-foreground"
+          :aria-label="`Remove tag ${tag}`"
+          @click="remove(tag)"
+        >
           <X class="h-3 w-3" />
         </button>
       </span>

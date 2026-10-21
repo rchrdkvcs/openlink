@@ -7,17 +7,21 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useShell } from '@/lib/shell';
+import { toast } from '@/lib/toast';
 import { useSaveShortcut } from '@/lib/useSaveShortcut';
 
 import { studioDescription, targetLabel } from './qrLabels';
 import { PANELS } from './qrPanels';
+import { blockedReason, readabilityUrl, readableFixes } from './qrReadability';
 import AdvancedPanel from './Studio/AdvancedPanel.vue';
 import ContentPanel from './Studio/ContentPanel.vue';
 import QrCodeActions from './Studio/QrCodeActions.vue';
 import QrCodePreview from './Studio/QrCodePreview.vue';
+import ReadabilityCheck from './Studio/ReadabilityCheck.vue';
 import StudioSaveBar from './Studio/StudioSaveBar.vue';
 import StylePanel from './Studio/StylePanel.vue';
 import { useQrCodeEditor } from './Studio/useQrCodeEditor';
+import { useReadabilityCheck } from './Studio/useReadabilityCheck';
 import type { PayloadDescriptors, QrCodeRecord, QrCodeTemplate, ShortLinkOption } from './types';
 
 const props = defineProps<{
@@ -30,10 +34,39 @@ const props = defineProps<{
 
 const { canEdit, canManage } = useShell();
 
-const { form, panel, isDirty, previewUrl, appliedTemplate, save, discard, applyTemplate, pickLogo, removeLogo } =
-  useQrCodeEditor(props.qr, props.payloadDescriptors, () => canEdit.value);
+const {
+  form,
+  panel,
+  isDirty,
+  previewUrl,
+  previewVersion,
+  appliedTemplate,
+  save,
+  discard,
+  applyTemplate,
+  pickLogo,
+  removeLogo,
+} = useQrCodeEditor(props.qr, props.payloadDescriptors, () => canEdit.value);
 
 const exportSize = ref(props.qr.size);
+
+const { state: readability, check: checkReadability } = useReadabilityCheck(
+  computed(() => readabilityUrl(props.qr.token, form, exportSize.value, previewVersion.value)),
+  computed(() => blockedReason(form, props.qr)),
+);
+
+function applyReadableFixes() {
+  if (readability.value.status !== 'ready') return;
+
+  const { warnings, summary } = readability.value.result;
+  const fixes = readableFixes(warnings, form, summary);
+  Object.assign(form, fixes.appearance);
+  if (fixes.exportSize) exportSize.value = fixes.exportSize;
+  toast({
+    title: 'Readable settings applied to the draft',
+    description: 'Review the preview, then save to keep them.',
+  });
+}
 
 const description = computed(() =>
   studioDescription(
@@ -71,15 +104,24 @@ useSaveShortcut(() => {
         </PageHeader>
 
         <div class="flex flex-1 items-center justify-center py-8 xl:py-10">
-          <QrCodePreview
-            v-model:export-size="exportSize"
-            :qr="qr"
-            :src="previewUrl"
-            :target-type="form.target_type"
-            :background-color="form.background_color"
-            :transparent="form.background_transparent"
-            :pending-logo="form.logo !== null"
-          />
+          <div class="w-full max-w-[380px]">
+            <QrCodePreview
+              v-model:export-size="exportSize"
+              :qr="qr"
+              :src="previewUrl"
+              :target-type="form.target_type"
+              :background-color="form.background_color"
+              :transparent="form.background_transparent"
+              :pending-logo="form.logo !== null"
+            />
+            <ReadabilityCheck
+              :state="readability"
+              :export-size="exportSize"
+              :can-edit="canEdit"
+              @check="checkReadability"
+              @apply-fixes="applyReadableFixes"
+            />
+          </div>
         </div>
       </div>
 

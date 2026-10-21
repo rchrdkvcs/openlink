@@ -191,6 +191,8 @@ QR code features:
 
 Each QR code has a dedicated studio page with a live preview of unsaved settings, copyable entry URL, and PNG/SVG downloads at a chosen size.
 
+Before exporting, any workspace member can run a Readability Check from the studio. It decodes the PNG and SVG exports of the current draft at the chosen export size and reports, per format, whether the code decodes to the expected content, decodes to other content, cannot be decoded, uses an unsupported format, or cannot be checked. It also flags weak or inverted contrast, transparent backgrounds, missing or narrow quiet zones, small modules, and logos that cover too much of the code, and summarises the encoded content, linked Short URL, output dimensions, domain availability, and lifecycle restrictions. Results are discarded as out of date as soon as the payload, design, logo, or export size changes. Members who can edit may apply readable settings to the draft; nothing is saved until they save. Unsaved logo or target changes must be saved before they can be checked. The check makes no visits or scans and always recommends a physical print test. See ADR 0015 for rasterisation assumptions.
+
 ## Analytics
 
 Analytics are aggregated and do not identify individual visitors.

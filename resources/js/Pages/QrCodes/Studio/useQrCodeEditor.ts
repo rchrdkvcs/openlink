@@ -73,5 +73,17 @@ export function useQrCodeEditor(qr: QrCodeRecord, descriptors: PayloadDescriptor
     form.remove_logo = true;
   }
 
-  return { form, panel, isDirty, previewUrl, appliedTemplate, save, discard, applyTemplate, pickLogo, removeLogo };
+  return {
+    form,
+    panel,
+    isDirty,
+    previewUrl,
+    previewVersion,
+    appliedTemplate,
+    save,
+    discard,
+    applyTemplate,
+    pickLogo,
+    removeLogo,
+  };
 }

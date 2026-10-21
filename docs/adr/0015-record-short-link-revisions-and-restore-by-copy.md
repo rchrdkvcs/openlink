@@ -1,0 +1,13 @@
+# Record Short Link revisions and restore by copying them forward
+
+Every successful change to a Short Link's configuration appends one Link Revision inside the same database transaction as the change: a full snapshot of the restorable configuration after the change, a field-level before/after diff, the acting member, and the mutation channel (dashboard, API, or system). A rolled-back mutation therefore leaves no revision, and one logical mutation — however many rows it touches across the link, its tags, and its routing rules — produces exactly one revision. We chose full snapshots over storing only diffs so any revision can be previewed and restored on its own, without replaying the chain, and so the chain survives revisions written before a schema change.
+
+Restoring never rewrites or deletes history. It copies the chosen snapshot forward through the same validation and write path as a normal edit, then appends a new `restored` revision that names its source. The restore must carry the revision number the member was looking at (`expected_revision`); the link row is locked and the number compared before anything is written, so a stale restore or edit is rejected instead of silently overwriting a newer change. Dashboard edits send the same check.
+
+**Consequences**
+
+- Snapshots carry a schema version. A revision whose version the application no longer supports can still be read but cannot be restored, and says so.
+- Restoration covers the Destination URL, Fallback URL, enabled and archived state, activation and expiration dates, Visit Limit, folder, tags, and ordered Smart Routing. It never changes the Short URL (domain and slug are shown in history but not restored), never resets successful visits or analytics, never rotates QR Code tokens, and never restores a visitor password: snapshots record only whether a link was protected.
+- Referenced resources are resolved against the current workspace at restore time. A deleted folder leaves the link without a folder; deleted tags are recreated by name, as tag input already does; destinations and routing rules are revalidated against the current address.
+- Routing rules and variants keep their identity when they still exist on the link, so analytics attributed to them stay connected. Rules that no longer exist are recreated as new rules; analytics for the deleted ones keep their visits but lose rule attribution exactly as a normal edit would.
+- History belongs to the Short Link: it is kept for the link's lifetime and deleted with the link or its workspace. A deleted member's revisions remain, shown without the member's name.

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\QrCodeController;
 use App\Http\Controllers\Api\V1\ShortLinkController;
 use App\Http\Controllers\Api\V1\ShortLinkCsvController;
+use App\Http\Controllers\Api\V1\ShortLinkRevisionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Middleware\EnsureApiEmailIsVerified;
@@ -69,6 +70,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('links.move');
             Route::post('/links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('links.archive');
             Route::delete('/links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('links.destroy');
+            Route::get('/links/{shortLink}/revisions', [ShortLinkRevisionController::class, 'index'])->name('links.revisions.index');
+            Route::get('/links/{shortLink}/revisions/{revision}', [ShortLinkRevisionController::class, 'show'])->whereNumber('revision')->name('links.revisions.show');
+            Route::post('/links/{shortLink}/revisions/{revision}/restore', [ShortLinkRevisionController::class, 'restore'])->whereNumber('revision')->name('links.revisions.restore');
 
             Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
             Route::patch('/qr-codes/{qrCode}', [QrCodeController::class, 'update'])->name('qr-codes.update');

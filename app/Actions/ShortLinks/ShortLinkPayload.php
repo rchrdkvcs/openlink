@@ -45,6 +45,7 @@ class ShortLinkPayload
             'visit_limit' => $link->visit_limit,
             'successful_visits' => $link->successful_visits,
             'has_password' => $link->hasPassword(),
+            'revision' => $link->revision,
             'routing_rules' => $link->routingRules->map(fn ($rule) => [
                 'id' => $rule->id,
                 'name' => $rule->name,

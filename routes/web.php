@@ -20,6 +20,7 @@ use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\ShortLinkCsvController;
 use App\Http\Controllers\ShortLinkRoutingController;
+use App\Http\Controllers\ShortLinkRevisionController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UtmTemplateController;
 use App\Http\Controllers\WorkspaceController;
@@ -124,6 +125,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
         Route::post('/short-links/import/preview', [ShortLinkCsvController::class, 'preview'])->name('short-links.import.preview');
         Route::post('/short-links/import', [ShortLinkCsvController::class, 'store'])->name('short-links.import');
+        Route::get('/short-links/{shortLink}/revisions', [ShortLinkRevisionController::class, 'index'])->name('short-links.revisions.index');
+        Route::get('/short-links/{shortLink}/revisions/{revision}', [ShortLinkRevisionController::class, 'show'])->whereNumber('revision')->name('short-links.revisions.show');
+        Route::post('/short-links/{shortLink}/revisions/{revision}/restore', [ShortLinkRevisionController::class, 'restore'])->whereNumber('revision')->name('short-links.revisions.restore');
 
         Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
         Route::get('/qr-codes/short-links/search', [QrCodeController::class, 'shortLinks'])->name('qr-codes.short-links');

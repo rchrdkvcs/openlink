@@ -8,7 +8,15 @@ export const PANELS: { value: Panel; label: string }[] = [
 
 const PANEL_FIELDS: Record<Panel, string[]> = {
   content: ['name', 'short_link_id', 'payload_type', 'payload'],
-  style: ['style', 'eye_style', 'foreground_color', 'background_color', 'background_transparent', 'logo'],
+  style: [
+    'style',
+    'eye_style',
+    'foreground_color',
+    'background_color',
+    'background_transparent',
+    'logo',
+    'logo_template_id',
+  ],
   advanced: ['margin', 'error_correction', 'size'],
 };
 

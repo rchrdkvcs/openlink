@@ -79,6 +79,7 @@ describe('panelForErrors', () => {
   it('reveals the first panel containing an error', () => {
     expect(panelForErrors(['payload.url'])).toBe('content');
     expect(panelForErrors(['margin', 'logo'])).toBe('style');
+    expect(panelForErrors(['logo_template_id'])).toBe('style');
     expect(panelForErrors([])).toBeNull();
   });
 });

@@ -53,9 +53,7 @@ class QrCodeImages
     private function previewLogo(QrCode $qrCode, array $overrides): void
     {
         if (isset($overrides['logo_template_id'])) {
-            $qrCode->logo_path = $qrCode->workspace->qrCodeTemplates()
-                ->whereKey((int) $overrides['logo_template_id'])
-                ->value('logo_path');
+            $qrCode->logo_path = QrCodeTemplates::logoOf($qrCode, (int) $overrides['logo_template_id']);
         } elseif ($overrides['remove_logo'] ?? false) {
             $qrCode->logo_path = null;
         }

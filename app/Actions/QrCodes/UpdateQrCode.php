@@ -6,6 +6,7 @@ use App\Models\QrCode;
 use App\Services\QrCodes\QrCodeLogoStorage;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class UpdateQrCode
 {
@@ -37,8 +38,14 @@ class UpdateQrCode
         );
     }
 
-    private function templateLogo(QrCode $qrCode, int $templateId): ?string
+    private function templateLogo(QrCode $qrCode, int $templateId): string
     {
-        return $qrCode->workspace->qrCodeTemplates()->whereKey($templateId)->value('logo_path');
+        $path = QrCodeTemplates::logoOf($qrCode, $templateId);
+
+        if (! $this->logos->exists($path)) {
+            throw ValidationException::withMessages(['logo_template_id' => 'This template’s logo is no longer available.']);
+        }
+
+        return $path;
     }
 }

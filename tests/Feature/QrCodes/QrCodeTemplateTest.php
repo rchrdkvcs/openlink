@@ -240,6 +240,21 @@ class QrCodeTemplateTest extends TestCase
         $this->assertFalse($qrCode->refresh()->hasLogo());
     }
 
+    public function test_applying_a_template_with_a_missing_logo_file_keeps_the_current_logo(): void
+    {
+        [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();
+        $qrCode->update(['logo_path' => $current = $this->storedLogo()]);
+        $template = $this->template($workspace, 'Brand', $this->storedLogo());
+        Storage::delete($template->logo_path);
+
+        $this->actingAs($owner)
+            ->patch(route('qr-codes.update', $qrCode), ['logo_template_id' => $template->id])
+            ->assertSessionHasErrors('logo_template_id');
+
+        $this->assertSame($current, $qrCode->refresh()->logo_path);
+        Storage::assertExists($current);
+    }
+
     public function test_a_template_logo_still_raises_low_error_correction(): void
     {
         [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();

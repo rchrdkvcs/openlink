@@ -34,6 +34,11 @@ class QrCodeLogoStorage
         return Storage::get($qrCode->logo_path);
     }
 
+    public function exists(?string $path): bool
+    {
+        return is_string($path) && $path !== '' && Storage::exists($path);
+    }
+
     public function pathsOf(Builder $qrCodes): array
     {
         return $qrCodes->whereNotNull('logo_path')->pluck('logo_path')->all();
@@ -77,7 +82,7 @@ class QrCodeLogoStorage
 
     private function copy(?string $source): ?string
     {
-        if (! is_string($source) || $source === '' || ! Storage::exists($source)) {
+        if (! $this->exists($source)) {
             return null;
         }
 

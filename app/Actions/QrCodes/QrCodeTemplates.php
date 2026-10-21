@@ -23,6 +23,11 @@ class QrCodeTemplates
         ];
     }
 
+    public static function logoOf(QrCode $qrCode, int $templateId): ?string
+    {
+        return $qrCode->workspace->qrCodeTemplates()->whereKey($templateId)->value('logo_path');
+    }
+
     public static function rules(Workspace $workspace, ?QrCodeTemplate $template = null): array
     {
         $required = $template ? 'sometimes' : 'required';

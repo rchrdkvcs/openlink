@@ -1,8 +1,7 @@
+import type { BulkLinkAction } from '@/lib/linkActions';
 import type { LinkFilters } from '@/Pages/Links/types';
 
 export const MAX_BULK_LINKS = 100;
-
-export type BulkLinkAction = 'move' | 'add_tags' | 'remove_tags' | 'enable' | 'disable' | 'archive';
 
 export type PageSelection = 'none' | 'some' | 'all';
 
@@ -56,19 +55,20 @@ export function previewBulkAction(
 ): BulkActionPreview {
   const links = countLabel(count);
   const tags = tagList(target.tags ?? []);
-  const base = { destructive: false, needsConfirm: false };
+  const base = { destructive: false, needsConfirm: true };
 
   switch (action) {
     case 'move':
       return {
         ...base,
-        title: target.folderName ? `Move ${links} to ${target.folderName}` : `Move ${links} to Unfiled`,
+        title: target.folderName ? `Move ${links} to ${target.folderName}?` : `Move ${links} out of folders?`,
         message: 'Folders organise links and do not change who can access them.',
-        confirmLabel: 'Move',
+        confirmLabel: `Move ${links}`,
       };
     case 'add_tags':
       return {
         ...base,
+        needsConfirm: false,
         title: `Add ${tags} to ${links}`,
         message: 'Existing tags on these links are kept.',
         confirmLabel: 'Add tags',
@@ -76,6 +76,7 @@ export function previewBulkAction(
     case 'remove_tags':
       return {
         ...base,
+        needsConfirm: false,
         title: `Remove ${tags} from ${links}`,
         message: 'Other tags on these links are kept.',
         confirmLabel: 'Remove tags',
@@ -83,10 +84,10 @@ export function previewBulkAction(
     case 'enable':
       return {
         ...base,
-        title: `Enable ${links}`,
+        title: `Enable ${links}?`,
         message:
           'Enabling does not override lifecycle rules: scheduled, expired and archived links still won’t resolve.',
-        confirmLabel: 'Enable',
+        confirmLabel: `Enable ${links}`,
       };
     case 'disable':
       return {
@@ -110,7 +111,7 @@ export function previewBulkAction(
 export function bulkResultTitle(action: BulkLinkAction, count: number, folderName?: string | null): string {
   const links = countLabel(count);
   const outcomes: Record<BulkLinkAction, string> = {
-    move: folderName ? `Moved ${links} to ${folderName}` : `Moved ${links} to Unfiled`,
+    move: folderName ? `Moved ${links} to ${folderName}` : `Moved ${links} out of folders`,
     add_tags: `Tagged ${links}`,
     remove_tags: `Removed tags from ${links}`,
     enable: `Enabled ${links}`,

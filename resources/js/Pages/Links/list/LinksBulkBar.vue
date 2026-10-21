@@ -10,11 +10,11 @@ import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
 import { confirmAction } from '@/lib/confirm';
-import { bulkUpdateLinks } from '@/lib/linkActions';
+import { type BulkLinkAction, bulkUpdateLinks } from '@/lib/linkActions';
 import { toast } from '@/lib/toast';
 import type { Folder, Tag } from '@/types/payloads';
 
-import { type BulkLinkAction, bulkResultTitle, countLabel, previewBulkAction } from './linkSelection';
+import { bulkResultTitle, countLabel, previewBulkAction } from './linkSelection';
 
 const props = defineProps<{ ids: number[]; folders: Folder[]; knownTags: Tag[]; archiveView: boolean }>();
 
@@ -70,7 +70,6 @@ async function run(
       onSuccess: () => {
         toast({
           title: bulkResultTitle(action, affected, target.folderName),
-          description: action === 'enable' ? previewBulkAction('enable', affected).message : undefined,
           tone: 'success',
         });
         tagsOpen.value = false;

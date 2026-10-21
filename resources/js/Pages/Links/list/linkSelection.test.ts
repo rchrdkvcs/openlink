@@ -74,15 +74,23 @@ describe('bulk action preview', () => {
     expect(previewBulkAction('archive', 1).message).toContain('keep their slugs, analytics and visit counts');
   });
 
-  it('applies folder, tag and enable actions without a confirmation step', () => {
+  it('previews moves and enabling with the affected count before applying them', () => {
     expect(previewBulkAction('move', 2, { folderName: 'Campaigns' })).toMatchObject({
-      title: 'Move 2 links to Campaigns',
+      title: 'Move 2 links to Campaigns?',
+      confirmLabel: 'Move 2 links',
+      destructive: false,
+      needsConfirm: true,
+    });
+    expect(previewBulkAction('move', 2).title).toBe('Move 2 links out of folders?');
+    expect(previewBulkAction('enable', 4)).toMatchObject({ title: 'Enable 4 links?', needsConfirm: true });
+  });
+
+  it('previews tag changes inside the tag dialog instead of a second confirmation', () => {
+    expect(previewBulkAction('add_tags', 2, { tags: ['launch', 'q3'] })).toMatchObject({
+      title: 'Add #launch, #q3 to 2 links',
       needsConfirm: false,
     });
-    expect(previewBulkAction('move', 2).title).toBe('Move 2 links to Unfiled');
-    expect(previewBulkAction('add_tags', 2, { tags: ['launch', 'q3'] }).title).toBe('Add #launch, #q3 to 2 links');
     expect(previewBulkAction('remove_tags', 1, { tags: ['old'] }).title).toBe('Remove #old from 1 link');
-    expect(previewBulkAction('enable', 4).needsConfirm).toBe(false);
   });
 
   it('explains that enabling does not override lifecycle rules', () => {
@@ -92,6 +100,6 @@ describe('bulk action preview', () => {
   it('describes the outcome with the affected count', () => {
     expect(bulkResultTitle('archive', 3)).toBe('Archived 3 links');
     expect(bulkResultTitle('move', 1, 'Campaigns')).toBe('Moved 1 link to Campaigns');
-    expect(bulkResultTitle('move', 2, null)).toBe('Moved 2 links to Unfiled');
+    expect(bulkResultTitle('move', 2, null)).toBe('Moved 2 links out of folders');
   });
 });

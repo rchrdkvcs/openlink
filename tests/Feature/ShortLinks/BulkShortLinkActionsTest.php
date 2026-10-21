@@ -189,14 +189,18 @@ class BulkShortLinkActionsTest extends TestCase
     public function test_cached_resolutions_are_forgotten_like_single_link_mutations(): void
     {
         $links = $this->links(['one', 'two']);
+        $folder = Folder::create(['workspace_id' => $this->workspace->id, 'name' => 'Campaigns']);
         $cache = app(ShortUrlCache::class);
-        $cache->shortLinkId($this->domain, 'one');
-        $cache->shortLinkId($this->domain, 'two');
 
-        $this->bulk($this->owner, 'disable', $links)->assertSessionHasNoErrors();
+        foreach (['disable' => [], 'move' => ['folder_id' => $folder->id], 'archive' => []] as $action => $data) {
+            $cache->shortLinkId($this->domain, 'one');
+            $cache->shortLinkId($this->domain, 'two');
 
-        $this->assertFalse(Cache::has($cache->key($this->domain, 'one')));
-        $this->assertFalse(Cache::has($cache->key($this->domain, 'two')));
+            $this->bulk($this->owner, $action, $links, $data)->assertSessionHasNoErrors();
+
+            $this->assertFalse(Cache::has($cache->key($this->domain, 'one')), $action);
+            $this->assertFalse(Cache::has($cache->key($this->domain, 'two')), $action);
+        }
     }
 
     private function links(array $slugs, array $attributes = []): array

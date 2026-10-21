@@ -63,25 +63,37 @@ export async function deleteLink(link: LinkRef, onSuccess?: () => void) {
   });
 }
 
+export type BulkLinkAction = 'move' | 'add_tags' | 'remove_tags' | 'enable' | 'disable' | 'archive';
+
 export type BulkLinkRequest = {
-  action: string;
+  action: BulkLinkAction;
   ids: number[];
   folder_id?: number | null;
   tags?: string[];
 };
+
+function bulkFailure(description: string) {
+  toast({ title: 'Nothing was changed', description, tone: 'danger', duration: 8000 });
+}
 
 export function bulkUpdateLinks(request: BulkLinkRequest, callbacks: { onSuccess: () => void; onFinish?: () => void }) {
   router.post(route('short-links.bulk'), request, {
     preserveScroll: true,
     preserveState: true,
     onSuccess: callbacks.onSuccess,
-    onError: (errors) =>
-      toast({
-        title: 'Nothing was changed',
-        description: Object.values(errors)[0] ?? 'The selected links could not be updated.',
-        tone: 'danger',
-        duration: 8000,
-      }),
+    onError: (errors) => bulkFailure(Object.values(errors)[0] ?? 'The selected links could not be updated.'),
+    onHttpException: (response) => {
+      bulkFailure(
+        response.status === 403
+          ? 'You don’t have permission to change these links.'
+          : 'The server could not update the selected links. Try again.',
+      );
+      return false;
+    },
+    onNetworkError: () => {
+      bulkFailure('The request did not reach the server. Check your connection and try again.');
+      return false;
+    },
     onFinish: callbacks.onFinish,
   });
 }

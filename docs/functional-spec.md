@@ -94,8 +94,8 @@ Disabled links do not resolve, regardless of lifecycle rules. Archived links are
 Owners, Admins, and Editors can select short links on the current page of the Links list and apply one action to the whole selection: move to a folder or Unfiled, add or remove tags, enable, disable, or archive. Viewers cannot select or change links.
 
 - A selection holds explicitly chosen link IDs from the current page, up to 100 links. It is cleared when the workspace, a filter, or the page changes.
-- Disabling and archiving ask for confirmation with the affected count. Enabling does not override lifecycle rules: scheduled, expired, and archived links still do not resolve.
-- The server validates and authorizes the complete selection before writing. A selection that contains a link from another workspace, or a link that no longer exists, is rejected with no changes applied. The batch runs in one transaction.
+- Moving, enabling, disabling, and archiving preview the action with the affected count and ask for confirmation; tag changes are previewed in the tag dialog. Enabling does not override lifecycle rules: scheduled, expired, and archived links still do not resolve.
+- The server validates and authorizes the complete selection before writing. A selection that contains a link from another workspace, or a link that no longer exists, is rejected with no changes applied, and the list reports that nothing was changed. The batch runs in one transaction.
 - Each link is changed through the same mutation path as single-link edits, so folder and tag membership and cached resolutions behave identically. Archived links keep their slugs, analytics, and visit counts; archiving an already archived link keeps its original archive date.
 - Permanent deletion and destination replacement are not available as bulk actions.
 

@@ -185,8 +185,12 @@ A predefined smart destination configuration for a known app or service.
 _Avoid_: Deep link preset, app redirect
 
 **Web Fallback**:
-The required browser destination used when a smart destination cannot open a native app.
+The required browser destination used when a smart destination cannot open a native app. For an App Association, the Web Fallback is the Short URL itself, resolved normally.
 _Avoid_: Fallback link, desktop URL
+
+**App Association**:
+A declaration on a workspace-owned active Domain that lets a specific iOS or Android app open matching Short URLs on that Domain once the app also declares the Domain. Opening the app is not a Visit.
+_Avoid_: Deep link, app link config, universal link setting
 
 **Workspace Role**:
 A member's baseline permission level within a workspace. Workspace roles are Owner, Admin, Editor, and Viewer.

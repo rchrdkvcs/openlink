@@ -51,6 +51,11 @@ class Domain extends Model
         return $this->hasMany(ShortLink::class);
     }
 
+    public function appAssociations(): HasMany
+    {
+        return $this->hasMany(AppAssociation::class);
+    }
+
     public function isDisabled(): bool
     {
         return $this->status === DomainStatus::Disabled || $this->disabled_at !== null;

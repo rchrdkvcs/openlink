@@ -6,6 +6,7 @@ use App\Models\Domain;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransferDomain
@@ -37,7 +38,10 @@ class TransferDomain
             $workspace->forceFill(['preferred_domain_id' => null])->save();
         }
 
-        $domain->workspace()->associate($targetWorkspace)->save();
+        DB::transaction(function () use ($domain, $targetWorkspace): void {
+            $domain->appAssociations()->delete();
+            $domain->workspace()->associate($targetWorkspace)->save();
+        });
 
         return $domain;
     }

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnalyticsViewController;
+use App\Http\Controllers\AppAssociationController;
+use App\Http\Controllers\AppAssociationFileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DestinationHealthController;
 use App\Http\Controllers\DomainController;
@@ -69,6 +71,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
         Route::get('/settings/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
+        Route::get('/settings/domains/{domain}/apps', [AppAssociationController::class, 'index'])->name('domains.apps');
         Route::get('/settings/members', [DashboardController::class, 'members'])->name('members.index');
         Route::get('/settings/workspace', [WorkspaceController::class, 'settings'])->name('settings.workspace');
         Route::get('/settings/webhooks', [WebhookEndpointController::class, 'index'])->name('settings.webhooks');
@@ -115,6 +118,10 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/domains/{domain}/disable', [DomainController::class, 'disable'])->name('domains.disable');
         Route::post('/domains/{domain}/transfer', [DomainController::class, 'transfer'])->name('domains.transfer');
         Route::delete('/domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
+        Route::post('/domains/{domain}/app-associations', [AppAssociationController::class, 'store'])->name('domains.app-associations.store');
+        Route::delete('/domains/{domain}/app-associations/{appAssociation}', [AppAssociationController::class, 'destroy'])
+            ->scopeBindings()
+            ->name('domains.app-associations.destroy');
 
         Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
         Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
@@ -206,6 +213,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         ->where('path', LinkPage::ROUTE_PATTERN)
         ->name('public.link-page');
 });
+
+Route::get('/.well-known/apple-app-site-association', [AppAssociationFileController::class, 'apple'])->middleware('throttle:public-resolution')->name('app-associations.apple');
+Route::get('/.well-known/assetlinks.json', [AppAssociationFileController::class, 'android'])->middleware('throttle:public-resolution')->name('app-associations.android');
 
 Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');
 Route::get('/qr/{qrCode}', [PublicLinkController::class, 'qr'])->middleware('throttle:public-resolution')->name('public.qr');

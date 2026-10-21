@@ -5,7 +5,7 @@ Openlink is a URL management product for creating, organising, sharing, and trac
 ## Language
 
 **Workspace**:
-An owned space that groups links, domains, QR codes, members, and settings for a personal or team context. Every short link belongs to exactly one workspace.
+An owned space that groups links, domains, QR codes, link pages, members, and settings for a personal or team context. Every short link belongs to exactly one workspace.
 _Avoid_: Account, organisation, tenant
 
 **Folder**:
@@ -152,6 +152,14 @@ _Avoid_: Social card, OG tags, unfurl, link metadata
 A supported sharing platform's fetcher that requests a short URL to build a card. A preview crawler request never produces a visit and cannot unlock a protected link.
 _Avoid_: Social bot, unfurler, scraper
 
+**Link Page**:
+A Workspace-owned public page that presents a title, short description, optional logo, and an ordered list of explicitly selected Short Links. A link page is public only while published, at its path on the application host, and each listed Short Link still resolves through its own Short URL.
+_Avoid_: Bio page, link in bio, landing page, microsite, link bundle
+
+**Published Link Page**:
+A link page whose owner has made it public. A link page that is not published is a draft and is never shown to visitors.
+_Avoid_: Live page, public page, active page
+
 **Protected Link**:
 A short link that requires a visitor to provide a password before it can resolve to the destination URL.
 _Avoid_: Locked link, private link, password link
@@ -189,15 +197,15 @@ The workspace role that controls all workspace data, settings, members, domains,
 _Avoid_: Super admin, creator
 
 **Admin**:
-The workspace role that manages members, domains, folders, links, QR codes, and settings without owning the workspace.
+The workspace role that manages members, domains, folders, links, QR codes, link pages, and settings without owning the workspace.
 _Avoid_: Manager, administrator
 
 **Editor**:
-The workspace role that creates and changes links and QR codes.
+The workspace role that creates and changes links, QR codes, and link pages.
 _Avoid_: Contributor, member
 
 **Viewer**:
-The workspace role that reads all links, QR codes, and analytics in the workspace without creating or changing them.
+The workspace role that reads all links, QR codes, link pages, and analytics in the workspace without creating or changing them.
 _Avoid_: Reader, guest
 
 **Instance Admin Panel**:

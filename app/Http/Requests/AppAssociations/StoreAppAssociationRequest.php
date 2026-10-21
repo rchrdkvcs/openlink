@@ -4,6 +4,7 @@ namespace App\Http\Requests\AppAssociations;
 
 use App\Models\AppAssociation;
 use App\Models\Domain;
+use App\Services\AppAssociations\AssociationFiles;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ class StoreAppAssociationRequest extends FormRequest
 
     private const FINGERPRINT = '/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/';
 
-    private const PATH = '/^\/[A-Za-z0-9._~\-\/*?%]*$/';
+    private const PATH = '/^\/[A-Za-z0-9._~\-\/*?]*$/';
 
     public function authorize(): bool
     {
@@ -82,12 +83,12 @@ class StoreAppAssociationRequest extends FormRequest
         $this->merge(array_filter([
             'team_id' => is_string($this->input('team_id')) ? strtoupper(trim($this->input('team_id'))) : $this->input('team_id'),
             'identifier' => is_string($this->input('identifier')) ? trim($this->input('identifier')) : $this->input('identifier'),
-            'paths' => $this->trimmedList('paths', fn (string $value) => trim($value)),
-            'sha256_cert_fingerprints' => $this->trimmedList('sha256_cert_fingerprints', fn (string $value) => strtoupper(trim($value))),
+            'paths' => $this->normalizedList('paths', fn (string $value) => trim($value)),
+            'sha256_cert_fingerprints' => $this->normalizedList('sha256_cert_fingerprints', fn (string $value) => strtoupper(trim($value))),
         ], fn ($value) => $value !== null));
     }
 
-    private function trimmedList(string $key, Closure $normalize): mixed
+    private function normalizedList(string $key, Closure $normalize): mixed
     {
         $value = $this->input($key);
 
@@ -98,14 +99,8 @@ class StoreAppAssociationRequest extends FormRequest
 
     private function notReserved(string $attribute, mixed $value, Closure $fail): void
     {
-        $path = strtolower((string) $value);
-
-        foreach (['/.well-known', '/qr', '/password'] as $prefix) {
-            if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
-                $fail(__('openlink.validation.app_path_reserved'));
-
-                return;
-            }
+        if (AssociationFiles::isReservedPath((string) $value)) {
+            $fail(__('openlink.validation.app_path_reserved'));
         }
     }
 }

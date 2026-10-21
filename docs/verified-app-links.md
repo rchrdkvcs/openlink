@@ -79,7 +79,7 @@ Expect `HTTP/2 200`, `content-type: application/json`, and no `location` header.
 2. Paste a Short URL into Notes and long-press it. A working link offers to open in the app.
 3. On iOS, use **Settings → Developer → Universal Links → Diagnostics** with the full Short URL.
 4. On a Mac, `sudo swcutil dl -d go.example.com` downloads the file and `sudo swcutil verify -d go.example.com -j apple-app-site-association -u https://go.example.com/promo/1` tests a URL.
-5. Check that typing the URL into Safari, and a protected Short URL, still open the browser.
+5. Check that typing the URL into Safari opens the browser, and that a Short URL on an unclaimed path still resolves in the browser. A claimed path opens the app even for a Protected Link; the app only receives the Short URL.
 
 ### Android device
 

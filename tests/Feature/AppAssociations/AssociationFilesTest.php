@@ -167,6 +167,16 @@ class AssociationFilesTest extends TestCase
         $this->get('https://go.shop.test/old')->assertNotFound();
     }
 
+    public function test_incoming_query_parameters_on_a_claimed_path_are_not_forwarded(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.shop.test');
+        $this->iosAssociation($domain, ['/*']);
+        $this->shortLink($workspace, $domain, 'spring');
+
+        $this->get('https://go.shop.test/spring?next=myapp://steal&utm_source=app')
+            ->assertRedirect('https://example.com/landing');
+    }
+
     private function iosAssociation(Domain $domain, array $paths, string $bundle = 'com.shop.app'): AppAssociation
     {
         return AppAssociation::create([

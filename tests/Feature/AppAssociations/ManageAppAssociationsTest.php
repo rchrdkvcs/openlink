@@ -173,6 +173,8 @@ class ManageAppAssociationsTest extends TestCase
             ['input' => ['paths' => ['/.well-known/*']], 'error' => 'paths.0'],
             ['input' => ['paths' => ['/qr/*']], 'error' => 'paths.0'],
             ['input' => ['paths' => ['/PASSWORD/1']], 'error' => 'paths.0'],
+            ['input' => ['paths' => ['/%71r/*']], 'error' => 'paths.0'],
+            ['input' => ['paths' => ['/qr']], 'error' => 'paths.0'],
             ['input' => ['paths' => [['/' => '/*']]], 'error' => 'paths.0'],
             ['input' => ['platform' => 'windows'], 'error' => 'platform'],
             ['input' => ['platform' => 'android', 'identifier' => '1com.shop', 'sha256_cert_fingerprints' => [self::FINGERPRINT]], 'error' => 'identifier'],

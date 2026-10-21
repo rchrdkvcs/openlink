@@ -79,6 +79,11 @@ class DomainLifecycle
             ->update(['is_default' => false]);
 
         $domain = Domain::query()->firstOrNew(['hostname' => $hostname]);
+
+        if ($domain->exists && $domain->workspace_id !== null) {
+            $domain->appAssociations()->delete();
+        }
+
         $domain->forceFill([
             'workspace_id' => null,
             'status' => DomainStatus::Active,

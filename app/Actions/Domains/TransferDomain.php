@@ -34,11 +34,11 @@ class TransferDomain
             ]);
         }
 
-        if ((int) $workspace->preferred_domain_id === $domain->id) {
-            $workspace->forceFill(['preferred_domain_id' => null])->save();
-        }
+        DB::transaction(function () use ($workspace, $domain, $targetWorkspace): void {
+            if ((int) $workspace->preferred_domain_id === $domain->id) {
+                $workspace->forceFill(['preferred_domain_id' => null])->save();
+            }
 
-        DB::transaction(function () use ($domain, $targetWorkspace): void {
             $domain->appAssociations()->delete();
             $domain->workspace()->associate($targetWorkspace)->save();
         });

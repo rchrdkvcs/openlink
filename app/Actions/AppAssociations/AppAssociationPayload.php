@@ -42,7 +42,7 @@ class AppAssociationPayload
                     'content' => $this->files->android($domain),
                 ],
             ],
-            'reserved_paths' => AssociationFiles::RESERVED_PATHS,
+            'reserved_paths' => AssociationFiles::reservedPaths(),
         ];
     }
 }

@@ -9,9 +9,27 @@ use Illuminate\Support\Collection;
 
 class AssociationFiles
 {
-    public const RESERVED_PATHS = ['/.well-known/*', '/qr/*', '/password/*'];
+    public const RESERVED_PREFIXES = ['/.well-known', '/qr', '/password'];
 
     public function __construct(private readonly ApplicationHost $applicationHost) {}
+
+    public static function reservedPaths(): array
+    {
+        return array_map(fn (string $prefix) => $prefix.'/*', self::RESERVED_PREFIXES);
+    }
+
+    public static function isReservedPath(string $path): bool
+    {
+        $path = strtolower($path);
+
+        foreach (self::RESERVED_PREFIXES as $prefix) {
+            if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function canPublish(Domain $domain): bool
     {
@@ -41,7 +59,7 @@ class AssociationFiles
                 'details' => $associations->map(fn (AppAssociation $association) => [
                     'appIDs' => [$association->appId()],
                     'components' => [
-                        ...array_map(fn (string $path) => ['/' => $path, 'exclude' => true], self::RESERVED_PATHS),
+                        ...array_map(fn (string $path) => ['/' => $path, 'exclude' => true], self::reservedPaths()),
                         ...array_map(fn (string $path) => ['/' => $path], $association->paths ?? []),
                     ],
                 ])->all(),

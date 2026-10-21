@@ -10,6 +10,7 @@ use App\Actions\QrCodes\QrCodeTemplates;
 use App\Actions\QrCodes\ShortLinkOptions;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\CurrentWorkspace;
+use App\Http\Requests\QrCodes\CheckQrCodeReadabilityRequest;
 use App\Http\Requests\QrCodes\ExportQrCodeRequest;
 use App\Http\Requests\QrCodes\PreviewQrCodeRequest;
 use App\Http\Requests\QrCodes\StoreQrCodeRequest;
@@ -20,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -108,5 +110,16 @@ class QrCodeController extends Controller
     public function preview(PreviewQrCodeRequest $request, QrCode $qrCode, QrCodeImages $images): Response
     {
         return $images->preview($qrCode, $request->validated());
+    }
+
+    public function readability(CheckQrCodeReadabilityRequest $request, QrCode $qrCode, QrCodeImages $images): JsonResponse
+    {
+        try {
+            $result = $images->readability($qrCode, $request->validated());
+        } catch (ValidationException $exception) {
+            return response()->json(['message' => $exception->getMessage(), 'errors' => $exception->errors()], 422);
+        }
+
+        return response()->json($result)->header('Cache-Control', 'no-store');
     }
 }

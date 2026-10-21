@@ -49,6 +49,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(6)->by($job->host);
         });
 
+        RateLimiter::for('qr-readability', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('oauth', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });

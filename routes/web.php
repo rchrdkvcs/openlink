@@ -148,6 +148,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::patch('/qr-codes/{qrCode}', [QrCodeController::class, 'update'])->name('qr-codes.update');
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
         Route::get('/qr-codes/{qrCode}/preview', [QrCodeController::class, 'preview'])->name('qr-codes.preview');
+        Route::get('/qr-codes/{qrCode}/readability', [QrCodeController::class, 'readability'])->middleware('throttle:qr-readability')->name('qr-codes.readability');
         Route::get('/qr-codes/{qrCode}/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
 
         Route::post('/qr-code-templates', [QrCodeTemplateController::class, 'store'])->name('qr-code-templates.store');

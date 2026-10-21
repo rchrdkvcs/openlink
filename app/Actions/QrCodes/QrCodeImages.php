@@ -4,6 +4,7 @@ namespace App\Actions\QrCodes;
 
 use App\Models\QrCode;
 use App\Services\QrCodes\QrCodeRenderer;
+use App\Services\QrCodes\Readability\QrCodeReadability;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,6 +17,7 @@ class QrCodeImages
         private readonly QrCodeAppearance $appearance,
         private readonly QrCodeTargets $targets,
         private readonly QrCodeTemplates $templates,
+        private readonly QrCodeReadability $readability,
     ) {}
 
     public function export(QrCode $qrCode, string $format, ?int $size = null): Response
@@ -36,6 +38,25 @@ class QrCodeImages
 
     public function preview(QrCode $qrCode, array $overrides): Response
     {
+        $this->draft($qrCode, $overrides);
+
+        return response($this->renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
+            'Content-Type' => 'image/svg+xml',
+            'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    public function readability(QrCode $qrCode, array $overrides): array
+    {
+        $size = (int) ($overrides['size'] ?? $qrCode->size);
+        $this->draft($qrCode, collect($overrides)->except('size')->all());
+
+        return $this->readability->check($qrCode, $size);
+    }
+
+    private function draft(QrCode $qrCode, array $overrides): void
+    {
         $template = isset($overrides['template_id']) ? $this->templates->find($qrCode, (int) $overrides['template_id']) : null;
 
         if ($template) {
@@ -53,11 +74,5 @@ class QrCodeImages
             $direct = collect($overrides)->only(['payload_type', 'payload'])->all();
             $qrCode->fill($this->targets->resolve($qrCode->workspace, $direct, $qrCode)->attributes());
         }
-
-        return response($this->renderer->svg($qrCode, $qrCode->encodedContent()), 200, [
-            'Content-Type' => 'image/svg+xml',
-            'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
-            'Cache-Control' => 'no-store',
-        ]);
     }
 }

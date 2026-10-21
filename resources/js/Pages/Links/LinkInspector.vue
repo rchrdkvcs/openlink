@@ -14,6 +14,7 @@ import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
 import InspectorHeader from './inspector/InspectorHeader.vue';
+import InspectorHistory from './inspector/InspectorHistory.vue';
 import InspectorOptions from './inspector/InspectorOptions.vue';
 import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
@@ -145,6 +146,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
         </div>
       </fieldset>
+
+      <InspectorHistory :link="link" />
     </form>
 
     <InspectorSaveBar

@@ -31,6 +31,7 @@ function link(overrides: Partial<ShortLink> = {}): ShortLink {
     is_enabled: true,
     successful_visits: 0,
     has_password: false,
+    revision: 1,
     routing_rules: [],
     ...overrides,
   };

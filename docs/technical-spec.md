@@ -46,6 +46,7 @@ Primary records:
 - tags
 - short_links
 - short_link_tags
+- short_link_revisions
 - domains
 - qr_codes
 - analytics_events

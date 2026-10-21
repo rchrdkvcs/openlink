@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ChevronRight, Route } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Dialog from '@/Components/ui/Dialog.vue';
+import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import { createRouting, type FormErrors, ruleName } from '@/lib/routing';
 import type { RoutingRuleDraft, RoutingSchema } from '@/types/shortLinks';
 
+import RoutingPreviewPanel from '../routing/RoutingPreviewPanel.vue';
 import RoutingRulesEditor from '../routing/RoutingRulesEditor.vue';
 
 const props = defineProps<{
@@ -14,12 +16,29 @@ const props = defineProps<{
   errors: FormErrors;
   hasErrors: boolean;
   defaultDestination: string;
+  linkId: number;
+  canEdit: boolean;
+  unsaved: boolean;
 }>();
 
 const rules = defineModel<RoutingRuleDraft[]>({ required: true });
 const open = defineModel<boolean>('open', { required: true });
 
 const PREVIEW_LIMIT = 3;
+
+const views = [
+  { value: 'rules' as const, label: 'Rules' },
+  { value: 'test' as const, label: 'Test' },
+];
+const view = ref<'rules' | 'test'>('rules');
+
+watch(open, (isOpen) => {
+  if (isOpen) view.value = 'rules';
+});
+
+const draft = computed(() =>
+  props.canEdit ? { destination_url: props.defaultDestination, routing_rules: rules.value } : null,
+);
 
 const enabledRules = computed(() => rules.value.filter((rule) => rule.is_enabled).length);
 
@@ -84,7 +103,15 @@ const preview = computed(() => {
     description="Send visitors to different destinations based on country, device, campaign, time, or split traffic between variants. Rules are checked top to bottom; the first match wins."
   >
     <div class="max-h-[min(640px,70vh)] overflow-y-auto overscroll-contain px-5 pb-5 pt-4">
-      <RoutingRulesEditor v-model="rules" :errors="errors" :schema="schema" :default-destination="defaultDestination" />
+      <SegmentedControl v-model="view" :options="views" size="sm" label="Smart routing view" class="mb-4" />
+      <RoutingRulesEditor
+        v-if="view === 'rules'"
+        v-model="rules"
+        :errors="errors"
+        :schema="schema"
+        :default-destination="defaultDestination"
+      />
+      <RoutingPreviewPanel v-else :link-id="linkId" :schema="schema" :draft="draft" :unsaved="unsaved" />
     </div>
     <footer class="flex items-center justify-end gap-2 border-t px-5 py-3.5">
       <Button type="button" @click="open = false">Done</Button>

@@ -120,6 +120,10 @@ _Avoid_: Conditional redirects, routing engine, dynamic rules
 An ordered condition attached to a short link that can send matching visitors to a specific destination URL.
 _Avoid_: Rule, redirect rule, target rule
 
+**Routing Preview**:
+An authenticated simulation of a short link's Smart Routing for a synthetic visitor context and seed. It uses the same evaluation as real visits, can test saved routing or an unsaved draft, and never records a visit, analytics event, or protected-link unlock. It reports the short link's public availability separately, because a matching routing rule does not make an unavailable short link resolve.
+_Avoid_: Dry run, test redirect, routing simulator
+
 **Smart Destination**:
 A destination rule that chooses where to send a visitor based on their device, platform, or app context.
 _Avoid_: Deep link, dynamic destination

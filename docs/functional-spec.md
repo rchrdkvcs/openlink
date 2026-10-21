@@ -109,6 +109,14 @@ Owners, Admins, and Editors can select short links on the current page of the Li
 
 The Links page exports the links in the current view as a versioned Link CSV, and imports a Link CSV after a preview and an explicit confirmation. Imports are create-only: they never change or overwrite existing links, keep short URLs only on domains the workspace controls, and never reset visit counts or analytics. Visitor passwords, Smart Routing rules, QR Codes, and analytics are not exported or imported. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
+### Routing Preview
+
+The Smart Routing dialog has a Test view that runs a Routing Preview. It accepts a synthetic country, language, device, browser, OS, referrer URL, UTM parameters, date and time with an explicit timezone, and a visitor seed. Members who can edit content test the current editor state, including unsaved changes, after the same validation used on save. Viewers test the saved routing.
+
+The result lists every routing rule with its status (matched, no match, disabled, skipped, or not checked), each condition result, configured variant weights and shares, the selected variant, and the final or default destination. The seed replaces the daily visitor hash, so the same seed always picks the same variant; real visitors keep a variant for one day. The short link's public availability (lifecycle status, domain status, password protection) is shown separately from the simulated destination.
+
+A Routing Preview never records visits or analytics, unlocks a protected link, activates a domain, saves drafts, or requests destination URLs.
+
 ## Public Resolution
 
 When a visitor opens a short URL, Openlink resolves it in this order:

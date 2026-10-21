@@ -145,6 +145,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :errors="form.errors"
             :has-errors="routingHasErrors"
             :default-destination="form.destination_url"
+            :link-id="link.id"
+            :can-edit="canEdit"
+            :unsaved="form.isDirty"
           />
         </div>
       </fieldset>

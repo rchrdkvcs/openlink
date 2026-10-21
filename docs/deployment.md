@@ -28,7 +28,10 @@ connection details, and mail credentials.
 
 `APP_HOST` is the hostname that serves the dashboard and authentication routes.
 Every domain configured in Openlink must also reach the application through the
-reverse proxy so it can resolve short links.
+reverse proxy so it can resolve short links. Forward
+`/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` to
+Openlink over HTTPS without redirects so App Associations work; see
+[verified-app-links.md](verified-app-links.md).
 
 Webhook delivery needs an asynchronous `QUEUE_CONNECTION` such as `redis`. Its
 retry and retention limits are described in [`webhooks.md`](./webhooks.md#operating-webhooks).

@@ -48,6 +48,12 @@ Link preview text is plain text rendered with HTML escaping, and markup is rejec
 
 Only published Link Page content is public: title, description, logo, and each visible entry's label and Short URL. Workspace details, members, Destination URLs, Short Link settings, and analytics are never included. Text is rendered as plain text, and uploaded logos are decoded and re-encoded as PNG so that SVG, metadata, and appended content are never served. Draft, unpublished, and unknown Link Pages show the same neutral unavailable page as an unavailable Short URL.
 
+## App Associations
+
+Only an Owner or Admin can add or remove App Associations, and only on an active, workspace-owned Domain. The Default Domain and the application host never publish association files. Association files are generated from validated identifiers, fingerprints, and path patterns; Openlink never serves user-supplied JSON or custom URL schemes. Transferring a Domain deletes its App Associations, so a previous Workspace cannot keep controlling app paths on it.
+
+Opening an associated app is not a Visit and never unlocks a Protected Link: the app receives only the Short URL, and the Destination URL is revealed only through normal public resolution. See [verified-app-links.md](verified-app-links.md).
+
 ## Analytics Privacy
 
 Analytics are aggregated by link and QR code. They can include referrer, approximate country, device type, browser, operating system, daily counts, lifetime totals, and resolution outcomes.

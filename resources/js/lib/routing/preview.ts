@@ -138,6 +138,10 @@ export function previewRequest(context: PreviewContext, draft: PreviewDraft | nu
   };
 }
 
+export function timeWasShifted(requested: string, localTime: string): boolean {
+  return requested !== '' && localTime.slice(0, 16) !== requested;
+}
+
 export function ruleStatus(status: PreviewRuleStatus): StatusPresentation {
   return RULE_STATUSES[status];
 }

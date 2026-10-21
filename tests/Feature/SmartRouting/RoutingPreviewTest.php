@@ -359,6 +359,10 @@ class RoutingPreviewTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('routing_rules.0.variants.0.weight');
 
+        $this->preview($owner, $workspace, $link, [], ['destination_url' => 'https://localhost/invalid', 'routing_rules' => []])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('destination_url');
+
         $this->preview($owner, $workspace, $link, ['timezone' => 'Mars/Olympus', 'occurred_at' => 'tomorrow', 'country' => 'France'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['context.timezone', 'context.occurred_at', 'context.country']);

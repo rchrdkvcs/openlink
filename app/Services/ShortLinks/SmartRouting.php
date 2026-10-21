@@ -36,7 +36,9 @@ class SmartRouting
 
     public function traceDraft(ShortLink $shortLink, array $rules, string $defaultDestination, ResolutionContext $context): RoutingTrace
     {
-        $this->validator->validate(ShortUrlAddress::of($shortLink), $rules);
+        $address = ShortUrlAddress::of($shortLink);
+        $address->rejectLoop($defaultDestination, 'destination_url');
+        $this->validator->validate($address, $rules);
 
         return $this->evaluator->evaluate($this->drafts->unsaved($rules), $defaultDestination, $context);
     }

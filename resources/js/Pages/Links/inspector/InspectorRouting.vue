@@ -30,10 +30,10 @@ const views = [
   { value: 'rules' as const, label: 'Rules' },
   { value: 'test' as const, label: 'Test' },
 ];
-const view = ref<'rules' | 'test'>('rules');
+const view = ref<'rules' | 'test'>(props.canEdit ? 'rules' : 'test');
 
 watch(open, (isOpen) => {
-  if (isOpen) view.value = 'rules';
+  if (isOpen) view.value = props.canEdit ? 'rules' : 'test';
 });
 
 const draft = computed(() =>
@@ -103,7 +103,14 @@ const preview = computed(() => {
     description="Send visitors to different destinations based on country, device, campaign, time, or split traffic between variants. Rules are checked top to bottom; the first match wins."
   >
     <div class="max-h-[min(640px,70vh)] overflow-y-auto overscroll-contain px-5 pb-5 pt-4">
-      <SegmentedControl v-model="view" :options="views" size="sm" label="Smart routing view" class="mb-4" />
+      <SegmentedControl
+        v-if="canEdit"
+        v-model="view"
+        :options="views"
+        size="sm"
+        label="Smart routing view"
+        class="mb-4"
+      />
       <RoutingRulesEditor
         v-if="view === 'rules'"
         v-model="rules"

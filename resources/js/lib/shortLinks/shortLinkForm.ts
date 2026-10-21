@@ -71,6 +71,18 @@ export function toForm(link: ShortLink): ShortLinkForm {
   };
 }
 
+export function routingChanged(
+  form: Pick<ShortLinkForm, 'destination_url' | 'routing_rules'>,
+  link: ShortLink,
+): boolean {
+  const saved = toForm(link);
+
+  return (
+    JSON.stringify([form.destination_url, form.routing_rules]) !==
+    JSON.stringify([saved.destination_url, saved.routing_rules])
+  );
+}
+
 export function toPayload<T extends { destination_url: string; password?: string }>(
   form: T,
   options: PayloadOptions = {},

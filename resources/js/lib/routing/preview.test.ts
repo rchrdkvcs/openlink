@@ -6,6 +6,7 @@ import {
   previewErrors,
   previewRequest,
   randomSeed,
+  timeWasShifted,
   ruleStatus,
   skippedReason,
 } from './preview';
@@ -34,6 +35,12 @@ describe('routing preview', () => {
 
   it('generates seeds from the random source', () => {
     expect(randomSeed(() => 0.123456)).toBe('visitor-123456');
+  });
+
+  it('detects when a nonexistent local time was moved by a clock change', () => {
+    expect(timeWasShifted('2026-03-29T02:30', '2026-03-29T03:30:00+02:00')).toBe(true);
+    expect(timeWasShifted('2026-06-01T09:00', '2026-06-01T09:00:00+02:00')).toBe(false);
+    expect(timeWasShifted('', '2026-06-01T09:00:00+02:00')).toBe(false);
   });
 
   it('labels each rule status', () => {

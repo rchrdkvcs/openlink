@@ -8,7 +8,7 @@ import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import { fetchJson, HttpError } from '@/lib/http';
-import { createRouting, formatConditionValue } from '@/lib/routing';
+import { conditionSummary } from '@/lib/routing';
 import {
   availabilityReasons,
   newPreviewContext,
@@ -16,6 +16,7 @@ import {
   previewErrors,
   previewRequest,
   randomSeed,
+  timeWasShifted,
   type RoutingPreview,
   ruleStatus,
   skippedReason,
@@ -31,11 +32,11 @@ const props = defineProps<{
   unsaved: boolean;
 }>();
 
-const routing = computed(() => createRouting(props.schema));
 const context = ref(newPreviewContext(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'));
 const result = ref<RoutingPreview | null>(null);
 const errors = ref<string[]>([]);
 const running = ref(false);
+const requestedTime = ref('');
 
 const deviceOptions = computed(() => [
   { value: '', label: 'Unknown' },
@@ -69,19 +70,18 @@ const localTime = computed(() =>
     : '',
 );
 
-function conditionText(condition: RoutingPreview['rules'][number]['conditions'][number]): string {
-  const value = formatConditionValue(props.schema, {
-    type: condition.type,
-    operator: condition.operator,
-    value: condition.value,
-  });
+const shifted = computed(() =>
+  result.value ? timeWasShifted(requestedTime.value, result.value.context.local_time) : false,
+);
 
-  return `${routing.value.label(condition.type)} ${condition.operator.replaceAll('_', ' ')} ${value}`.trim();
+function conditionText(condition: RoutingPreview['rules'][number]['conditions'][number]): string {
+  return conditionSummary(props.schema, { type: condition.type, operator: condition.operator, value: condition.value });
 }
 
 async function run() {
   running.value = true;
   errors.value = [];
+  requestedTime.value = context.value.occurred_at;
 
   try {
     result.value = await fetchJson<RoutingPreview>(route('short-links.routing-preview', props.linkId), {
@@ -158,6 +158,9 @@ async function run() {
     <section v-if="result" class="grid gap-3" aria-live="polite" aria-label="Routing test result">
       <div class="grid gap-1 rounded-xl border bg-surface px-3.5 py-3">
         <span class="text-xs text-faint">Simulated destination · {{ localTime }}</span>
+        <span v-if="shifted" class="text-xs text-warning">
+          That time doesn’t exist in {{ result.context.timezone }} because of a clock change, so it was moved forward.
+        </span>
         <span class="break-all text-[13px] font-medium text-foreground">{{ result.decision.destination_url }}</span>
         <span class="text-xs text-muted">
           <template v-if="result.decision.is_default">No rule matched. Default destination.</template>

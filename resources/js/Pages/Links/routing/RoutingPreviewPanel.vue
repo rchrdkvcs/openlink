@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, CornerDownRight, FlaskConical, Lock, Shuffle, TriangleAlert, X } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -31,6 +31,8 @@ const props = defineProps<{
   draft: PreviewDraft | null;
   unsaved: boolean;
 }>();
+
+const emit = defineEmits<{ result: [preview: RoutingPreview | null] }>();
 
 const context = ref(newPreviewContext(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'));
 const result = ref<RoutingPreview | null>(null);
@@ -78,6 +80,16 @@ function conditionText(condition: RoutingPreview['rules'][number]['conditions'][
   return conditionSummary(props.schema, { type: condition.type, operator: condition.operator, value: condition.value });
 }
 
+watch(
+  () => props.draft,
+  () => {
+    if (!result.value) return;
+    result.value = null;
+    emit('result', null);
+  },
+  { deep: true },
+);
+
 async function run() {
   running.value = true;
   errors.value = [];
@@ -88,8 +100,10 @@ async function run() {
       method: 'POST',
       body: JSON.stringify(previewRequest(context.value, props.draft)),
     });
+    emit('result', result.value);
   } catch (error) {
     result.value = null;
+    emit('result', null);
     errors.value =
       error instanceof HttpError && error.status === 422
         ? previewErrors(error.body)

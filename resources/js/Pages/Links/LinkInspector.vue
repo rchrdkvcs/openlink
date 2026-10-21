@@ -10,7 +10,6 @@ import TagInput from '@/Components/ui/TagInput.vue';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
 import type { UtmTemplate } from '@/lib/utm';
-import { routingChanged } from '@/lib/shortLinks/shortLinkForm';
 import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
@@ -129,31 +128,23 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             </Field>
           </div>
         </div>
-      </fieldset>
-
-      <div class="mx-5 mb-4 divide-y overflow-hidden rounded-xl border bg-surface">
-        <InspectorUtm
-          v-model="form.destination_url"
-          v-model:open="sections.utm"
-          :templates="utmTemplates"
-          :can-manage-templates="canManage"
-          :disabled="!canEdit"
-        />
-        <fieldset :disabled="!canEdit" class="divide-y">
+        <div class="mx-5 mb-4 divide-y overflow-hidden rounded-xl border bg-surface">
+          <InspectorUtm
+            v-model="form.destination_url"
+            v-model:open="sections.utm"
+            :templates="utmTemplates"
+            :can-manage-templates="canManage"
+            :disabled="!canEdit"
+          />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
-        </fieldset>
-        <InspectorRouting
-          v-model="form.routing_rules"
-          v-model:open="sections.routing"
-          :schema="routingSchema"
-          :errors="form.errors"
-          :has-errors="routingHasErrors"
-          :default-destination="form.destination_url"
-          :link-id="link.id"
-          :can-edit="canEdit"
-          :unsaved="routingChanged(form, link)"
-        />
-      </div>
+          <InspectorRouting
+            :rules="form.routing_rules"
+            :schema="routingSchema"
+            :has-errors="routingHasErrors"
+            :link-id="link.id"
+          />
+        </div>
+      </fieldset>
     </form>
 
     <InspectorSaveBar

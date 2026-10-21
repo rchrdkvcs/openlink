@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { conditional } from '@/lib/routing/testRouting';
 import type { Domain } from '@/types/payloads';
 import type { ShortLink } from '@/types/shortLinks';
 
@@ -8,7 +7,6 @@ import {
   newQuickLinkForm,
   PASSWORD_MASK,
   initialDomainId,
-  routingChanged,
   sectionFor,
   sectionsWithErrors,
   selectableDomains,
@@ -194,15 +192,5 @@ describe('domain selection', () => {
       is_enabled: true,
     });
     expect(newQuickLinkForm('', null).folder_id).toBe('');
-  });
-
-  it('reports routing changes only for the destination and routing rules', () => {
-    const saved = link();
-    const form = toForm(saved);
-
-    expect(routingChanged({ ...form }, saved)).toBe(false);
-    expect(routingChanged({ ...toForm(saved), slug: 'renamed' } as typeof form, saved)).toBe(false);
-    expect(routingChanged({ ...form, destination_url: 'https://example.com/other' }, saved)).toBe(true);
-    expect(routingChanged({ ...form, routing_rules: [conditional('France')] }, saved)).toBe(true);
   });
 });

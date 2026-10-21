@@ -65,6 +65,19 @@ class ShortLinkMutation
         });
     }
 
+    public function updateRouting(User $user, ShortLink $shortLink, string $destinationUrl, array $rules): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+        ShortUrlAddress::of($shortLink)->rejectLoop($destinationUrl, 'destination_url');
+
+        return DB::transaction(function () use ($shortLink, $destinationUrl, $rules): ShortLink {
+            $shortLink->update(['destination_url' => $destinationUrl]);
+            $this->routing->sync($shortLink, $rules);
+
+            return $shortLink;
+        });
+    }
+
     public function move(User $user, ShortLink $shortLink, ?int $folderId): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);

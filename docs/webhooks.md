@@ -2,7 +2,7 @@
 
 Webhooks let external systems react to changes in a workspace without polling the [HTTP API](./api.md). A workspace Owner or Admin adds **webhook endpoints** from **Settings → Webhooks**. Each endpoint subscribes to selected event types and receives a signed `POST` request for every matching event.
 
-Webhook endpoints are workspace integrations. They are separate from [API tokens](./api.md#authentication): an API token lets a client act as a user, while a webhook endpoint only receives notifications and grants no access to Openlink.
+Webhook endpoints are separate from [API tokens](./api.md#authentication): an API token lets a client act as a user, while a webhook endpoint only receives webhook events and grants no access to Openlink.
 
 ## Managing endpoints
 
@@ -27,7 +27,7 @@ Editors and Viewers cannot see or manage endpoints.
 | `short_link.archived` | A short link is archived. |
 | `webhook.test` | An Owner or Admin sends a test event. Always delivered to the selected endpoint, whatever its subscriptions. |
 
-Visits and scans are not sent as webhook events.
+Events describe changes made to a short link itself from the dashboard or the API. Deleting a folder or a tag, which also removes it from its short links, does not send `short_link.updated` events. Visits and scans are not sent as webhook events.
 
 ## Payload
 
@@ -145,7 +145,7 @@ When you rotate a secret, the old secret stops working immediately. Deploy the n
 - Events are recorded in the same database transaction as the change. A change that is rolled back sends nothing.
 - Deliveries are sent by the queue worker after the transaction commits, so a slow or failing receiver never delays link edits or public redirects.
 - A delivery succeeds when the receiver answers with a `2xx` status within 10 seconds. Respond quickly and do heavy work asynchronously.
-- Other responses, timeouts, and connection errors are retried up to 6 attempts in total, waiting 1, 4, 16, 64, and 256 minutes between attempts.
+- Other responses, timeouts, connection errors, and hostnames that temporarily do not resolve are retried up to 6 attempts in total, waiting 1, 4, 16, 64, and 256 minutes between attempts.
 - Redirects are not followed and count as a failure without retry. Point the endpoint at its final URL.
 - After the last attempt, the delivery is marked as failed. An Owner or Admin can retry it from the delivery history, which sends the same event with the same `id` and body.
 

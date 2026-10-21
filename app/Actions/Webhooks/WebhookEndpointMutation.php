@@ -19,7 +19,7 @@ class WebhookEndpointMutation
         private readonly WebhookEvents $events,
     ) {}
 
-    public static function generateSecret(): string
+    private static function generateSecret(): string
     {
         return 'whsec_'.rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
     }
@@ -31,7 +31,7 @@ class WebhookEndpointMutation
         return WebhookEndpoint::create([
             'workspace_id' => $workspace->id,
             'url' => $url,
-            'events' => array_values(array_unique($events)),
+            'events' => array_values($events),
             'secret' => self::generateSecret(),
             'is_enabled' => true,
         ]);
@@ -43,7 +43,7 @@ class WebhookEndpointMutation
 
         $endpoint->update([
             'url' => $url,
-            'events' => array_values(array_unique($events)),
+            'events' => array_values($events),
             'is_enabled' => $isEnabled,
         ]);
 

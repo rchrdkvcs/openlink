@@ -21,7 +21,7 @@ class DeliverWebhook implements ShouldQueue
 
     public static function maxAttempts(): int
     {
-        return max(1, (int) config('openlink.webhooks.max_attempts'));
+        return (int) config('openlink.webhooks.max_attempts');
     }
 
     public static function backoffAfter(int $attempts): int

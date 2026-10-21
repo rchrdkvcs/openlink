@@ -30,9 +30,4 @@ class WebhookEndpoint extends Model
     {
         return $this->hasMany(WebhookDelivery::class);
     }
-
-    public function subscribesTo(string $eventType): bool
-    {
-        return in_array($eventType, $this->events ?? [], true);
-    }
 }

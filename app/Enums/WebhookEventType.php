@@ -24,19 +24,18 @@ enum WebhookEventType: string
         };
     }
 
+    public static function subscribable(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $type) => $type->isSubscribable()));
+    }
+
     public static function subscribableValues(): array
     {
-        return array_values(array_map(
-            fn (self $type) => $type->value,
-            array_filter(self::cases(), fn (self $type) => $type->isSubscribable()),
-        ));
+        return array_map(fn (self $type) => $type->value, self::subscribable());
     }
 
     public static function options(): array
     {
-        return array_values(array_map(
-            fn (self $type) => ['value' => $type->value, 'label' => $type->label()],
-            array_filter(self::cases(), fn (self $type) => $type->isSubscribable()),
-        ));
+        return array_map(fn (self $type) => ['value' => $type->value, 'label' => $type->label()], self::subscribable());
     }
 }

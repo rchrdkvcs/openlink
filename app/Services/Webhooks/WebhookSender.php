@@ -18,7 +18,7 @@ class WebhookSender
         try {
             $target = $this->targets->resolve($delivery->endpoint->url);
         } catch (UnsafeWebhookTarget $exception) {
-            return WebhookAttempt::failed($exception->getMessage(), retryable: false);
+            return WebhookAttempt::failed($exception->getMessage(), retryable: $exception->retryable);
         }
 
         $timestamp = now()->getTimestamp();

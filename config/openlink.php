@@ -11,10 +11,10 @@ return [
     ],
 
     'webhooks' => [
-        'max_attempts' => (int) env('OPENLINK_WEBHOOK_MAX_ATTEMPTS', 6),
+        'max_attempts' => max(1, (int) env('OPENLINK_WEBHOOK_MAX_ATTEMPTS', 6)),
         'timeout' => (int) env('OPENLINK_WEBHOOK_TIMEOUT', 10),
         'connect_timeout' => (int) env('OPENLINK_WEBHOOK_CONNECT_TIMEOUT', 3),
-        'retention_days' => (int) env('OPENLINK_WEBHOOK_RETENTION_DAYS', 30),
+        'retention_days' => max(1, (int) env('OPENLINK_WEBHOOK_RETENTION_DAYS', 30)),
     ],
 
     'version' => env('OPENLINK_VERSION', 'dev'),

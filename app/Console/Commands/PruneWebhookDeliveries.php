@@ -13,7 +13,7 @@ class PruneWebhookDeliveries extends Command
 {
     public function handle(): int
     {
-        $days = max(1, (int) config('openlink.webhooks.retention_days'));
+        $days = (int) config('openlink.webhooks.retention_days');
         $deleted = WebhookDelivery::query()
             ->where('created_at', '<', now()->subDays($days))
             ->delete();

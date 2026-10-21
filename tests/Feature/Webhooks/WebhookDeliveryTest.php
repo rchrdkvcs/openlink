@@ -152,7 +152,6 @@ class WebhookDeliveryTest extends TestCase
             'https://private.example.com/hook' => ['private.example.com', '192.168.1.10'],
             'https://mixed.example.com/hook' => ['mixed.example.com', '93.184.215.14', '100.64.0.1'],
             'https://v6.example.com/hook' => ['v6.example.com', 'fe80::1'],
-            'https://unresolved.example.com/hook' => [],
             'http://hooks.example.com/plain' => [],
             'https://2130706433/hook' => [],
             'https://0x7f.1/hook' => [],
@@ -172,6 +171,18 @@ class WebhookDeliveryTest extends TestCase
             $this->assertNull($delivery->response_status, $url);
         }
 
+        Http::assertNothingSent();
+    }
+
+    public function test_hostnames_that_do_not_resolve_are_retried(): void
+    {
+        $delivery = $this->pendingDelivery(['url' => 'https://unresolved.example.com/hook']);
+        Http::fake();
+
+        $this->deliver($delivery)->assertReleased(60);
+
+        $this->assertSame(WebhookDeliveryStatus::Retrying, $delivery->refresh()->status);
+        $this->assertSame('The endpoint hostname does not resolve.', $delivery->error);
         Http::assertNothingSent();
     }
 

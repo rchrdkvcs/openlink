@@ -38,7 +38,7 @@ class WebhookTargets
         $addresses = $isAddress ? [$host] : $this->dns->ipAddresses($host);
 
         if ($addresses === []) {
-            throw new UnsafeWebhookTarget('The endpoint hostname does not resolve.');
+            throw new UnsafeWebhookTarget('The endpoint hostname does not resolve.', retryable: true);
         }
 
         foreach ($addresses as $address) {

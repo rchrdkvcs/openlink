@@ -32,7 +32,7 @@ reverse proxy so it can resolve short links.
 
 Webhook delivery needs an asynchronous `QUEUE_CONNECTION` such as `redis`. Its
 retry and retention limits are described in [`webhooks.md`](./webhooks.md#operating-webhooks).
-Outbound webhook requests go directly to public internet addresses and ignore
+Webhook deliveries connect directly to public internet addresses and ignore
 HTTP proxy environment variables.
 
 Keep `APP_DEBUG=false` in production. Do not commit `.env` files or place

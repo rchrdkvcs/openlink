@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Domain;
+use App\Models\LinkPage;
 use App\Models\ShortLink;
 use Illuminate\Validation\ValidationException;
 
@@ -75,7 +76,15 @@ class SlugService
 
     public function isReservedForDomain(Domain $domain, string $slug): bool
     {
-        return $this->applicationHost->isApplicationDomain($domain) && $this->isReserved($slug);
+        return $this->applicationHost->isApplicationDomain($domain)
+            && ($this->isReserved($slug) || $this->isLinkPageAddress($slug));
+    }
+
+    private function isLinkPageAddress(string $slug): bool
+    {
+        $slug = strtolower(trim($slug, '/'));
+
+        return $slug === LinkPage::PATH_PREFIX || str_starts_with($slug, LinkPage::PATH_PREFIX.'/');
     }
 
     private function existsForDomain(Domain $domain, string $slug): bool

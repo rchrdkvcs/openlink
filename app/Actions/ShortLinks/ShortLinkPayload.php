@@ -46,6 +46,13 @@ class ShortLinkPayload
             'successful_visits' => $link->successful_visits,
             'has_password' => $link->hasPassword(),
             'revision' => $link->revision,
+            'preview' => [
+                'title' => $link->preview_title,
+                'description' => $link->preview_description,
+                'image_url' => $link->hasPreviewImage()
+                    ? route('short-links.preview-image', ['shortLink' => $link, 'v' => basename($link->preview_image_path, '.jpg')])
+                    : null,
+            ],
             'routing_rules' => $link->routingRules->map(fn ($rule) => [
                 'id' => $rule->id,
                 'name' => $rule->name,

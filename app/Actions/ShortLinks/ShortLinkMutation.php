@@ -7,13 +7,16 @@ use App\Enums\WebhookEventType;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\LinkPreviews\LinkPreviewImageStorage;
 use App\Services\ShortLinks\History\LinkHistory;
 use App\Services\ShortLinks\ShortUrlAddress;
 use App\Services\ShortLinks\SmartRouting;
 use App\Services\Webhooks\WebhookEvents;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class ShortLinkMutation
 {
@@ -24,6 +27,7 @@ class ShortLinkMutation
         private readonly SmartRouting $routing,
         private readonly LinkHistory $history,
         private readonly WebhookEvents $webhooks,
+        private readonly LinkPreviewImageStorage $previewImages,
     ) {}
 
     public function create(User $user, Workspace $workspace, array $data): ShortLink
@@ -33,12 +37,13 @@ class ShortLinkMutation
         $address = $this->addresses->forNewLink($workspace, $this->integer($data, 'domain_id'), $data['slug'] ?? null);
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
-        return DB::transaction(function () use ($user, $workspace, $address, $data): ShortLink {
-            $shortLink = new ShortLink(['workspace_id' => $workspace->id]);
+        $shortLink = new ShortLink(['workspace_id' => $workspace->id]);
+
+        return $this->withPreviewImage($shortLink, $data, function (?string $image) use ($user, $shortLink, $address, $data): ShortLink {
             $this->fill($shortLink, $address, [
                 'is_enabled' => true,
                 ...array_filter($data, fn ($value) => $value !== null),
-            ]);
+            ], $image);
             $shortLink->save();
 
             $this->tags->replace($shortLink, $data['tags'] ?? null);
@@ -57,9 +62,9 @@ class ShortLinkMutation
         $address = $this->addresses->forExistingLink($shortLink, $this->integer($data, 'domain_id'), $data['slug'] ?? null);
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
-        return $this->recorded($user, $shortLink, RevisionAction::Updated, $this->integer($data, 'expected_revision'), function () use ($shortLink, $address, $data): array {
+        return $this->withPreviewImage($shortLink, $data, fn (?string $image): ShortLink => $this->recorded($user, $shortLink, RevisionAction::Updated, $this->integer($data, 'expected_revision'), function () use ($shortLink, $address, $data, $image): array {
             $wasProtected = $shortLink->hasPassword();
-            $this->fill($shortLink, $address, $data);
+            $this->fill($shortLink, $address, $data, $image);
             $shortLink->save();
 
             if (array_key_exists('routing_rules', $data)) {
@@ -75,7 +80,7 @@ class ShortLinkMutation
             return $wasProtected && $shortLink->hasPassword() && $shortLink->wasChanged('password_hash')
                 ? [['field' => 'password_changed', 'before' => null, 'after' => null]]
                 : [];
-        });
+        }));
     }
 
     public function updateRouting(User $user, ShortLink $shortLink, string $destinationUrl, array $rules): ShortLink
@@ -98,7 +103,7 @@ class ShortLinkMutation
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
         return $this->recorded($user, $shortLink, RevisionAction::Restored, $expectedRevision, function () use ($shortLink, $address, $data): void {
-            $this->fill($shortLink, $address, $data);
+            $this->fill($shortLink, $address, $data, null);
             $shortLink->archived_at = $data['is_archived'] ? ($shortLink->archived_at ?? now()) : null;
             $shortLink->save();
 
@@ -155,7 +160,28 @@ class ShortLinkMutation
         });
     }
 
-    private function fill(ShortLink $shortLink, ShortUrlAddress $address, array $data): void
+    private function withPreviewImage(ShortLink $shortLink, array $data, callable $write): ShortLink
+    {
+        $upload = $data['preview_image'] ?? null;
+        $stored = $upload instanceof UploadedFile ? $this->previewImages->store($upload) : null;
+        $previous = $shortLink->preview_image_path;
+
+        try {
+            DB::transaction(fn () => $write($stored));
+        } catch (Throwable $exception) {
+            $this->previewImages->deleteUnreferenced([$stored]);
+
+            throw $exception;
+        }
+
+        if ($previous !== $shortLink->preview_image_path) {
+            $this->previewImages->deleteUnreferenced([$previous]);
+        }
+
+        return $shortLink;
+    }
+
+    private function fill(ShortLink $shortLink, ShortUrlAddress $address, array $data, ?string $previewImage): void
     {
         $shortLink->fill([
             'folder_id' => $this->integer($data, 'folder_id'),
@@ -169,6 +195,18 @@ class ShortLinkMutation
             'visit_limit' => $this->integer($data, 'visit_limit'),
         ]);
         $shortLink->setRelation('domain', $address->domain);
+
+        foreach (['preview_title', 'preview_description'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $shortLink->{$field} = filled($data[$field]) ? $data[$field] : null;
+            }
+        }
+
+        if ($previewImage) {
+            $shortLink->preview_image_path = $previewImage;
+        } elseif ($data['remove_preview_image'] ?? false) {
+            $shortLink->preview_image_path = null;
+        }
 
         if (array_key_exists('password', $data) || ! $shortLink->exists) {
             $shortLink->password_hash = filled($data['password'] ?? null) ? Hash::make($data['password']) : null;

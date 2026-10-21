@@ -6,11 +6,11 @@ use App\Models\AnalyticsEvent;
 use App\Models\Domain;
 use App\Models\QrCode;
 use App\Services\Analytics\Outcome;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tests\Support\UserAgents;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesWorkspaces;
+use Tests\Support\UserAgents;
 use Tests\TestCase;
 
 class LinkPreviewCrawlerTest extends TestCase

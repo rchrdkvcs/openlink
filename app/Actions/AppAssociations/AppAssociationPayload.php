@@ -12,12 +12,14 @@ class AppAssociationPayload
 
     public function forDomain(Domain $domain): array
     {
+        $publishing = $this->files->canPublish($domain);
+
         return [
             'domain' => [
                 'id' => $domain->id,
                 'hostname' => $domain->hostname,
                 'status' => $domain->status->value,
-                'can_publish' => $this->files->canPublish($domain),
+                'can_publish' => $publishing,
             ],
             'associations' => $domain->appAssociations()
                 ->orderBy('id')
@@ -35,11 +37,11 @@ class AppAssociationPayload
             'files' => [
                 'apple' => [
                     'url' => 'https://'.$domain->hostname.'/.well-known/apple-app-site-association',
-                    'content' => $this->files->apple($domain),
+                    'content' => $publishing ? $this->files->apple($domain) : null,
                 ],
                 'android' => [
                     'url' => 'https://'.$domain->hostname.'/.well-known/assetlinks.json',
-                    'content' => $this->files->android($domain),
+                    'content' => $publishing ? $this->files->android($domain) : null,
                 ],
             ],
             'reserved_paths' => AssociationFiles::reservedPaths(),

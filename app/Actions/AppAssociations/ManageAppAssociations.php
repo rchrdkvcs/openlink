@@ -7,6 +7,8 @@ use App\Models\Domain;
 use App\Models\User;
 use App\Services\AppAssociations\AssociationFiles;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ManageAppAssociations
@@ -26,7 +28,13 @@ class ManageAppAssociations
             ]);
         }
 
-        return $domain->appAssociations()->create($attributes);
+        try {
+            return DB::transaction(fn () => $domain->appAssociations()->create($attributes));
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                'identifier' => __('openlink.validation.app_association_duplicate'),
+            ]);
+        }
     }
 
     public function remove(User $actor, AppAssociation $association): void

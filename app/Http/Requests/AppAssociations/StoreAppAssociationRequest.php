@@ -30,7 +30,8 @@ class StoreAppAssociationRequest extends FormRequest
 
     public function rules(): array
     {
-        $ios = $this->input('platform') === AppAssociation::PLATFORM_IOS;
+        $platform = $this->input('platform');
+        $ios = $platform === AppAssociation::PLATFORM_IOS;
         $domain = $this->route('domain');
 
         return [
@@ -43,7 +44,7 @@ class StoreAppAssociationRequest extends FormRequest
                 'regex:'.($ios ? self::BUNDLE_ID : self::PACKAGE_NAME),
                 Rule::unique('app_associations', 'identifier')
                     ->where('domain_id', $domain instanceof Domain ? $domain->id : null)
-                    ->where('platform', (string) $this->input('platform')),
+                    ->where('platform', is_string($platform) ? $platform : ''),
             ],
             'paths' => $ios ? ['required', 'array', 'min:1', 'max:20'] : ['prohibited'],
             'paths.*' => ['bail', 'required', 'string', 'max:200', 'regex:'.self::PATH, $this->notReserved(...)],

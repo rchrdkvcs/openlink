@@ -199,8 +199,8 @@ async function remove(association: AppAssociation) {
                 <p class="text-[13px] font-medium text-foreground">{{ entry.label }}</p>
                 <p class="truncate font-mono text-xs text-muted" :title="entry.file.url">{{ entry.file.url }}</p>
               </div>
-              <Badge :variant="entry.file.content && domain.can_publish ? 'success' : 'default'" dot class="shrink-0">
-                {{ entry.file.content && domain.can_publish ? 'Published' : 'Not published' }}
+              <Badge :variant="entry.file.content ? 'success' : 'default'" dot class="shrink-0">
+                {{ entry.file.content ? 'Published' : 'Not published' }}
               </Badge>
             </div>
             <div v-if="entry.file.content" class="relative">

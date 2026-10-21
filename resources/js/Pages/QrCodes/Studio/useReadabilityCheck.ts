@@ -24,7 +24,7 @@ export function failureMessage(error: unknown): string {
   }
   if (error instanceof HttpError && error.status === 429) return 'Too many checks. Wait a minute and try again.';
 
-  return 'The readability check is unavailable right now.';
+  return 'The readability check is unavailable right now. Try again in a moment.';
 }
 
 export function useReadabilityCheck(

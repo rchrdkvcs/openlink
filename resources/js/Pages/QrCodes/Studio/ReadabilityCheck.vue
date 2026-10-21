@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, Info, LoaderCircle, ScanLine, TriangleAlert } from '@lucide/vue';
+import { CircleAlert, Info, ScanLine, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
@@ -25,18 +25,18 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
   <section class="mt-6 rounded-xl border bg-surface" aria-labelledby="readability-heading">
     <header class="flex items-center gap-3 px-4 pb-3 pt-4">
       <div class="min-w-0 flex-1">
-        <h2 id="readability-heading" class="text-sm font-medium text-foreground">Print readiness</h2>
+        <h2 id="readability-heading" class="text-sm font-medium text-foreground">Readability check</h2>
         <p class="text-xs text-faint">Decodes the PNG and SVG exports at {{ exportSize }} px.</p>
       </div>
       <Button
         variant="secondary"
         size="sm"
         type="button"
-        :disabled="state.status === 'blocked' || state.status === 'checking'"
+        :disabled="state.status === 'blocked'"
+        :loading="state.status === 'checking'"
         @click="$emit('check')"
       >
-        <LoaderCircle v-if="state.status === 'checking'" class="animate-spin" />
-        <ScanLine v-else />
+        <ScanLine v-if="state.status !== 'checking'" />
         {{ hasRun ? 'Check again' : 'Check readability' }}
       </Button>
     </header>
@@ -91,7 +91,7 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
 
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
           <dt class="text-faint">Encodes</dt>
-          <dd class="line-clamp-3 break-all font-mono text-foreground">{{ result.summary.encoded_content }}</dd>
+          <dd class="whitespace-pre-wrap break-all font-mono text-foreground">{{ result.summary.encoded_content }}</dd>
           <template v-if="result.summary.short_link">
             <dt class="text-faint">Short link</dt>
             <dd class="break-all text-foreground">

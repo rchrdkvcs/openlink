@@ -172,6 +172,14 @@ class QrCodeReadabilityTest extends TestCase
             ->assertJsonPath('warnings.0.code', 'logo_obstruction')
             ->assertJsonPath('formats.png.status', 'unreadable')
             ->assertJsonPath('formats.svg.status', 'unreadable');
+
+        $message = $this->actingAs($user)
+            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'margin' => 16, 'error_correction' => 'high']))
+            ->assertOk()
+            ->assertJsonPath('warnings.0.code', 'logo_obstruction')
+            ->json('warnings.0.message');
+
+        $this->assertStringEndsWith('Use a smaller margin.', $message);
     }
 
     public function test_lifecycle_restrictions_are_summarised_for_linked_qr_codes(): void

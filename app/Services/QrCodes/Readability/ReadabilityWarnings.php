@@ -122,7 +122,7 @@ class ReadabilityWarnings
             'logo_obstruction',
             'warning',
             'Logo hides too much of the code',
-            'The logo covers about '.round($coverage * 100).'% of the modules, close to or beyond what '.$level.' error correction can recover. Use high error correction or a smaller margin.',
+            'The logo covers about '.round($coverage * 100).'% of the modules, close to or beyond what '.$level.' error correction can recover. '.($level === 'high' ? 'Use a smaller margin.' : 'Use high error correction or a smaller margin.'),
         );
     }
 

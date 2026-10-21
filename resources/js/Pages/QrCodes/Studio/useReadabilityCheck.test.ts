@@ -89,7 +89,10 @@ describe('useReadabilityCheck', () => {
     calls[0].reject(new HttpError(500, null));
     await running;
 
-    expect(state.value).toEqual({ status: 'failed', message: 'The readability check is unavailable right now.' });
+    expect(state.value).toEqual({
+      status: 'failed',
+      message: 'The readability check is unavailable right now. Try again in a moment.',
+    });
   });
 
   it('explains validation and throttling failures', () => {

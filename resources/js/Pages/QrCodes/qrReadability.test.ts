@@ -121,6 +121,16 @@ describe('readableFixes', () => {
     expect(isFixable([warning('low_contrast')])).toBe(true);
   });
 
+  it('leaves notice-level guidance untouched', () => {
+    expect(
+      readableFixes(
+        [warning('low_contrast', 'notice'), warning('quiet_zone', 'notice'), warning('small_modules')],
+        { margin: 1 },
+        { modules: 25 },
+      ),
+    ).toEqual({ appearance: {}, exportSize: 512 });
+  });
+
   it('restores readable colors, quiet zone, error correction, and export size', () => {
     expect(readableFixes([warning('low_contrast'), warning('quiet_zone')], { margin: 0 }, { modules: 25 })).toEqual({
       appearance: { foreground_color: '#111827', background_color: '#ffffff', margin: 4 },

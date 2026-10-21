@@ -122,7 +122,11 @@ export function readableFixes(
   form: Pick<QrAppearance, 'margin'>,
   summary: Pick<ReadabilitySummary, 'modules'>,
 ): ReadableFixes {
-  const codes = new Set(warnings.filter((warning) => FIXABLE.has(warning.code)).map((warning) => warning.code));
+  const codes = new Set(
+    warnings
+      .filter((warning) => warning.severity === 'warning' && FIXABLE.has(warning.code))
+      .map((warning) => warning.code),
+  );
   const appearance: Partial<QrAppearance> = {};
   let margin = form.margin;
 

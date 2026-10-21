@@ -19,6 +19,8 @@ that want to retain control of their domains and data.
 - Workspace-owned QR Codes linked to Short Links or carrying native direct payloads.
 - QR codes can be exported as PNG and SVG with configurable size, foreground color, background color, margin (quiet zone in modules), error correction level, module style (squares, rounded, dots), eye style (square, rounded, circle), transparent background, and an optional centered logo.
 - Workspace QR Code Templates: Owners and Admins save a QR Code's design as a named template and rename, replace, or delete it; members who can edit a QR Code apply a template with a live preview. Applying copies the design and logo into the QR Code, so later template changes never alter existing QR Codes.
+
+- Link Pages: Workspace-owned public pages at `/p/{path}` on the application host that list explicitly selected Short Links under a title, short description, and optional logo.
 - Aggregated analytics for visits and scans.
 - Analytics retention defaults to 12 months for daily aggregates, while lifetime totals remain available while the related link or QR code exists.
 - Instance admin panel and workspace settings.

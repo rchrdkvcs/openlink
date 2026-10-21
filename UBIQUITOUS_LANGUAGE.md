@@ -64,6 +64,13 @@
 | **App Link Preset** | A predefined smart destination configuration for a known app or service. | Deep link preset, app redirect |
 | **Web Fallback** | The required browser destination used when a smart destination cannot open a native app. | Fallback link, desktop URL |
 
+## Link pages
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Link Page** | A Workspace-owned public page that presents a title, short description, optional logo, and an ordered list of explicitly selected Short Links. | Bio page, link in bio, landing page, microsite, link bundle |
+| **Published Link Page** | A link page made public by its Workspace; any other link page is a draft that visitors never see. | Live page, public page, active page |
+
 ## Identity and credentials
 
 | Term | Definition | Aliases to avoid |
@@ -86,13 +93,14 @@
 
 - A **Workspace** has one or more **Members**.
 - A **Member** has exactly one **Workspace Role** per **Workspace**.
-- A **Workspace** owns zero or more **Domains**, **Folders**, **Short Links**, **QR Codes**, and **Invite Links**.
+- A **Workspace** owns zero or more **Domains**, **Folders**, **Short Links**, **QR Codes**, **Link Pages**, and **Invite Links**.
 - A **Short Link** belongs to exactly one **Workspace**.
 - A **Short Link** combines exactly one **Domain** and exactly one **Slug** into one **Short URL**.
 - A **Short Link** has exactly one primary **Destination URL** and may have zero or one **Fallback URL**.
 - A **Short Link** may belong to zero or one **Folder** and may have zero or more **Tags**.
 - A **Folder** organises **Short Links** and does not grant access; a **Tag** never grants access. Access comes from **Workspace Role**.
 - A **QR Code** may attach to exactly one **Short Link** or carry one direct payload.
+- A **Link Page** lists zero or more **Short Links** from its own **Workspace** and sends visitors through each **Short URL**; it never stores a **Destination URL**.
 - A **Scan** is a kind of successful **Visit** that starts from a **QR Code**.
 - **Smart Routing** belongs to a **Short Link**, and a **QR Code** attached to that short link inherits it.
 - A **Routing Rule** belongs to exactly one **Short Link** and may choose a **Destination URL**.

@@ -50,6 +50,7 @@ describe('toUpdatePayload', () => {
       style: 'square',
       eye_style: 'square',
       logo: null,
+      logo_template_id: null,
       _method: 'patch',
       background_transparent: 1,
       remove_logo: 0,

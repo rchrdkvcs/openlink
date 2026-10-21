@@ -1,4 +1,4 @@
-import { asFlag } from './qrForm';
+import { asFlag, type LogoState } from './qrForm';
 import type { ExportFormat, QrAppearance } from './types';
 
 const PREVIEW_SIZE = 512;
@@ -9,7 +9,15 @@ export function withQuery(base: string, params: Record<string, string | number>)
   return query ? `${base}?${query}` : base;
 }
 
-export function previewQuery(appearance: QrAppearance, version: number): Record<string, string | number> {
+export function previewLogoQuery(logo: Partial<LogoState>): Record<string, number> {
+  if (logo.logo_template_id) return { logo_template_id: logo.logo_template_id };
+  return logo.remove_logo ? { remove_logo: 1 } : {};
+}
+
+export function previewQuery(
+  appearance: QrAppearance & Partial<LogoState>,
+  version: number,
+): Record<string, string | number> {
   return {
     size: PREVIEW_SIZE,
     foreground_color: appearance.foreground_color,
@@ -19,6 +27,7 @@ export function previewQuery(appearance: QrAppearance, version: number): Record<
     style: appearance.style,
     eye_style: appearance.eye_style,
     background_transparent: asFlag(appearance.background_transparent),
+    ...previewLogoQuery(appearance),
     v: version,
   };
 }
@@ -27,7 +36,7 @@ export function thumbnailUrl(token: string): string {
   return route('qr-codes.preview', token);
 }
 
-export function previewUrl(token: string, appearance: QrAppearance, version: number): string {
+export function previewUrl(token: string, appearance: QrAppearance & Partial<LogoState>, version: number): string {
   return withQuery(thumbnailUrl(token), previewQuery(appearance, version));
 }
 

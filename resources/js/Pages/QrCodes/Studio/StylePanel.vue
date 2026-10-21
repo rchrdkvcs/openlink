@@ -4,20 +4,40 @@ import Switch from '@/Components/ui/Switch.vue';
 
 import { logoLabel, showsLogo } from '../qrForm';
 import { EYE_STYLE_OPTIONS, STYLE_OPTIONS } from '../qrOptions';
+import type { QrCodeTemplate } from '../types';
 import ColorField from './ColorField.vue';
 import LogoField from './LogoField.vue';
+import TemplateField from './TemplateField.vue';
 import type { QrEditorForm } from './useQrCodeEditor';
 
 defineProps<{
   form: QrEditorForm;
   hasSavedLogo: boolean;
+  templates: QrCodeTemplate[];
+  appliedTemplate: QrCodeTemplate | null;
+  canManageTemplates: boolean;
+  hasUnsavedChanges: boolean;
+  qrToken: string;
 }>();
 
-const emit = defineEmits<{ pickLogo: [file: File | null]; removeLogo: [] }>();
+const emit = defineEmits<{
+  pickLogo: [file: File | null];
+  removeLogo: [];
+  applyTemplate: [template: QrCodeTemplate];
+}>();
 </script>
 
 <template>
   <div class="grid gap-5">
+    <TemplateField
+      :templates="templates"
+      :applied="appliedTemplate"
+      :can-manage="canManageTemplates"
+      :has-unsaved-changes="hasUnsavedChanges"
+      :qr-token="qrToken"
+      @apply="emit('applyTemplate', $event)"
+    />
+
     <div class="grid gap-1.5">
       <span class="text-[13px] font-medium text-foreground">Modules</span>
       <SegmentedControl v-model="form.style" :options="STYLE_OPTIONS" label="Module style" class="w-full" />

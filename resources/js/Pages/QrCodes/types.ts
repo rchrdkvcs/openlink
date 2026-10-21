@@ -66,6 +66,12 @@ export type QrCodeRecord = QrPayloadTarget &
     updated_at?: string | null;
   };
 
+export type QrCodeTemplate = QrAppearance & {
+  id: number;
+  name: string;
+  has_logo: boolean;
+};
+
 export type PayloadField = {
   key: string;
   label: string;

@@ -5,7 +5,6 @@ namespace Tests\Feature\Webhooks;
 use App\Enums\WebhookDeliveryStatus;
 use App\Jobs\DeliverWebhook;
 use App\Models\WebhookDelivery;
-use App\Models\WebhookEndpoint;
 use App\Services\Dns\DnsLookup;
 use App\Services\Webhooks\WebhookEvents;
 use Illuminate\Foundation\Testing\RefreshDatabase;

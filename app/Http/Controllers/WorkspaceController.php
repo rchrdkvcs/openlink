@@ -43,6 +43,7 @@ class WorkspaceController extends Controller
                 'members.index',
                 'settings.index',
                 'settings.workspace',
+                'settings.webhooks',
             ])],
         ]);
 

@@ -11,6 +11,8 @@ use App\Models\QrCode;
 use App\Models\QrCodeTemplate;
 use App\Models\ShortLink;
 use App\Models\UtmTemplate;
+use App\Models\WebhookDelivery;
+use App\Models\WebhookEndpoint;
 use App\Models\WorkspaceMember;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +30,8 @@ class ScopeBindingsToCurrentWorkspace
         QrCodeTemplate::class => 403,
         ShortLink::class => 403,
         UtmTemplate::class => 403,
+        WebhookDelivery::class => 403,
+        WebhookEndpoint::class => 403,
         WorkspaceMember::class => 404,
     ];
 

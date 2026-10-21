@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { BarChart3, Home, Link2, QrCode, Search, TriangleAlert } from '@lucide/vue';
+import { BarChart3, Home, LayoutList, Link2, QrCode, Search, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 import SidebarFolders from '@/Components/Shell/SidebarFolders.vue';
@@ -93,6 +93,12 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
             :icon="QrCode"
             label="QR codes"
             :active="route().current('qr-codes.*')"
+          />
+          <SidebarItem
+            :href="route('link-pages.index')"
+            :icon="LayoutList"
+            label="Link pages"
+            :active="route().current('link-pages.*')"
           />
           <SidebarItem
             :href="route('analytics.index')"

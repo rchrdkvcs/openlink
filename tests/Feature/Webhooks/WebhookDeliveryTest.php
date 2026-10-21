@@ -154,6 +154,9 @@ class WebhookDeliveryTest extends TestCase
             'https://v6.example.com/hook' => ['v6.example.com', 'fe80::1'],
             'https://unresolved.example.com/hook' => [],
             'http://hooks.example.com/plain' => [],
+            'https://2130706433/hook' => [],
+            'https://0x7f.1/hook' => [],
+            'https://１２７-0-0-1.example.com/hook' => [],
         ];
 
         foreach ($cases as $url => $records) {

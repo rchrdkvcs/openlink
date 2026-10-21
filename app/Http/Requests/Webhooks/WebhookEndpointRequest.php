@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Webhooks;
 
+use App\Actions\Workspaces\CurrentWorkspace;
 use App\Enums\WebhookEventType;
 use App\Services\Webhooks\UnsafeWebhookTarget;
 use App\Services\Webhooks\WebhookTargets;
@@ -11,6 +12,11 @@ use Illuminate\Validation\Rule;
 
 class WebhookEndpointRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()->can('manage', app(CurrentWorkspace::class)->require());
+    }
+
     public function rules(): array
     {
         return [

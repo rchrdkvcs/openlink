@@ -84,6 +84,7 @@ class WebhookEndpointManagementTest extends TestCase
             ['url' => 'https://169.254.169.254/latest', 'events' => ['short_link.created']],
             ['url' => 'https://user:pass@hooks.example.com/hook', 'events' => ['short_link.created']],
             ['url' => 'not a url', 'events' => ['short_link.created']],
+            ['url' => 'https://2130706433/hook', 'events' => ['short_link.created']],
         ];
 
         foreach ($cases as $input) {
@@ -213,6 +214,9 @@ class WebhookEndpointManagementTest extends TestCase
             $this->actingInWorkspace($member, $workspace)->get(route('settings.webhooks'))->assertRedirect(route('profile.edit'));
             $this->actingInWorkspace($member, $workspace)
                 ->post(route('webhook-endpoints.store'), ['url' => 'https://hooks.example.com/x', 'events' => ['short_link.created']])
+                ->assertForbidden();
+            $this->actingInWorkspace($member, $workspace)
+                ->post(route('webhook-endpoints.store'), ['url' => 'https://intranet.example.com/x', 'events' => ['short_link.created']])
                 ->assertForbidden();
             $this->actingInWorkspace($member, $workspace)
                 ->patch(route('webhook-endpoints.update', $endpoint), ['url' => 'https://hooks.example.com/x', 'events' => ['short_link.created'], 'is_enabled' => true])

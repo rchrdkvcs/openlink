@@ -29,7 +29,13 @@ class WebhookTargets
             throw new UnsafeWebhookTarget('The endpoint resolves to a private or reserved address.');
         }
 
-        $addresses = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : $this->dns->ipAddresses($host);
+        $isAddress = filter_var($host, FILTER_VALIDATE_IP) !== false;
+
+        if (! $isAddress && ! $this->isHostname($host)) {
+            throw new UnsafeWebhookTarget('The endpoint hostname is not valid.');
+        }
+
+        $addresses = $isAddress ? [$host] : $this->dns->ipAddresses($host);
 
         if ($addresses === []) {
             throw new UnsafeWebhookTarget('The endpoint hostname does not resolve.');
@@ -42,6 +48,15 @@ class WebhookTargets
         }
 
         return new WebhookTarget($url, $host, (int) ($parts['port'] ?? 443), $addresses[0]);
+    }
+
+    private function isHostname(string $host): bool
+    {
+        $labels = explode('.', rtrim($host, '.'));
+        $topLevel = end($labels);
+
+        return preg_match('/^[a-z0-9.-]+$/', $host) === 1
+            && preg_match('/^(0x[0-9a-f]*|[0-9]+)$/', $topLevel) !== 1;
     }
 
     private function isInternalName(string $host): bool

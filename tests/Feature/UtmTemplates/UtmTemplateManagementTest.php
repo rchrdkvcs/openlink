@@ -206,6 +206,33 @@ class UtmTemplateManagementTest extends TestCase
             ->assertSessionHasErrors('name');
     }
 
+    public function test_a_concurrent_duplicate_name_is_reported_as_a_name_error_on_create(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $this->insertDuplicateWhileSaving($workspace, 'Newsletter');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('utm-templates.store'), ['name' => 'Newsletter', 'utm_source' => 'mine'])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['name' => 'This name is already in use.']);
+
+        $this->assertDatabaseMissing('utm_templates', ['utm_source' => 'mine']);
+    }
+
+    public function test_a_concurrent_duplicate_name_is_reported_as_a_name_error_on_update(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $template = $this->template($workspace, 'Draft', ['utm_source' => 'draft']);
+        $this->insertDuplicateWhileSaving($workspace, 'Newsletter');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->patch(route('utm-templates.update', $template), ['name' => 'Newsletter', 'utm_source' => 'mine'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseHas('utm_templates', ['id' => $template->id, 'name' => 'Draft', 'utm_source' => 'draft']);
+    }
+
     public function test_template_input_is_validated(): void
     {
         [$workspace, $owner] = $this->workspaceWithOwner();
@@ -236,6 +263,17 @@ class UtmTemplateManagementTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseCount('utm_templates', 0);
+    }
+
+    private function insertDuplicateWhileSaving(Workspace $workspace, string $name): void
+    {
+        UtmTemplate::saving(function () use ($workspace, $name): void {
+            UtmTemplate::withoutEvents(fn () => UtmTemplate::create([
+                'workspace_id' => $workspace->id,
+                'name' => $name,
+                'utm_source' => 'concurrent',
+            ]));
+        });
     }
 
     private function template(Workspace $workspace, string $name, array $values): UtmTemplate

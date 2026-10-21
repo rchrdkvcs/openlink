@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyTemplate,
   emptyUtm,
+  hasUrlBase,
   readUtm,
   templateChanges,
   templateForm,
@@ -62,6 +63,14 @@ describe('writeUtm', () => {
     expect(writeUtm(messy, emptyUtm())).toBe(messy);
     expect(writeUtm('https://example.com/?', emptyUtm())).toBe('https://example.com/?');
     expect(writeUtm('https://example.com', emptyUtm())).toBe('https://example.com');
+  });
+
+  it('refuses to add parameters to a destination without a base', () => {
+    expect(writeUtm('', { utm_source: 'newsletter' })).toBe('');
+    expect(writeUtm('   ', { utm_source: 'newsletter' })).toBe('   ');
+    expect(writeUtm('?ref=x#top', { utm_source: 'newsletter' })).toBe('?ref=x#top');
+    expect(hasUrlBase('?ref=x')).toBe(false);
+    expect(hasUrlBase('example.com')).toBe(true);
   });
 
   it('round-trips a URL whose UTM parameters are unchanged', () => {
@@ -176,6 +185,11 @@ describe('UTM templates', () => {
     expect(applyTemplate(repeated, template({ utm_source: 'newsletter' }))).toBe(
       'https://example.com/?utm_source=newsletter',
     );
+  });
+
+  it('refuses to apply a template to an empty destination', () => {
+    expect(applyTemplate('', spring)).toBe('');
+    expect(templateChanges('', spring)).toHaveLength(3);
   });
 
   it('leaves the URL unchanged when the template defines no values', () => {

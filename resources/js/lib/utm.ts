@@ -61,8 +61,13 @@ export function readUtm(url: string): UtmValues {
   return values;
 }
 
+export function hasUrlBase(url: string): boolean {
+  return splitUrl(url).base.trim() !== '';
+}
+
 export function writeUtm(url: string, values: Partial<UtmValues>): string {
   const parts = splitUrl(url);
+  if (parts.base.trim() === '') return url;
   let segments = parts.query ? parts.query.split('&') : [];
   const additions: string[] = [];
   let changed = false;

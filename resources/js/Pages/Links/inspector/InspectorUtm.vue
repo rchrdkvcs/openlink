@@ -1,65 +1,43 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Megaphone } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
-import { normalizeUrl } from '@/lib/links';
-import {
-  applyTemplate,
-  readUtm,
-  templateChanges,
-  UTM_FIELDS,
-  UTM_KEYS,
-  type UtmKey,
-  type UtmTemplate,
-  writeUtm,
-} from '@/lib/utm';
+import { UTM_FIELDS, type UtmTemplate } from '@/lib/utm';
 
 import InspectorRow from './InspectorRow.vue';
+import { useUtmBuilder } from './useUtmBuilder';
 
 const props = defineProps<{ templates: UtmTemplate[]; canManageTemplates: boolean; disabled?: boolean }>();
 
 const destination = defineModel<string>({ required: true });
 const open = defineModel<boolean>('open', { default: false });
 
-const values = computed(() => readUtm(destination.value));
-const filled = computed(() => UTM_KEYS.filter((key) => values.value[key] !== ''));
-const summary = computed(() =>
-  filled.value.length ? filled.value.map((key) => values.value[key]).join(' · ') : 'None',
-);
-
-const selectedId = ref('');
-const selected = computed(() => props.templates.find((template) => String(template.id) === selectedId.value));
-const changes = computed(() => (selected.value ? templateChanges(destination.value, selected.value) : []));
-const applied = computed(() => (selected.value ? applyTemplate(destination.value, selected.value) : destination.value));
-const applicable = computed(() => applied.value !== destination.value);
-const finalUrl = computed(() => normalizeUrl(destination.value));
-
-const templateOptions = computed(() => [
-  { value: '', label: 'Choose a template' },
-  ...props.templates.map((template) => ({ value: String(template.id), label: template.name })),
-]);
-
-watch(
-  () => props.templates,
-  () => {
-    if (selectedId.value && !selected.value) selectedId.value = '';
-  },
-);
-
-function update(key: UtmKey, value: string) {
-  destination.value = writeUtm(destination.value, { [key]: value });
-}
-
-function apply() {
-  if (!selected.value) return;
-  destination.value = applied.value;
-  selectedId.value = '';
-}
+const {
+  values,
+  filled,
+  summary,
+  hasDestination,
+  fieldsDisabled,
+  selectedId,
+  selected,
+  changes,
+  applicable,
+  canApply,
+  templateOptions,
+  showCreateTemplateLink,
+  finalUrl,
+  update,
+  apply,
+} = useUtmBuilder({
+  destination,
+  templates: () => props.templates,
+  disabled: () => Boolean(props.disabled),
+  canManageTemplates: () => props.canManageTemplates,
+});
 </script>
 
 <template>
@@ -75,10 +53,11 @@ function apply() {
         <Field label="Template" class="flex-1">
           <Select v-model="selectedId" :options="templateOptions" :disabled="disabled" aria-label="UTM template" />
         </Field>
-        <Button type="button" variant="secondary" :disabled="disabled || !applicable" @click="apply"> Apply </Button>
+        <Button type="button" variant="secondary" :disabled="!canApply" @click="apply"> Apply </Button>
       </div>
       <div v-if="selected" class="rounded-lg border bg-canvas px-3 py-2 text-xs" aria-live="polite">
-        <p v-if="!applicable" class="text-faint">The destination already uses these values.</p>
+        <p v-if="!hasDestination" class="text-faint">Add a destination before applying a template.</p>
+        <p v-else-if="!applicable" class="text-faint">The destination already uses these values.</p>
         <p v-else-if="changes.length === 0" class="text-faint">Removes repeated UTM parameters.</p>
         <template v-else>
           <p class="mb-1 font-medium text-muted">Applying changes</p>
@@ -94,7 +73,7 @@ function apply() {
     </div>
     <p v-else class="text-xs text-faint">
       No UTM templates yet.
-      <Link v-if="canManageTemplates" :href="route('settings.workspace')" class="text-accent hover:underline">
+      <Link v-if="showCreateTemplateLink" :href="route('settings.workspace')" class="text-accent hover:underline">
         Create one in workspace settings.
       </Link>
     </p>
@@ -105,7 +84,7 @@ function apply() {
           :model-value="values[field.key]"
           :placeholder="field.placeholder"
           spellcheck="false"
-          :disabled="disabled"
+          :disabled="fieldsDisabled"
           @update:model-value="update(field.key, String($event ?? ''))"
         />
       </Field>

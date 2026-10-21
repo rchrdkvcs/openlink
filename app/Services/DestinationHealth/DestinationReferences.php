@@ -58,7 +58,7 @@ class DestinationReferences
                         ->orWhereHas('variants', fn (Builder $variants) => $variants
                             ->where('is_enabled', true)
                             ->whereIn('destination_url', $urls)))))
-            ->with([...self::RELATIONS, 'domain', 'qrCodes:id,short_link_id,name'])
+            ->with([...self::RELATIONS, 'domain', 'qrCodes:id,short_link_id,name,token'])
             ->get();
     }
 }

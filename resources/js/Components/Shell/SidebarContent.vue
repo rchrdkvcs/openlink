@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { BarChart3, Home, Link2, QrCode, Search } from '@lucide/vue';
+import { BarChart3, Home, Link2, QrCode, Search, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 import SidebarFolders from '@/Components/Shell/SidebarFolders.vue';
@@ -79,6 +79,14 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
             label="Links"
             :count="navigation?.links_count ?? null"
             :active="allLinksActive"
+          />
+          <SidebarItem
+            v-if="navigation?.destination_issues_count"
+            :href="route('destination-issues.index')"
+            :icon="TriangleAlert"
+            label="Issues"
+            :count="navigation.destination_issues_count"
+            :active="route().current('destination-issues.index')"
           />
           <SidebarItem
             :href="route('qr-codes.index')"

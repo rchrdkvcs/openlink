@@ -18,6 +18,7 @@ export type Navigation = {
   links_count: number;
   unfiled_count: number;
   archived_count: number;
+  destination_issues_count: number;
 };
 
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {

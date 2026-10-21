@@ -1,4 +1,5 @@
 import type { UtmTemplate } from '@/lib/utm';
+import type { DestinationHealth } from '@/lib/destinationHealth';
 import type { Domain, Folder, Pagination, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
@@ -18,4 +19,5 @@ export type LinksPageProps = {
   linksPagination: Pagination;
   filters: LinkFilters;
   routingSchema: RoutingSchema;
+  destinationHealth: DestinationHealth[];
 };

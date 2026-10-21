@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Archive, Download, Folder as FolderIcon, Inbox, Link2, Upload } from '@lucide/vue';
+import { useIntervalFn } from '@vueuse/core';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ComposerLink } from '@/Components/Links/composerLink';
@@ -11,6 +12,7 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import Kbd from '@/Components/ui/Kbd.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { hasPendingCheck, healthByUrl, linkHealthSummary } from '@/lib/destinationHealth';
 import { useShell } from '@/lib/shell';
 import { selectableDomains } from '@/lib/shortLinks/shortLinkForm';
 import { useServerFilters } from '@/lib/useServerFilters';
@@ -84,6 +86,33 @@ const importing = ref(false);
 function exportLinks() {
   window.location.href = route('links.export') + '?' + new URLSearchParams(exportQuery(props.filters)).toString();
 }
+
+const health = computed(() => healthByUrl(props.destinationHealth));
+
+const HEALTH_POLL_LIMIT = 20;
+let healthPolls = 0;
+const healthPoll = useIntervalFn(
+  () => {
+    healthPolls += 1;
+    if (healthPolls > HEALTH_POLL_LIMIT) return healthPoll.pause();
+    router.reload({ only: ['destinationHealth', 'navigation'] });
+  },
+  3000,
+  { immediate: false },
+);
+
+watch(
+  () => hasPendingCheck(props.destinationHealth),
+  (pending) => {
+    if (pending) {
+      healthPolls = 0;
+      healthPoll.resume();
+    } else {
+      healthPoll.pause();
+    }
+  },
+  { immediate: true },
+);
 
 const toolbar = ref<InstanceType<typeof LinksToolbar> | null>(null);
 const composer = ref<InstanceType<typeof LinkComposer> | null>(null);
@@ -211,6 +240,7 @@ useLinkListKeyboard({
               :compact="selected !== null"
               :selectable="canEdit"
               :checked="checkedIds.includes(link.id)"
+              :health="linkHealthSummary(link, health)"
               @select="select(link)"
               @toggle="checkedIds = toggleSelected(checkedIds, link.id)"
               @removed="selectedId === link.id && (selectedId = null)"
@@ -260,6 +290,7 @@ useLinkListKeyboard({
               :known-tags="tags"
               :routing-schema="routingSchema"
               :utm-templates="utmTemplates"
+              :health="health"
               @close="selectedId = null"
             />
           </div>

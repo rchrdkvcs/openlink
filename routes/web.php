@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DestinationHealthController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
@@ -50,6 +51,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/links/export', [ShortLinkCsvController::class, 'export'])->name('links.export');
         Route::get('/links/import/example', [ShortLinkCsvController::class, 'example'])->name('links.import.example');
         Route::get('/links/{shortLink}/routing', [ShortLinkRoutingController::class, 'edit'])->name('links.routing');
+        Route::get('/links/issues', [DestinationHealthController::class, 'index'])->name('destination-issues.index');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
@@ -132,6 +134,12 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/short-links/{shortLink}/revisions', [ShortLinkRevisionController::class, 'index'])->name('short-links.revisions.index');
         Route::get('/short-links/{shortLink}/revisions/{revision}', [ShortLinkRevisionController::class, 'show'])->whereNumber('revision')->name('short-links.revisions.show');
         Route::post('/short-links/{shortLink}/revisions/{revision}/restore', [ShortLinkRevisionController::class, 'restore'])->whereNumber('revision')->name('short-links.revisions.restore');
+        Route::post('/short-links/{shortLink}/destination-checks', [DestinationHealthController::class, 'checkShortLink'])
+            ->middleware('throttle:destination-checks')
+            ->name('short-links.destination-checks.store');
+        Route::post('/destination-checks/{destinationCheck}/retry', [DestinationHealthController::class, 'retry'])
+            ->middleware('throttle:destination-checks')
+            ->name('destination-checks.retry');
 
         Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
         Route::get('/qr-codes/short-links/search', [QrCodeController::class, 'shortLinks'])->name('qr-codes.short-links');

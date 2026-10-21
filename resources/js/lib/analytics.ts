@@ -72,6 +72,40 @@ export type RoutingPerformanceRow = {
   total: number;
 };
 
+export type ConversionMeasures = {
+  attributed_visits: number;
+  conversions: number;
+  pending: number;
+  rate: number | null;
+};
+
+export type ConversionLinkRow = ConversionMeasures & {
+  id: number;
+  slug: string | null;
+  short_url: string | null;
+  conversion_goal: string | null;
+  insufficient_evidence: boolean;
+};
+
+export type ConversionRoutingRow = ConversionMeasures & {
+  short_link_id: number;
+  slug: string | null;
+  routing_rule_id: number | null;
+  routing_variant_id: number | null;
+  rule_name: string;
+  variant_name: string | null;
+  insufficient_evidence: boolean;
+};
+
+export type ConversionReport = {
+  enabled: boolean;
+  window_hours: number;
+  minimum_attributed_visits: number;
+  totals: ConversionMeasures;
+  links: ConversionLinkRow[];
+  routing: ConversionRoutingRow[];
+};
+
 export type BarListRow = {
   label: string;
   display?: string;
@@ -119,6 +153,7 @@ export type Report = {
   routing: RoutingPerformanceRow[];
   top_links: TopLink[];
   top_qr_codes: TopQrCode[];
+  conversions: ConversionReport;
 };
 
 export const SERIES_COLORS = {

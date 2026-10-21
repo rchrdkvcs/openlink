@@ -25,6 +25,7 @@ export type ShortLink = {
   has_password: boolean;
   revision: number;
   preview?: LinkPreview;
+  conversion_goal?: string | null;
   routing_rules: RoutingRuleDraft[];
 };
 

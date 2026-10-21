@@ -71,4 +71,9 @@ class Workspace extends Model
     {
         return $this->hasMany(UtmTemplate::class);
     }
+
+    public function qrCodeTemplates(): HasMany
+    {
+        return $this->hasMany(QrCodeTemplate::class);
+    }
 }

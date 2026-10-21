@@ -36,6 +36,7 @@ class QrCodeImages
     public function preview(QrCode $qrCode, array $overrides): Response
     {
         $this->appearance->preview($qrCode, $overrides);
+        $this->previewLogo($qrCode, $overrides);
 
         if ($qrCode->hasDirectPayload() && QrCodeTargets::submitted($overrides)) {
             $direct = collect($overrides)->only(['payload_type', 'payload'])->all();
@@ -47,5 +48,16 @@ class QrCodeImages
             'Content-Disposition' => 'inline; filename="'.$qrCode->token.'.svg"',
             'Cache-Control' => 'no-store',
         ]);
+    }
+
+    private function previewLogo(QrCode $qrCode, array $overrides): void
+    {
+        if (isset($overrides['logo_template_id'])) {
+            $qrCode->logo_path = $qrCode->workspace->qrCodeTemplates()
+                ->whereKey((int) $overrides['logo_template_id'])
+                ->value('logo_path');
+        } elseif ($overrides['remove_logo'] ?? false) {
+            $qrCode->logo_path = null;
+        }
     }
 }

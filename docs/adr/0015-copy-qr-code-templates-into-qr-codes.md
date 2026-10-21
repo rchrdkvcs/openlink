@@ -1,0 +1,5 @@
+# Copy QR Code Templates into QR Codes
+
+QR Code Templates are Workspace-owned appearance presets, not a new kind of QR Code. Applying a template copies its colors, transparency, module and corner styles, quiet zone, error correction, and logo into the QR Code, so later template edits or deletions never change saved designs or exported images. A template is saved from a QR Code's persisted design, which keeps payloads, names, linked Short Links, entry tokens, and analytics identifiers out of templates by construction.
+
+Logos are copied as independent files rather than shared by reference. Every logo file therefore has exactly one owner, a QR Code or a template, and the existing owner-based cleanup keeps working without reference counting. The cost is duplicate storage for repeated logos, bounded by the 2 MB upload limit. A shared asset library with reference tracking stays deferred.

@@ -4,6 +4,7 @@ namespace App\Http\Requests\QrCodes;
 
 use App\Actions\QrCodes\QrCodeAppearance;
 use App\Actions\QrCodes\QrCodeTargets;
+use App\Actions\QrCodes\QrCodeTemplates;
 use App\Models\QrCode;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -18,6 +19,8 @@ class PreviewQrCodeRequest extends FormRequest
     {
         return [
             ...QrCodeAppearance::rules(),
+            'logo_template_id' => QrCodeTemplates::logoRules($this->qrCode()),
+            'remove_logo' => ['nullable', 'boolean'],
             ...($this->qrCode()->hasDirectPayload() ? QrCodeTargets::payloadRules() : []),
         ];
     }

@@ -26,10 +26,19 @@ class UpdateQrCode
 
         $this->appearance->fill($qrCode, $data);
 
+        if (! $request->hasFile('logo') && isset($data['logo_template_id'])) {
+            return $this->logos->saveCopy($qrCode, $this->templateLogo($qrCode, (int) $data['logo_template_id']));
+        }
+
         return $this->logos->save(
             $qrCode,
             $request->hasFile('logo') ? $request->file('logo') : null,
             (bool) ($data['remove_logo'] ?? false),
         );
+    }
+
+    private function templateLogo(QrCode $qrCode, int $templateId): ?string
+    {
+        return $qrCode->workspace->qrCodeTemplates()->whereKey($templateId)->value('logo_path');
     }
 }

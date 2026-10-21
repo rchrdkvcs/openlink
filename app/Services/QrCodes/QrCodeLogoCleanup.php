@@ -4,6 +4,7 @@ namespace App\Services\QrCodes;
 
 use App\Models\Domain;
 use App\Models\QrCode;
+use App\Models\QrCodeTemplate;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
@@ -15,7 +16,7 @@ use WeakMap;
 
 class QrCodeLogoCleanup
 {
-    private const OWNERS = [QrCode::class, ShortLink::class, Workspace::class, Domain::class, User::class];
+    private const OWNERS = [QrCode::class, QrCodeTemplate::class, ShortLink::class, Workspace::class, Domain::class, User::class];
 
     private WeakMap $pending;
 
@@ -34,7 +35,10 @@ class QrCodeLogoCleanup
 
     public function collect(Model $owner): void
     {
-        $paths = $this->logos->pathsOf($this->qrCodesOf($owner));
+        $paths = [
+            ...$this->logos->pathsOf($this->qrCodesOf($owner)),
+            ...$this->logos->pathsOf($this->templatesOf($owner)),
+        ];
 
         if ($paths !== []) {
             $this->pending[$owner] = $paths;
@@ -57,10 +61,23 @@ class QrCodeLogoCleanup
 
         return match (true) {
             $owner instanceof QrCode => $qrCodes->whereKey($owner->getKey()),
+            $owner instanceof QrCodeTemplate => $qrCodes->whereRaw('false'),
             $owner instanceof ShortLink => $qrCodes->where('short_link_id', $owner->getKey()),
             $owner instanceof Workspace => $qrCodes->where('workspace_id', $owner->getKey()),
             $owner instanceof Domain => $qrCodes->whereIn('short_link_id', ShortLink::query()->select('id')->where('domain_id', $owner->getKey())),
             default => $qrCodes->whereIn('workspace_id', Workspace::query()->select('id')->where('owner_id', $owner->getKey())),
+        };
+    }
+
+    private function templatesOf(Model $owner): Builder
+    {
+        $templates = QrCodeTemplate::query();
+
+        return match (true) {
+            $owner instanceof QrCodeTemplate => $templates->whereKey($owner->getKey()),
+            $owner instanceof Workspace => $templates->where('workspace_id', $owner->getKey()),
+            $owner instanceof User => $templates->whereIn('workspace_id', Workspace::query()->select('id')->where('owner_id', $owner->getKey())),
+            default => $templates->whereRaw('false'),
         };
     }
 }

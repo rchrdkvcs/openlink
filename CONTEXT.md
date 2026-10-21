@@ -136,6 +136,10 @@ _Avoid_: Tracking parameters, campaign tags
 A Workspace-owned, named set of UTM Parameter values that Members apply explicitly to a Short Link's Destination URL. Applying a template copies its values; later changes to the template never rewrite existing destination URLs.
 _Avoid_: Campaign, UTM preset, tracking template
 
+**QR Code Template**:
+A Workspace-owned, named appearance preset saved from a QR Code's design: colors, transparency, module and corner styles, quiet zone, error correction, and an optional logo. Applying a template copies its appearance into a QR Code without touching the QR Code's name, target, or entry URL, so later template changes never alter existing QR Codes.
+_Avoid_: QR style, brand kit, preset QR Code
+
 **Protected Link**:
 A short link that requires a visitor to provide a password before it can resolve to the destination URL.
 _Avoid_: Locked link, private link, password link

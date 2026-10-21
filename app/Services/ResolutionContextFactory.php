@@ -29,8 +29,45 @@ class ResolutionContextFactory
             'device_type' => $agent['device_type'],
             'browser' => $agent['browser'],
             'os' => $agent['os'],
-            ...$this->utm($request),
+            ...$this->utm($request->query()),
         ], CarbonImmutable::now(), $this->visitorHash($request));
+    }
+
+    public function simulated(array $input, CarbonImmutable $occurredAt, string $seed): ResolutionContext
+    {
+        $referrer = $this->referrers->classify($this->text($input['referrer'] ?? null));
+        $deviceType = $this->lower($input['device_type'] ?? null);
+
+        return new ResolutionContext([
+            'is_bot' => $deviceType === 'bot',
+            'referrer_host' => Str::limit($referrer['host'] ?? '', 250, '') ?: null,
+            'referrer_channel' => $referrer['channel'],
+            'country' => ($country = $this->text($input['country'] ?? null)) ? strtoupper($country) : null,
+            'language' => $this->lower($input['language'] ?? null),
+            'device_type' => $deviceType,
+            'browser' => $this->text($input['browser'] ?? null),
+            'os' => $this->text($input['operating_system'] ?? null),
+            ...$this->utm($input),
+        ], $occurredAt, $this->seededVisitorHash($seed));
+    }
+
+    private function seededVisitorHash(string $seed): string
+    {
+        return substr(hash('sha256', 'routing-preview|'.$seed), 0, 32);
+    }
+
+    private function text(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+
+        return $value === '' ? null : Str::limit($value, 250, '');
+    }
+
+    private function lower(mixed $value): ?string
+    {
+        $value = $this->text($value);
+
+        return $value === null ? null : strtolower($value);
     }
 
     private function visitorHash(Request $request): string
@@ -72,15 +109,12 @@ class ResolutionContextFactory
             : null;
     }
 
-    private function utm(Request $request): array
+    private function utm(array $values): array
     {
         $params = [];
 
         foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
-            $value = $request->query($key);
-            $value = is_string($value) ? trim($value) : '';
-
-            $params[$key] = $value === '' ? null : Str::limit($value, 250, '');
+            $params[$key] = $this->text($values[$key] ?? null);
         }
 
         return $params;

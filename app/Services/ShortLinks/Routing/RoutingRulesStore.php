@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class RoutingRulesStore
 {
+    public function __construct(private readonly RoutingRuleDrafts $drafts) {}
+
     public function replace(ShortLink $shortLink, array $rules): void
     {
         DB::transaction(function () use ($shortLink, $rules): void {
@@ -23,7 +25,7 @@ class RoutingRulesStore
                 $rules,
                 'routing_rules',
                 'This routing rule does not belong to the Short Link.',
-                fn (array $data, int $index) => $this->ruleAttributes($data, $index),
+                fn (array $data, int $index) => $this->drafts->ruleAttributes($data, $index),
                 fn (RoutingRule $rule, array $data, int $index) => $this->replaceVariants($rule, $data, $index),
             );
 
@@ -45,30 +47,8 @@ class RoutingRulesStore
             $data['variants'] ?? [],
             "routing_rules.$index.variants",
             'This variant does not belong to the routing rule.',
-            fn (array $variant, int $position) => [
-                'name' => filled($variant['name'] ?? null) ? $variant['name'] : 'Variant '.($position + 1),
-                'position' => $position + 1,
-                'is_enabled' => $variant['is_enabled'] ?? true,
-                'destination_url' => $variant['destination_url'],
-                'weight' => $variant['weight'] ?? 50,
-            ],
+            fn (array $variant, int $position) => $this->drafts->variantAttributes($variant, $position),
         );
-    }
-
-    private function ruleAttributes(array $data, int $index): array
-    {
-        $type = $data['type'] ?? RoutingRule::TYPE_CONDITIONAL;
-
-        return [
-            'name' => filled($data['name'] ?? null) ? $data['name'] : 'Routing rule '.($index + 1),
-            'type' => $type,
-            'position' => $index + 1,
-            'is_enabled' => $data['is_enabled'] ?? true,
-            'match_mode' => $data['match_mode'] ?? RoutingRule::MATCH_ALL,
-            'conditions_version' => 1,
-            'conditions' => array_values($data['conditions'] ?? []),
-            'destination_url' => $type === RoutingRule::TYPE_CONDITIONAL ? ($data['destination_url'] ?? null) : null,
-        ];
     }
 
     private function replaceChildren(

@@ -115,6 +115,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/short-links', [ShortLinkController::class, 'store'])->name('short-links.store');
         Route::post('/short-links/bulk', [ShortLinkController::class, 'bulk'])->name('short-links.bulk');
         Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');
+        Route::post('/short-links/{shortLink}/routing-preview', [ShortLinkController::class, 'routingPreview'])->name('short-links.routing-preview');
         Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');

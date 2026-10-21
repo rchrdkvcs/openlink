@@ -32,6 +32,22 @@ _Avoid_: Migration, sync, upload
 The final target URL a visitor should reach when a short link resolves successfully.
 _Avoid_: Target URL, original URL, redirect URL
 
+**Destination Check**:
+A Workspace-scoped background observation of whether one Destination URL is reachable, shared by every Short Link in the Workspace that references the same URL as its destination, Fallback URL, or enabled Routing Rule destination. A Destination Check never runs during public resolution and never changes where a visitor is sent.
+_Avoid_: Link check, ping, uptime check
+
+**Destination Health**:
+The latest normalized result of a Destination Check: not checked, reachable, HTTP failure, DNS failure, TLS failure, connection failure, timeout, inconclusive, or blocked.
+_Avoid_: Link status, destination status
+
+**Destination Incident**:
+A confirmed period of repeated failed Destination Checks for one Destination URL. It is recovered at the next reachable result.
+_Avoid_: Broken link, alert, outage
+
+**Destination Monitoring**:
+The optional instance-wide schedule, enabled by the Instance Admin, that runs Destination Checks without a user asking for them.
+_Avoid_: Uptime monitoring, link scanning
+
 **Slug**:
 The path segment that identifies a short link within a domain. A slug can be generated automatically or chosen manually, is unique within its domain, and remains reserved until the short link is permanently deleted.
 _Avoid_: Alias, key, code

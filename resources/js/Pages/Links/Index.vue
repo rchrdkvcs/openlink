@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Archive, Folder as FolderIcon, Inbox, Link2 } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ComposerLink } from '@/Components/Links/composerLink';
 import LinkComposer from '@/Components/Links/LinkComposer.vue';
 import Button from '@/Components/ui/Button.vue';
+import Checkbox from '@/Components/ui/Checkbox.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import Kbd from '@/Components/ui/Kbd.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
@@ -19,6 +20,8 @@ import type { ShortLink } from '@/types/shortLinks';
 
 import LinkInspector from './LinkInspector.vue';
 import LinkRow from './list/LinkRow.vue';
+import LinksBulkBar from './list/LinksBulkBar.vue';
+import { keepVisible, pageSelection, selectionScope, togglePage, toggleSelected } from './list/linkSelection';
 import LinksPagination from './list/LinksPagination.vue';
 import LinksToolbar from './list/LinksToolbar.vue';
 import { clearedSearch, emptyCopy, hasSearchFilters, linksView } from './list/linksView';
@@ -50,6 +53,20 @@ const usableDomains = computed(() => selectableDomains(props.domains));
 
 const selectedId = useNumericUrlParam('link');
 const selected = computed<ShortLink | null>(() => props.links.find((link) => link.id === selectedId.value) ?? null);
+
+const checkedIds = ref<number[]>([]);
+const visibleIds = computed(() => props.links.map((link) => link.id));
+const pageState = computed(() => pageSelection(checkedIds.value, visibleIds.value));
+
+watch(
+  () => selectionScope(workspace.value?.id, props.filters, props.linksPagination.currentPage),
+  () => {
+    checkedIds.value = [];
+  },
+);
+watch(visibleIds, (ids) => {
+  checkedIds.value = keepVisible(checkedIds.value, ids);
+});
 
 const { countdownFor } = useActivationCountdownWithReload(() => props.links);
 
@@ -124,6 +141,27 @@ useLinkListKeyboard({
             @clear="update(clearedSearch(view.scope))"
           />
 
+          <LinksBulkBar
+            v-if="canEdit && checkedIds.length"
+            :ids="checkedIds"
+            :folders="folders"
+            :known-tags="tags"
+            :archive-view="isArchiveView"
+            @clear="checkedIds = []"
+          />
+
+          <label
+            v-if="canEdit && links.length"
+            class="mt-3 inline-flex cursor-pointer items-center gap-2 text-xs text-faint hover:text-muted"
+          >
+            <Checkbox
+              :model-value="pageState === 'all'"
+              :indeterminate="pageState === 'some'"
+              @update:model-value="checkedIds = togglePage(checkedIds, visibleIds)"
+            />
+            Select all on this page
+          </label>
+
           <div v-if="links.length" class="-mx-3 mt-3 space-y-px" role="listbox" aria-label="Links">
             <LinkRow
               v-for="link in links"
@@ -134,7 +172,10 @@ useLinkListKeyboard({
               :show-folder="!filters.folder"
               :countdown="countdownFor(link)"
               :compact="selected !== null"
+              :selectable="canEdit"
+              :checked="checkedIds.includes(link.id)"
               @select="select(link)"
+              @toggle="checkedIds = toggleSelected(checkedIds, link.id)"
               @removed="selectedId === link.id && (selectedId = null)"
             />
           </div>

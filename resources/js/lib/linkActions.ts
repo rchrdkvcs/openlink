@@ -62,3 +62,26 @@ export async function deleteLink(link: LinkRef, onSuccess?: () => void) {
     },
   });
 }
+
+export type BulkLinkRequest = {
+  action: string;
+  ids: number[];
+  folder_id?: number | null;
+  tags?: string[];
+};
+
+export function bulkUpdateLinks(request: BulkLinkRequest, callbacks: { onSuccess: () => void; onFinish?: () => void }) {
+  router.post(route('short-links.bulk'), request, {
+    preserveScroll: true,
+    preserveState: true,
+    onSuccess: callbacks.onSuccess,
+    onError: (errors) =>
+      toast({
+        title: 'Nothing was changed',
+        description: Object.values(errors)[0] ?? 'The selected links could not be updated.',
+        tone: 'danger',
+        duration: 8000,
+      }),
+    onFinish: callbacks.onFinish,
+  });
+}

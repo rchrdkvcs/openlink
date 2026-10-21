@@ -2,6 +2,7 @@
 import { Copy, Folder as FolderIcon, Lock, QrCode, Timer } from '@lucide/vue';
 
 import Favicon from '@/Components/Links/Favicon.vue';
+import Checkbox from '@/Components/ui/Checkbox.vue';
 import { relativeTime } from '@/lib/datetime';
 import { draggedLink } from '@/lib/dragLink';
 import { displayUrl } from '@/lib/links';
@@ -20,9 +21,11 @@ const props = defineProps<{
   showFolder: boolean;
   countdown?: string | null;
   compact?: boolean;
+  selectable?: boolean;
+  checked?: boolean;
 }>();
 
-const emit = defineEmits<{ select: []; removed: [] }>();
+const emit = defineEmits<{ select: []; removed: []; toggle: [] }>();
 
 const { canEdit } = useShell();
 
@@ -51,12 +54,26 @@ function onDragStart(event: DragEvent) {
     tabindex="-1"
     :data-link-id="link.id"
     class="group/row relative flex items-center gap-3 rounded-lg px-3 py-2 outline-none transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
-    :class="[selected ? 'bg-elevated' : 'hover:bg-elevated/50', draggedLink?.id === link.id ? 'opacity-40' : '']"
+    :class="[
+      selected || checked ? 'bg-elevated' : 'hover:bg-elevated/50',
+      draggedLink?.id === link.id ? 'opacity-40' : '',
+    ]"
     :draggable="canEdit"
     @click="emit('select')"
     @dragstart="onDragStart"
     @dragend="draggedLink = null"
   >
+    <label
+      v-if="selectable"
+      class="-my-2 -ml-3 flex shrink-0 cursor-pointer items-center self-stretch py-2 pl-3 pr-1"
+      @click.stop
+    >
+      <Checkbox
+        :model-value="checked"
+        :aria-label="`Select ${displayUrl(link.short_url)}`"
+        @update:model-value="emit('toggle')"
+      />
+    </label>
     <Favicon :url="link.destination_url" />
 
     <div class="min-w-0 flex-1">

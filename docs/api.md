@@ -244,7 +244,7 @@ Response:
 
 The body must contain only `token`. Any other field, such as an email, user ID, or order value, is rejected with `422`, and nothing is stored. A token that is unknown, forged, expired, from another workspace, from a deleted link, or from a link whose goal was removed is rejected with the same `422` error on `token`. Viewers receive `403`.
 
-Openlink stores the link, QR Code, Routing Rule and variant, and timestamps for each Attributed Visit. It never stores the visitor hash, IP address, user agent, or any data about the visitor's account on your site. Unconverted tokens are deleted once they expire; converted ones follow analytics retention.
+Openlink stores the link, QR Code, Routing Rule and variant, and timestamps for each Attributed Visit. It never stores the visitor hash, IP address, user agent, or any data about the visitor's account on your site. Attributed Visits, converted or not, follow analytics retention from their issue time, so conversion rates for past periods keep their denominator. An expired token can no longer convert.
 
 ### Instance settings (instance admins)
 

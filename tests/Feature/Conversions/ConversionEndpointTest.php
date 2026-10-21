@@ -10,9 +10,8 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\ShortLinks\SmartRouting;
-use Illuminate\Cache\RateLimiting\Limit;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\CreatesWorkspaces;
@@ -34,6 +33,7 @@ class ConversionEndpointTest extends TestCase
     {
         parent::setUp();
 
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00'));
         config(['openlink.analytics.via_queue' => true]);
         $this->withHeader('User-Agent', UserAgents::SAFARI_MAC);
 
@@ -174,14 +174,25 @@ class ConversionEndpointTest extends TestCase
         $this->assertNull(ConversionAttribution::query()->sole()->converted_at);
     }
 
-    public function test_the_endpoint_is_rate_limited_per_user(): void
+    public function test_the_endpoint_allows_120_requests_per_minute_per_user(): void
     {
+        $editor = $this->memberOf($this->workspace, WorkspaceMember::ROLE_EDITOR);
         Sanctum::actingAs($this->owner);
-        RateLimiter::for('conversions', fn ($request) => Limit::perMinute(2)->by($request->user()->id));
 
-        $this->convert('unknown-1')->assertUnprocessable();
-        $this->convert('unknown-2')->assertUnprocessable();
-        $this->convert('unknown-3')->assertTooManyRequests();
+        $this->convert('unknown')->assertUnprocessable()->assertHeader('X-RateLimit-Limit', '120');
+
+        foreach (range(2, 120) as $attempt) {
+            $this->convert('unknown')->assertUnprocessable();
+        }
+
+        $this->convert('unknown')->assertTooManyRequests();
+
+        Sanctum::actingAs($editor);
+        $this->convert('unknown')->assertUnprocessable();
+
+        $this->travel(61)->seconds();
+        Sanctum::actingAs($this->owner);
+        $this->convert('unknown')->assertUnprocessable();
     }
 
     public function test_conversions_keep_the_routing_variant_of_the_original_visit(): void

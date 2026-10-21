@@ -20,13 +20,11 @@ class PruneAnalyticsEvents extends Command
             ->where('occurred_at', '<', now()->subDays($days))
             ->delete();
         $attributions = ConversionAttribution::query()
-            ->where(fn ($query) => $query
-                ->where('issued_at', '<', now()->subDays($days))
-                ->orWhere(fn ($query) => $query->whereNull('converted_at')->where('expires_at', '<=', now())))
+            ->where('issued_at', '<', now()->subDays($days))
             ->delete();
 
         $this->info("Pruned {$deleted} analytics events older than {$days} days.");
-        $this->info("Pruned {$attributions} expired or retained-past conversion attributions.");
+        $this->info("Pruned {$attributions} conversion attributions older than {$days} days.");
 
         return self::SUCCESS;
     }

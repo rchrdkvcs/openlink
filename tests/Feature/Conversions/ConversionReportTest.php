@@ -22,6 +22,13 @@ class ConversionReportTest extends TestCase
     use CreatesWorkspaces;
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00'));
+    }
+
     public function test_report_separates_attributed_visits_conversions_rates_and_open_windows(): void
     {
         [$workspace, $domain] = $this->workspaceWithActiveDomain();
@@ -91,6 +98,18 @@ class ConversionReportTest extends TestCase
         $this->assertTrue($all['links'][0]['insufficient_evidence']);
         $this->assertSame(['attributed_visits' => 2, 'conversions' => 2, 'pending' => 0, 'rate' => 100.0], $filtered['totals']);
         $this->assertSame([$demo->id], array_column($filtered['links'], 'id'));
+    }
+
+    public function test_tokens_stop_counting_as_pending_when_their_window_closes(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'signup', ['conversion_goal' => 'Registration']);
+        $this->attributions($link, 1, converted: 0, issuedAt: now()->subHours(24)->addSecond());
+        $this->attributions($link, 2, converted: 0, issuedAt: now()->subHours(24));
+
+        $totals = $this->report($workspace)['conversions']['totals'];
+
+        $this->assertSame(['attributed_visits' => 3, 'conversions' => 0, 'pending' => 1, 'rate' => 0.0], $totals);
     }
 
     public function test_workspaces_without_goals_report_conversions_as_disabled(): void

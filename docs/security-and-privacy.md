@@ -62,7 +62,7 @@ Link history is kept for as long as its short link exists and is deleted with th
 
 Conversion tracking is opt-in per short link and off by default. A short link with a conversion goal gives each successful, non-bot visit or linked QR code scan a random single-use attribution token in the destination URL. Tokens are never derived from or stored with the daily visitor hash, so they cannot join visits across days. Only the token's hash is stored, together with the link, QR code, routing rule, variant, and timestamps; no IP address, user agent, or visitor data is kept.
 
-Tokens expire 24 hours after issue and convert at most once. They are redeemed only by an authenticated server-to-server API call from a member who can edit content in the token's workspace, with rate limiting. The conversion request accepts nothing but the token, so integrations cannot send personal or customer data. Unconverted tokens are deleted after expiry; converted ones follow analytics retention and are deleted with their link or workspace. See ADR 0015.
+Tokens expire 24 hours after issue and convert at most once. They are redeemed only by an authenticated server-to-server API call from a member who can edit content in the token's workspace, with rate limiting. The conversion request accepts nothing but the token, so integrations cannot send personal or customer data. Attribution records, converted or not, follow analytics retention measured from their issue time, because unconverted records are the denominator of past conversion rates. An expired token can no longer convert, and its record holds only a hash of a dead token. Records are deleted with their link or workspace. See ADR 0015.
 
 ## Secrets and Configuration
 

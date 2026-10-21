@@ -27,7 +27,7 @@ return new class extends Migration
 
             $table->index(['workspace_id', 'issued_at']);
             $table->index(['short_link_id', 'issued_at']);
-            $table->index(['converted_at', 'expires_at']);
+            $table->index('issued_at');
         });
     }
 

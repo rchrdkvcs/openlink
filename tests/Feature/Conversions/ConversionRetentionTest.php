@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\Conversions;
 
+use App\Actions\Analytics\BuildAnalyticsReport;
 use App\Models\ConversionAttribution;
 use App\Models\ShortLink;
+use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Conversions\AttributionTokens;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Tests\Support\CreatesWorkspaces;
 use Tests\TestCase;
@@ -15,23 +19,45 @@ class ConversionRetentionTest extends TestCase
     use CreatesWorkspaces;
     use RefreshDatabase;
 
-    public function test_pruning_removes_expired_unconverted_tokens_and_conversions_past_retention(): void
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00'));
+    }
+
+    public function test_pruning_keeps_expired_unconverted_visits_as_the_rate_denominator(): void
     {
         [$workspace, $domain] = $this->workspaceWithActiveDomain();
         $link = $this->shortLink($workspace, $domain, 'goal', ['conversion_goal' => 'Registration']);
-        $pending = $this->attribution($link, now()->subHours(2));
-        $expired = $this->attribution($link, now()->subHours(25));
-        $converted = $this->attribution($link, now()->subDays(30), converted: true);
-        $retired = $this->attribution($link, now()->subDays(400), converted: true);
+        $this->attribution($link, now()->subDays(3));
+        $this->attribution($link, now()->subDays(3));
+        $this->attribution($link, now()->subDays(3));
+        $this->attribution($link, now()->subDays(3), converted: true);
+
+        $this->artisan('openlink:prune-analytics')->assertSuccessful();
+
+        $this->assertSame(4, ConversionAttribution::query()->count());
+        $totals = app(BuildAnalyticsReport::class)
+            ->report($workspace, AnalyticsFilters::fromRequest(Request::create('/?range=7d')))['conversions']['totals'];
+        $this->assertSame(['attributed_visits' => 4, 'conversions' => 1, 'pending' => 0, 'rate' => 25.0], $totals);
+    }
+
+    public function test_pruning_removes_attributions_issued_before_the_retention_window(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'goal', ['conversion_goal' => 'Registration']);
+        $kept = $this->attribution($link, now()->subDays(365));
+        $keptConverted = $this->attribution($link, now()->subDays(200), converted: true);
+        $this->attribution($link, now()->subDays(365)->subSecond());
+        $this->attribution($link, now()->subDays(400), converted: true);
 
         $this->artisan('openlink:prune-analytics')->assertSuccessful();
 
         $this->assertEqualsCanonicalizing(
-            [$pending->id, $converted->id],
+            [$kept->id, $keptConverted->id],
             ConversionAttribution::query()->pluck('id')->all(),
         );
-        $this->assertNull(ConversionAttribution::query()->find($expired->id));
-        $this->assertNull(ConversionAttribution::query()->find($retired->id));
     }
 
     public function test_deleting_a_workspace_deletes_its_attributions(): void

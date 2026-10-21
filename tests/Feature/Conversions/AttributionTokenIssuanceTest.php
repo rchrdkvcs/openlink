@@ -6,6 +6,7 @@ use App\Models\AnalyticsEvent;
 use App\Models\ConversionAttribution;
 use App\Models\RoutingRule;
 use App\Services\ShortLinks\SmartRouting;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\CreatesWorkspaces;
@@ -21,6 +22,7 @@ class AttributionTokenIssuanceTest extends TestCase
     {
         parent::setUp();
 
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00'));
         config(['openlink.analytics.via_queue' => true]);
         $this->withHeader('User-Agent', UserAgents::SAFARI_MAC);
     }
@@ -55,6 +57,8 @@ class AttributionTokenIssuanceTest extends TestCase
         $this->assertSame($link->id, $attribution->short_link_id);
         $this->assertSame($workspace->id, $attribution->workspace_id);
         $this->assertNull($attribution->converted_at);
+        $this->assertSame('2026-10-21 12:00:00', $attribution->issued_at->toDateTimeString());
+        $this->assertSame('2026-10-22 12:00:00', $attribution->expires_at->toDateTimeString());
         $this->assertStringNotContainsString($this->tokenFrom($location), json_encode($attribution->getAttributes()));
     }
 

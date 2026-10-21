@@ -15,14 +15,13 @@ class MonitorDestinations extends Command
 {
     public function handle(DestinationChecks $checks, InstanceSettings $settings): int
     {
-        $pruned = $checks->prune();
-
         if (! $settings->get('destination_monitoring')) {
-            $this->info("Destination monitoring is disabled. Pruned {$pruned} unreferenced checks.");
+            $this->info('Destination monitoring is disabled.');
 
             return self::SUCCESS;
         }
 
+        $checks->prune();
         $checks->discover();
         $due = $checks->due(max(1, (int) $this->option('limit')));
         $due->each(fn (DestinationCheck $check) => $checks->queue($check));

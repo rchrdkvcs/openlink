@@ -61,7 +61,7 @@ class DestinationChecks
         }
 
         $check->forceFill(['requested_at' => now()])->save();
-        CheckDestination::dispatch($check->id);
+        dispatch(CheckDestination::for($check));
 
         return $check;
     }
@@ -127,15 +127,26 @@ class DestinationChecks
 
     public function prune(): int
     {
-        return DestinationCheck::query()
+        $pruned = 0;
+
+        DestinationCheck::query()
             ->whereNot(fn (Builder $query) => $query->referenced())
-            ->delete();
+            ->select('id')
+            ->chunkById(500, function (Collection $checks) use (&$pruned): void {
+                $pruned += DestinationCheck::query()->whereKey($checks->pluck('id')->all())->delete();
+            });
+
+        return $pruned;
     }
 
     public function due(int $limit): Collection
     {
         return DestinationCheck::query()
             ->referenced()
+            ->where(fn (Builder $query) => $query
+                ->whereNull('requested_at')
+                ->orWhereColumn('requested_at', '<=', 'checked_at')
+                ->orWhere('requested_at', '<=', now()->subMinutes(DestinationCheck::PENDING_FOR_MINUTES)))
             ->where(fn (Builder $query) => $query
                 ->whereNull('checked_at')
                 ->orWhere('checked_at', '<=', now()->subHours(self::RECHECK_AFTER_HOURS))

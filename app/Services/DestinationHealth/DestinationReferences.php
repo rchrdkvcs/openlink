@@ -54,7 +54,7 @@ class DestinationReferences
                 ->orWhereHas('routingRules', fn (Builder $rules) => $rules
                     ->where('is_enabled', true)
                     ->where(fn (Builder $rules) => $rules
-                        ->whereIn('destination_url', $urls)
+                        ->where(fn (Builder $rules) => $rules->where('type', RoutingRule::TYPE_CONDITIONAL)->whereIn('destination_url', $urls))
                         ->orWhereHas('variants', fn (Builder $variants) => $variants
                             ->where('is_enabled', true)
                             ->whereIn('destination_url', $urls)))))

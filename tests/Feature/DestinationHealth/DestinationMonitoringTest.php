@@ -11,6 +11,7 @@ use App\Services\InstanceSettings;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Support\CreatesWorkspaces;
@@ -167,6 +168,7 @@ class DestinationMonitoringTest extends TestCase
     public function test_checks_no_longer_referenced_after_a_destination_change_are_pruned(): void
     {
         Queue::fake();
+        $this->enableMonitoring();
         [$workspace, $domain] = $this->workspaceWithActiveDomain();
         $link = $this->shortLink($workspace, $domain, 'launch', ['destination_url' => 'https://example.com/old']);
         $this->check($workspace->id, 'https://example.com/old', ['status' => 'http_failure', 'incident_opened_at' => now()]);
@@ -174,7 +176,7 @@ class DestinationMonitoringTest extends TestCase
         $link->update(['destination_url' => 'https://example.com/new']);
         $this->artisan('openlink:monitor-destinations')->assertSuccessful();
 
-        $this->assertSame(0, DestinationCheck::query()->count());
+        $this->assertSame(['https://example.com/new'], DestinationCheck::query()->pluck('url')->all());
     }
 
     public function test_unhealthy_destinations_never_change_public_resolution(): void
@@ -193,6 +195,126 @@ class DestinationMonitoringTest extends TestCase
         $this->withHeader('Host', 'localhost')->get('/launch')->assertRedirect('https://example.com/broken');
 
         Http::assertNothingSent();
+    }
+
+    public function test_disabled_monitoring_skips_pruning_and_discovery(): void
+    {
+        Queue::fake();
+        [$workspace] = $this->workspaceWithActiveDomain();
+        $this->check($workspace->id, 'https://example.com/orphan');
+
+        $this->artisan('openlink:monitor-destinations')->assertSuccessful();
+
+        $this->assertSame(1, DestinationCheck::query()->count());
+    }
+
+    public function test_pending_checks_are_not_due_so_a_backlog_cannot_starve_other_checks(): void
+    {
+        Queue::fake();
+        $this->enableMonitoring();
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $this->shortLink($workspace, $domain, 'one', ['destination_url' => 'https://example.com/one']);
+        $this->shortLink($workspace, $domain, 'two', ['destination_url' => 'https://example.com/two']);
+        $queued = $this->check($workspace->id, 'https://example.com/one', ['requested_at' => now()]);
+        $waiting = $this->check($workspace->id, 'https://example.com/two', ['checked_at' => now()->subDay()]);
+
+        $this->artisan('openlink:monitor-destinations', ['--limit' => 1])->assertSuccessful();
+
+        $pushed = Queue::pushed(CheckDestination::class)->map(fn (CheckDestination $job) => $job->destinationCheckId)->all();
+        $this->assertSame([$waiting->id], $pushed);
+        $this->assertNotContains($queued->id, $pushed);
+    }
+
+    public function test_split_test_rule_destinations_do_not_count_as_references(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch', ['destination_url' => 'https://example.com/a']);
+        $link->routingRules()->create(['name' => 'Split', 'position' => 1, 'type' => RoutingRule::TYPE_SPLIT_TEST, 'destination_url' => 'https://example.com/leftover']);
+        $this->check($workspace->id, 'https://example.com/leftover', ['incident_opened_at' => now()]);
+
+        $this->assertSame(0, DestinationCheck::query()->referenced()->count());
+    }
+
+    public function test_duplicate_checks_for_one_destination_are_queued_once(): void
+    {
+        Queue::fake();
+        [$workspace] = $this->workspaceWithActiveDomain();
+        $check = $this->check($workspace->id, 'https://example.com/page');
+
+        dispatch(CheckDestination::for($check));
+        dispatch(CheckDestination::for($check));
+
+        Queue::assertPushed(CheckDestination::class, 1);
+    }
+
+    public function test_checks_for_the_same_host_never_run_concurrently(): void
+    {
+        [$workspace] = $this->workspaceWithActiveDomain();
+        $first = CheckDestination::for($this->check($workspace->id, 'https://Example.com/a'));
+        $sameHost = CheckDestination::for($this->check($workspace->id, 'https://example.com/b'));
+        $otherHost = CheckDestination::for($this->check($workspace->id, 'https://other.example/b'));
+        $sameHost->withFakeQueueInteractions();
+        $otherHost->withFakeQueueInteractions();
+        $ran = [];
+
+        $this->throughMiddleware($first, function () use ($sameHost, $otherHost, &$ran) {
+            $this->throughMiddleware($sameHost, function () use (&$ran) {
+                $ran[] = 'same-host';
+            });
+            $this->throughMiddleware($otherHost, function () use (&$ran) {
+                $ran[] = 'other-host';
+            });
+        });
+
+        $this->assertSame(['other-host'], $ran);
+        $sameHost->assertReleased();
+        $otherHost->assertNotReleased();
+    }
+
+    public function test_checks_share_a_bounded_number_of_global_slots(): void
+    {
+        [$workspace] = $this->workspaceWithActiveDomain();
+        $checks = collect(range(1, CheckDestination::CONCURRENCY + 1))
+            ->map(fn (int $index) => CheckDestination::for($this->check($workspace->id, "https://host-$index.example/")));
+        $first = $checks->first();
+        $sharingSlot = $checks->first(fn (CheckDestination $job) => $job !== $first && $job->destinationCheckId % CheckDestination::CONCURRENCY === $first->destinationCheckId % CheckDestination::CONCURRENCY);
+        $sharingSlot->withFakeQueueInteractions();
+        $ran = false;
+
+        $this->throughMiddleware($first, function () use ($sharingSlot, &$ran) {
+            $this->throughMiddleware($sharingSlot, function () use (&$ran) {
+                $ran = true;
+            });
+        });
+
+        $this->assertFalse($ran);
+        $sharingSlot->assertReleased();
+    }
+
+    public function test_checks_are_rate_limited_per_host(): void
+    {
+        [$workspace] = $this->workspaceWithActiveDomain();
+        $ran = 0;
+
+        foreach (range(1, 7) as $index) {
+            $job = CheckDestination::for($this->check($workspace->id, "https://example.com/$index"))->withFakeQueueInteractions();
+            $this->throughMiddleware($job, function () use (&$ran) {
+                $ran++;
+            });
+        }
+
+        $other = CheckDestination::for($this->check($workspace->id, 'https://other.example/'))->withFakeQueueInteractions();
+        $this->throughMiddleware($other, function () use (&$ran) {
+            $ran++;
+        });
+
+        $this->assertSame(7, $ran);
+        $job->assertReleased();
+    }
+
+    private function throughMiddleware(CheckDestination $job, callable $handle): void
+    {
+        (new Pipeline($this->app))->send($job)->through($job->middleware())->then(fn () => $handle());
     }
 
     private function enableMonitoring(): void

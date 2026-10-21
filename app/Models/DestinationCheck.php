@@ -33,6 +33,11 @@ class DestinationCheck extends Model
         return hash('sha256', $url);
     }
 
+    public function host(): string
+    {
+        return rtrim(strtolower((string) parse_url($this->url, PHP_URL_HOST)), '.');
+    }
+
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
@@ -54,6 +59,7 @@ class DestinationCheck extends Model
                 ->whereColumn('short_links.workspace_id', 'destination_checks.workspace_id')
                 ->whereNull('short_links.archived_at')
                 ->where('routing_rules.is_enabled', true)
+                ->where('routing_rules.type', RoutingRule::TYPE_CONDITIONAL)
                 ->whereColumn('routing_rules.destination_url', 'destination_checks.url'))
             ->orWhereExists(fn (QueryBuilder $variants) => $variants
                 ->from('routing_variants')

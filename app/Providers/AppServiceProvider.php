@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Jobs\CheckDestination;
 use App\Models\User;
 use App\Services\Diagnostics\Heartbeats;
 use App\Services\Dns\DnsLookup;
@@ -42,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('destination-checks', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for(CheckDestination::HOST_RATE_LIMITER, function (CheckDestination $job) {
+            return Limit::perMinute(6)->by($job->host);
         });
 
         RateLimiter::for('oauth', function (Request $request) {

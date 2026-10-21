@@ -6,10 +6,14 @@ use App\Enums\DestinationHealthStatus;
 use App\Services\DestinationHealth\DestinationProbe;
 use App\Services\Dns\DnsLookup;
 use GuzzleHttp\Exception\ResponseException;
+use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Psr7\Response as PsrResponse;
+use GuzzleHttp\Psr7\Utils;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\Support\InMemoryDnsLookup;
 use Tests\TestCase;
 
@@ -234,6 +238,51 @@ class DestinationProbeTest extends TestCase
 
         $this->assertLessThanOrEqual(10, $this->sent[0]['options']['timeout']);
         $this->assertLessThanOrEqual(5, $this->sent[0]['options']['connect_timeout']);
+    }
+
+    public function test_guzzle_aborts_after_headers_without_reading_the_body(): void
+    {
+        $this->dns->pointTo('example.com', '93.184.216.34');
+        $body = Utils::streamFor(str_repeat('x', 5_000_000));
+        $handler = new MockHandler([new PsrResponse(405), new PsrResponse(200, ['Content-Type' => 'text/html'], $body)]);
+        Http::globalMiddleware(fn () => fn ($request, array $options) => $handler($request, $options));
+
+        $result = $this->probe()->check('https://example.com/large');
+
+        $this->assertSame(DestinationHealthStatus::Reachable, $result->status);
+        $this->assertSame(200, $result->httpStatus);
+        $this->assertSame(0, $body->tell());
+        $this->assertIsCallable($handler->getLastOptions()['on_headers']);
+    }
+
+    public function test_resolver_errors_are_recorded_as_dns_failures(): void
+    {
+        $this->app->instance(DnsLookup::class, new class extends InMemoryDnsLookup
+        {
+            public function ipAddresses(string $hostname): array
+            {
+                throw new RuntimeException('Resolver unavailable.');
+            }
+        });
+        $this->respond(fn () => Http::response('', 200));
+
+        $this->assertSame(DestinationHealthStatus::DnsFailure, $this->probe()->check('https://example.com/')->status);
+        $this->assertSame([], $this->sent);
+    }
+
+    public function test_a_slow_redirect_chain_stops_at_the_overall_deadline(): void
+    {
+        $this->dns->pointTo('example.com', '93.184.216.34');
+        $this->respond(function () {
+            $this->travel(DestinationProbe::DEADLINE / 2)->seconds();
+
+            return Http::response('', 302, ['Location' => '/next-'.count($this->sent)]);
+        });
+
+        $result = $this->probe()->check('https://example.com/start');
+
+        $this->assertSame(DestinationHealthStatus::Timeout, $result->status);
+        $this->assertCount(2, $this->sent);
     }
 
     private function probe(): DestinationProbe

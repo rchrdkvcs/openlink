@@ -4,6 +4,7 @@ namespace App\Services\DestinationHealth;
 
 use App\Enums\DestinationHealthStatus;
 use App\Services\Dns\DnsLookup;
+use Carbon\CarbonInterface;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\ConnectionException;
@@ -23,6 +24,8 @@ class DestinationProbe
 
     private const TIMEOUT = 6;
 
+    public const DEADLINE = 30;
+
     private const BLOCKED_HOST_SUFFIXES = ['.localhost', '.local', '.internal', '.home.arpa'];
 
     private const TLS_ERRORS = [35, 51, 53, 54, 58, 59, 60, 64, 66, 77, 80, 82, 83, 90, 91];
@@ -35,6 +38,7 @@ class DestinationProbe
     public function check(string $url): DestinationProbeResult
     {
         $current = $url;
+        $deadline = now()->addSeconds(self::DEADLINE);
 
         for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
             $target = $this->target($current, $hop > 0);
@@ -43,10 +47,10 @@ class DestinationProbe
                 return $target;
             }
 
-            $response = $this->request('HEAD', $target);
+            $response = $this->request('HEAD', $target, $deadline);
 
             if ($this->shouldRetryWithGet($response)) {
-                $response = $this->request('GET', $target);
+                $response = $this->request('GET', $target, $deadline);
             }
 
             if ($response instanceof DestinationProbeResult) {
@@ -97,7 +101,11 @@ class DestinationProbe
             return $blocked('a private address');
         }
 
-        $resolved = $literal !== null ? [$literal] : $this->dns->ipAddresses($host);
+        try {
+            $resolved = $literal !== null ? [$literal] : $this->dns->ipAddresses($host);
+        } catch (Throwable) {
+            $resolved = [];
+        }
 
         if ($resolved === []) {
             return new DestinationProbeResult(DestinationHealthStatus::DnsFailure, null, 'The destination host does not resolve.');
@@ -118,8 +126,14 @@ class DestinationProbe
         return new DestinationTarget($requestUrl, $host, $port, $literal === null ? $resolved : []);
     }
 
-    private function request(string $method, DestinationTarget $target): Response|DestinationProbeResult
+    private function request(string $method, DestinationTarget $target, CarbonInterface $deadline): Response|DestinationProbeResult
     {
+        $remaining = (int) floor(now()->diffInSeconds($deadline, false));
+
+        if ($remaining < 1) {
+            return new DestinationProbeResult(DestinationHealthStatus::Timeout, null, 'The destination took too long to respond.');
+        }
+
         $received = null;
 
         try {
@@ -137,8 +151,8 @@ class DestinationProbe
                 },
             ])
                 ->withHeaders(['User-Agent' => self::USER_AGENT, 'Accept' => '*/*'])
-                ->connectTimeout(self::CONNECT_TIMEOUT)
-                ->timeout(self::TIMEOUT)
+                ->connectTimeout(min(self::CONNECT_TIMEOUT, $remaining))
+                ->timeout(min(self::TIMEOUT, $remaining))
                 ->withoutRedirecting()
                 ->send($method, $target->url);
         } catch (Throwable $exception) {

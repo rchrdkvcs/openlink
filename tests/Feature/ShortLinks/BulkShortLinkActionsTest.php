@@ -12,8 +12,10 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\ShortLinks\ShortLinkLifecycle;
 use App\Services\ShortLinks\ShortUrlCache;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\CreatesAnalyticsEvents;
 use Tests\Support\CreatesWorkspaces;
 use Tests\TestCase;
@@ -201,6 +203,135 @@ class BulkShortLinkActionsTest extends TestCase
             $this->assertFalse(Cache::has($cache->key($this->domain, 'one')), $action);
             $this->assertFalse(Cache::has($cache->key($this->domain, 'two')), $action);
         }
+    }
+
+    public function test_admins_and_editors_can_run_every_content_action(): void
+    {
+        foreach ([WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_EDITOR] as $role) {
+            $member = $this->memberOf($this->workspace, $role);
+            $links = $this->links([$role.'-one', $role.'-two']);
+
+            $this->bulk($member, 'disable', $links)->assertSessionHasNoErrors();
+            $this->assertSame([false, false], $this->fresh($links)->pluck('is_enabled')->all(), $role);
+
+            $this->bulk($member, 'enable', $links)->assertSessionHasNoErrors();
+            $this->assertSame([true, true], $this->fresh($links)->pluck('is_enabled')->all(), $role);
+
+            $this->bulk($member, 'add_tags', $links, ['tags' => ['launch']])->assertSessionHasNoErrors();
+            $this->assertSame(['launch'], $links[1]->tags()->pluck('name')->all(), $role);
+
+            $this->bulk($member, 'remove_tags', $links, ['tags' => ['launch']])->assertSessionHasNoErrors();
+            $this->assertSame([], $links[1]->tags()->pluck('name')->all(), $role);
+
+            $this->bulk($member, 'archive', $links)->assertSessionHasNoErrors();
+            $this->assertTrue($this->fresh($links)->every(fn (ShortLink $link) => $link->isArchived()), $role);
+        }
+    }
+
+    public function test_viewer_cannot_move_or_retag_a_selection(): void
+    {
+        $folder = Folder::create(['workspace_id' => $this->workspace->id, 'name' => 'Campaigns']);
+        $links = $this->links(['one']);
+        $links[0]->tags()->attach(Tag::create(['workspace_id' => $this->workspace->id, 'name' => 'keep']));
+        $viewer = $this->memberOf($this->workspace, WorkspaceMember::ROLE_VIEWER);
+
+        $this->bulk($viewer, 'move', $links, ['folder_id' => $folder->id])->assertForbidden();
+        $this->bulk($viewer, 'add_tags', $links, ['tags' => ['new']])->assertForbidden();
+        $this->bulk($viewer, 'remove_tags', $links, ['tags' => ['keep']])->assertForbidden();
+        $this->bulk($viewer, 'archive', $links)->assertForbidden();
+
+        $this->assertNull($links[0]->fresh()->folder_id);
+        $this->assertNull($links[0]->fresh()->archived_at);
+        $this->assertSame(['keep'], $links[0]->tags()->pluck('name')->all());
+        $this->assertDatabaseMissing('tags', ['name' => 'new']);
+    }
+
+    public function test_blank_tags_are_rejected(): void
+    {
+        $links = $this->links(['one']);
+
+        $this->bulk($this->owner, 'add_tags', $links, ['tags' => ['   ']])->assertSessionHasErrors('tags.0');
+        $this->bulk($this->owner, 'add_tags', $links, ['tags' => ['launch', ' launch ']])->assertSessionHasErrors('tags.1');
+
+        $this->assertDatabaseCount('tags', 0);
+    }
+
+    public function test_surrounding_whitespace_is_trimmed_from_tags(): void
+    {
+        $links = $this->links(['one']);
+
+        $this->bulk($this->owner, 'add_tags', $links, ['tags' => ['  launch ']])->assertSessionHasNoErrors();
+
+        $this->assertSame(['launch'], $links[0]->tags()->pluck('name')->all());
+    }
+
+    public function test_a_failed_tag_batch_creates_no_tags_and_attaches_nothing(): void
+    {
+        $links = $this->links(['one', 'two']);
+        DB::listen(function (QueryExecuted $query): void {
+            if (str_contains($query->sql, 'insert into "short_link_tag"')) {
+                throw new \RuntimeException('Write failed');
+            }
+        });
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->bulk($this->owner, 'add_tags', $links, ['tags' => ['launch']]);
+            $this->fail('The batch should have failed.');
+        } catch (\RuntimeException) {
+        }
+
+        $this->assertDatabaseMissing('tags', ['name' => 'launch']);
+        $this->assertDatabaseCount('short_link_tag', 0);
+    }
+
+    public function test_tagging_a_full_batch_uses_a_bounded_number_of_queries(): void
+    {
+        $links = $this->links(array_map(fn (int $index) => 'link-'.$index, range(1, 40)));
+        Tag::create(['workspace_id' => $this->workspace->id, 'name' => 'existing']);
+        $tags = ['existing', 'alpha', 'beta', 'gamma', 'delta'];
+
+        $add = $this->countingQueries(fn () => $this->bulk($this->owner, 'add_tags', $links, ['tags' => $tags])->assertSessionHasNoErrors());
+
+        $this->assertSame(5, $this->workspace->tags()->count());
+        $this->assertDatabaseCount('short_link_tag', 200);
+
+        $remove = $this->countingQueries(fn () => $this->bulk($this->owner, 'remove_tags', $links, ['tags' => $tags])->assertSessionHasNoErrors());
+
+        $this->assertDatabaseCount('short_link_tag', 0);
+        $this->assertLessThan(25, $add);
+        $this->assertLessThan(25, $remove);
+    }
+
+    public function test_cache_invalidation_reuses_the_loaded_domain(): void
+    {
+        $links = $this->links(array_map(fn (int $index) => 'link-'.$index, range(1, 10)));
+        $domainQueries = 0;
+        DB::listen(function (QueryExecuted $query) use (&$domainQueries): void {
+            if (str_contains($query->sql, 'from "domains"')) {
+                $domainQueries++;
+            }
+        });
+
+        $this->bulk($this->owner, 'disable', $links)->assertSessionHasNoErrors();
+
+        $this->assertLessThanOrEqual(2, $domainQueries);
+    }
+
+    private function countingQueries(callable $callback): int
+    {
+        $count = 0;
+        $counting = true;
+        DB::listen(function () use (&$count, &$counting): void {
+            if ($counting) {
+                $count++;
+            }
+        });
+        $callback();
+        $counting = false;
+
+        return $count;
     }
 
     private function links(array $slugs, array $attributes = []): array

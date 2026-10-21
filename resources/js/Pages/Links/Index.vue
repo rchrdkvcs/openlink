@@ -21,7 +21,14 @@ import type { ShortLink } from '@/types/shortLinks';
 import LinkInspector from './LinkInspector.vue';
 import LinkRow from './list/LinkRow.vue';
 import LinksBulkBar from './list/LinksBulkBar.vue';
-import { keepVisible, pageSelection, selectionScope, togglePage, toggleSelected } from './list/linkSelection';
+import {
+  keepVisible,
+  pageSelection,
+  selectionScope,
+  selectionStatus,
+  togglePage,
+  toggleSelected,
+} from './list/linkSelection';
 import LinksPagination from './list/LinksPagination.vue';
 import LinksToolbar from './list/LinksToolbar.vue';
 import { clearedSearch, emptyCopy, hasSearchFilters, linksView } from './list/linksView';
@@ -141,6 +148,8 @@ useLinkListKeyboard({
             @clear="update(clearedSearch(view.scope))"
           />
 
+          <p role="status" class="sr-only">{{ selectionStatus(checkedIds.length) }}</p>
+
           <LinksBulkBar
             v-if="canEdit && checkedIds.length"
             :ids="checkedIds"
@@ -162,7 +171,7 @@ useLinkListKeyboard({
             Select all on this page
           </label>
 
-          <div v-if="links.length" class="-mx-3 mt-3 space-y-px" role="listbox" aria-label="Links">
+          <div v-if="links.length" class="-mx-3 mt-3 space-y-px" role="list" aria-label="Links">
             <LinkRow
               v-for="link in links"
               :key="link.id"

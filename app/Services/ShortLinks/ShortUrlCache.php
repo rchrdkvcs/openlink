@@ -4,6 +4,7 @@ namespace App\Services\ShortLinks;
 
 use App\Models\Domain;
 use App\Models\ShortLink;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class ShortUrlCache
@@ -34,15 +35,24 @@ class ShortUrlCache
             ];
         }
 
-        $hostnames = Domain::query()
-            ->whereKey(array_unique(array_column($addresses, 0)))
-            ->pluck('hostname', 'id');
+        $hostnames = $this->hostnames($shortLink, array_unique(array_column($addresses, 0)));
 
         foreach ($addresses as [$domainId, $slug]) {
             if ($slug !== null && $hostnames->has($domainId)) {
                 Cache::forget($this->keyFor($hostnames[$domainId], $slug));
             }
         }
+    }
+
+    private function hostnames(ShortLink $shortLink, array $domainIds): Collection
+    {
+        $domain = $shortLink->relationLoaded('domain') ? $shortLink->getRelation('domain') : null;
+
+        if ($domain instanceof Domain && $domainIds === [$domain->getKey()]) {
+            return collect([$domain->getKey() => $domain->hostname]);
+        }
+
+        return Domain::query()->whereKey($domainIds)->pluck('hostname', 'id');
     }
 
     public function forgetForDomain(Domain $domain, ?string $previousHostname = null): void

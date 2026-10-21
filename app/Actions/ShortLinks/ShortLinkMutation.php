@@ -92,22 +92,6 @@ class ShortLinkMutation
         return $shortLink;
     }
 
-    public function addTags(User $user, ShortLink $shortLink, array $names): ShortLink
-    {
-        $this->gate->forUser($user)->authorize('update', $shortLink);
-        $this->tags->add($shortLink, $names);
-
-        return $shortLink;
-    }
-
-    public function removeTags(User $user, ShortLink $shortLink, array $names): ShortLink
-    {
-        $this->gate->forUser($user)->authorize('update', $shortLink);
-        $this->tags->remove($shortLink, $names);
-
-        return $shortLink;
-    }
-
     public function delete(User $user, ShortLink $shortLink): void
     {
         $this->gate->forUser($user)->authorize('delete', $shortLink);

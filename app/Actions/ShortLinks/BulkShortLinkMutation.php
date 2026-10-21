@@ -19,6 +19,7 @@ class BulkShortLinkMutation
     public function __construct(
         private readonly Gate $gate,
         private readonly ShortLinkMutation $shortLinks,
+        private readonly ShortLinkTags $tags,
     ) {}
 
     public function apply(User $user, Workspace $workspace, BulkLinkAction $action, array $ids, ?int $folderId = null, array $tags = []): int
@@ -28,14 +29,14 @@ class BulkShortLinkMutation
         return DB::transaction(function () use ($user, $workspace, $action, $ids, $folderId, $tags): int {
             $links = $this->selection($workspace, $ids);
 
-            $links->each(fn (ShortLink $shortLink) => match ($action) {
-                BulkLinkAction::Move => $this->shortLinks->move($user, $shortLink, $folderId),
-                BulkLinkAction::AddTags => $this->shortLinks->addTags($user, $shortLink, $tags),
-                BulkLinkAction::RemoveTags => $this->shortLinks->removeTags($user, $shortLink, $tags),
-                BulkLinkAction::Enable => $this->shortLinks->setEnabled($user, $shortLink, true),
-                BulkLinkAction::Disable => $this->shortLinks->setEnabled($user, $shortLink, false),
-                BulkLinkAction::Archive => $this->shortLinks->archive($user, $shortLink),
-            });
+            match ($action) {
+                BulkLinkAction::Move => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->move($user, $shortLink, $folderId)),
+                BulkLinkAction::AddTags => $this->tags->addToEach($links, $workspace->id, $tags),
+                BulkLinkAction::RemoveTags => $this->tags->removeFromEach($links, $workspace->id, $tags),
+                BulkLinkAction::Enable => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->setEnabled($user, $shortLink, true)),
+                BulkLinkAction::Disable => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->setEnabled($user, $shortLink, false)),
+                BulkLinkAction::Archive => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->archive($user, $shortLink)),
+            };
 
             return $links->count();
         });
@@ -53,6 +54,7 @@ class BulkShortLinkMutation
 
         $links = $workspace->shortLinks()
             ->whereKey($ids)
+            ->with('domain')
             ->orderBy('id')
             ->lockForUpdate()
             ->get()

@@ -49,8 +49,8 @@ function onDragStart(event: DragEvent) {
 
 <template>
   <div
-    role="option"
-    :aria-selected="selected"
+    role="listitem"
+    :aria-current="selected || undefined"
     tabindex="-1"
     :data-link-id="link.id"
     class="group/row relative flex items-center gap-3 rounded-lg px-3 py-2 outline-none transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"

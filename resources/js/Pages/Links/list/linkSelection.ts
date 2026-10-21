@@ -44,6 +44,10 @@ export function countLabel(count: number): string {
   return `${count.toLocaleString()} link${count === 1 ? '' : 's'}`;
 }
 
+export function selectionStatus(count: number): string {
+  return count > 0 ? `${countLabel(count)} selected` : '';
+}
+
 function tagList(tags: string[]): string {
   return tags.map((tag) => `#${tag}`).join(', ');
 }

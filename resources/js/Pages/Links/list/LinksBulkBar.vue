@@ -14,7 +14,7 @@ import { type BulkLinkAction, bulkUpdateLinks } from '@/lib/linkActions';
 import { toast } from '@/lib/toast';
 import type { Folder, Tag } from '@/types/payloads';
 
-import { bulkResultTitle, countLabel, previewBulkAction } from './linkSelection';
+import { bulkResultTitle, countLabel, previewBulkAction, selectionStatus } from './linkSelection';
 
 const props = defineProps<{ ids: number[]; folders: Folder[]; knownTags: Tag[]; archiveView: boolean }>();
 
@@ -95,8 +95,8 @@ function submitTags() {
     aria-label="Bulk actions"
     class="sticky top-2 z-10 mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border bg-overlay px-2 py-1.5 shadow-popover"
   >
-    <p role="status" class="px-1.5 text-[13px] font-medium tabular-nums text-foreground">
-      {{ countLabel(count) }} selected
+    <p class="px-1.5 text-[13px] font-medium tabular-nums text-foreground">
+      {{ selectionStatus(count) }}
     </p>
     <Button variant="ghost" size="sm" type="button" aria-label="Clear selection" @click="emit('clear')">
       <X /> Clear

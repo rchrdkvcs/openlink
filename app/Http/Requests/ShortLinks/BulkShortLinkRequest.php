@@ -18,6 +18,15 @@ class BulkShortLinkRequest extends FormRequest
         return $workspace !== null && $this->user()->can('editContent', $workspace);
     }
 
+    protected function prepareForValidation(): void
+    {
+        $tags = $this->input('tags');
+
+        if (is_array($tags)) {
+            $this->merge(['tags' => array_map(fn ($tag) => is_string($tag) ? trim($tag) : $tag, $tags)]);
+        }
+    }
+
     public function rules(): array
     {
         return [

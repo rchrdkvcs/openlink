@@ -9,6 +9,7 @@ import {
   pageSelection,
   previewBulkAction,
   selectionScope,
+  selectionStatus,
   togglePage,
   toggleSelected,
 } from './linkSelection';
@@ -47,6 +48,12 @@ describe('link selection', () => {
 
     expect(keepVisible(selected, [2, 1, 3])).toBe(selected);
     expect(keepVisible(selected, [2, 3])).toEqual([2]);
+  });
+
+  it('announces the selected count and stays empty without a selection', () => {
+    expect(selectionStatus(0)).toBe('');
+    expect(selectionStatus(1)).toBe('1 link selected');
+    expect(selectionStatus(3)).toBe('3 links selected');
   });
 
   it('changes scope when the workspace, a filter or the page changes', () => {

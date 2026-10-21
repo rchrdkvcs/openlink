@@ -166,7 +166,7 @@ When a supported preview crawler requests a short URL, Openlink answers instead 
 - Protected, disabled, archived, scheduled, expired, and missing links, and links on unusable domains, all receive the same neutral metadata page. It never contains the destination URL, the fallback URL, or the configured link preview.
 - Active, unprotected links without a link preview resolve as usual, so platforms read the destination's own metadata.
 
-Metadata responses do not reserve a visit, record analytics, or unlock a protected link. QR code entries and password submissions are never answered with metadata. Supported preview crawlers are Facebook, Messenger and Instagram, X, LinkedIn, Slack, Discord, Telegram, WhatsApp and Signal, iMessage, Pinterest, Reddit, Skype and Teams, Mastodon, Bluesky, Iframely, and Embedly.
+Metadata responses do not reserve a visit, record analytics, or unlock a protected link. QR code entries and password submissions are never answered with metadata. Supported preview crawlers are those of Facebook, X, LinkedIn, Slack, Discord, Telegram, WhatsApp, iMessage, Pinterest, Reddit, Skype, Mastodon, Bluesky, VK, Iframely, and Embedly.
 
 Openlink does not cache rendered metadata: every crawler request reads the current link, so edits apply to the next fetch. Each uploaded image gets a new URL. Sharing platforms cache cards on their own schedule, so a link already shared may keep showing an older card until the platform refreshes it. The preview card in the link editor is illustrative; each platform renders cards differently.
 

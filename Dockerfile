@@ -25,7 +25,7 @@ FROM --platform=$BUILDPLATFORM node:24-alpine AS assets
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@12.6.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.14.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -38,9 +38,11 @@ COPY components.json tailwind.config.js tsconfig.json vite.config.js ./
 RUN pnpm run build
 
 
-FROM dunglas/frankenphp:1-php8.4-alpine AS production
+FROM dunglas/frankenphp:1-php8.5-alpine AS production
 
 WORKDIR /app
+
+RUN php -r 'if (version_compare(PHP_VERSION, "8.5.12", "<")) { fwrite(STDERR, "PHP 8.5.12 or newer is required.\n"); exit(1); }'
 
 RUN install-php-extensions \
     gd \

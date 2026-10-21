@@ -17,10 +17,13 @@ Thank you for helping improve Openlink.
 
 Requirements:
 
-- PHP 8.4 and Composer 2
-- Node.js 24 and pnpm 12.6.0
+- PHP 8.5.12+ and Composer 2
+- Node.js 24 and pnpm 12.14.0
 - Docker Compose v2
 - PHP extensions required by Composer, including `pdo_pgsql`
+
+TypeScript stays on 6.0.3 because `vue-tsc` 3.3.13 cannot load the compiler
+from TypeScript 7. Recheck this compatibility before upgrading TypeScript.
 
 Prepare the local environment, PostgreSQL, Redis, and frontend assets:
 

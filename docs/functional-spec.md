@@ -87,6 +87,12 @@ Short links support:
 - Folder assignment
 - Tags
 
+### UTM builder and UTM Templates
+
+The link editor includes a UTM builder for the default destination URL (see ADR 0015). It shows optional source, medium, campaign, term, and content fields, reads any UTM parameters already in the destination URL, and shows the exact final URL. Editing a field replaces that UTM parameter in place, so the destination keeps one value per UTM parameter; unrelated query parameters, repeated keys, fragments, Unicode, and existing percent-encoding are kept as written. Clearing a field removes that UTM parameter from the destination URL. A builder with no values leaves the destination URL unchanged. Values are kept exactly as typed; lowercase naming is suggested as a convention, never enforced.
+
+Owners and admins manage UTM Templates in workspace settings: they can create, rename, update, and delete them. Templates belong to one workspace and hold parameter values only. Any member who can edit links can apply a template from the link editor: the editor lists the changes the template makes, applies them only when confirmed, and leaves every field editable before saving. Applying a template sets only the parameters the template defines. The resulting destination URL is saved like any other destination; links do not remember which template was applied, so updating or deleting a template does not change existing links.
+
 Disabled links do not resolve, regardless of lifecycle rules. Archived links are hidden from primary dashboard views, preserved for history and analytics, do not resolve, and keep their slug reserved.
 
 ### Bulk actions

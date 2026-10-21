@@ -8,6 +8,7 @@ use App\Models\Folder;
 use App\Models\InviteLink;
 use App\Models\QrCode;
 use App\Models\ShortLink;
+use App\Models\UtmTemplate;
 use App\Models\WorkspaceMember;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,7 @@ class ScopeBindingsToCurrentWorkspace
         InviteLink::class => 403,
         QrCode::class => 403,
         ShortLink::class => 403,
+        UtmTemplate::class => 403,
         WorkspaceMember::class => 404,
     ];
 

@@ -3,12 +3,14 @@
 namespace App\Actions\ShortLinks;
 
 use App\Enums\RevisionAction;
+use App\Enums\WebhookEventType;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\ShortLinks\History\LinkHistory;
 use App\Services\ShortLinks\ShortUrlAddress;
 use App\Services\ShortLinks\SmartRouting;
+use App\Services\Webhooks\WebhookEvents;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +23,7 @@ class ShortLinkMutation
         private readonly ShortLinkTags $tags,
         private readonly SmartRouting $routing,
         private readonly LinkHistory $history,
+        private readonly WebhookEvents $webhooks,
     ) {}
 
     public function create(User $user, Workspace $workspace, array $data): ShortLink
@@ -41,6 +44,7 @@ class ShortLinkMutation
             $this->tags->replace($shortLink, $data['tags'] ?? null);
             $this->routing->sync($shortLink, $data['routing_rules'] ?? []);
             $this->history->record($shortLink, RevisionAction::Created, null, $user);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkCreated, $shortLink);
 
             return $shortLink;
         });
@@ -66,6 +70,8 @@ class ShortLinkMutation
                 $this->tags->replace($shortLink, $data['tags']);
             }
 
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
+
             return $wasProtected && $shortLink->hasPassword() && $shortLink->wasChanged('password_hash')
                 ? [['field' => 'password_changed', 'before' => null, 'after' => null]]
                 : [];
@@ -80,6 +86,7 @@ class ShortLinkMutation
         return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $destinationUrl, $rules): void {
             $shortLink->update(['destination_url' => $destinationUrl]);
             $this->routing->sync($shortLink, $rules);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
         });
     }
 
@@ -97,6 +104,7 @@ class ShortLinkMutation
 
             $this->routing->sync($shortLink, $data['routing_rules']);
             $this->tags->replace($shortLink, $data['tags']);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
         }, $sourceRevision);
     }
 
@@ -106,6 +114,7 @@ class ShortLinkMutation
 
         return $this->recorded($user, $shortLink, RevisionAction::Moved, $expectedRevision, function () use ($shortLink, $folderId): void {
             $shortLink->update(['folder_id' => $folderId]);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
         });
     }
 
@@ -115,6 +124,7 @@ class ShortLinkMutation
 
         return $this->recorded($user, $shortLink, RevisionAction::Archived, $expectedRevision, function () use ($shortLink): void {
             $shortLink->update(['archived_at' => $shortLink->archived_at ?? now()]);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkArchived, $shortLink);
         });
     }
 
@@ -124,6 +134,7 @@ class ShortLinkMutation
 
         return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $enabled): void {
             $shortLink->update(['is_enabled' => $enabled]);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
         });
     }
 

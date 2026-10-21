@@ -243,3 +243,19 @@ _Avoid_: Invitation, invite, invite code, access request
 **Analytics**:
 Aggregated measurements about visits, scans, referrers, approximate geography, device types, browsers, operating systems, and resolution outcomes. Analytics do not identify individual visitors.
 _Avoid_: Tracking, visitor profile, user tracking
+
+**Webhook Endpoint**:
+A workspace-owned receiver URL that subscribes to selected webhook event types and receives signed webhook deliveries. Only Owners and Admins manage webhook endpoints, and a disabled webhook endpoint receives no new attempts.
+_Avoid_: Webhook, hook, callback URL, integration
+
+**Webhook Event**:
+A versioned notification that something happened to a workspace resource, such as a short link being created, updated, or archived. A webhook event has a stable identifier that stays the same across every delivery attempt.
+_Avoid_: Notification, message, trigger
+
+**Webhook Delivery**:
+The attempt history of sending one webhook event to one webhook endpoint, including its outcome and timing. A webhook delivery can be retried, and receivers may see the same webhook event more than once.
+_Avoid_: Webhook call, webhook request, webhook log
+
+**Signing Secret**:
+The credential of one webhook endpoint used to sign every webhook delivery so receivers can verify that it came from Openlink. A signing secret is shown only when it is created or rotated.
+_Avoid_: Webhook key, webhook token, shared secret

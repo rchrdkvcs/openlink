@@ -58,8 +58,10 @@ class LinkRevisionRestore
 
     public function restore(User $user, ShortLink $shortLink, ShortLinkRevision $revision, int $expectedRevision): ShortLink
     {
-        if ($revision->schema_version !== LinkSnapshot::SCHEMA_VERSION) {
-            throw ValidationException::withMessages(['revision' => $this->unsupported($revision)]);
+        $preview = $this->preview($shortLink, $revision);
+
+        if (! $preview['restorable']) {
+            throw ValidationException::withMessages(['revision' => $preview['reason']]);
         }
 
         $target = $this->resolvedTarget($shortLink, $revision->snapshot);

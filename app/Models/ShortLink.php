@@ -59,6 +59,11 @@ class ShortLink extends Model
         return $this->hasMany(ShortLinkRevision::class);
     }
 
+    public function findRevision(int $number): ShortLinkRevision
+    {
+        return $this->revisions()->with('actor')->where('number', $number)->firstOrFail();
+    }
+
     public function analyticsEvents(): HasMany
     {
         return $this->hasMany(AnalyticsEvent::class);

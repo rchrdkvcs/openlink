@@ -132,7 +132,7 @@ class ShortLinkMutation
     private function recorded(User $user, ShortLink $shortLink, RevisionAction $action, ?int $expectedRevision, callable $change, ?int $restoredFrom = null): ShortLink
     {
         return DB::transaction(function () use ($user, $shortLink, $action, $expectedRevision, $change, $restoredFrom): ShortLink {
-            $before = $this->history->begin($shortLink, $expectedRevision);
+            $before = $this->history->lockForChange($shortLink, $expectedRevision);
             $change();
             $this->history->record($shortLink, $action, $before, $user, $restoredFrom);
 

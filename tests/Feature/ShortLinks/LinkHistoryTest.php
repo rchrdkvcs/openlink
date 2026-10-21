@@ -161,7 +161,7 @@ class LinkHistoryTest extends TestCase
         $ruleId = $this->link($id)->routingRules()->value('id');
         $qrCode = $this->link($id)->qrCodes()->create(['workspace_id' => $workspace->id, 'name' => 'Poster', 'token' => 'poster-token']);
         $this->link($id)->forceFill(['successful_visits' => 7])->save();
-        $this->analyticsEvent($this->link($id), ['routing_rule_id' => $ruleId]);
+        $event = $this->analyticsEvent($this->link($id), ['routing_rule_id' => $ruleId]);
 
         $this->patchJson("/api/v1/links/$id", [
             'destination_url' => 'https://example.com/wrong',
@@ -172,6 +172,8 @@ class LinkHistoryTest extends TestCase
             'routing_rules' => [],
             'expected_revision' => 1,
         ])->assertOk();
+
+        $this->assertNull($this->withHeaders(['Host' => 'localhost'])->get('/launch')->headers->get('Location'));
 
         $this->getJson("/api/v1/links/$id/revisions/1")
             ->assertOk()
@@ -199,7 +201,7 @@ class LinkHistoryTest extends TestCase
             ->assertJsonPath('data.1.action', 'updated');
 
         $this->assertSame('poster-token', $qrCode->fresh()->token);
-        $this->assertSame(1, $this->link($id)->analyticsEvents()->count());
+        $this->assertDatabaseHas('analytics_events', ['id' => $event->id, 'short_link_id' => $id]);
         $this->withHeaders(['Host' => 'localhost'])->get('/launch')->assertRedirect('https://example.com/a');
         $this->withHeaders(['Host' => 'localhost'])->get('/qr/poster-token')->assertRedirect('https://example.com/a');
     }
@@ -363,8 +365,24 @@ class LinkHistoryTest extends TestCase
         $this->getJson("/api/v1/links/$id/revisions/1")
             ->assertJsonPath('data.restore.restorable', false)
             ->assertJsonPath('data.restore.reason', 'This is the current revision.');
+        $this->restore($id, 1, 1)->assertUnprocessable()->assertJsonPath('errors.revision.0', 'This is the current revision.');
         $this->getJson("/api/v1/links/$id/revisions/9")->assertNotFound();
         $this->restore($id, 9, 1)->assertNotFound();
+    }
+
+    public function test_restoring_a_configuration_identical_to_the_current_one_records_nothing(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id);
+        $this->updateDestination($id, 'https://example.com/b', 1);
+        $this->updateDestination($id, 'https://example.com/a', 2);
+
+        $this->getJson("/api/v1/links/$id/revisions/1")
+            ->assertJsonPath('data.restore.restorable', false)
+            ->assertJsonPath('data.restore.reason', 'This revision matches the current configuration.');
+        $this->restore($id, 1, 3)->assertUnprocessable()->assertJsonValidationErrors('revision');
+        $this->assertSame(3, ShortLinkRevision::query()->count());
     }
 
     public function test_dashboard_restore_redirects_back_and_records_the_dashboard_channel(): void

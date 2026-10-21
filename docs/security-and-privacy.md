@@ -46,7 +46,7 @@ Daily aggregates are retained for 12 months by default. Lifetime totals remain w
 
 Link history is operational workspace data about who changed a short link, not visitor data. Snapshots and diffs never contain visitor passwords, password hashes, API tokens, QR Code tokens, or infrastructure secrets; they record only whether a link was protected. Restoring checks the member's current workspace role and revalidates destinations and routing rules.
 
-Link history is kept for as long as its short link exists and is deleted with the short link or its workspace. Revisions by a deleted member remain without the member's name.
+Link history is kept for as long as its short link exists and is deleted with the short link or its workspace. Revisions by a deleted member remain without the member's name. Removing a URL from a short link does not remove it from earlier revisions, so URLs carrying secrets in their query string stay readable by every member until the short link is deleted.
 
 ## Secrets and Configuration
 

@@ -27,7 +27,7 @@ class RestoreShortLinkRevisionRequest extends FormRequest
 
     public function revision(): ShortLinkRevision
     {
-        return $this->shortLink()->revisions()->where('number', (int) $this->route('revision'))->firstOrFail();
+        return $this->shortLink()->findRevision((int) $this->route('revision'));
     }
 
     public function expectedRevision(): int

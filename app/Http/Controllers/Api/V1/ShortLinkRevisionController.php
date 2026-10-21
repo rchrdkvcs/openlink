@@ -26,10 +26,7 @@ class ShortLinkRevisionController extends Controller
     {
         Gate::authorize('view', $shortLink);
 
-        return response()->json(['data' => $payload->detail(
-            $shortLink,
-            $shortLink->revisions()->with('actor')->where('number', $revision)->firstOrFail(),
-        )]);
+        return response()->json(['data' => $payload->detail($shortLink, $shortLink->findRevision($revision))]);
     }
 
     public function restore(RestoreShortLinkRevisionRequest $request, ShortLink $shortLink, LinkRevisionRestore $restore, ShortLinkPayload $payload): JsonResponse

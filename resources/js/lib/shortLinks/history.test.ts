@@ -88,9 +88,39 @@ describe('describeChange', () => {
       before: 'Unlimited',
       after: '100',
     });
+  });
+
+  it('shows each routing rule with its target so edits stay visible', () => {
+    const france = {
+      name: 'France',
+      is_enabled: true,
+      conditions: [{}],
+      destination_url: 'https://example.com/fr',
+      variants: [],
+    };
+    const split = {
+      name: 'Split',
+      is_enabled: false,
+      conditions: [],
+      destination_url: null,
+      variants: [
+        { name: 'A', weight: 50 },
+        { name: 'B', weight: 50 },
+      ],
+    };
+
+    expect(describeChange({ field: 'routing_rules', before: [], after: [france, split] })).toMatchObject({
+      label: 'Smart routing',
+      before: 'No rules',
+      after: '1. France → https://example.com/fr; 2. Split (off) → A 50, B 50',
+    });
     expect(
-      describeChange({ field: 'routing_rules', before: [], after: [{ name: 'France' }, { name: 'Other' }] }),
-    ).toMatchObject({ label: 'Smart routing', before: 'No rules', after: '2 rules: France, Other' });
+      describeChange({
+        field: 'routing_rules',
+        before: [france],
+        after: [{ ...france, conditions: [{ value: 'DE' }] }],
+      }),
+    ).toMatchObject({ after: '1. France → https://example.com/fr (conditions changed)' });
   });
 
   it('falls back to the raw field for unknown fields', () => {

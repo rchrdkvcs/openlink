@@ -17,7 +17,7 @@ class LinkHistory
         private readonly Request $request,
     ) {}
 
-    public function begin(ShortLink $shortLink, ?int $expectedRevision): array
+    public function lockForChange(ShortLink $shortLink, ?int $expectedRevision): array
     {
         $current = (int) ShortLink::query()->whereKey($shortLink->id)->lockForUpdate()->value('revision');
 

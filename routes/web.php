@@ -51,6 +51,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'overview'])->name('dashboard');
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
+        Route::get('/analytics/open/{workspace}', [AnalyticsController::class, 'open'])->middleware('signed')->name('analytics.open');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
         Route::get('/links/export', [ShortLinkCsvController::class, 'export'])->name('links.export');
         Route::get('/links/import/example', [ShortLinkCsvController::class, 'example'])->name('links.import.example');

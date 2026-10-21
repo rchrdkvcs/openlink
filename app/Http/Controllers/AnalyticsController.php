@@ -17,12 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter, AnalyticsFilterTargets $targets): Response|RedirectResponse
+    public function index(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter, AnalyticsFilterTargets $targets): Response
     {
-        if ($request->filled('workspace')) {
-            return $this->switchWorkspace($request, $current);
-        }
-
         $workspace = $current->require();
         $view = $this->activeView($request, $workspace);
         $filters = $targets->resolve($workspace, $view ? AnalyticsFilters::fromQuery($view->filters) : AnalyticsFilters::fromRequest($request));
@@ -65,15 +61,13 @@ class AnalyticsController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    private function switchWorkspace(Request $request, CurrentWorkspace $current): RedirectResponse
+    public function open(Request $request, Workspace $workspace, CurrentWorkspace $current): RedirectResponse
     {
-        $workspace = Workspace::query()->find((int) $request->query('workspace'));
-        abort_unless($workspace, 403);
         Gate::authorize('view', $workspace);
 
         $current->select($workspace);
 
-        return redirect()->route('analytics.index', $request->except('workspace'));
+        return redirect()->route('analytics.index', $request->only(['range', 'from', 'to']));
     }
 
     private function activeView(Request $request, Workspace $workspace): ?AnalyticsView

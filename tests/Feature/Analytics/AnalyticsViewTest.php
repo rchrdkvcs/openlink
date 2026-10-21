@@ -11,6 +11,7 @@ use App\Models\Tag;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Tests\Support\CreatesAnalyticsEvents;
 use Tests\Support\CreatesWorkspaces;
 use Tests\TestCase;
@@ -270,7 +271,7 @@ class AnalyticsViewTest extends TestCase
         $this->assertModelMissing($view);
     }
 
-    public function test_workspace_query_switches_to_a_member_workspace_only(): void
+    public function test_signed_report_link_switches_to_a_member_workspace_only(): void
     {
         [$workspace, , $owner] = $this->workspaceWithActiveDomain();
         $second = $this->workspaceFor($owner, 'Second');
@@ -278,14 +279,25 @@ class AnalyticsViewTest extends TestCase
 
         $this->actingInWorkspace($owner, $workspace)
             ->withHeader('Host', 'localhost')
-            ->get(route('analytics.index', ['workspace' => $second->id, 'range' => '7d']))
+            ->get(URL::signedRoute('analytics.open', ['workspace' => $second->id, 'range' => '7d']))
             ->assertRedirect(route('analytics.index', ['range' => '7d']))
             ->assertSessionHas('workspace_id', $second->id);
 
         $this->actingInWorkspace($owner, $workspace)
             ->withHeader('Host', 'localhost')
-            ->get(route('analytics.index', ['workspace' => $foreign->id]))
+            ->get(route('analytics.open', ['workspace' => $second->id]))
             ->assertForbidden();
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->get(URL::signedRoute('analytics.open', ['workspace' => $foreign->id]))
+            ->assertForbidden();
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->get(route('analytics.index', ['workspace' => $second->id]))
+            ->assertOk()
+            ->assertSessionHas('workspace_id', $workspace->id);
     }
 
     private function createDomainFor(Workspace $workspace, string $hostname): Domain

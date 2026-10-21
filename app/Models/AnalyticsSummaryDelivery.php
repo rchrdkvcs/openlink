@@ -38,6 +38,15 @@ class AnalyticsSummaryDelivery extends Model
         return $this->belongsTo(User::class);
     }
 
+    public static function cancelPendingFor(int $workspaceId, int $userId): void
+    {
+        self::query()
+            ->where('user_id', $userId)
+            ->where('status', self::STATUS_PENDING)
+            ->whereIn('analytics_summary_schedule_id', AnalyticsSummarySchedule::query()->where('workspace_id', $workspaceId)->select('id'))
+            ->update(['status' => self::STATUS_CANCELLED]);
+    }
+
     public function isFinished(): bool
     {
         return in_array($this->status, [self::STATUS_SENT, self::STATUS_CANCELLED], true);

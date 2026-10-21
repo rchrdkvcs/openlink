@@ -92,8 +92,7 @@ class SendWorkspaceSummary implements ShouldQueue
         $schedule = $delivery->schedule;
 
         return $schedule->is_enabled
-            && $schedule->recipients()
-                ->where('workspace_members.workspace_id', $schedule->workspace_id)
+            && $schedule->currentRecipients()
                 ->where('workspace_members.user_id', $delivery->user_id)
                 ->exists();
     }

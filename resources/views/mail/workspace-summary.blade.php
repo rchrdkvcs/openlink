@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ $summary['workspace'] }}
+# {{ $summary['workspace_text'] }}
 
 Weekly summary for {{ $summary['period'] }} ({{ $summary['timezone'] }}). Bots are excluded.
 
@@ -37,5 +37,5 @@ The previous week is outside the analytics retention window, so no comparison is
 Open the full report
 </x-mail::button>
 
-You receive this summary because a workspace admin added you as a recipient. Signing in is required to open the report.
+You receive this summary because an Owner or Admin of this workspace added you as a recipient. Signing in is required to open the report.
 </x-mail::message>

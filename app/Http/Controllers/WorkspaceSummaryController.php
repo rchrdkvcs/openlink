@@ -6,7 +6,6 @@ use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Requests\Analytics\UpdateWorkspaceSummaryRequest;
 use App\Models\AnalyticsSummaryDelivery;
 use App\Models\AnalyticsSummarySchedule;
-use App\Models\Workspace;
 use App\Services\Analytics\SummaryPeriod;
 use Carbon\CarbonImmutable;
 use DateTimeZone;
@@ -54,18 +53,18 @@ class WorkspaceSummaryController extends Controller
                 ['is_enabled' => $data['is_enabled'], 'timezone' => $data['timezone']],
             );
             $schedule->recipients()->sync($data['recipients']);
-            $this->cancelUnwanted($workspace, $schedule);
+            $this->cancelUnwanted($schedule);
         });
 
         return redirect()->route('settings.summaries');
     }
 
-    private function cancelUnwanted(Workspace $workspace, AnalyticsSummarySchedule $schedule): void
+    private function cancelUnwanted(AnalyticsSummarySchedule $schedule): void
     {
-        $pending = $schedule->deliveries()->whereIn('status', [AnalyticsSummaryDelivery::STATUS_PENDING, AnalyticsSummaryDelivery::STATUS_FAILED]);
+        $pending = $schedule->deliveries()->where('status', AnalyticsSummaryDelivery::STATUS_PENDING);
 
         if ($schedule->is_enabled) {
-            $pending->whereNotIn('user_id', $schedule->recipients()->where('workspace_members.workspace_id', $workspace->id)->select('workspace_members.user_id'));
+            $pending->whereNotIn('user_id', $schedule->currentRecipients()->select('workspace_members.user_id'));
         }
 
         $pending->update(['status' => AnalyticsSummaryDelivery::STATUS_CANCELLED]);

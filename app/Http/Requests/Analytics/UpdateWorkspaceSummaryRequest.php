@@ -8,9 +8,16 @@ use Illuminate\Validation\Rule;
 
 class UpdateWorkspaceSummaryRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        $workspace = $this->container->make(CurrentWorkspace::class)->get();
+
+        return $workspace !== null && $this->user()->can('manage', $workspace);
+    }
+
     public function rules(): array
     {
-        $workspace = app(CurrentWorkspace::class)->get();
+        $workspace = $this->container->make(CurrentWorkspace::class)->get();
 
         return [
             'is_enabled' => ['required', 'boolean'],

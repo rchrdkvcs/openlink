@@ -179,17 +179,16 @@ class WorkspaceSummaryTest extends TestCase
             $this->assertSame(-50.0, $mail->summary['metrics'][0]['change']);
             $this->assertSame(1, $mail->summary['metrics'][1]['value']);
             $this->assertSame('https://localhost/launch', $mail->summary['top_links'][0]['label']);
-            $this->assertStringContainsString('workspace='.$workspace->id, $mail->summary['report_url']);
-            $this->assertStringContainsString('/analytics?', $mail->summary['report_url']);
+            $this->assertStringContainsString('/analytics/open/'.$workspace->id.'?', $mail->summary['report_url']);
+            $this->assertStringContainsString('signature=', $mail->summary['report_url']);
             $this->assertStringNotContainsString('secret-hash', $html);
             $this->assertStringNotContainsString('FR', $html);
-            $this->assertStringNotContainsString('token', $mail->summary['report_url']);
 
             return $mail->hasTo($owner->email);
         });
 
-        $this->get(route('analytics.index', ['workspace' => $workspace->id]))
-            ->assertRedirect(route('login'));
+        $reportUrl = Mail::sent(WorkspaceSummaryMail::class)->first()->summary['report_url'];
+        $this->get($reportUrl)->assertRedirect(route('login'));
     }
 
     public function test_empty_period_and_retention_are_represented(): void
@@ -338,6 +337,92 @@ class WorkspaceSummaryTest extends TestCase
         (new SendWorkspaceSummary($delivery->id))->failed(new RuntimeException('secret detail'));
 
         $this->assertSame(SendWorkspaceSummary::GENERIC_FAILURE, $delivery->fresh()->failure);
+    }
+
+    public function test_workspace_name_cannot_inject_markdown_links(): void
+    {
+        Mail::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $workspace->update(['name' => '[Reset password](https://evil.test)']);
+        $this->schedule($workspace, [$owner], 'UTC');
+
+        $this->artisan('openlink:send-workspace-summaries');
+
+        Mail::assertSent(WorkspaceSummaryMail::class, function (WorkspaceSummaryMail $mail) {
+            $this->assertStringNotContainsString('href="https://evil.test"', $mail->render());
+
+            return true;
+        });
+    }
+
+    public function test_member_removal_cancels_pending_delivery_immediately(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $removed = $this->memberOf($workspace, WorkspaceMember::ROLE_VIEWER);
+        $leaving = $this->memberOf($workspace, WorkspaceMember::ROLE_EDITOR);
+        $this->schedule($workspace, [$owner, $removed, $leaving], 'UTC');
+        $this->artisan('openlink:send-workspace-summaries');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->delete(route('members.destroy', $this->membershipOf($workspace, $removed)));
+        $this->actingInWorkspace($leaving, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->post(route('members.leave'));
+
+        $this->assertSame(AnalyticsSummaryDelivery::STATUS_CANCELLED, $this->deliveryFor($removed->id)->status);
+        $this->assertSame(AnalyticsSummaryDelivery::STATUS_CANCELLED, $this->deliveryFor($leaving->id)->status);
+        $this->assertSame(AnalyticsSummaryDelivery::STATUS_PENDING, $this->deliveryFor($owner->id)->status);
+    }
+
+    public function test_queue_rejection_is_retried_on_the_next_run_within_the_due_window(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $this->schedule($workspace, [$owner], 'UTC');
+        AnalyticsSummaryDelivery::create([
+            'analytics_summary_schedule_id' => AnalyticsSummarySchedule::query()->sole()->id,
+            'user_id' => $owner->id,
+            'period_date' => '2026-10-12',
+            'period_start' => '2026-10-12 00:00:00',
+            'period_end' => '2026-10-19 00:00:00',
+            'status' => AnalyticsSummaryDelivery::STATUS_FAILED,
+            'failed_at' => now(),
+            'failure' => QueueWorkspaceSummaries::QUEUE_FAILURE,
+        ]);
+        Queue::fake();
+
+        $this->artisan('openlink:send-workspace-summaries');
+        $this->artisan('openlink:send-workspace-summaries');
+
+        Queue::assertPushed(SendWorkspaceSummary::class, 1);
+        $this->assertSame(AnalyticsSummaryDelivery::STATUS_PENDING, AnalyticsSummaryDelivery::query()->sole()->status);
+    }
+
+    public function test_deselecting_keeps_recorded_failures_visible(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $viewer = $this->memberOf($workspace, WorkspaceMember::ROLE_VIEWER);
+        $this->schedule($workspace, [$owner, $viewer], 'UTC');
+        $this->artisan('openlink:send-workspace-summaries');
+        $this->deliveryFor($viewer->id)->update(['status' => AnalyticsSummaryDelivery::STATUS_FAILED, 'failed_at' => now(), 'failure' => SendWorkspaceSummary::MAIL_FAILURE]);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->put(route('workspace-summary.update'), ['is_enabled' => false, 'timezone' => 'UTC', 'recipients' => []]);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->get(route('settings.summaries'))
+            ->assertInertia(fn ($page) => $page
+                ->where('status.last_failure.message', SendWorkspaceSummary::MAIL_FAILURE)
+                ->where('status.pending', 0)
+                ->where('status.next_send_at', null));
     }
 
     private function schedule(Workspace $workspace, array $users, string $timezone): AnalyticsSummarySchedule

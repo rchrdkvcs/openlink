@@ -28,6 +28,11 @@ class AnalyticsSummarySchedule extends Model
         return $this->belongsToMany(WorkspaceMember::class, 'analytics_summary_recipients');
     }
 
+    public function currentRecipients(): BelongsToMany
+    {
+        return $this->recipients()->where('workspace_members.workspace_id', $this->workspace_id);
+    }
+
     public function deliveries(): HasMany
     {
         return $this->hasMany(AnalyticsSummaryDelivery::class);

@@ -7,6 +7,7 @@ use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Analytics\SummaryPeriod;
 use App\Services\InstanceSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\URL;
 
 class BuildWorkspaceSummary
 {
@@ -24,6 +25,7 @@ class BuildWorkspaceSummary
 
         return [
             'workspace' => $workspace->name,
+            'workspace_text' => self::markdownText($workspace->name),
             'period' => sprintf('%s – %s', $period->start->format('M j'), $period->lastDay()->format('M j, Y')),
             'timezone' => $period->timezone,
             'metrics' => [
@@ -35,15 +37,20 @@ class BuildWorkspaceSummary
             'is_comparable' => $comparable,
             'is_complete' => $filters->from->greaterThanOrEqualTo($cutoff),
             'top_links' => array_map(fn (array $link) => [
-                'label' => $link['short_url'] ?? $link['slug'],
+                'label' => self::markdownText($link['short_url'] ?? $link['slug']),
                 'total' => $link['total'],
             ], $this->reporter->topLinks($workspace, $filters, 5)),
-            'report_url' => route('analytics.index', [
+            'report_url' => URL::temporarySignedRoute('analytics.open', now()->addDays(90), [
                 'workspace' => $workspace->id,
                 'range' => 'custom',
                 'from' => $period->start->toDateString(),
                 'to' => $period->lastDay()->toDateString(),
             ]),
         ];
+    }
+
+    public static function markdownText(string $value): string
+    {
+        return preg_replace('/([\\\\`*_{}\[\]()#+\-.!|<>~])/', '\\\\$1', $value);
     }
 }

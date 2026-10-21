@@ -147,6 +147,14 @@ Availability rules run before password validation. If a link is expired, disable
 
 When a short URL cannot resolve and no fallback URL is available, visitors see a neutral unavailable page. Detailed reasons remain visible only in the dashboard and analytics.
 
+## Destination Health
+
+Editors and above can check every destination of a short link from the link inspector: the default destination, the fallback URL, and enabled routing rule and variant destinations. Each destination shows its latest Destination Health: not checked, reachable, an HTTP failure, a DNS, TLS, or connection failure, a timeout, inconclusive (for example a 403 or 429 from bot protection), or not checkable because it points to a private address.
+
+Two consecutive failures open a Destination Incident. Incidents appear on the workspace Issues page with the affected short links and their QR codes, ordered by visits and scans in the last 7 days, and Editors can retry them. The next reachable result recovers the incident, which stays listed as recently recovered for 7 days. Results never change how a short link resolves, and Openlink never replaces a destination or switches to the fallback URL automatically.
+
+The Instance Admin can enable Destination Monitoring to run these checks in the background.
+
 ## Protected Links
 
 A protected link requires a visitor password before resolution. The password protects public resolution only; it does not affect workspace member access in the dashboard.
@@ -215,6 +223,7 @@ Instance settings include:
 - Reserved slugs and prefixes
 - Slug generation defaults
 - Analytics retention
+- Destination Monitoring
 - Feature flags for optional product capabilities
 - Public unavailable page basics
 

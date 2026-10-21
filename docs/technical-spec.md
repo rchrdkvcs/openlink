@@ -91,6 +91,14 @@ DNS checks can run on demand from the dashboard and through scheduled background
 
 Traffic routing records such as CNAME or A are deployment-specific and separate from ownership verification.
 
+## Destination Checks
+
+Destination Checks run on the queue (`CheckDestination`) and never during public resolution. A check is stored once per workspace and exact URL in `destination_checks`, together with the normalized result, HTTP status, a short detail, consecutive failures, and incident and recovery times. Links that reference a URL are derived from current short links, enabled routing rules, and enabled split-test variants, so a changed destination is shown as not checked and unreferenced checks are pruned by `openlink:monitor-destinations`.
+
+The outbound client resolves the hostname itself, requires every address to be public (IPv4, IPv6, and embedded IPv4 forms), pins the connection to the validated address with `CURLOPT_RESOLVE`, follows at most five redirects manually while revalidating every hop, aborts after response headers, and uses short connect and total timeouts. Requests carry no cookies, credentials, or visitor data. Result classification is documented in ADR 0015.
+
+`openlink:monitor-destinations` runs every 15 minutes. When the `destination_monitoring` instance setting is on, it registers referenced destinations and queues at most `--limit` due checks: never-checked destinations, results older than 6 hours, incidents older than 1 hour, and unconfirmed failures older than 10 minutes.
+
 ## Authorization
 
 Use Laravel policies for workspace, folder, domain, short link, QR code, and analytics access.

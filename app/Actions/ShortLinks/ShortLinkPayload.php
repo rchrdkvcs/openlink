@@ -51,6 +51,7 @@ class ShortLinkPayload
                 'description' => $link->preview_description,
                 'image_url' => $this->previewImageUrl($link),
             ],
+            'conversion_goal' => $link->conversion_goal,
             'routing_rules' => $link->routingRules->map(fn ($rule) => [
                 'id' => $rule->id,
                 'name' => $rule->name,

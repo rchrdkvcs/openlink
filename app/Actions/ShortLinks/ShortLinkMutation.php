@@ -208,6 +208,10 @@ class ShortLinkMutation
             $shortLink->preview_image_path = null;
         }
 
+        if (array_key_exists('conversion_goal', $data) || ! $shortLink->exists) {
+            $shortLink->conversion_goal = filled($data['conversion_goal'] ?? null) ? trim($data['conversion_goal']) : null;
+        }
+
         if (array_key_exists('password', $data) || ! $shortLink->exists) {
             $shortLink->password_hash = filled($data['password'] ?? null) ? Hash::make($data['password']) : null;
         }

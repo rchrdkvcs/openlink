@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AuthTokenController;
+use App\Http\Controllers\Api\V1\ConversionController;
 use App\Http\Controllers\Api\V1\DomainController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\InstanceSettingsController;
@@ -94,6 +95,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('invite-links.join');
 
             Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+            Route::post('/conversions', [ConversionController::class, 'store'])
+                ->middleware('throttle:conversions')
+                ->name('conversions.store');
         });
     });
 });

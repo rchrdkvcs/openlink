@@ -203,7 +203,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
 
     Route::get('/'.LinkPage::PATH_PREFIX.'/{path}', PublicLinkPageController::class)
         ->middleware('throttle:public-resolution')
-        ->where('path', trim(LinkPage::PATH_PATTERN, '/^$'))
+        ->where('path', LinkPage::ROUTE_PATTERN)
         ->name('public.link-page');
 });
 

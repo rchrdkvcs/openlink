@@ -157,7 +157,7 @@ A Workspace-owned public page that presents a title, short description, optional
 _Avoid_: Bio page, link in bio, landing page, microsite, link bundle
 
 **Published Link Page**:
-A link page whose owner has made it public. A link page that is not published is a draft and is never shown to visitors.
+A link page that its Workspace has made public. A link page that is not published is a draft and is never shown to visitors.
 _Avoid_: Live page, public page, active page
 
 **Protected Link**:

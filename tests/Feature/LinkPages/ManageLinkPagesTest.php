@@ -191,4 +191,21 @@ class ManageLinkPagesTest extends TestCase
             ->patch(route('link-pages.update', $linkPage), ['name' => 'A', 'path' => 'Not valid!', 'title' => 'A'])
             ->assertSessionHasErrors('path');
     }
+
+    public function test_short_link_options_show_whether_visitors_would_see_them(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain('go.example.test');
+        $this->shortLink($workspace, $domain, 'paused', ['is_enabled' => false]);
+        $linkPage = $this->linkPage($workspace);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->get(route('link-pages.show', $linkPage))
+            ->assertInertia(fn ($page) => $page->where('shortLinks.0.availability', 'disabled'));
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->getJson(route('link-pages.short-links', ['search' => 'paused']))
+            ->assertOk()
+            ->assertJsonPath('data.0.short_url', 'https://go.example.test/paused')
+            ->assertJsonPath('data.0.availability', 'disabled');
+    }
 }

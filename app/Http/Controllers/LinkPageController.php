@@ -12,6 +12,7 @@ use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Requests\LinkPages\StoreLinkPageRequest;
 use App\Http\Requests\LinkPages\UpdateLinkPageRequest;
 use App\Models\LinkPage;
+use App\Services\LinkPages\LinkPageEntries;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ use Inertia\Response;
 
 class LinkPageController extends Controller
 {
-    public function __construct(private readonly LinkPagePayload $payload) {}
+    public function __construct(
+        private readonly LinkPagePayload $payload,
+        private readonly LinkPageEntries $entries,
+    ) {}
 
     public function index(CurrentWorkspace $current): Response
     {
@@ -50,7 +54,7 @@ class LinkPageController extends Controller
 
         return Inertia::render('LinkPages/Show', [
             'linkPage' => $this->payload->editor($linkPage),
-            'shortLinks' => $options->for($workspace),
+            'shortLinks' => $this->entries->withAvailability($workspace, $options->for($workspace)),
             'pathPrefix' => $this->pathPrefix(),
         ]);
     }
@@ -60,7 +64,9 @@ class LinkPageController extends Controller
         $workspace = $current->require();
         $filters = $request->validate(['search' => ['nullable', 'string', 'max:200']]);
 
-        return response()->json(['data' => $options->for($workspace, $filters['search'] ?? '')]);
+        return response()->json([
+            'data' => $this->entries->withAvailability($workspace, $options->for($workspace, $filters['search'] ?? '')),
+        ]);
     }
 
     public function update(UpdateLinkPageRequest $request, LinkPage $linkPage, UpdateLinkPage $action): RedirectResponse

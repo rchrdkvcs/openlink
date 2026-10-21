@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Copy, ExternalLink, ImagePlus, Trash2 } from '@lucide/vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft, ImagePlus } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import LinkPageContent from '@/Components/LinkPages/LinkPageContent.vue';
@@ -13,11 +13,10 @@ import SaveBar from '@/Components/ui/SaveBar.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import Textarea from '@/Components/ui/Textarea.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { confirmAction } from '@/lib/confirm';
 import { useShell } from '@/lib/shell';
-import { copyToClipboard, toast } from '@/lib/toast';
+import { toast } from '@/lib/toast';
 
-import type { ShortLinkOption } from '../QrCodes/types';
+import LinkPageActions from './LinkPageActions.vue';
 import LinkPageItemRow from './LinkPageItemRow.vue';
 import {
   addItem,
@@ -30,11 +29,11 @@ import {
   toItemsPayload,
 } from './linkPageItems';
 import LinkPicker from './LinkPicker.vue';
-import type { LinkPageRecord } from './types';
+import type { LinkPageRecord, LinkPageShortLinkOption } from './types';
 
 const props = defineProps<{
   linkPage: LinkPageRecord;
-  shortLinks: ShortLinkOption[];
+  shortLinks: LinkPageShortLinkOption[];
   pathPrefix: string;
 }>();
 
@@ -113,27 +112,6 @@ function discard() {
   form.reset();
   form.clearErrors();
 }
-
-function setPublished(published: boolean) {
-  router.post(
-    route(published ? 'link-pages.publish' : 'link-pages.unpublish', props.linkPage.id),
-    {},
-    {
-      preserveScroll: true,
-      onSuccess: () => toast({ title: published ? 'Link page published' : 'Link page unpublished', tone: 'success' }),
-    },
-  );
-}
-
-async function destroy() {
-  const confirmed = await confirmAction({
-    title: `Delete “${props.linkPage.name}”?`,
-    message: 'Its public URL will stop working. The short links on it are not changed.',
-    confirmLabel: 'Delete link page',
-    destructive: true,
-  });
-  if (confirmed) router.delete(route('link-pages.destroy', props.linkPage.id));
-}
 </script>
 
 <template>
@@ -151,39 +129,7 @@ async function destroy() {
           </Link>
         </template>
         <template #actions>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="copyToClipboard(linkPage.public_url, 'Page URL copied')"
-          >
-            <Copy /> Copy URL
-          </Button>
-          <a
-            v-if="linkPage.is_published"
-            :href="linkPage.public_url"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted transition-colors hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [&_svg]:h-3.5 [&_svg]:w-3.5"
-          >
-            <ExternalLink /> Open
-          </a>
-          <template v-if="canEdit">
-            <Button variant="ghost" size="sm" type="button" title="Delete link page" @click="destroy">
-              <Trash2 /> Delete
-            </Button>
-            <Button
-              v-if="linkPage.is_published"
-              variant="secondary"
-              size="sm"
-              type="button"
-              :disabled="isDirty"
-              @click="setPublished(false)"
-            >
-              Unpublish
-            </Button>
-            <Button v-else size="sm" type="button" :disabled="isDirty" @click="setPublished(true)">Publish</Button>
-          </template>
+          <LinkPageActions :link-page="linkPage" :dirty="isDirty" />
         </template>
       </PageHeader>
 

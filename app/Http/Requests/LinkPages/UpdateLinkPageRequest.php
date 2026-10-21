@@ -8,6 +8,11 @@ use Illuminate\Validation\Rule;
 
 class UpdateLinkPageRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', $this->linkPage());
+    }
+
     public function rules(): array
     {
         return [

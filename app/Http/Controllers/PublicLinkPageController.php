@@ -20,7 +20,7 @@ class PublicLinkPageController extends Controller
         PublicResolution $resolution,
         PublicResolutionResponder $responder,
     ): Response {
-        $linkPage = LinkPage::query()->where('path', $path)->whereNotNull('published_at')->first();
+        $linkPage = LinkPage::query()->where('path', strtolower($path))->whereNotNull('published_at')->first();
 
         if (! $linkPage) {
             $entry = ResolutionEntry::shortUrl(LinkPage::PATH_PREFIX.'/'.$path);

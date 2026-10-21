@@ -24,7 +24,7 @@ const createOpen = ref(false);
 
 const description = computed(() => {
   const count = props.linkPages.length;
-  if (count === 0) return 'Share one public page that lists several short links.';
+  if (count === 0) return 'Share several short links from one page.';
 
   return `${count} ${count === 1 ? 'page' : 'pages'}`;
 });
@@ -48,7 +48,7 @@ function linkCount(count: number) {
       <div v-if="linkPages.length === 0" class="mt-6 rounded-xl border border-dashed">
         <EmptyState
           title="No link pages yet"
-          description="Pick short links for an event, a resource list, or a bio, and publish them on one page."
+          description="Pick short links for an event or a resource list, then publish them together."
         >
           <template #icon><LayoutList class="h-5 w-5" /></template>
           <template v-if="canEdit" #action>

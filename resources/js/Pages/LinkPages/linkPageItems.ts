@@ -1,8 +1,7 @@
 import type { PublicLinkPage } from '@/Components/LinkPages/types';
 import { displayUrl } from '@/lib/links';
 
-import type { ShortLinkOption } from '../QrCodes/types';
-import type { LinkPageAvailability, LinkPageItem } from './types';
+import type { LinkPageAvailability, LinkPageItem, LinkPageShortLinkOption } from './types';
 
 export const MAX_ITEMS = 50;
 
@@ -37,7 +36,7 @@ export function toEditable(items: LinkPageItem[]): EditableItem[] {
   }));
 }
 
-export function addItem(items: EditableItem[], link: ShortLinkOption): EditableItem[] {
+export function addItem(items: EditableItem[], link: LinkPageShortLinkOption): EditableItem[] {
   if (items.length >= MAX_ITEMS || items.some((item) => item.short_link_id === link.id)) return items;
 
   return [
@@ -47,7 +46,7 @@ export function addItem(items: EditableItem[], link: ShortLinkOption): EditableI
       label: '',
       short_url: link.short_url,
       destination_url: link.destination_url,
-      availability: 'active',
+      availability: link.availability,
     },
   ];
 }

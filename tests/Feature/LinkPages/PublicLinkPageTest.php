@@ -52,6 +52,16 @@ class PublicLinkPageTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Public/Unavailable'));
     }
 
+    public function test_link_page_path_is_matched_without_regard_to_case(): void
+    {
+        [$workspace] = $this->workspaceWithOwner();
+        $this->publishedLinkPage($workspace);
+
+        $this->get('/p/Spring')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Public/LinkPage'));
+    }
+
     public function test_unknown_link_page_is_neutral(): void
     {
         $this->get('/p/missing')

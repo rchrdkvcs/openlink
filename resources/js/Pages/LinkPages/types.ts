@@ -1,3 +1,5 @@
+import type { ShortLinkOption } from '../QrCodes/types';
+
 export type LinkPageAvailability = 'active' | 'scheduled' | 'expired' | 'disabled' | 'archived' | 'domain_unavailable';
 
 export type LinkPageItem = {
@@ -8,6 +10,8 @@ export type LinkPageItem = {
   display_label: string;
   availability: LinkPageAvailability;
 };
+
+export type LinkPageShortLinkOption = ShortLinkOption & { availability: LinkPageAvailability };
 
 export type LinkPageSummary = {
   id: number;

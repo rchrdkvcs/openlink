@@ -5,29 +5,30 @@ import { computed, ref } from 'vue';
 import Input from '@/Components/ui/Input.vue';
 import { displayUrl } from '@/lib/links';
 
-import type { ShortLinkOption } from '../QrCodes/types';
 import { useShortLinkSearch } from '../QrCodes/useShortLinkSearch';
+import type { LinkPageShortLinkOption } from './types';
 
 const props = defineProps<{
-  initial: ShortLinkOption[];
+  initial: LinkPageShortLinkOption[];
   selectedIds: number[];
   disabled?: boolean;
 }>();
 
-const emit = defineEmits<{ add: [link: ShortLinkOption] }>();
+const emit = defineEmits<{ add: [link: LinkPageShortLinkOption] }>();
 
-async function fetchLinks(term: string): Promise<ShortLinkOption[] | null> {
+async function fetchLinks(term: string): Promise<LinkPageShortLinkOption[] | null> {
   const response = await fetch(route('link-pages.short-links', { search: term }), {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) return null;
 
-  return ((await response.json()) as { data: ShortLinkOption[] }).data;
+  return ((await response.json()) as { data: LinkPageShortLinkOption[] }).data;
 }
 
 const { search, links } = useShortLinkSearch(props.initial, ref(''), fetchLinks);
+const options = computed(() => links.value as LinkPageShortLinkOption[]);
 
-const available = computed(() => links.value.filter((link) => !props.selectedIds.includes(link.id)));
+const available = computed(() => options.value.filter((link) => !props.selectedIds.includes(link.id)));
 </script>
 
 <template>

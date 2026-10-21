@@ -11,6 +11,7 @@ import {
   removeItem,
   toItemsPayload,
 } from './linkPageItems';
+import type { LinkPageAvailability } from './types';
 
 function item(id: number, overrides: Partial<EditableItem> = {}): EditableItem {
   return {
@@ -23,10 +24,11 @@ function item(id: number, overrides: Partial<EditableItem> = {}): EditableItem {
   };
 }
 
-const option = (id: number) => ({
+const option = (id: number, availability: LinkPageAvailability = 'active') => ({
   id,
   short_url: `https://go.example.test/l${id}`,
   destination_url: 'https://example.com',
+  availability,
 });
 
 describe('link page items', () => {
@@ -37,6 +39,10 @@ describe('link page items', () => {
 
     const full = Array.from({ length: MAX_ITEMS }, (_, index) => item(index + 1));
     expect(addItem(full, option(999))).toBe(full);
+  });
+
+  it('keeps the availability of an added short link', () => {
+    expect(addItem([], option(3, 'disabled'))[0]?.availability).toBe('disabled');
   });
 
   it('moves items within bounds', () => {

@@ -69,7 +69,7 @@
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
 | **Link Page** | A Workspace-owned public page that presents a title, short description, optional logo, and an ordered list of explicitly selected Short Links. | Bio page, link in bio, landing page, microsite, link bundle |
-| **Published Link Page** | A link page made public by its Workspace; any other link page is a draft that visitors never see. | Live page, public page, active page |
+| **Published Link Page** | A link page that its Workspace has made public; any other link page is a draft that visitors never see. | Live page, public page, active page |
 
 ## Identity and credentials
 

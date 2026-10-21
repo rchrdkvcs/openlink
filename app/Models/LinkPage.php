@@ -12,6 +12,8 @@ class LinkPage extends Model
 
     public const PATH_PATTERN = '/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/';
 
+    public const ROUTE_PATTERN = '[A-Za-z0-9-]{1,64}';
+
     public const MAX_ITEMS = 50;
 
     protected $guarded = [];

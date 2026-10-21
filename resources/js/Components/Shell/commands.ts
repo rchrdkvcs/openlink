@@ -62,7 +62,7 @@ export function navigationCommands(context: CommandContext, actions: CommandActi
       group: 'Go to',
       label: 'Link pages',
       icon: LayoutList,
-      keywords: 'bio public page',
+      keywords: 'publish short links',
       run: () => visit('link-pages.index'),
     },
     { id: 'analytics', group: 'Go to', label: 'Analytics', icon: BarChart3, run: () => visit('analytics.index') },

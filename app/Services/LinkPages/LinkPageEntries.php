@@ -5,6 +5,8 @@ namespace App\Services\LinkPages;
 use App\Enums\LinkStatus;
 use App\Models\LinkPage;
 use App\Models\LinkPageItem;
+use App\Models\ShortLink;
+use App\Models\Workspace;
 use App\Services\Analytics\Outcome;
 use App\Services\ShortLinks\ShortLinkLifecycle;
 
@@ -34,6 +36,16 @@ class LinkPageEntries
             ])->values()->all();
     }
 
+    public function withAvailability(Workspace $workspace, array $options): array
+    {
+        $links = $workspace->shortLinks()->with('domain')->whereKey(array_column($options, 'id'))->get()->keyBy('id');
+
+        return array_map(fn (array $option) => [
+            ...$option,
+            'availability' => $links->has($option['id']) ? $this->availabilityOf($links[$option['id']]) : LinkStatus::Archived->value,
+        ], $options);
+    }
+
     private function items(LinkPage $linkPage)
     {
         return $linkPage->items()
@@ -44,9 +56,14 @@ class LinkPageEntries
 
     private function availability(LinkPageItem $item): string
     {
-        $status = $this->lifecycle->statusOf($item->shortLink);
+        return $this->availabilityOf($item->shortLink);
+    }
 
-        if ($status === LinkStatus::Active && ! $item->shortLink->domain->isUsable()) {
+    private function availabilityOf(ShortLink $shortLink): string
+    {
+        $status = $this->lifecycle->statusOf($shortLink);
+
+        if ($status === LinkStatus::Active && ! $shortLink->domain->isUsable()) {
             return Outcome::DOMAIN_UNAVAILABLE;
         }
 

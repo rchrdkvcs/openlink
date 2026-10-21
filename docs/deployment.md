@@ -2,6 +2,9 @@
 
 Openlink ships a production `Dockerfile`. The image runs Laravel Octane with
 FrankenPHP on port `8080`. PostgreSQL and Redis are required.
+PHP 8.5.12 or newer is required. The image build checks the PHP version and
+refuses older FrankenPHP base images. Build with `docker build --pull` to fetch
+the latest base images; CI and release builds do this automatically.
 Stable releases publish versioned and `latest` images to
 `ghcr.io/rchrdkvcs/openlink`. The image embeds its release version.
 

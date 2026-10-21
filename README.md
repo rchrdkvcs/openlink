@@ -53,7 +53,7 @@ Open `http://localhost:8080`. See [`docker/README.md`](./docker/README.md) for c
 
 ## Local Development
 
-Requirements: PHP 8.4+, Composer 2, Node.js 24, pnpm 12.6.0, and Docker
+Requirements: PHP 8.5.12+, Composer 2, Node.js 24, pnpm 12.14.0, and Docker
 Compose v2.
 
 Prepare `.env`, start local PostgreSQL and Redis containers, install

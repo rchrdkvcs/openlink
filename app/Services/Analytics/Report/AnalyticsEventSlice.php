@@ -26,6 +26,7 @@ class AnalyticsEventSlice
         return AnalyticsEvent::query()
             ->where('workspace_id', $this->workspace->id)
             ->whereBetween('occurred_at', [$this->filters->from, $this->filters->to])
+            ->when($this->filters->unavailable !== [], fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->when($this->filters->shortLinkId, fn (Builder $query, int $id) => $query->where('short_link_id', $id))
             ->when($this->filters->qrCodeId, fn (Builder $query, int $id) => $query->where('qr_code_id', $id))
             ->when($this->filters->domainId, fn (Builder $query, int $id) => $query->where('domain_id', $id))

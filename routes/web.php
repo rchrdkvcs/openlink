@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AnalyticsViewController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DestinationHealthController;
 use App\Http\Controllers\DomainController;
@@ -111,6 +112,10 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/utm-templates', [UtmTemplateController::class, 'store'])->name('utm-templates.store');
         Route::patch('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'update'])->name('utm-templates.update');
         Route::delete('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'destroy'])->name('utm-templates.destroy');
+
+        Route::post('/analytics/views', [AnalyticsViewController::class, 'store'])->name('analytics-views.store');
+        Route::patch('/analytics/views/{analyticsView}', [AnalyticsViewController::class, 'update'])->name('analytics-views.update');
+        Route::delete('/analytics/views/{analyticsView}', [AnalyticsViewController::class, 'destroy'])->name('analytics-views.destroy');
 
         Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
         Route::delete('/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Workspace extends Model
 {
@@ -80,5 +81,15 @@ class Workspace extends Model
     public function webhookEndpoints(): HasMany
     {
         return $this->hasMany(WebhookEndpoint::class);
+    }
+
+    public function analyticsViews(): HasMany
+    {
+        return $this->hasMany(AnalyticsView::class);
+    }
+
+    public function analyticsSummarySchedule(): HasOne
+    {
+        return $this->hasOne(AnalyticsSummarySchedule::class);
     }
 }

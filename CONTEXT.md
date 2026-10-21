@@ -259,3 +259,15 @@ _Avoid_: Webhook call, webhook request, webhook log
 **Signing Secret**:
 The credential of one webhook endpoint used to sign every webhook delivery so receivers can verify that it came from Openlink. A signing secret is shown only when it is created or rotated.
 _Avoid_: Webhook key, webhook token, shared secret
+
+**Saved View**:
+A member's named, personal Analytics filter definition within one workspace. A saved view keeps rolling periods relative, so they advance when reopened, keeps custom dates fixed, and never stores report results. A saved view whose filter targets no longer exist in the workspace shows an unavailable state instead of unfiltered analytics.
+_Avoid_: Saved report, bookmark, dashboard
+
+**Workspace Summary**:
+An optional weekly email with aggregate Analytics for one workspace and its comparison with the previous week. Owners and Admins configure its timezone and recipients; it never contains individual visitor data, and its report link requires normal sign-in.
+_Avoid_: Digest, newsletter, scheduled report
+
+**Summary Recipient**:
+A current member selected to receive the Workspace Summary. A member stops being a summary recipient when they leave the workspace or are deselected, and any summary not yet delivered to them is cancelled.
+_Avoid_: Subscriber, external recipient

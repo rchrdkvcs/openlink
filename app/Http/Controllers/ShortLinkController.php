@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ShortLinks\BulkShortLinkMutation;
 use App\Actions\ShortLinks\ShortLinkMutation;
 use App\Actions\ShortLinks\ShortLinkPayload;
+use App\Http\Requests\ShortLinks\BulkShortLinkRequest;
 use App\Http\Requests\ShortLinks\MoveShortLinkRequest;
 use App\Http\Requests\ShortLinks\StoreShortLinkRequest;
 use App\Http\Requests\ShortLinks\UpdateShortLinkRequest;
@@ -40,6 +42,20 @@ class ShortLinkController extends Controller
     public function move(MoveShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
     {
         $shortLinks->move($request->user(), $shortLink, $request->folderId());
+
+        return back();
+    }
+
+    public function bulk(BulkShortLinkRequest $request, BulkShortLinkMutation $bulk): RedirectResponse
+    {
+        $bulk->apply(
+            $request->user(),
+            $request->workspace(),
+            $request->bulkAction(),
+            $request->ids(),
+            $request->folderId(),
+            $request->tags(),
+        );
 
         return back();
     }

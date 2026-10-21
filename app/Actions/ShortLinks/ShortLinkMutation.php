@@ -76,7 +76,34 @@ class ShortLinkMutation
     public function archive(User $user, ShortLink $shortLink): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
-        $shortLink->update(['archived_at' => now()]);
+
+        if (! $shortLink->isArchived()) {
+            $shortLink->update(['archived_at' => now()]);
+        }
+
+        return $shortLink;
+    }
+
+    public function setEnabled(User $user, ShortLink $shortLink, bool $enabled): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+        $shortLink->update(['is_enabled' => $enabled]);
+
+        return $shortLink;
+    }
+
+    public function addTags(User $user, ShortLink $shortLink, array $names): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+        $this->tags->add($shortLink, $names);
+
+        return $shortLink;
+    }
+
+    public function removeTags(User $user, ShortLink $shortLink, array $names): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+        $this->tags->remove($shortLink, $names);
 
         return $shortLink;
     }

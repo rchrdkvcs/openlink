@@ -163,9 +163,9 @@ Domain `status` is one of `pending_verification`, `failed_verification`, `owners
 | Method | Path | Description |
 | --- | --- | --- |
 | `POST` | `/api/v1/qr-codes` | Create a QR Code with `name` and exactly one target: `short_link_id`, or `payload_type` plus `payload`; accepts optional appearance fields |
-| `PATCH` | `/api/v1/qr-codes/{token}` | Update appearance or replace the target using `short_link_id`, or `payload_type` plus `payload` (`remove_logo` is also accepted, and `logo_template_id` copies the logo of a Workspace QR Code Template) |
+| `PATCH` | `/api/v1/qr-codes/{token}` | Update appearance or replace the target using `short_link_id`, or `payload_type` plus `payload` (`remove_logo` is also accepted). `template_id` applies a Workspace QR Code Template: its design and logo are copied server-side, then any appearance fields sent in the same request override it; an uploaded `logo` or `remove_logo` overrides the template logo |
 | `DELETE` | `/api/v1/qr-codes/{token}` | Delete a QR code and its logo |
-| `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview; accepts the customization fields, `remove_logo`, and `logo_template_id` as query overrides for live previews |
+| `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview; accepts the customization fields, `remove_logo`, and `template_id` as query overrides for live previews; `template_id` requires permission to edit the QR Code |
 | `GET` | `/api/v1/qr-codes/{token}/export/{png\|svg}` | Download the QR code; accepts a `size` query override |
 
 A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the Domain selected for the Short Link. Direct-payload images encode their native content. When a logo is set, the effective error correction level is raised to at least quartile.

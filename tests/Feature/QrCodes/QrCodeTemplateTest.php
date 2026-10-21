@@ -112,11 +112,11 @@ class QrCodeTemplateTest extends TestCase
             ->assertForbidden();
         $this->actingAs($owner)->delete(route('qr-code-templates.destroy', $foreignTemplate))->assertForbidden();
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), ['logo_template_id' => $foreignTemplate->id])
-            ->assertSessionHasErrors('logo_template_id');
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $foreignTemplate->id])
+            ->assertSessionHasErrors('template_id');
         $this->actingAs($owner)
-            ->get(route('qr-codes.preview', [$qrCode, 'logo_template_id' => $foreignTemplate->id]))
-            ->assertSessionHasErrors('logo_template_id');
+            ->get(route('qr-codes.preview', [$qrCode, 'template_id' => $foreignTemplate->id]))
+            ->assertSessionHasErrors('template_id');
 
         $this->assertSame('Foreign', $foreignTemplate->refresh()->name);
         $this->assertFalse($qrCode->refresh()->hasLogo());
@@ -171,10 +171,7 @@ class QrCodeTemplateTest extends TestCase
         $publicUrl = $qrCode->publicUrl();
 
         $this->actingAs($editor)
-            ->patch(route('qr-codes.update', $qrCode), [
-                ...$template->only(QrCodeTemplate::APPEARANCE),
-                'logo_template_id' => $template->id,
-            ])
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
             ->assertSessionHasNoErrors();
 
         $qrCode->refresh();
@@ -194,10 +191,7 @@ class QrCodeTemplateTest extends TestCase
         $template = $this->template($workspace, 'Brand', $this->storedLogo());
 
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), [
-                ...$template->only(QrCodeTemplate::APPEARANCE),
-                'logo_template_id' => $template->id,
-            ])
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
             ->assertSessionHasNoErrors();
 
         $qrCode->refresh();
@@ -205,6 +199,46 @@ class QrCodeTemplateTest extends TestCase
         $this->assertSame(['text' => 'Hello'], $qrCode->payload);
         $this->assertSame('Hello', $qrCode->encodedContent());
         $this->assertTrue($qrCode->hasLogo());
+        $this->assertSame('rounded', $qrCode->style);
+    }
+
+    public function test_explicit_appearance_fields_override_the_applied_template(): void
+    {
+        [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();
+        $template = $this->template($workspace, 'Brand', $this->storedLogo());
+
+        $this->actingAs($owner)
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id, 'foreground_color' => '#ff0000'])
+            ->assertSessionHasNoErrors();
+
+        $qrCode->refresh();
+        $this->assertSame('#ff0000', $qrCode->foreground_color);
+        $this->assertSame('rounded', $qrCode->style);
+        $this->assertSame('#f8fafc', $qrCode->background_color);
+        $this->assertTrue($qrCode->hasLogo());
+    }
+
+    public function test_applying_a_logo_free_template_removes_the_logo_unless_one_is_uploaded(): void
+    {
+        [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();
+        $qrCode->update(['logo_path' => $previous = $this->storedLogo()]);
+        $bare = $this->template($workspace, 'Bare');
+
+        $this->actingAs($owner)
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $bare->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertFalse($qrCode->refresh()->hasLogo());
+        Storage::assertMissing($previous);
+
+        $this->actingAs($owner)
+            ->patch(route('qr-codes.update', $qrCode), [
+                'template_id' => $bare->id,
+                'logo' => UploadedFile::fake()->createWithContent('logo.png', Storage::get($this->storedLogo())),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue($qrCode->refresh()->hasLogo());
     }
 
     public function test_viewers_cannot_apply_templates(): void
@@ -214,11 +248,12 @@ class QrCodeTemplateTest extends TestCase
         $template = $this->template($workspace, 'Brand', $this->storedLogo());
 
         $this->actingAs($viewer)
-            ->patch(route('qr-codes.update', $qrCode), [
-                ...$template->only(QrCodeTemplate::APPEARANCE),
-                'logo_template_id' => $template->id,
-            ])
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
             ->assertForbidden();
+        $this->actingAs($viewer)
+            ->get(route('qr-codes.preview', [$qrCode, 'template_id' => $template->id]))
+            ->assertForbidden();
+        $this->actingAs($viewer)->get(route('qr-codes.preview', $qrCode))->assertOk();
 
         $this->assertFalse($qrCode->refresh()->hasLogo());
         $this->assertSame('#111827', $qrCode->foreground_color);
@@ -228,16 +263,16 @@ class QrCodeTemplateTest extends TestCase
     {
         [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();
         $template = $this->template($workspace, 'Brand', $this->storedLogo());
-        $bare = $this->template($workspace, 'Bare');
 
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), ['foreground_color' => 'red', 'logo_template_id' => $template->id])
+            ->patch(route('qr-codes.update', $qrCode), ['foreground_color' => 'red', 'template_id' => $template->id])
             ->assertSessionHasErrors('foreground_color');
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), ['logo_template_id' => $bare->id])
-            ->assertSessionHasErrors('logo_template_id');
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => 'brand'])
+            ->assertSessionHasErrors('template_id');
 
         $this->assertFalse($qrCode->refresh()->hasLogo());
+        $this->assertSame('#111827', $qrCode->foreground_color);
     }
 
     public function test_applying_a_template_with_a_missing_logo_file_keeps_the_current_logo(): void
@@ -248,10 +283,11 @@ class QrCodeTemplateTest extends TestCase
         Storage::delete($template->logo_path);
 
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), ['logo_template_id' => $template->id])
-            ->assertSessionHasErrors('logo_template_id');
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
+            ->assertSessionHasErrors('template_id');
 
         $this->assertSame($current, $qrCode->refresh()->logo_path);
+        $this->assertSame('#111827', $qrCode->foreground_color);
         Storage::assertExists($current);
     }
 
@@ -261,10 +297,7 @@ class QrCodeTemplateTest extends TestCase
         $template = $this->template($workspace, 'Brand', $this->storedLogo(), ['error_correction' => 'low']);
 
         $this->actingAs($owner)
-            ->patch(route('qr-codes.update', $qrCode), [
-                ...$template->only(QrCodeTemplate::APPEARANCE),
-                'logo_template_id' => $template->id,
-            ])
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
             ->assertSessionHasNoErrors();
 
         $qrCode->refresh();
@@ -287,12 +320,13 @@ class QrCodeTemplateTest extends TestCase
 
         $withoutLogo = $this->actingAs($owner)->get(route('qr-codes.preview', $qrCode))->assertOk()->getContent();
         $withLogo = $this->actingAs($owner)
-            ->get(route('qr-codes.preview', [$qrCode, 'logo_template_id' => $template->id]))
+            ->get(route('qr-codes.preview', [$qrCode, 'template_id' => $template->id]))
             ->assertOk()
             ->getContent();
 
         $this->assertStringNotContainsString('<image', $withoutLogo);
         $this->assertStringContainsString('<image', $withLogo);
+        $this->assertStringContainsString('#0f172a', $withLogo);
         $this->assertFalse($qrCode->refresh()->hasLogo());
     }
 
@@ -373,6 +407,27 @@ class QrCodeTemplateTest extends TestCase
         Storage::assertExists($template->logo_path);
     }
 
+    public function test_a_source_qr_code_with_a_missing_logo_file_cannot_become_a_template(): void
+    {
+        [$workspace, , $owner, $qrCode] = $this->linkWithQrCode();
+        $this->styled($qrCode);
+        $template = $this->template($workspace, 'Brand', $this->storedLogo());
+        $templateLogo = $template->logo_path;
+        Storage::delete($qrCode->logo_path);
+
+        $this->actingAs($owner)
+            ->post(route('qr-code-templates.store'), ['name' => 'Print', 'qr_code' => $qrCode->token])
+            ->assertSessionHasErrors('qr_code');
+        $this->actingAs($owner)
+            ->patch(route('qr-code-templates.update', $template), ['qr_code' => $qrCode->token])
+            ->assertSessionHasErrors('qr_code');
+
+        $this->assertSame(['Brand'], $workspace->qrCodeTemplates()->pluck('name')->all());
+        $this->assertSame($templateLogo, $template->refresh()->logo_path);
+        $this->assertSame('#0f172a', $template->foreground_color);
+        Storage::assertExists($templateLogo);
+    }
+
     public function test_deleting_a_workspace_or_its_owner_removes_template_logos(): void
     {
         [$workspace] = $this->linkWithQrCode();
@@ -391,10 +446,7 @@ class QrCodeTemplateTest extends TestCase
     private function apply(User $user, QrCode $qrCode, QrCodeTemplate $template): void
     {
         $this->actingAs($user)
-            ->patch(route('qr-codes.update', $qrCode), [
-                ...$template->only(QrCodeTemplate::APPEARANCE),
-                'logo_template_id' => $template->id,
-            ])
+            ->patch(route('qr-codes.update', $qrCode), ['template_id' => $template->id])
             ->assertSessionHasNoErrors();
     }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { hasPendingLogoChange, initialEditorFields, logoLabel, showsLogo, toUpdatePayload } from './qrForm';
-import { templateFields, templateOptions } from './qrTemplates';
+import { initialEditorFields, logoLabel, showsLogo, toUpdatePayload } from './qrForm';
+import { templateFields, templateOptions, withTemplateDesign } from './qrTemplates';
 import { previewQuery, withQuery } from './qrUrls';
 import type { PayloadDescriptors, QrCodeRecord, QrCodeTemplate } from './types';
 
@@ -46,7 +46,7 @@ const brand: QrCodeTemplate = {
 };
 
 describe('templateFields', () => {
-  it('copies the design and points the logo at the template', () => {
+  it('copies the design and remembers the template', () => {
     expect(templateFields(brand)).toEqual({
       foreground_color: '#0f172a',
       background_color: '#f8fafc',
@@ -57,35 +57,8 @@ describe('templateFields', () => {
       eye_style: 'circle',
       logo: null,
       remove_logo: false,
-      logo_template_id: 3,
+      template_id: 3,
     });
-  });
-
-  it('removes the logo when the template has none', () => {
-    expect(templateFields({ ...brand, has_logo: false })).toMatchObject({
-      remove_logo: true,
-      logo_template_id: null,
-    });
-  });
-
-  it('keeps the name, target, and export size of the QR code', () => {
-    const fields = {
-      ...initialEditorFields(qr, descriptors),
-      ...templateFields(brand),
-    };
-    const payload = toUpdatePayload(fields);
-
-    expect(payload).toMatchObject({
-      name: 'Flyer',
-      short_link_id: null,
-      payload_type: 'text',
-      payload: { text: 'Hello' },
-      size: 2048,
-      style: 'dot',
-      logo_template_id: 3,
-      remove_logo: 0,
-    });
-    expect(payload).not.toHaveProperty('token');
   });
 
   it('lists templates as select options', () => {
@@ -93,22 +66,55 @@ describe('templateFields', () => {
   });
 });
 
-describe('pending template logo', () => {
-  it('counts as an unsaved logo change that shows a logo', () => {
-    const state = { logo: null, remove_logo: false, logo_template_id: 3 };
+describe('withTemplateDesign', () => {
+  const applied = () => toUpdatePayload({ ...initialEditorFields(qr, descriptors), ...templateFields(brand) });
 
-    expect(hasPendingLogoChange(state)).toBe(true);
-    expect(showsLogo(false, state)).toBe(true);
-    expect(logoLabel(false, state)).toBe('Replace logo');
+  it('lets the server take the design from the template while keeping the QR code identity', () => {
+    const payload = withTemplateDesign(applied(), brand);
+
+    expect(payload).toEqual({
+      name: 'Flyer',
+      short_link_id: null,
+      payload_type: 'text',
+      payload: { text: 'Hello' },
+      size: 2048,
+      logo: null,
+      template_id: 3,
+      _method: 'patch',
+      remove_logo: 0,
+    });
   });
 
-  it('is previewed before saving', () => {
-    const applied = withQuery('/p', previewQuery({ ...qr, ...templateFields(brand) }, 1));
-    const bare = withQuery('/p', previewQuery({ ...qr, ...templateFields({ ...brand, has_logo: false }) }, 1));
+  it('keeps fields changed after applying the template', () => {
+    const payload = withTemplateDesign({ ...applied(), foreground_color: '#ff0000', margin: 6 }, brand);
 
-    expect(applied).toContain('logo_template_id=3');
-    expect(applied).not.toContain('remove_logo');
-    expect(bare).toContain('remove_logo=1');
-    expect(bare).not.toContain('logo_template_id');
+    expect(payload).toMatchObject({ foreground_color: '#ff0000', margin: 6, template_id: 3 });
+    expect(payload).not.toHaveProperty('style');
+  });
+
+  it('sends the full design when no template is applied', () => {
+    const payload = toUpdatePayload(initialEditorFields(qr, descriptors));
+
+    expect(withTemplateDesign(payload, null)).toBe(payload);
+  });
+});
+
+describe('template preview', () => {
+  it('asks the server to render the template before saving', () => {
+    const url = withQuery('/p', previewQuery({ ...qr, ...templateFields(brand) }, 1));
+    const removed = withQuery('/p', previewQuery({ ...qr, ...templateFields(brand), remove_logo: true }, 1));
+
+    expect(url).toContain('template_id=3');
+    expect(url).not.toContain('remove_logo');
+    expect(removed).toContain('template_id=3');
+    expect(removed).toContain('remove_logo=1');
+  });
+
+  it('counts the template logo as the current logo', () => {
+    const state = { logo: null, remove_logo: false };
+
+    expect(showsLogo(brand.has_logo, state)).toBe(true);
+    expect(logoLabel(brand.has_logo, state)).toBe('Replace logo');
+    expect(showsLogo(false, state)).toBe(false);
   });
 });

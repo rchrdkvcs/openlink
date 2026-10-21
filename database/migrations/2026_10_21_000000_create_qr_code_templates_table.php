@@ -2,7 +2,9 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 return new class extends Migration
 {
@@ -28,6 +30,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::hasTable('qr_code_templates')) {
+            Storage::delete(DB::table('qr_code_templates')->whereNotNull('logo_path')->pluck('logo_path')->all());
+        }
+
         Schema::dropIfExists('qr_code_templates');
     }
 };

@@ -12,14 +12,16 @@ class PreviewQrCodeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('view', $this->qrCode()) ?? false;
+        $ability = $this->filled('template_id') ? 'update' : 'view';
+
+        return $this->user()?->can($ability, $this->qrCode()) ?? false;
     }
 
     public function rules(): array
     {
         return [
             ...QrCodeAppearance::rules(),
-            'logo_template_id' => QrCodeTemplates::logoRules($this->qrCode()),
+            'template_id' => QrCodeTemplates::applyRules($this->qrCode()),
             'remove_logo' => ['nullable', 'boolean'],
             ...($this->qrCode()->hasDirectPayload() ? QrCodeTargets::payloadRules() : []),
         ];

@@ -7,10 +7,10 @@ export type QrEditorFields = TargetState &
     size: number;
     logo: File | null;
     remove_logo: boolean;
-    logo_template_id: number | null;
+    template_id: number | null;
   };
 
-export type LogoState = Pick<QrEditorFields, 'logo' | 'remove_logo'> & { logo_template_id?: number | null };
+export type LogoState = Pick<QrEditorFields, 'logo' | 'remove_logo'>;
 
 export function asFlag(value: boolean): 0 | 1 {
   return value ? 1 : 0;
@@ -30,7 +30,7 @@ export function initialEditorFields(qr: QrCodeRecord, descriptors: PayloadDescri
     background_transparent: qr.background_transparent,
     logo: null,
     remove_logo: false,
-    logo_template_id: null,
+    template_id: null,
   };
 }
 
@@ -45,7 +45,7 @@ export function toUpdatePayload(data: QrEditorFields) {
     style: data.style,
     eye_style: data.eye_style,
     logo: data.logo,
-    logo_template_id: data.logo_template_id,
+    template_id: data.template_id,
     _method: 'patch',
     background_transparent: asFlag(data.background_transparent),
     remove_logo: asFlag(data.remove_logo),
@@ -53,11 +53,11 @@ export function toUpdatePayload(data: QrEditorFields) {
 }
 
 export function hasPendingLogoChange(data: LogoState): boolean {
-  return data.logo !== null || data.remove_logo || (data.logo_template_id ?? null) !== null;
+  return data.logo !== null || data.remove_logo;
 }
 
 export function showsLogo(hasSavedLogo: boolean, data: LogoState): boolean {
-  return (hasSavedLogo && !data.remove_logo) || data.logo !== null || (data.logo_template_id ?? null) !== null;
+  return (hasSavedLogo && !data.remove_logo) || data.logo !== null;
 }
 
 export function logoLabel(hasSavedLogo: boolean, data: LogoState): string {

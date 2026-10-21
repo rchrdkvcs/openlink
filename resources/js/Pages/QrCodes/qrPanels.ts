@@ -15,7 +15,7 @@ const PANEL_FIELDS: Record<Panel, string[]> = {
     'background_color',
     'background_transparent',
     'logo',
-    'logo_template_id',
+    'template_id',
   ],
   advanced: ['margin', 'error_correction', 'size'],
 };

@@ -12,7 +12,7 @@ class UpdateQrCodeRequest extends StoreQrCodeRequest
     {
         return [
             ...parent::rules(),
-            'logo_template_id' => QrCodeTemplates::logoRules($this->route('qrCode')),
+            'template_id' => QrCodeTemplates::applyRules($this->route('qrCode')),
         ];
     }
 }

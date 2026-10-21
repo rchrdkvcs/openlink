@@ -7,25 +7,19 @@ use App\Models\QrCodeTemplate;
 use App\Models\Workspace;
 use App\Services\QrCodes\QrCodeLogoStorage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class QrCodeTemplates
 {
     public function __construct(private readonly QrCodeLogoStorage $logos) {}
 
-    public static function logoRules(QrCode $qrCode): array
+    public static function applyRules(QrCode $qrCode): array
     {
         return [
             'nullable',
             'integer',
-            Rule::exists('qr_code_templates', 'id')
-                ->where('workspace_id', $qrCode->workspace_id)
-                ->whereNotNull('logo_path'),
+            Rule::exists('qr_code_templates', 'id')->where('workspace_id', $qrCode->workspace_id),
         ];
-    }
-
-    public static function logoOf(QrCode $qrCode, int $templateId): ?string
-    {
-        return $qrCode->workspace->qrCodeTemplates()->whereKey($templateId)->value('logo_path');
     }
 
     public static function rules(Workspace $workspace, ?QrCodeTemplate $template = null): array
@@ -65,6 +59,29 @@ class QrCodeTemplates
             ->all();
     }
 
+    public function find(QrCode $qrCode, int $templateId): QrCodeTemplate
+    {
+        return $qrCode->workspace->qrCodeTemplates()->whereKey($templateId)->firstOrFail();
+    }
+
+    public function apply(QrCode $qrCode, QrCodeTemplate $template): void
+    {
+        $qrCode->fill($template->only(QrCodeTemplate::APPEARANCE));
+    }
+
+    public function logoOf(QrCode|QrCodeTemplate $owner, string $field): ?string
+    {
+        if (! $owner->hasLogo()) {
+            return null;
+        }
+
+        if (! $this->logos->exists($owner->logo_path)) {
+            throw ValidationException::withMessages([$field => 'The logo of this design is no longer available.']);
+        }
+
+        return $owner->logo_path;
+    }
+
     public function create(Workspace $workspace, array $data): QrCodeTemplate
     {
         $template = $workspace->qrCodeTemplates()->make(['name' => $data['name']]);
@@ -89,7 +106,7 @@ class QrCodeTemplates
     {
         $template->fill($source->only(QrCodeTemplate::APPEARANCE));
 
-        return $this->logos->saveCopy($template, $source->logo_path);
+        return $this->logos->saveCopy($template, $this->logoOf($source, 'qr_code'));
     }
 
     private function source(Workspace $workspace, string $token): QrCode

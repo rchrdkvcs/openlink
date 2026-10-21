@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
@@ -10,7 +12,7 @@ import LogoField from './LogoField.vue';
 import TemplateField from './TemplateField.vue';
 import type { QrEditorForm } from './useQrCodeEditor';
 
-defineProps<{
+const props = defineProps<{
   form: QrEditorForm;
   hasSavedLogo: boolean;
   templates: QrCodeTemplate[];
@@ -25,6 +27,8 @@ const emit = defineEmits<{
   removeLogo: [];
   applyTemplate: [template: QrCodeTemplate];
 }>();
+
+const currentLogo = computed(() => (props.appliedTemplate ? props.appliedTemplate.has_logo : props.hasSavedLogo));
 </script>
 
 <template>
@@ -70,9 +74,9 @@ const emit = defineEmits<{
     </label>
 
     <LogoField
-      :label="logoLabel(hasSavedLogo, form)"
+      :label="logoLabel(currentLogo, form)"
       :file="form.logo"
-      :removable="showsLogo(hasSavedLogo, form)"
+      :removable="showsLogo(currentLogo, form)"
       :error="form.errors.logo"
       @pick="emit('pickLogo', $event)"
       @remove="emit('removeLogo')"

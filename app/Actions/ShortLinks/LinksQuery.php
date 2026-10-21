@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use App\Services\ShortLinks\ShortLinkLifecycle;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,14 @@ class LinksQuery
             'tag' => ['nullable', 'string', 'max:255'],
             'folder' => ['nullable', 'regex:/^(unfiled|\d+)$/'],
             'page' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+
+    public static function exportRules(): array
+    {
+        return [
+            ...Arr::except(self::rules(), 'page'),
+            'status' => ['nullable', Rule::in([...array_column(LinkStatus::cases(), 'value'), self::ALL_STATUSES])],
         ];
     }
 
@@ -77,12 +86,9 @@ class LinksQuery
         return ['total' => $workspace->shortLinks()->count(), 'active' => $active->count()];
     }
 
-    private function filtered(Workspace $workspace, array $filters = []): HasMany
+    public function matching(Workspace $workspace, array $filters = []): HasMany
     {
-        $query = $workspace->shortLinks()
-            ->with(ShortLinkPayload::RELATIONS)
-            ->withCount('qrCodes')
-            ->withCount(ShortLinkPayload::analyticsCounts());
+        $query = $workspace->shortLinks();
 
         ShortLinkSearch::apply($query, (string) ($filters['search'] ?? ''));
         $this->filterFolder($query, (string) ($filters['folder'] ?? ''));
@@ -94,6 +100,14 @@ class LinksQuery
         }
 
         return $query->orderByDesc('created_at')->orderByDesc('id');
+    }
+
+    private function filtered(Workspace $workspace, array $filters = []): HasMany
+    {
+        return $this->matching($workspace, $filters)
+            ->with(ShortLinkPayload::RELATIONS)
+            ->withCount('qrCodes')
+            ->withCount(ShortLinkPayload::analyticsCounts());
     }
 
     private function filterFolder(HasMany $query, string $folder): void

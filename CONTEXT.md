@@ -20,6 +20,14 @@ _Avoid_: Category, label
 The managed object that connects a domain and slug to a destination URL, along with its access rules, lifecycle rules, and tracking.
 _Avoid_: TinyURL, shortened URL, link object
 
+**Link CSV**:
+A versioned, portable file of Short Link configuration used to export links from a workspace and import them into one. It carries no visitor passwords, Smart Routing, QR Codes, or analytics.
+_Avoid_: Backup, dump, link archive
+
+**Link Import**:
+A create-only operation that adds Short Links to a workspace from a Link CSV after a preview and an explicit confirmation. It never changes existing short links.
+_Avoid_: Migration, sync, upload
+
 **Destination URL**:
 The final target URL a visitor should reach when a short link resolves successfully.
 _Avoid_: Target URL, original URL, redirect URL

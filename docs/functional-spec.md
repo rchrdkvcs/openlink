@@ -99,6 +99,10 @@ Owners, Admins, and Editors can select short links on the current page of the Li
 - Each link is changed through the same mutation path as single-link edits, so folder and tag membership and cached resolutions behave identically. Archived links keep their slugs, analytics, and visit counts; archiving an already archived link keeps its original archive date.
 - Permanent deletion and destination replacement are not available as bulk actions.
 
+### Link CSV import and export
+
+The Links page exports the links in the current view as a versioned Link CSV, and imports a Link CSV after a preview and an explicit confirmation. Imports are create-only: they never change or overwrite existing links, keep short URLs only on domains the workspace controls, and never reset visit counts or analytics. Visitor passwords, Smart Routing rules, QR Codes, and analytics are not exported or imported. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
+
 ## Public Resolution
 
 When a visitor opens a short URL, Openlink resolves it in this order:

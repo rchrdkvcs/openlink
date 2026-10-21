@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { Download, TrendingUp } from '@lucide/vue';
+import { CircleAlert, Download, TrendingUp } from '@lucide/vue';
 import { computed } from 'vue';
 
 import AnalyticsFilterBar from '@/Components/analytics/AnalyticsFilterBar.vue';
+import AnalyticsViewsMenu from '@/Components/analytics/AnalyticsViewsMenu.vue';
 import BarList from '@/Components/analytics/BarList.vue';
 import BreakdownCard from '@/Components/analytics/BreakdownCard.vue';
 import KpiCard from '@/Components/analytics/KpiCard.vue';
@@ -16,7 +17,8 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import SectionCard from '@/Components/ui/SectionCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { formatNumber, type Report } from '@/lib/analytics';
-import type { AnalyticsFilterOptions, AppliedFilters } from '@/lib/analyticsFilters';
+import { filterQuery, type AnalyticsFilterOptions, type AppliedFilters } from '@/lib/analyticsFilters';
+import { unavailableMessage, type ActiveView, type SavedView } from '@/lib/analyticsViews';
 import {
   breakdownSections,
   bucketDescription,
@@ -32,6 +34,9 @@ const props = defineProps<{
   report: Report;
   filters: AppliedFilters;
   filterOptions: AnalyticsFilterOptions;
+  unavailableFilters: string[];
+  activeView: ActiveView | null;
+  views: SavedView[];
 }>();
 
 const { state, loading, hasActiveFilters, applyCustomRange, clearFilters, exportCsv } = useAnalyticsFilters(
@@ -44,6 +49,8 @@ const topLinkIds = computed(() => props.report.top_links.map((link) => link.id))
 const sections = computed(() => breakdownSections(props.report));
 const outcomeRows = computed(() => outcomeBarRows(props.report));
 const totalAttempts = computed(() => outcomeTotal(props.report));
+const currentQuery = computed(() => filterQuery(state.value));
+const unavailable = computed(() => unavailableMessage(props.unavailableFilters));
 </script>
 
 <template>
@@ -53,6 +60,7 @@ const totalAttempts = computed(() => outcomeTotal(props.report));
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <PageHeader title="Analytics" description="Visits, scans and audience across this workspace. Bots are excluded.">
         <template #actions>
+          <AnalyticsViewsMenu :views="views" :active-view="activeView" :query="currentQuery" />
           <Button variant="secondary" size="sm" type="button" @click="exportCsv"> <Download /> Export CSV </Button>
         </template>
       </PageHeader>
@@ -71,6 +79,16 @@ const totalAttempts = computed(() => outcomeTotal(props.report));
         :class="loading ? 'pointer-events-none opacity-50' : ''"
         :aria-busy="loading"
       >
+        <div
+          v-if="unavailable"
+          class="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-foreground"
+          role="status"
+        >
+          <CircleAlert class="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+          <p class="min-w-0 flex-1">{{ unavailable }}</p>
+          <Button variant="secondary" size="sm" type="button" @click="clearFilters">Clear filters</Button>
+        </div>
+
         <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             label="Visits"
@@ -102,9 +120,11 @@ const totalAttempts = computed(() => outcomeTotal(props.report));
           <EmptyState
             title="No traffic in this period"
             :description="
-              hasActiveFilters
-                ? 'Nothing matches these filters. Widen the range or clear filters.'
-                : 'Share a short link or QR code. Visits and scans show up here within seconds.'
+              unavailable
+                ? 'This view filters on something that no longer exists in this workspace.'
+                : hasActiveFilters
+                  ? 'Nothing matches these filters. Widen the range or clear filters.'
+                  : 'Share a short link or QR code. Visits and scans show up here within seconds.'
             "
           >
             <template #icon><TrendingUp class="h-4 w-4" /></template>

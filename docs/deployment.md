@@ -85,6 +85,21 @@ sent to the administrator's own address with a ten-second transport timeout; a s
 accepted it, not that it reached the inbox. Failure details are written to the
 application log and are never shown on the screen.
 
+## Weekly Workspace Summaries
+
+Workspace Summaries depend on three pieces of infrastructure. The Laravel
+scheduler (`php artisan schedule:run` every minute, or `schedule:work`) runs
+`openlink:send-workspace-summaries` every fifteen minutes. A queue worker
+(`php artisan queue:work`) sends each queued summary and retries failures up to
+three times. Mail credentials (`MAIL_MAILER` and the matching settings) must be
+able to deliver to members' email addresses.
+
+When a piece is missing, summaries never fail silently: without a worker,
+deliveries stay pending; queue or mail errors are recorded with a sanitized
+message on Settings → Weekly summary, and the full exception goes to the
+application log. A summary that was missed for more than 24 hours after its
+Monday 08:00 send time is skipped rather than sent late.
+
 ## Release deployment
 
 This repository currently uses Coolify for its hosted instance. Publishing the

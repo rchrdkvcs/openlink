@@ -29,6 +29,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\UtmTemplateController;
 use App\Http\Controllers\WebhookEndpointController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceSummaryController;
 use App\Http\Middleware\EnsureHasWorkspace;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
 use App\Models\User;
@@ -62,6 +63,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/settings/members', [DashboardController::class, 'members'])->name('members.index');
         Route::get('/settings/workspace', [WorkspaceController::class, 'settings'])->name('settings.workspace');
         Route::get('/settings/webhooks', [WebhookEndpointController::class, 'index'])->name('settings.webhooks');
+        Route::get('/settings/summaries', [WorkspaceSummaryController::class, 'show'])->name('settings.summaries');
         Route::redirect('/settings', '/settings/workspace')->name('settings');
         Route::get('/domains', fn () => redirect()->route('domains.index'));
         Route::get('/members', fn () => redirect()->route('members.index'));
@@ -112,6 +114,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/utm-templates', [UtmTemplateController::class, 'store'])->name('utm-templates.store');
         Route::patch('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'update'])->name('utm-templates.update');
         Route::delete('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'destroy'])->name('utm-templates.destroy');
+
+        Route::put('/workspace-summary', [WorkspaceSummaryController::class, 'update'])->name('workspace-summary.update');
 
         Route::post('/analytics/views', [AnalyticsViewController::class, 'store'])->name('analytics-views.store');
         Route::patch('/analytics/views/{analyticsView}', [AnalyticsViewController::class, 'update'])->name('analytics-views.update');

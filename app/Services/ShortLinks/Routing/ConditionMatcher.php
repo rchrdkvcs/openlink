@@ -65,6 +65,7 @@ class ConditionMatcher
 
         $actual = mb_strtolower((string) $actual);
         $expectedValues = collect(is_array($expected) ? $expected : [$expected])
+            ->filter(fn ($value) => $value === null || is_scalar($value))
             ->map(fn ($value) => mb_strtolower(trim((string) $value)))
             ->filter(fn (string $value) => $value !== '')
             ->values();

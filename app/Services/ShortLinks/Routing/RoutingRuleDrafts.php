@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Collection;
 
 class RoutingRuleDrafts
 {
+    public static function enabled(array $data): bool
+    {
+        return filter_var($data['is_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+    }
+
     public function ruleAttributes(array $data, int $index): array
     {
         $type = $data['type'] ?? RoutingRule::TYPE_CONDITIONAL;
@@ -16,7 +21,7 @@ class RoutingRuleDrafts
             'name' => filled($data['name'] ?? null) ? $data['name'] : 'Routing rule '.($index + 1),
             'type' => $type,
             'position' => $index + 1,
-            'is_enabled' => $data['is_enabled'] ?? true,
+            'is_enabled' => self::enabled($data),
             'match_mode' => $data['match_mode'] ?? RoutingRule::MATCH_ALL,
             'conditions_version' => 1,
             'conditions' => array_values($data['conditions'] ?? []),
@@ -29,7 +34,7 @@ class RoutingRuleDrafts
         return [
             'name' => filled($data['name'] ?? null) ? $data['name'] : 'Variant '.($position + 1),
             'position' => $position + 1,
-            'is_enabled' => $data['is_enabled'] ?? true,
+            'is_enabled' => self::enabled($data),
             'destination_url' => $data['destination_url'],
             'weight' => $data['weight'] ?? 50,
         ];

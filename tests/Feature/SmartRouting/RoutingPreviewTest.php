@@ -348,10 +348,6 @@ class RoutingPreviewTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('routing_rules.0.destination_url');
 
-        $this->preview($owner, $workspace, $link, [], $draft(['destination_url' => 'https://localhost/invalid', 'conditions' => []]))
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('routing_rules.0.destination_url');
-
         $this->preview($owner, $workspace, $link, [], $draft(['type' => RoutingRule::TYPE_SPLIT_TEST, 'variants' => [
             ['destination_url' => 'https://example.com/a', 'weight' => 0],
             ['destination_url' => 'https://example.com/b', 'weight' => 50],
@@ -359,15 +355,57 @@ class RoutingPreviewTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('routing_rules.0.variants.0.weight');
 
-        $this->preview($owner, $workspace, $link, [], ['destination_url' => 'https://localhost/invalid', 'routing_rules' => []])
+        $this->preview($owner, $workspace, $link, [], $draft(['destination_url' => 'https://example.com/x', 'conditions' => [
+            ['type' => 'country', 'operator' => 'is', 'value' => [['FR']]],
+        ]]))
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('destination_url');
+            ->assertJsonValidationErrors('routing_rules.0.conditions.0.value');
 
         $this->preview($owner, $workspace, $link, ['timezone' => 'Mars/Olympus', 'occurred_at' => 'tomorrow', 'country' => 'France'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['context.timezone', 'context.occurred_at', 'context.country']);
 
         $this->assertSame(0, $link->routingRules()->count());
+    }
+
+    public function test_drafts_pointing_back_at_their_own_short_url_are_rejected(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'loop');
+        $own = 'https://localhost/loop';
+
+        $this->preview($owner, $workspace, $link, [], ['destination_url' => $own, 'routing_rules' => []])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('destination_url');
+
+        $this->preview($owner, $workspace, $link, [], ['destination_url' => 'https://example.com/default', 'routing_rules' => [
+            ['destination_url' => $own, 'conditions' => []],
+        ]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('routing_rules.0.destination_url');
+
+        $this->preview($owner, $workspace, $link, [], ['destination_url' => 'https://example.com/default', 'routing_rules' => [
+            ['type' => RoutingRule::TYPE_SPLIT_TEST, 'conditions' => [], 'variants' => [
+                ['destination_url' => 'https://example.com/a', 'weight' => 50],
+                ['destination_url' => $own, 'weight' => 50],
+            ]],
+        ]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('routing_rules.0.variants.1.destination_url');
+    }
+
+    public function test_draft_switches_given_as_text_are_read_like_saved_booleans(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'switches');
+
+        $this->preview($owner, $workspace, $link, [], ['destination_url' => 'https://example.com/default', 'routing_rules' => [
+            ['name' => 'Paused', 'is_enabled' => '0', 'destination_url' => 'https://example.com/paused', 'conditions' => []],
+            ['name' => 'Live', 'is_enabled' => '1', 'destination_url' => 'https://example.com/live', 'conditions' => []],
+        ]])
+            ->assertOk()
+            ->assertJsonPath('rules.0.status', 'disabled')
+            ->assertJsonPath('decision.destination_url', 'https://example.com/live');
     }
 
     private function preview($user, $workspace, ShortLink $link, array $context = [], ?array $draft = null): TestResponse

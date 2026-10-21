@@ -16,11 +16,22 @@ export type ShortLinkForm = {
   visit_limit: string;
   password: string;
   tags: string;
+  preview_title: string;
+  preview_description: string;
+  preview_image: File | null;
+  remove_preview_image: boolean;
+};
+
+export type LinkPreviewCard = {
+  title: string;
+  description: string;
+  host: string;
+  imageUrl: string | null;
 };
 
 export type QuickLinkForm = Pick<ShortLinkForm, 'destination_url' | 'domain_id' | 'folder_id' | 'slug' | 'is_enabled'>;
 
-export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback';
+export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback' | 'preview';
 
 export type PayloadOptions = { hasPassword?: boolean };
 
@@ -30,6 +41,10 @@ const SECTION_BY_FIELD: Record<string, InspectorSection> = {
   visit_limit: 'limit',
   password: 'password',
   fallback_url: 'fallback',
+  preview_title: 'preview',
+  preview_description: 'preview',
+  preview_image: 'preview',
+  remove_preview_image: 'preview',
 };
 
 export function folderField(folderId: number | null | undefined): string {
@@ -65,16 +80,52 @@ export function toForm(link: ShortLink): ShortLinkForm {
     visit_limit: link.visit_limit ? String(link.visit_limit) : '',
     password: link.has_password ? PASSWORD_MASK : '',
     tags: link.tags.map((tag) => tag.name).join(', '),
+    preview_title: link.preview?.title ?? '',
+    preview_description: link.preview?.description ?? '',
+    preview_image: null,
+    remove_preview_image: false,
   };
 }
 
-export function toPayload<T extends { destination_url: string; password?: string }>(
-  form: T,
-  options: PayloadOptions = {},
-): T | Omit<T, 'password'> {
-  const payload = { ...form, destination_url: normalizeUrl(form.destination_url) };
+export function needsMultipart(form: { preview_image?: File | null }): boolean {
+  return form.preview_image instanceof File;
+}
+
+function withPreviewImage<T extends { preview_image?: File | null }>(payload: T) {
+  if (!('preview_image' in payload)) return payload;
+  if (!needsMultipart(payload)) {
+    const { preview_image: _image, ...rest } = payload;
+    return rest;
+  }
+
+  return { ...payload, _method: 'patch' };
+}
+
+export function linkPreviewCard(
+  link: Pick<ShortLink, 'slug' | 'domain' | 'preview'>,
+  form: Pick<ShortLinkForm, 'preview_title' | 'preview_description' | 'remove_preview_image'>,
+  stagedImageUrl: string | null,
+): LinkPreviewCard {
+  const savedImage = form.remove_preview_image ? null : (link.preview?.image_url ?? null);
+
+  return {
+    title: form.preview_title.trim() || `${link.domain.hostname}/${link.slug}`,
+    description: form.preview_description.trim(),
+    host: link.domain.hostname,
+    imageUrl: stagedImageUrl ?? savedImage,
+  };
+}
+
+export function toPayload<
+  T extends {
+    destination_url: string;
+    password?: string;
+    preview_image?: File | null;
+  },
+>(form: T, options: PayloadOptions = {}): Record<string, unknown> {
+  const payload = withPreviewImage({ ...form, destination_url: normalizeUrl(form.destination_url) });
   if (options.hasPassword && form.password === PASSWORD_MASK) {
-    const { password: _password, ...rest } = payload;
+    const { password: _password, ...rest } = payload as T;
     return rest;
   }
 
@@ -82,7 +133,7 @@ export function toPayload<T extends { destination_url: string; password?: string
 }
 
 export function closedSections(): Record<InspectorSection, boolean> {
-  return { utm: false, schedule: false, limit: false, password: false, fallback: false };
+  return { utm: false, schedule: false, limit: false, password: false, fallback: false, preview: false };
 }
 
 export function sectionFor(errorKey: string): InspectorSection | null {

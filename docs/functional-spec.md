@@ -86,6 +86,7 @@ Short links support:
 - Optional visitor password
 - Folder assignment
 - Tags
+- Optional link preview (title, description, and uploaded image)
 
 ### UTM builder and UTM Templates
 
@@ -154,6 +155,20 @@ Editors and above can check every destination of a short link from the link insp
 Two consecutive failures open a Destination Incident. Incidents appear on the workspace Issues page with the affected short links and their QR codes, ordered by visits and scans in the last 7 days, and Editors can retry them. The next reachable result recovers the incident, which stays listed as recently recovered for 7 days. Results never change how a short link resolves, and Openlink never replaces a destination or switches to the fallback URL automatically.
 
 The Instance Admin can enable Destination Monitoring to run these checks in the background.
+
+## Link Previews
+
+A short link can carry a link preview: an optional title (up to 120 characters), description (up to 300 characters), and uploaded PNG, JPG, or WebP image (up to 5 MB, at least 200 × 200 pixels). Text is plain: HTML tags and control characters are rejected, and runs of whitespace collapse to single spaces. Uploaded images are decoded and re-encoded as JPEG, at most 1200 pixels wide, so embedded scripts and metadata are discarded. Editing a link preview uses the same permissions as editing the short link.
+
+When a supported preview crawler requests a short URL, Openlink answers instead of redirecting:
+
+- Active, unprotected links with a link preview receive an HTML page carrying Open Graph and Twitter card metadata. The page never contains the destination URL.
+- Protected, disabled, archived, scheduled, expired, and missing links, and links on unusable domains, all receive the same neutral metadata page. It never contains the destination URL, the fallback URL, or the configured link preview.
+- Active, unprotected links without a link preview resolve as usual, so platforms read the destination's own metadata.
+
+Metadata responses do not reserve a visit, record analytics, or unlock a protected link. QR code entries and password submissions are never answered with metadata. Supported preview crawlers are Facebook, Messenger and Instagram, X, LinkedIn, Slack, Discord, Telegram, WhatsApp and Signal, iMessage, Pinterest, Reddit, Skype and Teams, Mastodon, Bluesky, Iframely, and Embedly.
+
+Openlink does not cache rendered metadata: every crawler request reads the current link, so edits apply to the next fetch. Each uploaded image gets a new URL. Sharing platforms cache cards on their own schedule, so a link already shared may keep showing an older card until the platform refreshes it. The preview card in the link editor is illustrative; each platform renders cards differently.
 
 ## Protected Links
 

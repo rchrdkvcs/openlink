@@ -18,6 +18,7 @@ import InspectorHeader from './inspector/InspectorHeader.vue';
 import InspectorHealth from './inspector/InspectorHealth.vue';
 import InspectorHistory from './inspector/InspectorHistory.vue';
 import InspectorOptions from './inspector/InspectorOptions.vue';
+import InspectorPreview from './inspector/InspectorPreview.vue';
 import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
 import InspectorUtm from './inspector/InspectorUtm.vue';
@@ -143,6 +144,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :disabled="!canEdit"
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
+          <InspectorPreview v-model:open="sections.preview" :form="form" :link="link" />
           <InspectorRouting
             :rules="link.routing_rules ?? []"
             :schema="routingSchema"

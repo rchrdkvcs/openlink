@@ -1,0 +1,13 @@
+# Serve link previews to preview crawlers
+
+Short links can carry a manually entered link preview: title, description, and an uploaded image. Sharing platforms build cards by fetching the short URL, so Openlink must answer those fetches with metadata while ordinary visitors keep the existing redirect flow.
+
+We classify a short URL `GET` or `HEAD` request as a preview crawler request with a curated list of User-Agent markers for known sharing platforms. Only that classification bypasses `PublicResolution`, and the bypass is narrow. `LinkPreviewResolution` finds the domain and slug and returns one of two results. An active, unprotected link with a link preview gets its metadata page. Every other state (protected, disabled, archived, scheduled, expired, missing, or on an unusable domain) gets one shared neutral page. An active, unprotected link without a link preview falls through to ordinary resolution, so platforms keep reading the destination's metadata.
+
+User-Agents are trivially spoofed, so classification may only change the response format, never access. A metadata response never contains the destination or fallback URL, never reserves a visit, records no analytics, and never touches the password session. QR code entries and password submissions never use classification. The neutral page is identical across private states and returns 200 for all of them, so the crawler path cannot be used to probe which state a link is in.
+
+Openlink does not cache rendered metadata. Responses are built from the current short link and sent with `Cache-Control: no-cache, private`. Each uploaded image gets a new random file name, so a replaced image also changes its URL. External platforms cache cards independently. The editor says so, and its card mock is labelled illustrative.
+
+Images are re-encoded as JPEG through GD and stored on the private disk. They are served through Openlink routes rather than storage URLs: on the link's own domain at `/_preview/{file}` only while the link is publicly previewable, and in the dashboard to workspace members. Slugs must start with a letter or digit, so the `/_preview/` prefix cannot collide with a slug. A file is deleted only when no short link references it, and the column is unique, so cleanup cannot reach another workspace's asset.
+
+Remote metadata or image fetching is deferred. It needs its own SSRF-safe outbound boundary (#74). Unsplash and AI generation are also deferred. Openlink never fetches a protected destination to build a preview.

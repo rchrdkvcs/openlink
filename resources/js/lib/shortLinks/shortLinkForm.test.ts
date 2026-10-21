@@ -7,6 +7,8 @@ import {
   newQuickLinkForm,
   PASSWORD_MASK,
   initialDomainId,
+  linkPreviewCard,
+  needsMultipart,
   sectionFor,
   sectionsWithErrors,
   selectableDomains,
@@ -51,7 +53,19 @@ describe('toForm', () => {
       visit_limit: '',
       password: '',
       tags: '',
+      preview_title: '',
+      preview_description: '',
+      preview_image: null,
+      remove_preview_image: false,
     });
+  });
+
+  it('maps the saved Link Preview text', () => {
+    const form = toForm(link({ preview: { title: 'Spring launch', description: 'New season', image_url: '/img' } }));
+
+    expect(form.preview_title).toBe('Spring launch');
+    expect(form.preview_description).toBe('New season');
+    expect(form.preview_image).toBeNull();
   });
 
   it('slices schedule dates to the datetime-local wire format', () => {
@@ -121,6 +135,47 @@ describe('toPayload', () => {
   });
 });
 
+describe('Link Preview image payloads', () => {
+  const file = new File(['image'], 'cover.png', { type: 'image/png' });
+
+  it('stays JSON without a staged image and omits the empty file field', () => {
+    const form = toForm(link());
+
+    expect(needsMultipart(form)).toBe(false);
+    expect(toPayload(form)).not.toHaveProperty('preview_image');
+    expect(toPayload({ ...form, remove_preview_image: true })).toHaveProperty('remove_preview_image', true);
+  });
+
+  it('spoofs PATCH and keeps cleared Routing Rules when an image is staged', () => {
+    const form = { ...toForm(link()), preview_image: file };
+
+    expect(needsMultipart(form)).toBe(true);
+    expect(toPayload(form)).toMatchObject({ _method: 'patch', preview_image: file, routing_rules: '' });
+  });
+});
+
+describe('linkPreviewCard', () => {
+  const saved = link({ preview: { title: 'Saved', description: null, image_url: '/saved.jpg' } });
+
+  it('falls back to the Short URL when no title is set', () => {
+    expect(linkPreviewCard(link(), toForm(link()), null)).toEqual({
+      title: 'go.example.com/launch',
+      description: '',
+      host: 'go.example.com',
+      imageUrl: null,
+    });
+  });
+
+  it('shows the staged image, the saved image, or none when removed', () => {
+    const form = toForm(saved);
+
+    expect(linkPreviewCard(saved, form, 'blob:staged').imageUrl).toBe('blob:staged');
+    expect(linkPreviewCard(saved, form, null).imageUrl).toBe('/saved.jpg');
+    expect(linkPreviewCard(saved, { ...form, remove_preview_image: true }, null).imageUrl).toBeNull();
+    expect(linkPreviewCard(saved, form, null).title).toBe('Saved');
+  });
+});
+
 describe('sectionFor', () => {
   it.each([
     ['activates_at', 'schedule'],
@@ -130,6 +185,8 @@ describe('sectionFor', () => {
     ['fallback_url', 'fallback'],
     ['routing_rules', null],
     ['routing_rules.0.destination_url', null],
+    ['preview_title', 'preview'],
+    ['preview_image', 'preview'],
     ['destination_url', null],
     ['slug', null],
   ])('maps %s to %s', (key, section) => {

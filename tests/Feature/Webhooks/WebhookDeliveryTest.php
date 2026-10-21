@@ -13,6 +13,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 use Tests\Support\CreatesWebhookEndpoints;
 use Tests\Support\CreatesWorkspaces;
 use Tests\Support\InMemoryDnsLookup;
@@ -114,6 +115,90 @@ class WebhookDeliveryTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_responses_larger_than_the_cap_abort_the_transfer_and_fail_the_attempt(): void
+    {
+        $delivery = $this->pendingDelivery();
+        $checks = [];
+        Http::fake(function (Request $request, array $options) use (&$checks) {
+            $checks[] = $options['progress'](0, 1024, 0, 0);
+            $checks[] = $options['progress'](0, 64 * 1024 + 1, 0, 0);
+
+            throw new RuntimeException('The transfer was aborted by the progress callback');
+        });
+
+        $this->deliver($delivery)->assertNotReleased();
+
+        $this->assertSame([false, true], $checks);
+        $delivery->refresh();
+        $this->assertSame(WebhookDeliveryStatus::Failed, $delivery->status);
+        $this->assertSame('The endpoint response exceeded 64 KB.', $delivery->error);
+    }
+
+    public function test_only_timeouts_rate_limits_and_server_errors_are_retried(): void
+    {
+        $retried = [408 => true, 425 => true, 429 => true, 500 => true, 503 => true, 400 => false, 401 => false, 404 => false, 410 => false, 422 => false];
+
+        $current = 0;
+        Http::fake(function () use (&$current) {
+            return Http::response('', $current);
+        });
+
+        foreach ($retried as $status => $shouldRetry) {
+            $current = $status;
+            $delivery = $this->pendingDelivery();
+
+            $job = $this->deliver($delivery);
+            $shouldRetry ? $job->assertReleased(60) : $job->assertNotReleased();
+
+            $this->assertSame(
+                $shouldRetry ? WebhookDeliveryStatus::Retrying : WebhookDeliveryStatus::Failed,
+                $delivery->refresh()->status,
+                "HTTP {$status}",
+            );
+        }
+    }
+
+    public function test_rotated_secrets_keep_signing_with_the_previous_secret_during_the_overlap_window(): void
+    {
+        $this->travelTo(now()->setTimestamp(1_800_000_000));
+        $delivery = $this->pendingDelivery();
+        $delivery->endpoint->update([
+            'secret' => 'whsec_new',
+            'previous_secret' => 'whsec_test_secret',
+            'previous_secret_expires_at' => now()->addHours(24),
+        ]);
+        $signatures = [];
+        Http::fake(function (Request $request) use (&$signatures) {
+            $signatures[] = $request->header('Openlink-Signature')[0];
+
+            return Http::response('', 500);
+        });
+
+        $this->deliver($delivery);
+        $this->travel(25)->hours();
+        $this->deliver($delivery);
+
+        $sign = fn (string $secret, int $timestamp) => 'v1='.hash_hmac('sha256', $timestamp.'.'.$delivery->payload, $secret);
+        $this->assertSame($sign('whsec_new', 1_800_000_000).','.$sign('whsec_test_secret', 1_800_000_000), $signatures[0]);
+        $this->assertSame($sign('whsec_new', 1_800_090_000), $signatures[1]);
+    }
+
+    public function test_trailing_dot_hostnames_are_resolved_without_the_dot_and_pinned_as_written(): void
+    {
+        $delivery = $this->pendingDelivery(['url' => 'https://hooks.example.com./openlink']);
+        $resolve = null;
+        Http::fake(function (Request $request, array $options) use (&$resolve) {
+            $resolve = $options['curl'][CURLOPT_RESOLVE];
+
+            return Http::response('', 204);
+        });
+
+        $this->deliver($delivery);
+
+        $this->assertSame(['hooks.example.com.:443:93.184.215.14'], $resolve);
+        $this->assertSame(WebhookDeliveryStatus::Succeeded, $delivery->refresh()->status);
+    }
+
     public function test_connection_failures_are_recorded_without_raw_exception_details(): void
     {
         $delivery = $this->pendingDelivery();
@@ -156,6 +241,9 @@ class WebhookDeliveryTest extends TestCase
             'https://2130706433/hook' => [],
             'https://0x7f.1/hook' => [],
             'https://１２７-0-0-1.example.com/hook' => [],
+            'https://localhost./hook' => [],
+            'https://metadata.google.internal./computeMetadata' => [],
+            'https://127.0.0.1./hook' => [],
         ];
 
         foreach ($cases as $url => $records) {

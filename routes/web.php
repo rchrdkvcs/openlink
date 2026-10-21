@@ -159,9 +159,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/webhook-endpoints', [WebhookEndpointController::class, 'store'])->name('webhook-endpoints.store');
         Route::patch('/webhook-endpoints/{webhookEndpoint}', [WebhookEndpointController::class, 'update'])->name('webhook-endpoints.update');
         Route::post('/webhook-endpoints/{webhookEndpoint}/rotate-secret', [WebhookEndpointController::class, 'rotateSecret'])->name('webhook-endpoints.rotate-secret');
-        Route::post('/webhook-endpoints/{webhookEndpoint}/test', [WebhookEndpointController::class, 'test'])->name('webhook-endpoints.test');
+        Route::post('/webhook-endpoints/{webhookEndpoint}/test', [WebhookEndpointController::class, 'test'])->middleware('throttle:10,1')->name('webhook-endpoints.test');
         Route::delete('/webhook-endpoints/{webhookEndpoint}', [WebhookEndpointController::class, 'destroy'])->name('webhook-endpoints.destroy');
-        Route::post('/webhook-deliveries/{webhookDelivery}/retry', [WebhookEndpointController::class, 'retry'])->name('webhook-deliveries.retry');
+        Route::post('/webhook-deliveries/{webhookDelivery}/retry', [WebhookEndpointController::class, 'retry'])->middleware('throttle:30,1')->name('webhook-deliveries.retry');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');

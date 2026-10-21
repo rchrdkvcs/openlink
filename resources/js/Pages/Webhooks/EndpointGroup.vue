@@ -51,9 +51,9 @@ function sendTest() {
 async function rotateSecret() {
   const confirmed = await confirmAction({
     title: 'Rotate signing secret?',
-    message: 'The current secret stops working immediately. Update your receiver with the new secret.',
+    message:
+      'Deliveries are signed with both the new and the current secret for 24 hours. Update your receiver with the new secret within that time.',
     confirmLabel: 'Rotate secret',
-    destructive: true,
   });
 
   if (!confirmed) return;

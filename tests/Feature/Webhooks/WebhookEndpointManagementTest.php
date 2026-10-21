@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Webhooks;
 
+use App\Actions\Webhooks\WebhookEndpointMutation;
 use App\Enums\WebhookDeliveryStatus;
 use App\Jobs\DeliverWebhook;
 use App\Models\WebhookDelivery;
@@ -9,13 +10,15 @@ use App\Models\WebhookEndpoint;
 use App\Models\WorkspaceMember;
 use App\Services\Dns\DnsLookup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
+use RuntimeException;
 use Tests\Support\CreatesWebhookEndpoints;
 use Tests\Support\CreatesWorkspaces;
-use Tests\Support\InMemoryDnsLookup;
 use Tests\TestCase;
 
 class WebhookEndpointManagementTest extends TestCase
@@ -28,9 +31,18 @@ class WebhookEndpointManagementTest extends TestCase
     {
         parent::setUp();
 
-        $this->app->instance(DnsLookup::class, (new InMemoryDnsLookup)
-            ->pointTo('hooks.example.com', '93.184.215.14')
-            ->pointTo('intranet.example.com', '10.0.0.5'));
+        $this->app->instance(DnsLookup::class, new class implements DnsLookup
+        {
+            public function txtValues(string $hostname): array
+            {
+                throw new RuntimeException('Saving an endpoint must not perform DNS lookups.');
+            }
+
+            public function ipAddresses(string $hostname): array
+            {
+                throw new RuntimeException('Saving an endpoint must not perform DNS lookups.');
+            }
+        });
     }
 
     public function test_owner_creates_an_endpoint_and_sees_the_signing_secret_once(): void
@@ -80,7 +92,10 @@ class WebhookEndpointManagementTest extends TestCase
         [$workspace, $owner] = $this->workspaceWithOwner();
         $cases = [
             ['url' => 'http://hooks.example.com/openlink', 'events' => ['short_link.created']],
-            ['url' => 'https://intranet.example.com/hook', 'events' => ['short_link.created']],
+            ['url' => 'https://10.0.0.5/hook', 'events' => ['short_link.created']],
+            ['url' => 'https://[fd00::1]/hook', 'events' => ['short_link.created']],
+            ['url' => 'https://localhost./hook', 'events' => ['short_link.created']],
+            ['url' => 'https://metadata.google.internal/computeMetadata', 'events' => ['short_link.created']],
             ['url' => 'https://169.254.169.254/latest', 'events' => ['short_link.created']],
             ['url' => 'https://user:pass@hooks.example.com/hook', 'events' => ['short_link.created']],
             ['url' => 'not a url', 'events' => ['short_link.created']],
@@ -130,7 +145,72 @@ class WebhookEndpointManagementTest extends TestCase
 
         $rotated = session('inertia.flash_data.webhookSecret.secret');
         $this->assertNotSame('whsec_test_secret', $rotated);
-        $this->assertSame($rotated, $endpoint->refresh()->secret);
+        $endpoint->refresh();
+        $this->assertSame($rotated, $endpoint->secret);
+        $this->assertSame('whsec_test_secret', $endpoint->previous_secret);
+        $this->assertTrue($endpoint->previous_secret_expires_at->between(now()->addHours(23), now()->addHours(25)));
+        $this->assertSame([$rotated, 'whsec_test_secret'], $endpoint->signingSecrets());
+        $this->assertArrayNotHasKey('previous_secret', $endpoint->toArray());
+    }
+
+    public function test_signing_secrets_are_encrypted_at_rest(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('webhook-endpoints.store'), ['url' => 'https://hooks.example.com/openlink', 'events' => ['short_link.created']]);
+        $first = session('inertia.flash_data.webhookSecret.secret');
+        $endpoint = WebhookEndpoint::query()->sole();
+
+        $this->actingInWorkspace($owner, $workspace)->post(route('webhook-endpoints.rotate-secret', $endpoint));
+        $second = session('inertia.flash_data.webhookSecret.secret');
+        $row = DB::table('webhook_endpoints')->where('id', $endpoint->id)->first();
+
+        $this->assertStringNotContainsString($second, $row->secret);
+        $this->assertStringNotContainsString($first, $row->previous_secret);
+        $this->assertSame($second, Crypt::decryptString($row->secret));
+        $this->assertSame($first, Crypt::decryptString($row->previous_secret));
+    }
+
+    public function test_saving_an_endpoint_does_not_resolve_its_hostname(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('webhook-endpoints.store'), ['url' => 'https://slow-dns.example.com/hook', 'events' => ['short_link.created']])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('webhook_endpoints', ['url' => 'https://slow-dns.example.com/hook']);
+    }
+
+    public function test_a_workspace_has_a_bounded_number_of_endpoints(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+
+        foreach (range(1, WebhookEndpoint::MAX_PER_WORKSPACE) as $index) {
+            $this->webhookEndpoint($workspace, ['url' => 'https://hooks.example.com/'.$index]);
+        }
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('webhook-endpoints.store'), ['url' => 'https://hooks.example.com/extra', 'events' => ['short_link.created']])
+            ->assertSessionHasErrors(['url' => 'A workspace can have up to 10 webhook endpoints.']);
+
+        $this->expectException(ValidationException::class);
+        app(WebhookEndpointMutation::class)->create($owner, $workspace, 'https://hooks.example.com/extra', ['short_link.created']);
+    }
+
+    public function test_test_events_and_retries_are_throttled(): void
+    {
+        Queue::fake();
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $endpoint = $this->webhookEndpoint($workspace);
+
+        foreach (range(1, 10) as $attempt) {
+            $this->actingInWorkspace($owner, $workspace)->post(route('webhook-endpoints.test', $endpoint))->assertRedirect();
+        }
+
+        $this->actingInWorkspace($owner, $workspace)->post(route('webhook-endpoints.test', $endpoint))->assertTooManyRequests();
+        $this->assertContains('throttle:30,1', app('router')->getRoutes()->getByName('webhook-deliveries.retry')->gatherMiddleware());
     }
 
     public function test_sending_a_test_event_queues_a_test_delivery(): void
@@ -216,7 +296,7 @@ class WebhookEndpointManagementTest extends TestCase
                 ->post(route('webhook-endpoints.store'), ['url' => 'https://hooks.example.com/x', 'events' => ['short_link.created']])
                 ->assertForbidden();
             $this->actingInWorkspace($member, $workspace)
-                ->post(route('webhook-endpoints.store'), ['url' => 'https://intranet.example.com/x', 'events' => ['short_link.created']])
+                ->post(route('webhook-endpoints.store'), ['url' => 'https://10.0.0.5/x', 'events' => ['short_link.created']])
                 ->assertForbidden();
             $this->actingInWorkspace($member, $workspace)
                 ->patch(route('webhook-endpoints.update', $endpoint), ['url' => 'https://hooks.example.com/x', 'events' => ['short_link.created'], 'is_enabled' => true])
@@ -258,10 +338,26 @@ class WebhookEndpointManagementTest extends TestCase
     {
         [$workspace, $owner] = $this->workspaceWithOwner();
         $endpoint = $this->webhookEndpoint($workspace);
+        $others = [$this->webhookEndpoint($workspace), $this->webhookEndpoint($workspace)];
 
         foreach (range(1, 30) as $index) {
             $this->delivery($endpoint, WebhookDeliveryStatus::Failed, 'event-'.$index);
         }
+
+        foreach ($others as $other) {
+            $this->delivery($other, WebhookDeliveryStatus::Succeeded, 'other');
+        }
+
+        DB::enableQueryLog();
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->get(route('settings.webhooks'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('endpoints', 3)
+                ->has('endpoints.1.deliveries', 1)
+                ->has('endpoints.2.deliveries', 1));
+
+        $this->assertCount(1, collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], 'from "webhook_deliveries"')));
 
         $this->actingInWorkspace($owner, $workspace)
             ->get(route('settings.webhooks'))

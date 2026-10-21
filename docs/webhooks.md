@@ -8,12 +8,12 @@ Webhook endpoints are separate from [API tokens](./api.md#authentication): an AP
 
 Owners and Admins can:
 
-- add an endpoint with an HTTPS URL and at least one event type;
+- add an endpoint with an HTTPS URL and at least one event type, up to 10 endpoints per workspace;
 - edit its URL and event subscriptions;
 - enable or disable it; a disabled endpoint receives no new attempts, including scheduled retries;
-- send a `webhook.test` event to check the receiver;
+- send a `webhook.test` event to check the receiver (up to 10 per minute);
 - rotate its signing secret;
-- retry a failed delivery;
+- retry a failed delivery (up to 30 retries per minute);
 - delete it, which also deletes its delivery history.
 
 Editors and Viewers cannot see or manage endpoints.
@@ -81,7 +81,7 @@ Every request body is a JSON envelope:
 | `Openlink-Event-Id` | The event `id` |
 | `Openlink-Event-Type` | The event `type` |
 | `Openlink-Timestamp` | Unix time, in seconds, when this attempt was signed |
-| `Openlink-Signature` | `v1=` followed by the hex HMAC-SHA256 signature |
+| `Openlink-Signature` | One or more comma-separated signatures, each `v1=` followed by a hex HMAC-SHA256 signature |
 
 ## Verifying signatures
 
@@ -91,7 +91,7 @@ The signature is `HMAC-SHA256(secret, timestamp + "." + raw_body)`, encoded as l
 
 1. Read the raw request body as bytes, before any JSON parsing or re-encoding.
 2. Reject the request if `Openlink-Timestamp` is more than 5 minutes away from your current time. This limits replay of captured requests.
-3. Compute the expected signature and compare it to `Openlink-Signature` with a constant-time comparison.
+3. Compute the expected signature and compare it, with a constant-time comparison, to each comma-separated entry of `Openlink-Signature`. Accept the request if any entry matches.
 4. Only then parse the JSON.
 
 PHP:
@@ -108,8 +108,13 @@ if (abs(time() - $timestamp) > 300) {
 }
 
 $expected = 'v1='.hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+$verified = false;
 
-if (! hash_equals($expected, $signature)) {
+foreach (explode(',', $signature) as $candidate) {
+    $verified = hash_equals($expected, trim($candidate)) || $verified;
+}
+
+if (! $verified) {
     http_response_code(401);
     exit;
 }
@@ -124,7 +129,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export function verifyOpenlinkWebhook(rawBody, headers, secret, toleranceSeconds = 300) {
   const timestamp = Number(headers['openlink-timestamp']);
-  const signature = Buffer.from(String(headers['openlink-signature'] ?? ''));
+  const candidates = String(headers['openlink-signature'] ?? '')
+    .split(',')
+    .map((candidate) => Buffer.from(candidate.trim()));
 
   if (!Number.isInteger(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > toleranceSeconds) {
     return false;
@@ -134,18 +141,28 @@ export function verifyOpenlinkWebhook(rawBody, headers, secret, toleranceSeconds
     'v1=' + createHmac('sha256', secret).update(`${timestamp}.`).update(rawBody).digest('hex'),
   );
 
-  return signature.length === expected.length && timingSafeEqual(signature, expected);
+  return candidates.some((candidate) => candidate.length === expected.length && timingSafeEqual(candidate, expected));
 }
 ```
 
-When you rotate a secret, the old secret stops working immediately. Deploy the new secret to your receiver right after rotating it; deliveries attempted in between fail verification and should be retried from the delivery history.
+### Rotating the signing secret
+
+Rotating a secret does not break deliveries that are already pending or retrying. For 24 hours after a rotation, every attempt carries two signatures: one made with the new secret, followed by one made with the previous secret.
+
+```
+Openlink-Signature: v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd,v1=6ffbb59b2300aae63f272406069a9788598b792a944a07aba816edb039989a39
+```
+
+A receiver that still holds the previous secret keeps verifying deliveries during that window. Deploy the new secret within 24 hours. After the window, or after another rotation, only the current secret signs deliveries. Rotating again within the window replaces the previous secret with the one that was current until then.
 
 ## Delivery and retries
 
 - Events are recorded in the same database transaction as the change. A change that is rolled back sends nothing.
 - Deliveries are sent by the queue worker after the transaction commits, so a slow or failing receiver never delays link edits or public redirects.
 - A delivery succeeds when the receiver answers with a `2xx` status within 10 seconds. Respond quickly and do heavy work asynchronously.
-- Other responses, timeouts, connection errors, and hostnames that temporarily do not resolve are retried up to 6 attempts in total, waiting 1, 4, 16, 64, and 256 minutes between attempts.
+- Openlink reads at most 64 KB of the response body. A larger response aborts the transfer and counts as a failure without retry, so keep responses short or empty.
+- `5xx`, `408`, `425`, and `429` responses, timeouts, connection errors, and hostnames that temporarily do not resolve are retried up to 6 attempts in total, waiting 1, 4, 16, 64, and 256 minutes between attempts.
+- Other `4xx` responses mean the receiver rejected the request, so the delivery fails without retry.
 - Redirects are not followed and count as a failure without retry. Point the endpoint at its final URL.
 - After the last attempt, the delivery is marked as failed. An Owner or Admin can retry it from the delivery history, which sends the same event with the same `id` and body.
 
@@ -161,7 +178,7 @@ Each endpoint shows its 20 most recent deliveries with the event type, status, a
 
 ## Endpoint safety
 
-Endpoint URLs must use HTTPS and must not contain credentials. Before every attempt, Openlink resolves the hostname and refuses to connect when any resolved address is loopback, private, link-local, carrier-grade NAT, multicast, documentation, or otherwise reserved, including cloud metadata addresses such as `169.254.169.254`. The connection is pinned to the address that passed this check, so DNS rebinding cannot redirect it, and TLS certificates are always verified.
+Endpoint URLs must use HTTPS and must not contain credentials. Saving an endpoint rejects IP literals in blocked ranges and internal names such as `localhost` or `*.internal`, but does not look up DNS, so saving never waits on a slow resolver. Before every attempt, Openlink resolves the hostname and refuses to connect when any resolved address is loopback, private, link-local, carrier-grade NAT, multicast, documentation, or otherwise reserved, including cloud metadata addresses such as `169.254.169.254`. The connection is pinned to the address that passed this check, so DNS rebinding cannot redirect it, and TLS certificates are always verified.
 
 ## Operating webhooks
 

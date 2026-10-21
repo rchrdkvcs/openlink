@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Webhooks;
 
+use App\Actions\Webhooks\WebhookEndpointMutation;
 use App\Actions\Workspaces\CurrentWorkspace;
 use App\Enums\WebhookEventType;
+use App\Models\WebhookEndpoint;
 use App\Services\Webhooks\UnsafeWebhookTarget;
 use App\Services\Webhooks\WebhookTargets;
 use Closure;
@@ -20,7 +22,15 @@ class WebhookEndpointRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'url' => ['bail', 'required', 'string', 'max:2048', 'url:https', $this->publicTarget(...)],
+            'url' => array_filter([
+                'bail',
+                $this->isMethod('POST') ? $this->withinEndpointLimit(...) : null,
+                'required',
+                'string',
+                'max:2048',
+                'url:https',
+                $this->publicTarget(...),
+            ]),
             'events' => ['required', 'array', 'min:1'],
             'events.*' => ['required', 'string', 'distinct', Rule::in(WebhookEventType::subscribableValues())],
             'is_enabled' => [$this->isMethod('PATCH') ? 'required' : 'sometimes', 'boolean'],
@@ -46,10 +56,17 @@ class WebhookEndpointRequest extends FormRequest
         return $this->boolean('is_enabled');
     }
 
+    private function withinEndpointLimit(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (WebhookEndpoint::limitReachedIn(app(CurrentWorkspace::class)->require())) {
+            $fail(WebhookEndpointMutation::limitMessage());
+        }
+    }
+
     private function publicTarget(string $attribute, mixed $value, Closure $fail): void
     {
         try {
-            app(WebhookTargets::class)->resolve((string) $value);
+            app(WebhookTargets::class)->assertAcceptable((string) $value);
         } catch (UnsafeWebhookTarget $exception) {
             $fail($exception->getMessage());
         }

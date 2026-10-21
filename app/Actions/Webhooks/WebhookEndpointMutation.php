@@ -10,6 +10,7 @@ use App\Models\WebhookEndpoint;
 use App\Models\Workspace;
 use App\Services\Webhooks\WebhookEvents;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WebhookEndpointMutation
@@ -18,6 +19,11 @@ class WebhookEndpointMutation
         private readonly Gate $gate,
         private readonly WebhookEvents $events,
     ) {}
+
+    public static function limitMessage(): string
+    {
+        return 'A workspace can have up to '.WebhookEndpoint::MAX_PER_WORKSPACE.' webhook endpoints.';
+    }
 
     private static function generateSecret(): string
     {
@@ -28,13 +34,21 @@ class WebhookEndpointMutation
     {
         $this->gate->forUser($user)->authorize('manage', $workspace);
 
-        return WebhookEndpoint::create([
-            'workspace_id' => $workspace->id,
-            'url' => $url,
-            'events' => array_values($events),
-            'secret' => self::generateSecret(),
-            'is_enabled' => true,
-        ]);
+        return DB::transaction(function () use ($workspace, $url, $events): WebhookEndpoint {
+            Workspace::query()->whereKey($workspace->id)->lockForUpdate()->first();
+
+            if (WebhookEndpoint::limitReachedIn($workspace)) {
+                throw ValidationException::withMessages(['url' => self::limitMessage()]);
+            }
+
+            return WebhookEndpoint::create([
+                'workspace_id' => $workspace->id,
+                'url' => $url,
+                'events' => array_values($events),
+                'secret' => self::generateSecret(),
+                'is_enabled' => true,
+            ]);
+        });
     }
 
     public function update(User $user, WebhookEndpoint $endpoint, string $url, array $events, bool $isEnabled): WebhookEndpoint
@@ -55,7 +69,11 @@ class WebhookEndpointMutation
         $this->authorize($user, $endpoint);
 
         $secret = self::generateSecret();
-        $endpoint->update(['secret' => $secret]);
+        $endpoint->update([
+            'previous_secret' => $endpoint->secret,
+            'previous_secret_expires_at' => now()->addHours(WebhookEndpoint::SECRET_OVERLAP_HOURS),
+            'secret' => $secret,
+        ]);
 
         return $secret;
     }

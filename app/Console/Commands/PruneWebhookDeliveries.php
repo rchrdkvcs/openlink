@@ -11,12 +11,23 @@ use Illuminate\Console\Command;
 #[Description('Prune webhook delivery history older than the configured retention window')]
 class PruneWebhookDeliveries extends Command
 {
+    private const CHUNK_SIZE = 1000;
+
     public function handle(): int
     {
         $days = (int) config('openlink.webhooks.retention_days');
-        $deleted = WebhookDelivery::query()
-            ->where('created_at', '<', now()->subDays($days))
-            ->delete();
+        $cutoff = now()->subDays($days);
+        $deleted = 0;
+
+        do {
+            $ids = WebhookDelivery::query()
+                ->where('created_at', '<', $cutoff)
+                ->orderBy('id')
+                ->limit(self::CHUNK_SIZE)
+                ->pluck('id');
+
+            $deleted += $ids->isEmpty() ? 0 : WebhookDelivery::query()->whereKey($ids)->delete();
+        } while ($ids->count() === self::CHUNK_SIZE);
 
         $this->info("Pruned {$deleted} webhook deliveries older than {$days} days.");
 

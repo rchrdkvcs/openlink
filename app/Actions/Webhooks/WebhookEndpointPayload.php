@@ -14,12 +14,13 @@ class WebhookEndpointPayload
     public static function forWorkspace(Workspace $workspace): Collection
     {
         return $workspace->webhookEndpoints()
+            ->with(['deliveries' => fn ($query) => $query->latest('id')->limit(self::HISTORY_LIMIT)])
             ->orderBy('id')
             ->get()
             ->map(fn (WebhookEndpoint $endpoint) => self::make($endpoint));
     }
 
-    public static function make(WebhookEndpoint $endpoint): array
+    private static function make(WebhookEndpoint $endpoint): array
     {
         return [
             'id' => $endpoint->id,
@@ -27,10 +28,7 @@ class WebhookEndpointPayload
             'events' => $endpoint->events,
             'is_enabled' => $endpoint->is_enabled,
             'created_at' => $endpoint->created_at,
-            'deliveries' => $endpoint->deliveries()
-                ->latest('id')
-                ->limit(self::HISTORY_LIMIT)
-                ->get()
+            'deliveries' => $endpoint->deliveries
                 ->map(fn (WebhookDelivery $delivery) => [
                     'id' => $delivery->id,
                     'event_id' => $delivery->event_id,

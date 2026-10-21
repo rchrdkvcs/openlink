@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('url', 2048);
             $table->jsonb('events');
             $table->text('secret');
+            $table->text('previous_secret')->nullable();
+            $table->timestamp('previous_secret_expires_at')->nullable();
             $table->boolean('is_enabled')->default(true);
             $table->timestamps();
 

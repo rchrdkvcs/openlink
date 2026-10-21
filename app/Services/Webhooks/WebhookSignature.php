@@ -10,4 +10,9 @@ class WebhookSignature
     {
         return self::VERSION.'='.hash_hmac('sha256', $timestamp.'.'.$body, $secret);
     }
+
+    public function header(array $secrets, int $timestamp, string $body): string
+    {
+        return implode(',', array_map(fn (string $secret) => $this->sign($secret, $timestamp, $body), $secrets));
+    }
 }

@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Resolution\LinkPreviewResolution;
 use App\Actions\Resolution\PublicResolution;
 use App\Actions\Resolution\ResolutionEntry;
 use App\Actions\Resolution\ResolutionResult;
+use App\Http\Responses\LinkPreviewResponder;
 use App\Http\Responses\PublicResolutionResponder;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\Analytics\Outcome;
+use App\Services\LinkPreviews\PreviewCrawlers;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,6 +20,9 @@ class PublicLinkController extends Controller
     public function __construct(
         private readonly PublicResolution $resolution,
         private readonly PublicResolutionResponder $responder,
+        private readonly PreviewCrawlers $crawlers,
+        private readonly LinkPreviewResolution $previews,
+        private readonly LinkPreviewResponder $previewResponder,
     ) {}
 
     public function unavailable(Request $request): Response
@@ -26,6 +32,12 @@ class PublicLinkController extends Controller
 
     public function show(Request $request, string $slug): Response
     {
+        $preview = $this->crawlers->matches($request) ? $this->previews->resolve($request, $slug) : null;
+
+        if ($preview) {
+            return $this->previewResponder->toResponse($preview);
+        }
+
         return $this->respond($request, ResolutionEntry::shortUrl($slug));
     }
 

@@ -89,6 +89,23 @@ class ShortLink extends Model
         return 'https://'.$this->domain->hostname.'/'.$this->slug;
     }
 
+    public function hasPreviewImage(): bool
+    {
+        return filled($this->preview_image_path);
+    }
+
+    public function hasCustomPreview(): bool
+    {
+        return filled($this->preview_title) || filled($this->preview_description) || $this->hasPreviewImage();
+    }
+
+    public function publicPreviewImageUrl(): ?string
+    {
+        return $this->hasPreviewImage()
+            ? 'https://'.$this->domain->hostname.'/_preview/'.basename($this->preview_image_path)
+            : null;
+    }
+
     protected static function booted(): void
     {
         $forget = function (ShortLink $shortLink): void {

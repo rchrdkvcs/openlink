@@ -81,14 +81,93 @@ class LinkPreviewCrawlerTest extends TestCase
         $this->assertDatabaseHas('analytics_events', ['short_link_id' => $link->id, 'outcome' => Outcome::SUCCESS, 'is_bot' => false]);
     }
 
-    public function test_crawlers_follow_the_ordinary_redirect_for_public_links_without_a_link_preview(): void
+    public function test_crawlers_are_redirected_without_a_visit_for_public_links_without_a_link_preview(): void
     {
         [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
-        $this->shortLink($workspace, $domain, 'plain');
+        $link = $this->shortLink($workspace, $domain, 'plain');
 
         $this->withHeader('User-Agent', self::SLACKBOT)
             ->get('http://go.example.test/plain')
-            ->assertRedirect('https://example.com/landing');
+            ->assertRedirect('https://example.com/landing')
+            ->assertHeader('Cache-Control', 'no-cache, private');
+
+        $this->assertSame(0, $link->fresh()->successful_visits);
+        $this->assertSame(0, AnalyticsEvent::query()->count());
+    }
+
+    public function test_crawlers_follow_smart_routing_without_recording_analytics(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
+        $link = $this->shortLink($workspace, $domain, 'routed');
+        $link->routingRules()->create([
+            'name' => 'Everyone',
+            'type' => 'conditional',
+            'position' => 0,
+            'is_enabled' => true,
+            'match_mode' => 'all',
+            'conditions' => [],
+            'destination_url' => 'https://example.com/routed',
+        ]);
+
+        $this->withHeader('User-Agent', self::SLACKBOT)
+            ->get('http://go.example.test/routed')
+            ->assertRedirect('https://example.com/routed');
+
+        $this->assertSame(0, AnalyticsEvent::query()->count());
+    }
+
+    public function test_crawlers_receive_neutral_metadata_for_visit_limited_links_without_a_link_preview(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
+        $link = $this->shortLink($workspace, $domain, 'single', [
+            'destination_url' => 'https://private.example.com/one-time',
+            'visit_limit' => 1,
+        ]);
+
+        $this->assertNeutral($this->withHeader('User-Agent', self::SLACKBOT)->get('http://go.example.test/single'));
+
+        $this->assertSame(0, $link->fresh()->successful_visits);
+        $this->assertSame(0, AnalyticsEvent::query()->count());
+    }
+
+    public static function everyState(): array
+    {
+        return [
+            'active without preview' => [fn () => []],
+            'active with preview' => [fn () => ['preview_title' => 'Spring launch']],
+            'visit limited' => [fn () => ['visit_limit' => 5]],
+            'visit limited with preview' => [fn () => ['visit_limit' => 5, 'preview_title' => 'Spring launch']],
+            'protected' => [fn () => ['password_hash' => Hash::make('secret')]],
+            'disabled' => [fn () => ['is_enabled' => false]],
+            'archived' => [fn () => ['archived_at' => now()]],
+            'scheduled' => [fn () => ['activates_at' => now()->addDay()]],
+            'expired' => [fn () => ['expires_at' => now()->subMinute()]],
+            'with fallback' => [fn () => ['is_enabled' => false, 'fallback_url' => 'https://example.com/fallback']],
+        ];
+    }
+
+    #[DataProvider('everyState')]
+    public function test_crawler_requests_never_consume_visits_or_record_analytics(callable $state): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
+        $link = $this->shortLink($workspace, $domain, 'any', $state());
+
+        $this->withHeader('User-Agent', self::SLACKBOT)->get('http://go.example.test/any');
+        $this->withHeader('User-Agent', 'Twitterbot/1.0')->get('http://go.example.test/any');
+
+        $this->assertSame(0, $link->fresh()->successful_visits);
+        $this->assertSame(0, AnalyticsEvent::query()->count());
+    }
+
+    public function test_crawler_requests_do_not_activate_a_domain(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
+        $domain->update(['status' => Domain::STATUS_OWNERSHIP_VERIFIED]);
+        $this->shortLink($workspace, $domain, 'launch', ['preview_title' => 'Spring launch']);
+
+        $this->assertNeutral($this->withHeader('User-Agent', self::SLACKBOT)->get('http://go.example.test/launch'));
+
+        $this->assertSame(Domain::STATUS_OWNERSHIP_VERIFIED, $domain->fresh()->status->value);
     }
 
     public function test_qr_code_entries_keep_their_resolution_for_crawlers(): void

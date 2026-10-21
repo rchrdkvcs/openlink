@@ -21,9 +21,13 @@ class LinkPreviewImageStorage
 
     private const QUALITY = 85;
 
+    public const MAX_PIXELS = 4096 * 4096;
+
     public function store(UploadedFile $upload): string
     {
-        $source = @imagecreatefromstring((string) file_get_contents($upload->getRealPath()));
+        $size = @getimagesize($upload->getRealPath());
+        $fits = $size !== false && $size[0] > 0 && $size[1] > 0 && $size[0] * $size[1] <= self::MAX_PIXELS;
+        $source = $fits ? @imagecreatefromstring((string) file_get_contents($upload->getRealPath())) : false;
 
         if (! $source) {
             throw ValidationException::withMessages(['preview_image' => __('openlink.validation.preview_image_unreadable')]);

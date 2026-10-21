@@ -50,7 +50,7 @@ abstract class ShortLinkRequest extends FormRequest
                 'image',
                 'mimes:png,jpg,jpeg,webp',
                 'max:5120',
-                'dimensions:min_width=200,min_height=200,max_width=6000,max_height=6000',
+                'dimensions:min_width=200,min_height=200,max_width=4096,max_height=4096',
             ],
             'remove_preview_image' => ['sometimes', 'boolean'],
             ...RoutingRulesValidator::inputRules(),

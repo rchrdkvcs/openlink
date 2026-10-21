@@ -2,28 +2,26 @@
 
 namespace App\Actions\Resolution;
 
-use App\Actions\Domains\DomainLifecycle;
 use App\Models\Domain;
 use App\Models\ShortLink;
+use App\Services\ResolutionContextFactory;
 use App\Services\ShortLinks\ShortLinkLifecycle;
 use App\Services\ShortLinks\ShortUrlCache;
+use App\Services\ShortLinks\SmartRouting;
 use Illuminate\Http\Request;
 
 class LinkPreviewResolution
 {
     public function __construct(
-        private readonly DomainLifecycle $domains,
         private readonly ShortLinkLifecycle $lifecycle,
         private readonly ShortUrlCache $shortUrls,
+        private readonly SmartRouting $routing,
+        private readonly ResolutionContextFactory $contexts,
     ) {}
 
-    public function resolve(Request $request, string $slug): ?LinkPreview
+    public function resolve(Request $request, string $slug): LinkPreview
     {
         $domain = Domain::query()->where('hostname', $request->getHost())->first();
-
-        if ($domain) {
-            $this->domains->activateOnObservedTraffic($request, $domain);
-        }
 
         if (! $domain || ! $domain->isUsable()) {
             return LinkPreview::neutral();
@@ -37,7 +35,9 @@ class LinkPreviewResolution
         }
 
         if (! $shortLink->hasCustomPreview()) {
-            return null;
+            return $shortLink->visit_limit === null
+                ? LinkPreview::redirect($this->routing->resolve($shortLink, $this->contexts->fromRequest($request))->destinationUrl)
+                : LinkPreview::neutral();
         }
 
         return new LinkPreview(

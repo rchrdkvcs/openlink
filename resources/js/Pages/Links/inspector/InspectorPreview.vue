@@ -73,7 +73,11 @@ function removeImage() {
     <Field label="Description" :error="form.errors.preview_description">
       <Textarea v-model="form.preview_description" maxlength="300" rows="2" placeholder="A short summary of the page" />
     </Field>
-    <Field label="Image" hint="PNG, JPG or WebP up to 5 MB. 1200 × 630 works best." :error="form.errors.preview_image">
+    <Field
+      label="Image"
+      hint="PNG, JPG or WebP up to 5 MB and 4096 × 4096 px. 1200 × 630 works best."
+      :error="form.errors.preview_image"
+    >
       <div class="flex items-center gap-2">
         <label
           class="inline-flex h-8 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-elevated px-3 text-[13px] font-medium text-foreground transition-colors focus-within:ring-2 focus-within:ring-accent/40 hover:bg-border-strong"

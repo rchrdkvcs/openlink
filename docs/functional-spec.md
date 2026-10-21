@@ -158,15 +158,16 @@ The Instance Admin can enable Destination Monitoring to run these checks in the 
 
 ## Link Previews
 
-A short link can carry a link preview: an optional title (up to 120 characters), description (up to 300 characters), and uploaded PNG, JPG, or WebP image (up to 5 MB, at least 200 × 200 pixels). Text is plain: HTML tags and control characters are rejected, and runs of whitespace collapse to single spaces. Uploaded images are decoded and re-encoded as JPEG, at most 1200 pixels wide, so embedded scripts and metadata are discarded. Editing a link preview uses the same permissions as editing the short link.
+A short link can carry a link preview: an optional title (up to 120 characters), description (up to 300 characters), and uploaded PNG, JPG, or WebP image (up to 5 MB, between 200 × 200 and 4096 × 4096 pixels). Text is plain: HTML tags and control characters are rejected, and runs of whitespace collapse to single spaces. Uploaded images are decoded and re-encoded as JPEG, at most 1200 pixels wide, so embedded scripts and metadata are discarded. Editing a link preview uses the same permissions as editing the short link.
 
 When a supported preview crawler requests a short URL, Openlink answers instead of redirecting:
 
 - Active, unprotected links with a link preview receive an HTML page carrying Open Graph and Twitter card metadata. The page never contains the destination URL.
 - Protected, disabled, archived, scheduled, expired, and missing links, and links on unusable domains, all receive the same neutral metadata page. It never contains the destination URL, the fallback URL, or the configured link preview.
-- Active, unprotected links without a link preview resolve as usual, so platforms read the destination's own metadata.
+- Active, unprotected links without a link preview and without a visit limit are redirected to the destination chosen by Smart Routing, so platforms read the destination's own metadata. The redirect does not reserve a visit or record analytics.
+- Active, unprotected links with a visit limit and no link preview receive the neutral metadata page. Redirecting crawlers there without counting would let a spoofed User-Agent bypass the visit limit.
 
-Metadata responses do not reserve a visit, record analytics, or unlock a protected link. QR code entries and password submissions are never answered with metadata. Supported preview crawlers are those of Facebook, X, LinkedIn, Slack, Discord, Telegram, WhatsApp, iMessage, Pinterest, Reddit, Skype, Mastodon, Bluesky, VK, Iframely, and Embedly.
+Crawler requests never reserve a visit, record analytics, activate a domain, or unlock a protected link. QR code entries and password submissions are never answered with metadata. Supported preview crawlers are those of Facebook, X, LinkedIn, Slack, Discord, Telegram, WhatsApp, iMessage, Pinterest, Reddit, Skype, Mastodon, Bluesky, VK, Iframely, and Embedly.
 
 Openlink does not cache rendered metadata: every crawler request reads the current link, so edits apply to the next fetch. Each uploaded image gets a new URL. Sharing platforms cache cards on their own schedule, so a link already shared may keep showing an older card until the platform refreshes it. The preview card in the link editor is illustrative; each platform renders cards differently.
 

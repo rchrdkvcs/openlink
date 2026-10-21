@@ -32,10 +32,8 @@ class PublicLinkController extends Controller
 
     public function show(Request $request, string $slug): Response
     {
-        $preview = $this->crawlers->matches($request) ? $this->previews->resolve($request, $slug) : null;
-
-        if ($preview) {
-            return $this->previewResponder->toResponse($preview);
+        if ($this->crawlers->matches($request)) {
+            return $this->previewResponder->toResponse($this->previews->resolve($request, $slug));
         }
 
         return $this->respond($request, ResolutionEntry::shortUrl($slug));

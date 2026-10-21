@@ -40,9 +40,9 @@ Destination Checks run outside public resolution and cannot block or change a re
 
 ## Link Previews
 
-Preview crawlers are detected from the User-Agent header, which any client can spoof. Detection therefore only chooses the response format. It never grants access: a crawler request for a protected or unavailable link receives the same neutral metadata as a missing link, and never reaches the destination, the fallback URL, the password flow, or the configured link preview. Metadata responses do not consume visits or count as traffic.
+Preview crawlers are detected from the User-Agent header, which any client can spoof. Detection therefore only chooses the response format. It never grants access: a crawler request for a protected or unavailable link receives the same neutral metadata as a missing link, and never reaches the destination, the fallback URL, the password flow, or the configured link preview. Crawler requests never consume visits, record analytics, or activate a domain. Links without a link preview redirect crawlers to their destination only when they have no visit limit, so a spoofed User-Agent cannot read a visit-limited destination without it being counted.
 
-Link preview text is plain text rendered with HTML escaping, and markup is rejected on input. Preview images are decoded and re-encoded as JPEG before storage, which drops SVG, scripts, and metadata. They are stored on the private disk under random names. They are served only through Openlink: on the short link's own domain while the link is active and unprotected, and to workspace members in the dashboard. Deleting or replacing an image removes the file only when no short link still references it.
+Link preview text is plain text rendered with HTML escaping, and markup is rejected on input. Preview images are decoded and re-encoded as JPEG before storage, which drops SVG, scripts, and metadata. They are stored on the private disk under random names. They are served only through Openlink: on the short link's own domain while the link is active and unprotected, and to workspace members in the dashboard or through the API with their token. Deleting or replacing an image removes the file only when no short link still references it.
 
 ## Analytics Privacy
 

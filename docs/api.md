@@ -124,7 +124,7 @@ Create payload (only `destination_url` is required):
 }
 ```
 
-Link responses include `preview` with `title`, `description`, and `image_url`. To upload a preview image, send `multipart/form-data` with `preview_image` (PNG, JPG, or WebP up to 5 MB). Updates sent this way must use `POST` with `_method=PATCH`. Send `remove_preview_image=true` to remove the image. Omitted preview fields are left unchanged on update.
+Link responses include `preview` with `title`, `description`, and `image_url`. For API clients, `image_url` points to `GET /api/v1/links/{id}/preview-image`, which needs the same token and workspace as the link. To upload a preview image, send `multipart/form-data` with `preview_image` (PNG, JPG, or WebP up to 5 MB and 4096 × 4096 pixels). Updates sent this way must use `POST` with `_method=PATCH`. Send `remove_preview_image=true` to remove the image. Omitted preview fields are left unchanged on update.
 
 When `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
 

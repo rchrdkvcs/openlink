@@ -8,6 +8,7 @@ use App\Services\LinkPreviews\LinkPreviewImageStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\CreatesWorkspaces;
 use Tests\TestCase;
 
@@ -222,17 +223,60 @@ class LinkPreviewEditingTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_api_clients_fetch_the_preview_image_with_their_token(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain('go.example.test');
+        $link = $this->linkWithImage($workspace, $domain, 'launch');
+        $viewer = $this->memberOf($workspace, WorkspaceMember::ROLE_VIEWER);
+        $token = $viewer->createToken('cli')->plainTextToken;
+        [$other, , $outsider] = $this->workspaceWithActiveDomain('other.example.test');
+        $outsiderToken = $outsider->createToken('cli')->plainTextToken;
+
+        $url = $this->withToken($token)
+            ->withHeader('X-Workspace-Id', (string) $workspace->id)
+            ->getJson('/api/v1/links/'.$link->id)
+            ->assertOk()
+            ->json('data.preview.image_url');
+
+        $this->assertSame(route('api.v1.links.preview-image', ['shortLink' => $link, 'v' => basename($link->preview_image_path, '.jpg')]), $url);
+
+        $this->withToken($token)->withHeader('X-Workspace-Id', (string) $workspace->id)->get($url)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg');
+
+        $this->withToken($outsiderToken)->withHeader('X-Workspace-Id', (string) $other->id)->get($url)
+            ->assertForbidden();
+    }
+
+    public function test_oversized_preview_images_are_rejected_before_decoding(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain('go.example.test');
+        $link = $this->shortLink($workspace, $domain, 'launch');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('short-links.update', $link), [
+                ...$this->updatePayload(),
+                '_method' => 'patch',
+                'preview_image' => UploadedFile::fake()->image('cover.png', 5000, 300),
+            ])
+            ->assertSessionHasErrors('preview_image');
+
+        $this->assertSame([], Storage::allFiles());
+    }
+
     public function test_link_payload_exposes_the_link_preview(): void
     {
         [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain('go.example.test');
         $link = $this->linkWithImage($workspace, $domain, 'launch', ['preview_title' => 'Spring launch']);
 
         $this->actingInWorkspace($owner, $workspace)
-            ->getJson('/api/v1/links/'.$link->id)
+            ->get(route('links.index'))
             ->assertOk()
-            ->assertJsonPath('data.preview.title', 'Spring launch')
-            ->assertJsonPath('data.preview.description', null)
-            ->assertJsonPath('data.preview.image_url', route('short-links.preview-image', ['shortLink' => $link, 'v' => basename($link->preview_image_path, '.jpg')]));
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('links.0.preview.title', 'Spring launch')
+                ->where('links.0.preview.description', null)
+                ->where('links.0.preview.image_url', route('short-links.preview-image', ['shortLink' => $link, 'v' => basename($link->preview_image_path, '.jpg')]))
+                ->etc());
     }
 
     private function linkWithImage($workspace, $domain, string $slug, array $attributes = []): ShortLink

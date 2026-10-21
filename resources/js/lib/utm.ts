@@ -116,3 +116,24 @@ export function templateChanges(url: string, template: UtmTemplateValues): UtmCh
 export function applyTemplate(url: string, template: UtmTemplateValues): string {
   return writeUtm(url, definedValues(template));
 }
+
+export const UTM_FIELDS: { key: UtmKey; label: string; placeholder: string }[] = [
+  { key: 'utm_source', label: 'Source', placeholder: 'newsletter' },
+  { key: 'utm_medium', label: 'Medium', placeholder: 'email' },
+  { key: 'utm_campaign', label: 'Campaign', placeholder: 'spring_sale' },
+  { key: 'utm_term', label: 'Term', placeholder: 'running shoes' },
+  { key: 'utm_content', label: 'Content', placeholder: 'header_button' },
+];
+
+export type UtmTemplateForm = UtmValues & { name: string };
+
+export function templateForm(template: UtmTemplate | null): UtmTemplateForm {
+  const values = emptyUtm();
+  for (const key of UTM_KEYS) values[key] = template?.[key] ?? '';
+
+  return { name: template?.name ?? '', ...values };
+}
+
+export function templateSummary(template: UtmTemplateValues): string {
+  return UTM_KEYS.flatMap((key) => (template[key] ? [`${key}=${template[key]}`] : [])).join(' · ');
+}

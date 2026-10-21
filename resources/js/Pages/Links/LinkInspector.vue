@@ -9,6 +9,7 @@ import Switch from '@/Components/ui/Switch.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
+import type { UtmTemplate } from '@/lib/utm';
 import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
@@ -16,6 +17,7 @@ import InspectorHeader from './inspector/InspectorHeader.vue';
 import InspectorOptions from './inspector/InspectorOptions.vue';
 import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
+import InspectorUtm from './inspector/InspectorUtm.vue';
 import { useShortLinkEditor } from './inspector/useShortLinkEditor';
 
 const props = defineProps<{
@@ -24,11 +26,12 @@ const props = defineProps<{
   folders: Folder[];
   knownTags: Tag[];
   routingSchema: RoutingSchema;
+  utmTemplates: UtmTemplate[];
 }>();
 
 const emit = defineEmits<{ close: [] }>();
 
-const { canEdit } = useShell();
+const { canEdit, canManage } = useShell();
 
 const { form, sections, save, discard, destinationValid, routingHasErrors, hasErrors } = useShortLinkEditor(
   () => props.link,
@@ -127,6 +130,13 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
         </div>
 
         <div class="mx-5 mb-4 divide-y overflow-hidden rounded-xl border bg-surface">
+          <InspectorUtm
+            v-model="form.destination_url"
+            v-model:open="sections.utm"
+            :templates="utmTemplates"
+            :can-manage-templates="canManage"
+            :disabled="!canEdit"
+          />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorRouting
             v-model="form.routing_rules"

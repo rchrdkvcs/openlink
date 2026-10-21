@@ -259,6 +259,7 @@ useLinkListKeyboard({
               :folders="folders"
               :known-tags="tags"
               :routing-schema="routingSchema"
+              :utm-templates="utmTemplates"
               @close="selectedId = null"
             />
           </div>

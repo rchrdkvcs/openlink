@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyTemplate, emptyUtm, readUtm, templateChanges, type UtmTemplateValues, writeUtm } from './utm';
+import {
+  applyTemplate,
+  emptyUtm,
+  readUtm,
+  templateChanges,
+  templateForm,
+  templateSummary,
+  type UtmTemplateValues,
+  writeUtm,
+} from './utm';
 
 function template(values: Partial<UtmTemplateValues> = {}): UtmTemplateValues {
   return { utm_source: null, utm_medium: null, utm_campaign: null, utm_term: null, utm_content: null, ...values };
@@ -20,12 +29,14 @@ describe('readUtm', () => {
   });
 
   it('decodes plus signs, Unicode and percent-encoded values', () => {
-    expect(readUtm('https://example.com/?utm_term=red+shoes&utm_content=%C3%A9t%C3%A9&utm_campaign=caf%C3%A9')).toEqual({
-      ...emptyUtm(),
-      utm_term: 'red shoes',
-      utm_content: 'été',
-      utm_campaign: 'café',
-    });
+    expect(readUtm('https://example.com/?utm_term=red+shoes&utm_content=%C3%A9t%C3%A9&utm_campaign=caf%C3%A9')).toEqual(
+      {
+        ...emptyUtm(),
+        utm_term: 'red shoes',
+        utm_content: 'été',
+        utm_campaign: 'café',
+      },
+    );
   });
 
   it('uses the first occurrence when a UTM parameter is repeated', () => {
@@ -129,9 +140,9 @@ describe('UTM templates', () => {
   });
 
   it('reports no changes when the destination already matches the template', () => {
-    expect(templateChanges('https://example.com/?utm_source=newsletter', template({ utm_source: 'newsletter' }))).toEqual(
-      [],
-    );
+    expect(
+      templateChanges('https://example.com/?utm_source=newsletter', template({ utm_source: 'newsletter' })),
+    ).toEqual([]);
   });
 
   it('sets only the parameters the template defines and keeps the rest of the URL', () => {
@@ -144,7 +155,12 @@ describe('UTM templates', () => {
     const applied = applyTemplate('https://example.com/?utm_medium=a&utm_medium=b', spring);
 
     expect(applied.match(/utm_medium=/g)).toHaveLength(1);
-    expect(readUtm(applied)).toEqual({ ...emptyUtm(), utm_source: 'newsletter', utm_medium: 'email', utm_campaign: 'spring' });
+    expect(readUtm(applied)).toEqual({
+      ...emptyUtm(),
+      utm_source: 'newsletter',
+      utm_medium: 'email',
+      utm_campaign: 'spring',
+    });
   });
 
   it('leaves the URL unchanged when the template defines no values', () => {
@@ -161,5 +177,23 @@ describe('UTM templates', () => {
       utm_term: 'keep',
       utm_content: '',
     });
+  });
+});
+
+describe('UTM template forms', () => {
+  it('starts empty for a new template and copies an existing template', () => {
+    expect(templateForm(null)).toEqual({ name: '', ...emptyUtm() });
+    expect(templateForm({ id: 4, name: 'Ads', ...template({ utm_source: 'google', utm_medium: 'cpc' }) })).toEqual({
+      name: 'Ads',
+      ...emptyUtm(),
+      utm_source: 'google',
+      utm_medium: 'cpc',
+    });
+  });
+
+  it('summarises only the values a template defines', () => {
+    expect(templateSummary(template({ utm_source: 'google', utm_campaign: 'Spring' }))).toBe(
+      'utm_source=google · utm_campaign=Spring',
+    );
   });
 });

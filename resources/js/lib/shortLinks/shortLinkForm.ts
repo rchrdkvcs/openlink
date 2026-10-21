@@ -22,7 +22,7 @@ export type ShortLinkForm = {
 
 export type QuickLinkForm = Pick<ShortLinkForm, 'destination_url' | 'domain_id' | 'folder_id' | 'slug' | 'is_enabled'>;
 
-export type InspectorSection = 'schedule' | 'limit' | 'password' | 'fallback' | 'routing';
+export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback' | 'routing';
 
 export type PayloadOptions = { hasPassword?: boolean };
 
@@ -85,7 +85,7 @@ export function toPayload<T extends { destination_url: string; password?: string
 }
 
 export function closedSections(): Record<InspectorSection, boolean> {
-  return { schedule: false, limit: false, password: false, fallback: false, routing: false };
+  return { utm: false, schedule: false, limit: false, password: false, fallback: false, routing: false };
 }
 
 export function sectionFor(errorKey: string): InspectorSection | null {

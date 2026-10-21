@@ -50,7 +50,6 @@ describe('toForm', () => {
       visit_limit: '',
       password: '',
       tags: '',
-      routing_rules: [],
     });
   });
 
@@ -86,29 +85,8 @@ describe('toForm', () => {
     expect(toForm(link({ visit_limit: 0 })).visit_limit).toBe('');
   });
 
-  it('deep clones Routing Rules so edits never touch the source link', () => {
-    const source = link({
-      routing_rules: [
-        {
-          id: 4,
-          name: 'France',
-          type: 'conditional',
-          is_enabled: true,
-          match_mode: 'all',
-          conditions: [{ type: 'time_of_day', operator: 'between', value: { from: '09:00', to: '18:00' } }],
-          destination_url: 'https://example.fr',
-          variants: [{ id: 2, name: 'A', is_enabled: true, destination_url: 'https://a.test', weight: 50 }],
-        },
-      ],
-    });
-    const form = toForm(source);
-    form.routing_rules[0].conditions[0].value = { from: '00:00', to: '01:00' };
-    form.routing_rules[0].variants[0].weight = 10;
-    form.routing_rules[0].name = 'Changed';
-
-    expect(source.routing_rules[0].conditions[0].value).toEqual({ from: '09:00', to: '18:00' });
-    expect(source.routing_rules[0].variants[0].weight).toBe(50);
-    expect(source.routing_rules[0].name).toBe('France');
+  it('leaves Routing Rules to the routing editor', () => {
+    expect(toForm(link())).not.toHaveProperty('routing_rules');
   });
 });
 
@@ -149,8 +127,8 @@ describe('sectionFor', () => {
     ['visit_limit', 'limit'],
     ['password', 'password'],
     ['fallback_url', 'fallback'],
-    ['routing_rules', 'routing'],
-    ['routing_rules.0.destination_url', 'routing'],
+    ['routing_rules', null],
+    ['routing_rules.0.destination_url', null],
     ['destination_url', null],
     ['slug', null],
   ])('maps %s to %s', (key, section) => {
@@ -160,7 +138,7 @@ describe('sectionFor', () => {
   it('collects each section with errors once', () => {
     expect(
       sectionsWithErrors({ activates_at: 'x', expires_at: 'y', 'routing_rules.1.variants': 'z', slug: 'taken' }),
-    ).toEqual(['schedule', 'routing']);
+    ).toEqual(['schedule']);
   });
 });
 

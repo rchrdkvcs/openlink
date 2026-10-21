@@ -31,7 +31,6 @@ export type DestinationNodeData = {
   url: string;
   enabled: boolean;
   share: number | null;
-  weight: number | null;
 };
 
 export type DefaultNodeData = { path: PathState; url: string; errors: string[] };
@@ -61,11 +60,10 @@ export const LAYOUT = {
   entryX: 0,
   ruleX: 300,
   destinationX: 680,
-  ruleWidth: 288,
-  destinationWidth: 280,
   ruleBaseHeight: 92,
   conditionHeight: 20,
   destinationHeight: 68,
+  variantGap: 12,
   rowGap: 40,
 };
 
@@ -103,17 +101,18 @@ function ruleHeight(rule: RoutingRuleDraft): number {
   return LAYOUT.ruleBaseHeight + Math.max(rule.conditions.length, 1) * LAYOUT.conditionHeight;
 }
 
-function previewFits(rules: RoutingRuleDraft[], preview: RoutingPreview | null | undefined): preview is RoutingPreview {
-  return Boolean(preview) && preview!.rules.length === rules.length;
+function fittingPreview(rules: RoutingRuleDraft[], preview: RoutingPreview | null | undefined): RoutingPreview | null {
+  return preview && preview.rules.length === rules.length ? preview : null;
 }
 
 export function takenPath(rules: RoutingRuleDraft[], preview: RoutingPreview | null | undefined): Set<string> | null {
-  if (!previewFits(rules, preview)) return null;
+  const fitting = fittingPreview(rules, preview);
+  if (!fitting) return null;
 
   const path = new Set<string>(['entry', 'edge-entry']);
 
   for (const [index, rule] of rules.entries()) {
-    const result = preview.rules[index];
+    const result = fitting.rules[index];
     path.add(ruleNodeId(rule, index));
 
     if (result.status === 'matched') {
@@ -146,7 +145,7 @@ export function buildRoutingGraph(
   options: GraphOptions,
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const path = takenPath(rules, options.preview);
-  const fits = previewFits(rules, options.preview);
+  const preview = fittingPreview(rules, options.preview);
   const state = (id: string): PathState => (path ? (path.has(id) ? 'taken' : 'dimmed') : 'idle');
   const nodes: GraphNode[] = [
     { id: 'entry', type: 'entry', position: { x: LAYOUT.entryX, y: 0 }, data: { path: state('entry') } },
@@ -162,7 +161,10 @@ export function buildRoutingGraph(
     const id = ruleNodeId(rule, index);
     const variants = rule.type === 'split_test' ? rule.variants : [];
     const branchCount = Math.max(variants.length, 1);
-    const rowHeight = Math.max(ruleHeight(rule), branchCount * LAYOUT.destinationHeight + (branchCount - 1) * 12);
+    const rowHeight = Math.max(
+      ruleHeight(rule),
+      branchCount * LAYOUT.destinationHeight + (branchCount - 1) * LAYOUT.variantGap,
+    );
 
     edge(
       index === 0 ? 'edge-entry' : nextEdgeId(rules[index - 1], index - 1),
@@ -185,7 +187,7 @@ export function buildRoutingGraph(
         matchMode: rule.match_mode,
         conditions: rule.conditions.map((condition) => conditionSummary(options.schema, condition)),
         errors: ruleErrors(options.errors, index).map(([, message]) => message),
-        status: fits ? options.preview!.rules[index].status : null,
+        status: preview ? preview.rules[index].status : null,
       },
     });
 
@@ -195,7 +197,7 @@ export function buildRoutingGraph(
         nodes.push({
           id: variantId,
           type: 'variant',
-          position: { x: LAYOUT.destinationX, y: y + position * (LAYOUT.destinationHeight + 12) },
+          position: { x: LAYOUT.destinationX, y: y + position * (LAYOUT.destinationHeight + LAYOUT.variantGap) },
           data: {
             path: state(variantId),
             index,
@@ -203,7 +205,6 @@ export function buildRoutingGraph(
             url: variant.destination_url,
             enabled: variant.is_enabled,
             share: variantShare(rule, variant),
-            weight: Number(variant.weight) || 0,
           },
         });
         edge(
@@ -227,7 +228,6 @@ export function buildRoutingGraph(
           url: rule.destination_url,
           enabled: rule.is_enabled,
           share: null,
-          weight: null,
         },
       });
       edge(matchEdgeId(rule, index), id, destinationId, 'match', !rule.is_enabled);

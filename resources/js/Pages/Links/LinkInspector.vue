@@ -33,7 +33,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const { canEdit, canManage } = useShell();
 
-const { form, sections, save, discard, destinationValid, routingHasErrors, hasErrors } = useShortLinkEditor(
+const { form, sections, save, discard, destinationValid, hasErrors } = useShortLinkEditor(
   () => props.link,
   () => canEdit.value,
 );
@@ -137,12 +137,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :disabled="!canEdit"
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
-          <InspectorRouting
-            :rules="form.routing_rules"
-            :schema="routingSchema"
-            :has-errors="routingHasErrors"
-            :link-id="link.id"
-          />
+          <InspectorRouting :rules="link.routing_rules ?? []" :schema="routingSchema" :link-id="link.id" />
         </div>
       </fieldset>
     </form>

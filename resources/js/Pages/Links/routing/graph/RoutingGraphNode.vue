@@ -52,7 +52,7 @@ const frame = computed(() => [
     <div class="flex items-center gap-2 border-b px-3 py-2">
       <span
         class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-elevated px-1 font-mono text-[11px] tabular-nums text-muted"
-        :aria-label="`Priority ${rule.priority}`"
+        aria-hidden="true"
         >{{ rule.priority }}</span
       >
       <component :is="rule.type === 'split_test' ? Shuffle : Route" class="h-3.5 w-3.5 shrink-0 text-faint" />

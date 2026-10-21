@@ -9,7 +9,6 @@ import type { RoutingRuleDraft, RoutingSchema } from '@/types/shortLinks';
 const props = defineProps<{
   rules: RoutingRuleDraft[];
   schema: RoutingSchema;
-  hasErrors: boolean;
   linkId: number;
 }>();
 
@@ -18,7 +17,6 @@ const PREVIEW_LIMIT = 3;
 const enabledRules = computed(() => props.rules.filter((rule) => rule.is_enabled).length);
 
 const status = computed(() => {
-  if (props.hasErrors) return 'Needs attention';
   if (!enabledRules.value) return 'Off';
   return `${enabledRules.value} rule${enabledRules.value === 1 ? '' : 's'}`;
 });
@@ -40,11 +38,9 @@ const preview = computed(() => {
     <div class="flex h-10 w-full items-center gap-2.5 px-3.5">
       <Route class="h-4 w-4 shrink-0" :class="enabledRules > 0 ? 'text-accent' : 'text-faint'" />
       <span class="flex-1 text-[13px] font-medium text-foreground">Smart routing</span>
-      <span
-        class="max-w-[45%] truncate text-[13px]"
-        :class="hasErrors ? 'text-danger' : enabledRules > 0 ? 'text-muted' : 'text-faint'"
-        >{{ status }}</span
-      >
+      <span class="max-w-[45%] truncate text-[13px]" :class="enabledRules > 0 ? 'text-muted' : 'text-faint'">{{
+        status
+      }}</span>
     </div>
     <ul v-if="preview.length" class="grid gap-2 pb-3 pe-3.5 ps-[1.625rem]">
       <li v-for="rule in preview" :key="rule.key" class="flex min-w-0 items-start gap-2">

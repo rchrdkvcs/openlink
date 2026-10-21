@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, ChevronDown, ListOrdered, Plus, Workflow } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
@@ -18,9 +18,9 @@ import { buildRoutingGraph, dropIndex, nodeRuleIndex, reorderRule, ruleNodeId } 
 import type { RoutingPreview } from '@/lib/routing/preview';
 import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
+import { useSaveShortcut } from '@/lib/useSaveShortcut';
 import type { RoutingRuleDraft, RoutingSchema, ShortLink } from '@/types/shortLinks';
 
-import { useSaveShortcut } from '../QrCodes/Studio/useSaveShortcut';
 import RoutingGraph from './routing/graph/RoutingGraph.vue';
 import { presetIcon } from './routing/presetIcons';
 import RoutingPreviewPanel from './routing/RoutingPreviewPanel.vue';
@@ -44,7 +44,6 @@ const view = ref<'graph' | 'list'>('graph');
 const panel = ref<'edit' | 'test'>(canEdit.value ? 'edit' : 'test');
 const selectedId = ref<string | null>(null);
 const preview = ref<RoutingPreview | null>(null);
-const layoutVersion = ref(0);
 
 const views = [
   { value: 'graph' as const, label: 'Graph', icon: Workflow },
@@ -58,21 +57,22 @@ const panels = [
 watch(
   () => props.link,
   (link) => {
+    const index = selectedRuleIndex.value;
     form.defaults(formFrom(link));
     form.reset();
     form.clearErrors();
+    const rule = index === null ? undefined : form.routing_rules[index];
+    if (rule) selectedId.value = ruleNodeId(rule, index!);
   },
 );
 
-const graph = computed(() => {
-  void layoutVersion.value;
-
-  return buildRoutingGraph(form.routing_rules, form.destination_url, {
+const graph = computed(() =>
+  buildRoutingGraph(form.routing_rules, form.destination_url, {
     schema: props.routingSchema,
     errors: form.errors,
     preview: preview.value,
-  });
-});
+  }),
+);
 
 const selectedNode = computed(() => graph.value.nodes.find((node) => node.id === selectedId.value) ?? null);
 
@@ -91,22 +91,28 @@ const draft = computed(() =>
 
 function select(id: string | null) {
   selectedId.value = id;
-  if (id) panel.value = 'edit';
+  if (id && id !== 'entry') panel.value = 'edit';
 }
 
 function apply(change: RuleListChange | null) {
   if (!change) return;
   form.routing_rules = change.rules;
-  layoutVersion.value++;
   select(change.focus === null ? null : ruleNodeId(change.rules[change.focus], change.focus));
 }
 
 function onDrop(id: string, y: number) {
   const from = nodeRuleIndex(id, form.routing_rules);
-  layoutVersion.value++;
   if (from === null || !canEdit.value) return;
 
   apply(reorderRule(form.routing_rules, from, dropIndex(graph.value.nodes, from, y)));
+}
+
+function onMove(id: string, direction: -1 | 1) {
+  const from = nodeRuleIndex(id, form.routing_rules);
+  if (from === null) return;
+
+  apply(routing.value.move(form.routing_rules, from, direction));
+  nextTick(() => document.querySelector<HTMLElement>(`.vue-flow__node[data-id="${id}"]`)?.focus());
 }
 
 function save() {
@@ -131,10 +137,29 @@ function discard() {
   form.clearErrors();
   preview.value = null;
   selectedId.value = null;
-  layoutVersion.value++;
 }
 
 useSaveShortcut(save);
+
+const LEAVE_MESSAGE = 'Leave without saving your routing changes?';
+
+function warnBeforeUnload(event: BeforeUnloadEvent) {
+  if (form.isDirty) event.preventDefault();
+}
+
+let stopGuard: (() => void) | null = null;
+
+onMounted(() => {
+  window.addEventListener('beforeunload', warnBeforeUnload);
+  stopGuard = router.on('before', (event) => {
+    if (event.detail.visit.method === 'get' && form.isDirty && !window.confirm(LEAVE_MESSAGE)) event.preventDefault();
+  });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', warnBeforeUnload);
+  stopGuard?.();
+});
 </script>
 
 <template>
@@ -187,10 +212,13 @@ useSaveShortcut(save);
             :can-edit="canEdit"
             @select="select"
             @drop="onDrop"
+            @move="onMove"
           />
           <p class="pointer-events-none absolute bottom-3 right-3 max-w-xs text-end text-xs text-faint">
-            The first matching rule wins.
-            <template v-if="canEdit">Drag a rule up or down to change its priority.</template>
+            The first matching routing rule wins.
+            <template v-if="canEdit"
+              >Drag a routing rule, or focus it and press Alt with an arrow key, to change its priority.</template
+            >
           </p>
         </div>
 

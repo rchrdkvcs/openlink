@@ -39,15 +39,12 @@ export function useShortLinkEditor(link: () => ShortLink, canEdit: () => boolean
       });
   }
 
-  const errorSections = computed(() => sectionsWithErrors(form.errors));
-
   return {
     form,
     sections,
     save,
     discard: () => load(link(), false),
     destinationValid: computed(() => isLikelyUrl(normalizeUrl(form.destination_url))),
-    routingHasErrors: computed(() => errorSections.value.includes('routing')),
     hasErrors: computed(() => Object.keys(form.errors).length > 0),
   };
 }

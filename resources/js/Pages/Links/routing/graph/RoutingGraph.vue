@@ -8,6 +8,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/controls/dist/style.css';
 
 import type { GraphEdge, GraphNode } from '@/lib/routing/graph';
+import { ruleStatus } from '@/lib/routing/preview';
 
 import RoutingGraphNode from './RoutingGraphNode.vue';
 
@@ -18,22 +19,40 @@ const props = defineProps<{
   canEdit: boolean;
 }>();
 
-const emit = defineEmits<{ select: [id: string | null]; drop: [id: string, y: number] }>();
+const emit = defineEmits<{
+  select: [id: string | null];
+  drop: [id: string, y: number];
+  move: [id: string, direction: -1 | 1];
+}>();
 
-const { fitView } = useVueFlow('routing-graph');
+const { fitView, updateNode } = useVueFlow('routing-graph');
 
 const EDGE_LABELS = { flow: '', match: 'Match', next: 'No match' } as const;
 
+function pathLabel(node: GraphNode): string {
+  if (node.data.path !== 'taken' || node.type === 'entry' || node.type === 'rule') return '';
+
+  return ', chosen by the test';
+}
+
 function nodeLabel(node: GraphNode): string {
+  const selected = node.id === props.selectedId ? ', selected' : '';
+
   switch (node.type) {
     case 'entry':
       return 'Incoming visit';
-    case 'rule':
-      return `Rule ${node.data.priority}, ${node.data.name}${node.data.enabled ? '' : ', disabled'}`;
+    case 'rule': {
+      const parts = [`Routing rule ${node.data.priority}`, node.data.name, ...node.data.conditions];
+      if (!node.data.enabled) parts.push('disabled');
+      if (node.data.status) parts.push(`test result: ${ruleStatus(node.data.status).label}`);
+      if (node.data.errors.length) parts.push(`problems: ${node.data.errors.join(' ')}`);
+
+      return parts.join(', ') + selected;
+    }
     case 'default':
-      return `Default destination, ${node.data.url || 'not set'}`;
+      return `Default destination, ${node.data.url || 'not set'}${node.data.errors.length ? `, problem: ${node.data.errors[0]}` : ''}${pathLabel(node)}${selected}`;
     default:
-      return `${node.data.label}, ${node.data.url || 'no destination'}`;
+      return `${node.data.label}, ${node.data.url || 'no destination'}${node.data.share !== null ? `, ${node.data.share}%` : ''}${node.data.enabled ? '' : ', off'}${pathLabel(node)}${selected}`;
   }
 }
 
@@ -70,26 +89,47 @@ const flowEdges = computed<Edge[]>(() =>
   })),
 );
 
+function reducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 watch(
   () => props.nodes.length,
-  () => nextTick(() => fitView({ padding: 0.2, duration: 200 })),
+  () => nextTick(() => fitView({ padding: 0.2, duration: reducedMotion() ? 0 : 200 })),
 );
 
+const ARROWS: Record<string, -1 | 1> = { ArrowUp: -1, ArrowDown: 1 };
+
 function onKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
   const id = (event.target as HTMLElement | null)?.closest<HTMLElement>('.vue-flow__node')?.dataset.id;
   if (!id) return;
-  event.preventDefault();
-  emit('select', id);
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    emit('select', id);
+    return;
+  }
+
+  if (event.key.startsWith('Arrow')) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (props.canEdit && event.altKey && ARROWS[event.key] && id.startsWith('rule-'))
+      emit('move', id, ARROWS[event.key]);
+  }
 }
 
 function onDragStop(event: NodeDragEvent) {
-  emit('drop', event.node.id, event.node.position.y);
+  const { id, position } = event.node;
+  emit('drop', id, position.y);
+  nextTick(() => {
+    const laidOut = props.nodes.find((node) => node.id === id);
+    if (laidOut) updateNode(id, { position: { ...laidOut.position } });
+  });
 }
 </script>
 
 <template>
-  <div class="routing-graph relative h-full min-h-[420px] w-full" @keydown="onKeydown">
+  <div class="routing-graph relative h-full min-h-[420px] w-full" @keydown.capture="onKeydown">
     <VueFlow
       id="routing-graph"
       :nodes="flowNodes"

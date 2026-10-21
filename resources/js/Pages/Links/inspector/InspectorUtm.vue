@@ -7,6 +7,7 @@ import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
+import { normalizeUrl } from '@/lib/links';
 import {
   applyTemplate,
   readUtm,
@@ -34,6 +35,9 @@ const summary = computed(() =>
 const selectedId = ref('');
 const selected = computed(() => props.templates.find((template) => String(template.id) === selectedId.value));
 const changes = computed(() => (selected.value ? templateChanges(destination.value, selected.value) : []));
+const applied = computed(() => (selected.value ? applyTemplate(destination.value, selected.value) : destination.value));
+const applicable = computed(() => applied.value !== destination.value);
+const finalUrl = computed(() => normalizeUrl(destination.value));
 
 const templateOptions = computed(() => [
   { value: '', label: 'Choose a template' },
@@ -53,7 +57,7 @@ function update(key: UtmKey, value: string) {
 
 function apply() {
   if (!selected.value) return;
-  destination.value = applyTemplate(destination.value, selected.value);
+  destination.value = applied.value;
   selectedId.value = '';
 }
 </script>
@@ -71,17 +75,11 @@ function apply() {
         <Field label="Template" class="flex-1">
           <Select v-model="selectedId" :options="templateOptions" :disabled="disabled" aria-label="UTM template" />
         </Field>
-        <Button
-          type="button"
-          variant="secondary"
-          :disabled="disabled || !selected || changes.length === 0"
-          @click="apply"
-        >
-          Apply
-        </Button>
+        <Button type="button" variant="secondary" :disabled="disabled || !applicable" @click="apply"> Apply </Button>
       </div>
       <div v-if="selected" class="rounded-lg border bg-canvas px-3 py-2 text-xs" aria-live="polite">
-        <p v-if="changes.length === 0" class="text-faint">The destination already uses these values.</p>
+        <p v-if="!applicable" class="text-faint">The destination already uses these values.</p>
+        <p v-else-if="changes.length === 0" class="text-faint">Removes repeated UTM parameters.</p>
         <template v-else>
           <p class="mb-1 font-medium text-muted">Applying changes</p>
           <ul class="space-y-0.5">
@@ -116,7 +114,7 @@ function apply() {
     <div class="grid gap-1">
       <span class="text-xs font-medium text-muted">Final URL</span>
       <p class="break-all rounded-lg border bg-canvas px-3 py-2 font-mono text-xs text-foreground">
-        {{ destination || 'Add a destination first.' }}
+        {{ finalUrl || 'Add a destination first.' }}
       </p>
       <p class="text-xs leading-relaxed text-faint">
         Values are kept exactly as typed. Use consistent lowercase names, like newsletter or email, so campaigns group

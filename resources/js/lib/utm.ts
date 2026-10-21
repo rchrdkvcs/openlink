@@ -73,7 +73,7 @@ export function writeUtm(url: string, values: Partial<UtmValues>): string {
 
     const positions = segments.flatMap((segment, index) => (segmentKey(segment) === key ? [index] : []));
     if (desired === '' && positions.length === 0) continue;
-    if (positions.length === 1 && segmentValue(segments[positions[0]]) === desired) continue;
+    if (desired !== '' && positions.length === 1 && segmentValue(segments[positions[0]]) === desired) continue;
 
     changed = true;
     const replacement = `${key}=${encodeURIComponent(desired)}`;

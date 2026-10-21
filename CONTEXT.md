@@ -105,7 +105,7 @@ The campaign query parameters `utm_source`, `utm_medium`, `utm_campaign`, `utm_t
 _Avoid_: Tracking parameters, campaign tags
 
 **UTM Template**:
-A workspace-owned, named set of UTM parameter values that members apply explicitly to a short link's destination URL. Applying a template copies its values; later changes to the template never rewrite existing destination URLs.
+A Workspace-owned, named set of UTM Parameter values that Members apply explicitly to a Short Link's Destination URL. Applying a template copies its values; later changes to the template never rewrite existing destination URLs.
 _Avoid_: Campaign, UTM preset, tracking template
 
 **Protected Link**:

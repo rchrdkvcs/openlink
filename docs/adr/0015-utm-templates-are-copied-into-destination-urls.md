@@ -10,6 +10,7 @@ The UTM builder edits a Short Link's Destination URL in the link editor, and a U
 ## Consequences
 
 - The builder preserves the rest of the Destination URL verbatim: unrelated query parameters, repeated keys, fragments, Unicode, and existing percent-encoding are not re-encoded. Only the supported UTM keys (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`) are rewritten, each to at most one occurrence.
-- Clearing a builder field removes every occurrence of that key. Applying a template only sets the keys the template defines and leaves the other UTM keys as they are.
+- Clearing a builder field removes every occurrence of that key, including occurrences without a value. Applying a template also removes repeated occurrences of the keys it sets. Applying a template only sets the keys the template defines and leaves the other UTM keys as they are.
+- The query is the part between the first `?` and the first `#`; UTM parameters inside a fragment, such as hash-based routes, are left untouched.
 - Values are stored exactly as entered; case conventions are shown as guidance and never normalised.
 - The MVP covers the default Destination URL only; routing rule destinations and automatic workspace-wide defaults are deferred.

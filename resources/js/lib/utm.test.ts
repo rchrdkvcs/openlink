@@ -101,6 +101,12 @@ describe('writeUtm', () => {
     expect(writeUtm('https://example.com/p?utm_source=a#f', { utm_source: '' })).toBe('https://example.com/p#f');
   });
 
+  it('removes a parameter that is present without a value when its field is cleared', () => {
+    expect(writeUtm('https://example.com/?utm_source=&ref=x&utm_medium', { utm_source: '', utm_medium: '' })).toBe(
+      'https://example.com/?ref=x',
+    );
+  });
+
   it('only touches the parameters it is given', () => {
     expect(writeUtm('https://example.com/?utm_source=a&utm_medium=b', { utm_medium: 'c' })).toBe(
       'https://example.com/?utm_source=a&utm_medium=c',
@@ -161,6 +167,15 @@ describe('UTM templates', () => {
       utm_medium: 'email',
       utm_campaign: 'spring',
     });
+  });
+
+  it('still removes duplicates when the first values already match the template', () => {
+    const repeated = 'https://example.com/?utm_source=newsletter&utm_source=old';
+
+    expect(templateChanges(repeated, template({ utm_source: 'newsletter' }))).toEqual([]);
+    expect(applyTemplate(repeated, template({ utm_source: 'newsletter' }))).toBe(
+      'https://example.com/?utm_source=newsletter',
+    );
   });
 
   it('leaves the URL unchanged when the template defines no values', () => {

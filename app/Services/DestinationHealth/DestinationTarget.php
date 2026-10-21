@@ -8,17 +8,17 @@ final readonly class DestinationTarget
         public string $url,
         public string $host,
         public int $port,
-        public ?string $pinnedAddress,
+        public array $pinnedAddresses,
     ) {}
 
     public function curlResolve(): array
     {
-        if ($this->pinnedAddress === null) {
+        if ($this->pinnedAddresses === []) {
             return [];
         }
 
-        $address = str_contains($this->pinnedAddress, ':') ? '['.$this->pinnedAddress.']' : $this->pinnedAddress;
+        $addresses = array_map(fn (string $address) => str_contains($address, ':') ? '['.$address.']' : $address, $this->pinnedAddresses);
 
-        return [$this->host.':'.$this->port.':'.$address];
+        return [$this->host.':'.$this->port.':'.implode(',', $addresses)];
     }
 }

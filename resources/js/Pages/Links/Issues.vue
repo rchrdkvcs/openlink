@@ -34,8 +34,29 @@ const description = computed(() =>
 );
 
 const pending = computed(() => hasPendingCheck([...props.issues.open, ...props.issues.recovered]));
-const poll = useIntervalFn(() => router.reload({ only: ['issues', 'navigation'] }), 3000, { immediate: false });
-watch(pending, (value) => (value ? poll.resume() : poll.pause()), { immediate: true });
+const POLL_LIMIT = 20;
+let polls = 0;
+const poll = useIntervalFn(
+  () => {
+    polls += 1;
+    if (polls > POLL_LIMIT) return poll.pause();
+    router.reload({ only: ['issues', 'navigation'] });
+  },
+  3000,
+  { immediate: false },
+);
+watch(
+  pending,
+  (value) => {
+    if (value) {
+      polls = 0;
+      poll.resume();
+    } else {
+      poll.pause();
+    }
+  },
+  { immediate: true },
+);
 
 function retry(issue: DestinationIssue) {
   router.post(
@@ -58,7 +79,9 @@ function traffic(count: number): string {
       <PageHeader title="Issues" :description="description" />
 
       <section class="mt-6 overflow-hidden rounded-xl border bg-surface" aria-labelledby="open-issues">
-        <h2 id="open-issues" class="border-b px-5 py-3 text-[13px] font-medium text-foreground">Broken destinations</h2>
+        <h2 id="open-issues" class="border-b px-5 py-3 text-[13px] font-medium text-foreground">
+          Destination incidents
+        </h2>
         <ul v-if="issues.open.length" class="divide-y">
           <li v-for="issue in issues.open" :key="issue.id" class="px-5 py-4">
             <div class="flex items-start gap-3">
@@ -114,7 +137,7 @@ function traffic(count: number): string {
         </ul>
         <EmptyState
           v-else
-          title="No broken destinations"
+          title="No destination incidents"
           description="Destinations that fail two checks in a row appear here."
         >
           <template #icon><CircleCheck class="h-5 w-5" /></template>

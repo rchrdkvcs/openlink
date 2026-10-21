@@ -5,6 +5,9 @@ namespace Tests\Feature\DestinationHealth;
 use App\Enums\DestinationHealthStatus;
 use App\Services\DestinationHealth\DestinationProbe;
 use App\Services\Dns\DnsLookup;
+use GuzzleHttp\Exception\ResponseException;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\InMemoryDnsLookup;
@@ -40,6 +43,29 @@ class DestinationProbeTest extends TestCase
         $this->assertFalse($this->sent[0]['options']['allow_redirects']);
     }
 
+    public function test_connection_is_pinned_to_every_validated_address(): void
+    {
+        $this->dns->pointTo('example.com', '2606:4700:4700::1111', '93.184.216.34');
+        $this->respond(fn () => Http::response('', 200));
+
+        $this->probe()->check('http://example.com:8080/');
+
+        $this->assertSame(['example.com:8080:[2606:4700:4700::1111],93.184.216.34'], $this->sent[0]['options']['curl'][CURLOPT_RESOLVE]);
+    }
+
+    public function test_dropped_head_connections_are_retried_with_get(): void
+    {
+        $this->dns->pointTo('example.com', '93.184.216.34');
+        $this->respond(fn (Request $request) => $request->method() === 'HEAD'
+            ? Http::failedConnection('cURL error 52: Empty reply from server')($request)
+            : Http::response('', 200));
+
+        $result = $this->probe()->check('https://example.com/');
+
+        $this->assertSame(DestinationHealthStatus::Reachable, $result->status);
+        $this->assertSame(['HEAD', 'GET'], array_column($this->sent, 'method'));
+    }
+
     public function test_requests_carry_no_cookies_credentials_or_authorization(): void
     {
         $this->dns->pointTo('example.com', '93.184.216.34');
@@ -64,7 +90,6 @@ class DestinationProbeTest extends TestCase
 
         $this->assertSame(DestinationHealthStatus::Reachable, $result->status);
         $this->assertSame(['HEAD', 'GET'], array_column($this->sent, 'method'));
-        $this->assertIsCallable($this->sent[1]['options']['on_headers']);
     }
 
     public function test_missing_pages_and_server_errors_are_http_failures(): void
@@ -222,7 +247,22 @@ class DestinationProbeTest extends TestCase
         Http::fake(function (Request $request, array $options) use ($responder) {
             $this->sent[] = ['method' => $request->method(), 'url' => $request->url(), 'options' => $options, 'request' => $request];
 
-            return $responder($request);
+            $result = $responder($request);
+
+            return $result instanceof PromiseInterface ? $this->abortAfterHeaders($request, $options, $result) : $result;
+        });
+    }
+
+    private function abortAfterHeaders(Request $request, array $options, PromiseInterface $promise): PromiseInterface
+    {
+        return $promise->then(function ($response) use ($request, $options) {
+            try {
+                $options['on_headers']($response);
+            } catch (\Throwable $exception) {
+                return Create::rejectionFor(new ResponseException('An error was encountered during the on_headers event', $request->toPsrRequest(), $response, $exception));
+            }
+
+            return $response;
         });
     }
 }

@@ -52,7 +52,7 @@ const STATUS_LABELS: Record<DestinationHealthStatus, string> = {
   connection_failure: 'Connection failed',
   timeout: 'Timed out',
   inconclusive: 'Inconclusive',
-  blocked: 'Not checkable',
+  blocked: 'Blocked',
 };
 
 const FAILURES: DestinationHealthStatus[] = [

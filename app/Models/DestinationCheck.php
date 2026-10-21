@@ -12,6 +12,8 @@ class DestinationCheck extends Model
 {
     public const STALE_AFTER_DAYS = 7;
 
+    public const PENDING_FOR_MINUTES = 10;
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -72,7 +74,9 @@ class DestinationCheck extends Model
 
     public function isPending(): bool
     {
-        return $this->requested_at !== null && ($this->checked_at === null || $this->requested_at->greaterThan($this->checked_at));
+        return $this->requested_at !== null
+            && $this->requested_at->greaterThan(now()->subMinutes(self::PENDING_FOR_MINUTES))
+            && ($this->checked_at === null || $this->requested_at->greaterThan($this->checked_at));
     }
 
     public function isStale(): bool

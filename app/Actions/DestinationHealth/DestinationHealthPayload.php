@@ -25,10 +25,12 @@ class DestinationHealthPayload
             ->flatMap(fn (array $link) => [
                 $link['destination_url'] ?? null,
                 $link['fallback_url'] ?? null,
-                ...collect($link['routing_rules'] ?? [])->flatMap(fn (array $rule) => [
-                    $rule['destination_url'] ?? null,
-                    ...collect($rule['variants'] ?? [])->pluck('destination_url'),
-                ]),
+                ...collect($link['routing_rules'] ?? [])
+                    ->filter(fn (array $rule) => $rule['is_enabled'] ?? false)
+                    ->flatMap(fn (array $rule) => [
+                        $rule['destination_url'] ?? null,
+                        ...collect($rule['variants'] ?? [])->where('is_enabled', true)->pluck('destination_url'),
+                    ]),
             ])
             ->filter()
             ->unique()

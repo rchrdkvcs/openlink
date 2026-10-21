@@ -118,9 +118,9 @@ function onDragStart(event: DragEvent) {
       <span
         v-if="health === 'incident'"
         class="inline-flex items-center gap-1 text-xs text-danger"
-        title="A destination of this link keeps failing"
+        title="A destination of this link failed repeated checks"
       >
-        <TriangleAlert class="h-3 w-3" />Broken destination
+        <TriangleAlert class="h-3 w-3" />Destination failing
       </span>
       <span
         v-if="countdown"

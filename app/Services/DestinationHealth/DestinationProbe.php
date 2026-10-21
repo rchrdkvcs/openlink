@@ -45,7 +45,7 @@ class DestinationProbe
 
             $response = $this->request('HEAD', $target);
 
-            if ($response instanceof Response && ! $this->isRedirect($response) && ! $response->successful()) {
+            if ($this->shouldRetryWithGet($response)) {
                 $response = $this->request('GET', $target);
             }
 
@@ -85,6 +85,10 @@ class DestinationProbe
 
         if (! preg_match('/^[\x20-\x7e]*$/', $host)) {
             $host = function_exists('idn_to_ascii') ? (idn_to_ascii($host) ?: '') : '';
+
+            if ($host === '') {
+                return $blocked('not a supported web address');
+            }
         }
 
         $literal = $this->addresses->literal($host);
@@ -111,11 +115,13 @@ class DestinationProbe
             .($parts['path'] ?? '/')
             .(isset($parts['query']) ? '?'.$parts['query'] : '');
 
-        return new DestinationTarget($requestUrl, $host, $port, $literal === null ? $resolved[0] : null);
+        return new DestinationTarget($requestUrl, $host, $port, $literal === null ? $resolved : []);
     }
 
     private function request(string $method, DestinationTarget $target): Response|DestinationProbeResult
     {
+        $received = null;
+
         try {
             return Http::withOptions([
                 'allow_redirects' => false,
@@ -124,7 +130,9 @@ class DestinationProbe
                 'proxy' => '',
                 'protocols' => ['http', 'https'],
                 'curl' => [CURLOPT_RESOLVE => $target->curlResolve()],
-                'on_headers' => function (ResponseInterface $response): void {
+                'on_headers' => function (ResponseInterface $response) use (&$received): void {
+                    $received = $response;
+
                     throw new RuntimeException('Response headers received.');
                 },
             ])
@@ -133,11 +141,26 @@ class DestinationProbe
                 ->timeout(self::TIMEOUT)
                 ->withoutRedirecting()
                 ->send($method, $target->url);
-        } catch (ConnectionException $exception) {
-            return $this->transportFailure($exception);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            if ($received !== null) {
+                return new Response($received);
+            }
+
+            if ($exception instanceof ConnectionException) {
+                return $this->transportFailure($exception);
+            }
+
             return new DestinationProbeResult(DestinationHealthStatus::ConnectionFailure, null, 'The destination could not be reached.');
         }
+    }
+
+    private function shouldRetryWithGet(Response|DestinationProbeResult $response): bool
+    {
+        if ($response instanceof DestinationProbeResult) {
+            return $response->status === DestinationHealthStatus::ConnectionFailure;
+        }
+
+        return ! $this->isRedirect($response) && ! $response->successful();
     }
 
     private function classify(Response $response): DestinationProbeResult

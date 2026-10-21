@@ -121,6 +121,8 @@ Create payload (only `destination_url` is required):
   "tags": "marketing, launch",
   "preview_title": "Spring launch",
   "preview_description": "Everything new this season."
+
+  "conversion_goal": "Registration"
 }
 ```
 
@@ -128,7 +130,7 @@ Link responses include `preview` with `title`, `description`, and `image_url`. F
 
 When `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
 
-The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags.
+The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags. `conversion_goal` (at most 80 characters) turns on conversion tracking for the link; omit it to keep the current goal, or send `null`/an empty string to stop tracking. See [Conversions](#conversions).
 
 `GET /api/v1/links/export` accepts the same `search`, `status`, `tag`, and `folder` filters as the list and also includes archived links when no status is given. `POST /api/v1/links/import` takes a multipart `file` (UTF-8 CSV, at most 1,000 links and 1 MB), an optional `mapping` object from column name to zero-based header position, an optional `domain_id` for rows without a domain, and `dry_run`. With `dry_run=1` nothing is created and the response lists `headers`, the resolved `mapping`, each row with `status` `ready` or `invalid` and its `errors`, and a `summary`. Without it, rows are validated again, ready rows are created, and each row reports `created` or `skipped`. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
@@ -192,6 +194,58 @@ A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter thr
 | --- | --- | --- |
 | `GET` | `/api/v1/analytics` | Workspace analytics report: summary with previous-period deltas, time series, breakdowns (referrers, channels, countries, languages, devices, browsers, OS, UTM), outcomes, top links, and top QR codes. Accepts `range` (`24h`,`7d`,`14d`,`30d`,`90d`,`12m`,`custom` with `from`/`to`), `link`, `qr`, `domain`, `folder`, `tag`, and `metric` query parameters |
 
+The report also includes `conversions`: `enabled`, `window_hours`, `minimum_attributed_visits`, `totals`, and per-link and per-routing-destination rows. Each row carries `attributed_visits`, `conversions`, `pending` (tokens still inside their window), `rate` (conversions divided by attributed visits, `null` without attributed visits), and `insufficient_evidence` (fewer than `minimum_attributed_visits` attributed visits). The report never names a winner.
+
+### Conversions
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/conversions` | Record a Conversion for an Attribution Token (Owner, Admin, or Editor; rate limited) |
+
+Conversion tracking is off by default. It starts when a short link has a `conversion_goal`. Each successful, non-bot visit or linked QR Code scan of that link then reaches the destination with a single-use `openlink_attribution` query parameter:
+
+```
+https://example.com/register?plan=pro&openlink_attribution=Q2x1Z...48 characters
+```
+
+Password prompts, failed passwords, blocked or unavailable links, fallback redirects, and direct-payload QR Codes never receive a token. The token is valid for 24 hours, the Attribution Window, and converts at most once.
+
+Integrating a destination you control takes three steps:
+
+1. When a visitor lands, read `openlink_attribution` from the URL and keep it server-side with the visitor's session, for example in the sign-up form state. Do not store it in analytics tools or share it with third parties.
+2. When the visitor completes the goal, call Openlink from your server, never from the browser, so the API token stays secret:
+
+   ```
+   POST /api/v1/conversions
+   Authorization: Bearer <api token of a dedicated Editor account>
+   X-Workspace-Id: 42
+   Content-Type: application/json
+
+   { "token": "Q2x1Z..." }
+   ```
+
+3. Treat `201` (`"status": "recorded"`) and `200` (`"status": "duplicate"`) as success. A retry or replay of the same token returns `duplicate` and never counts twice, so retrying after a timeout is safe.
+
+Response:
+
+```json
+{
+  "data": {
+    "status": "recorded",
+    "short_link_id": 12,
+    "conversion_goal": "Registration",
+    "qr_code_id": null,
+    "routing_rule_id": 4,
+    "routing_variant_id": 9,
+    "converted_at": "2026-10-21T09:30:00+00:00"
+  }
+}
+```
+
+The body must contain only `token`. Any other field, such as an email, user ID, or order value, is rejected with `422`, and nothing is stored. A token that is unknown, forged, expired, from another workspace, from a deleted link, or from a link whose goal was removed is rejected with the same `422` error on `token`. Viewers receive `403`.
+
+Openlink stores the link, QR Code, Routing Rule and variant, and timestamps for each Attributed Visit. It never stores the visitor hash, IP address, user agent, or any data about the visitor's account on your site. Unconverted tokens are deleted once they expire; converted ones follow analytics retention.
+
 ### Instance settings (instance admins)
 
 | Method | Path | Description |
@@ -214,6 +268,8 @@ Responses follow Laravel conventions, always as JSON on `/api/*`:
 - `404` unknown resource, or a member outside the active workspace
 - `410` invite link expired, revoked, or out of uses
 - `412` `If-Match` does not name the link's current revision
+
+- `429` rate limit reached
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 
 ## CORS and browser extensions

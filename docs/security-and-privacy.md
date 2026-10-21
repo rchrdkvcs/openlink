@@ -58,6 +58,12 @@ Link history is operational workspace data about who changed a short link, not v
 
 Link history is kept for as long as its short link exists and is deleted with the short link or its workspace. Revisions by a deleted member remain without the member's name. Query values and fragments of every URL are replaced by `•••` before a snapshot or diff is stored, so tokens carried in URLs never reach history. A keyed HMAC of the full URL, derived from the application key, lets a restore reuse such a URL only while the link still holds it; otherwise the restore is refused rather than writing a masked value. Path segments are stored as they are, so tokens must not be placed in URL paths if they should stay out of history.
 
+## Conversion Attribution
+
+Conversion tracking is opt-in per short link and off by default. A short link with a conversion goal gives each successful, non-bot visit or linked QR code scan a random single-use attribution token in the destination URL. Tokens are never derived from or stored with the daily visitor hash, so they cannot join visits across days. Only the token's hash is stored, together with the link, QR code, routing rule, variant, and timestamps; no IP address, user agent, or visitor data is kept.
+
+Tokens expire 24 hours after issue and convert at most once. They are redeemed only by an authenticated server-to-server API call from a member who can edit content in the token's workspace, with rate limiting. The conversion request accepts nothing but the token, so integrations cannot send personal or customer data. Unconverted tokens are deleted after expiry; converted ones follow analytics retention and are deleted with their link or workspace. See ADR 0015.
+
 ## Secrets and Configuration
 
 Infrastructure secrets remain outside the instance admin panel and workspace settings. This includes database credentials, Redis credentials, mail credentials, storage credentials, app keys, and boot-time Laravel configuration.
@@ -72,6 +78,6 @@ Webhook endpoints are managed only by workspace Owners and Admins. Event payload
 
 ## Abuse Controls
 
-Redis-backed rate limiting should protect public resolution, password attempts, login, invite link joins, and domain verification checks.
+Redis-backed rate limiting should protect public resolution, password attempts, login, invite link joins, conversion recording, and domain verification checks.
 
 The application should avoid making DNS verification or redirect behavior an amplification vector. Background jobs should have sensible retries and backoff.

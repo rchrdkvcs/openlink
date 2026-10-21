@@ -3,10 +3,9 @@
 namespace Tests\Unit\QrCodes;
 
 use App\Models\QrCode;
+use App\Services\QrCodes\QrCodeLogoStorage;
 use App\Services\QrCodes\Readability\QrCodeReadability;
 use App\Services\QrCodes\Readability\QrDecoder;
-use App\Services\QrCodes\Readability\SvgRasterizer;
-use App\Services\QrCodes\Readability\UnsupportedImage;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -19,36 +18,55 @@ class QrCodeReadabilityTest extends TestCase
         $result = app(QrCodeReadability::class)->check($this->qrCode(), 256);
 
         $this->assertSame(['status' => 'unavailable', 'decoded' => null], $result['formats']['png']);
-        $this->assertSame(['status' => 'unavailable', 'decoded' => null], $result['formats']['svg']);
+        $this->assertSame(['status' => 'unavailable', 'decoded' => null, 'derived_from' => 'png'], $result['formats']['svg']);
     }
 
-    public function test_svg_outside_the_supported_subset_reports_unsupported(): void
+    public function test_svg_with_a_logo_the_png_renderer_cannot_read_reports_unsupported(): void
     {
-        $this->mock(SvgRasterizer::class, fn (MockInterface $mock) => $mock->shouldReceive('rasterize')->andThrow(new UnsupportedImage('Unsupported SVG element <filter>.')));
+        $this->mock(QrCodeLogoStorage::class, fn (MockInterface $mock) => $mock->shouldReceive('contents')->andReturn('not an image'));
 
-        $result = app(QrCodeReadability::class)->check($this->qrCode(), 256);
+        $result = app(QrCodeReadability::class)->check($this->qrCode(['logo_path' => 'qr-logos/logo.svg']), 256);
 
         $this->assertSame('readable', $result['formats']['png']['status']);
         $this->assertSame('unsupported', $result['formats']['svg']['status']);
-        $this->assertSame('Unsupported SVG element <filter>.', $result['formats']['svg']['reason']);
+        $this->assertNull($result['formats']['svg']['decoded']);
     }
 
-    public function test_decoded_content_that_differs_reports_a_mismatch(): void
+    public function test_decoded_content_that_differs_reports_a_mismatch_for_both_formats(): void
     {
         $this->mock(QrDecoder::class, function (MockInterface $mock) {
             $mock->shouldReceive('available')->andReturnTrue();
-            $mock->shouldReceive('decode')->andReturn('Hello', 'Hello world');
+            $mock->shouldReceive('decode')->once()->andReturn('Hello');
         });
 
         $result = app(QrCodeReadability::class)->check($this->qrCode(), 256);
 
         $this->assertSame(['status' => 'mismatch', 'decoded' => 'Hello'], $result['formats']['png']);
-        $this->assertSame(['status' => 'readable', 'decoded' => 'Hello world'], $result['formats']['svg']);
+        $this->assertSame(['status' => 'mismatch', 'decoded' => 'Hello', 'derived_from' => 'png'], $result['formats']['svg']);
     }
 
-    private function qrCode(): QrCode
+    public function test_png_is_rendered_at_the_bounded_decode_size(): void
+    {
+        $this->mock(QrDecoder::class, function (MockInterface $mock) {
+            $mock->shouldReceive('available')->andReturnTrue();
+            $mock->shouldReceive('decode')->once()->withArgs(fn ($image) => imagesx($image) === QrCodeReadability::MAX_DECODE_PIXELS)->andReturn('Hello world');
+        });
+
+        $result = app(QrCodeReadability::class)->check($this->qrCode(), 4096);
+
+        $this->assertSame('readable', $result['formats']['png']['status']);
+        $this->assertSame(4096, $result['summary']['size']);
+    }
+
+    public function test_decoder_failures_are_reported_as_unreadable(): void
+    {
+        $this->assertNull(app(QrDecoder::class)->decode(imagecreatetruecolor(1, 1)));
+    }
+
+    private function qrCode(array $attributes = []): QrCode
     {
         return new QrCode([
+            ...$attributes,
             'payload_type' => 'text',
             'content' => 'Hello world',
             'size' => 256,

@@ -13,16 +13,19 @@ class ReadabilityWarnings
 
     public const MIN_MODULE_PIXELS = 4;
 
+    public const MIN_MODULE_MM = 0.4;
+
     public const LOGO_BUDGET = 0.6;
 
     private const RECOVERY = ['low' => 0.07, 'medium' => 0.15, 'quartile' => 0.25, 'high' => 0.30];
 
-    public function for(QrCode $qrCode, QrGrid $grid): array
+    public function for(QrCode $qrCode, QrGrid $grid, ?float $printWidthMm = null): array
     {
         return array_values(array_filter([
             ...$this->colors($qrCode),
             $this->quietZone($grid),
             $this->moduleSize($grid),
+            $this->printSize($grid, $printWidthMm),
             $this->logo($qrCode, $grid),
         ]));
     }
@@ -32,7 +35,7 @@ class ReadabilityWarnings
         $light = max(self::luminance($foreground), self::luminance($background));
         $dark = min(self::luminance($foreground), self::luminance($background));
 
-        return round(($light + 0.05) / ($dark + 0.05), 2);
+        return ($light + 0.05) / ($dark + 0.05);
     }
 
     public static function logoCoverage(QrGrid $grid): float
@@ -66,7 +69,7 @@ class ReadabilityWarnings
                 'low_contrast',
                 $ratio < self::POOR_CONTRAST ? 'warning' : 'notice',
                 'Weak contrast',
-                'The modules and background have a '.$ratio.':1 contrast ratio. Use at least '.self::MIN_CONTRAST.':1, ideally a dark color on white.',
+                'The modules and background have a '.round($ratio, 2).':1 contrast ratio. Use at least '.self::MIN_CONTRAST.':1, ideally a dark color on white.',
             );
         }
 
@@ -105,6 +108,26 @@ class ReadabilityWarnings
         );
     }
 
+    private function printSize(QrGrid $grid, ?float $printWidthMm): ?array
+    {
+        if ($printWidthMm === null) {
+            return null;
+        }
+
+        $moduleMm = $printWidthMm / ($grid->count + 2 * $grid->margin);
+
+        if ($moduleMm >= self::MIN_MODULE_MM) {
+            return null;
+        }
+
+        return $this->warning(
+            'small_print_modules',
+            'warning',
+            'Modules may be too small in print',
+            'At '.round($printWidthMm).' mm wide, each module is about '.round($moduleMm, 2).' mm. As a rule of thumb, print it at least '.(int) ceil(($grid->count + 2 * $grid->margin) * self::MIN_MODULE_MM).' mm wide so each module is '.self::MIN_MODULE_MM.' mm or more, and larger for scanning from a distance.',
+        );
+    }
+
     private function logo(QrCode $qrCode, QrGrid $grid): ?array
     {
         if (! $qrCode->hasLogo()) {
@@ -122,7 +145,7 @@ class ReadabilityWarnings
             'logo_obstruction',
             'warning',
             'Logo hides too much of the code',
-            'The logo covers about '.round($coverage * 100).'% of the modules, close to or beyond what '.$level.' error correction can recover. '.($level === 'high' ? 'Use a smaller margin.' : 'Use high error correction or a smaller margin.'),
+            'The logo covers an estimated '.round($coverage * 100).'% of the modules, close to or beyond what '.$level.' error correction can recover. '.($level === 'high' ? 'Use a smaller margin.' : 'Use high error correction or a smaller margin.'),
         );
     }
 

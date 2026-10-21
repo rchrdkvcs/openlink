@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
 import { HttpError } from '@/lib/http';
 
-import type { ReadabilityResult } from '../qrReadability';
-import { failureMessage, useReadabilityCheck } from './useReadabilityCheck';
+import type { ReadabilityRequest, ReadabilityResult } from '../qrReadability';
+import { failureMessage, postReadability, useReadabilityCheck } from './useReadabilityCheck';
+
+function request(url: string): ReadabilityRequest {
+  return { url, body: { size: 1024 }, version: 0 };
+}
 
 function result(decoded: string): ReadabilityResult {
   return {
@@ -16,10 +20,14 @@ function result(decoded: string): ReadabilityResult {
 }
 
 function deferred() {
-  const calls: { url: string; resolve: (value: ReadabilityResult) => void; reject: (error: unknown) => void }[] = [];
-  const fetcher = (url: string) =>
+  const calls: {
+    request: ReadabilityRequest;
+    resolve: (value: ReadabilityResult) => void;
+    reject: (error: unknown) => void;
+  }[] = [];
+  const fetcher = (checked: ReadabilityRequest) =>
     new Promise<ReadabilityResult>((resolve, reject) => {
-      calls.push({ url, resolve, reject });
+      calls.push({ request: checked, resolve, reject });
     });
 
   return { calls, fetcher };
@@ -27,7 +35,7 @@ function deferred() {
 
 describe('useReadabilityCheck', () => {
   it('shows a result only while the checked draft is unchanged', async () => {
-    const url = ref('/check?v=1');
+    const url = ref(request('/check?v=1'));
     const { calls, fetcher } = deferred();
     const { state, check } = useReadabilityCheck(url, ref(null), fetcher);
 
@@ -39,17 +47,17 @@ describe('useReadabilityCheck', () => {
 
     expect(state.value).toEqual({ status: 'ready', result: result('a') });
 
-    url.value = '/check?v=2';
+    url.value = request('/check?v=2');
     expect(state.value.status).toBe('stale');
   });
 
   it('never presents a late response for an earlier draft as valid', async () => {
-    const url = ref('/check?margin=2');
+    const url = ref(request('/check?margin=2'));
     const { calls, fetcher } = deferred();
     const { state, check } = useReadabilityCheck(url, ref(null), fetcher);
 
     const first = check();
-    url.value = '/check?margin=0';
+    url.value = request('/check?margin=0');
     const second = check();
 
     calls[0].resolve(result('old'));
@@ -62,12 +70,12 @@ describe('useReadabilityCheck', () => {
   });
 
   it('marks an in-flight result stale when the draft changes before it arrives', async () => {
-    const url = ref('/check?size=1024');
+    const url = ref(request('/check?size=1024'));
     const { calls, fetcher } = deferred();
     const { state, check } = useReadabilityCheck(url, ref(null), fetcher);
 
     const running = check();
-    url.value = '/check?size=512';
+    url.value = request('/check?size=512');
     calls[0].resolve(result('a'));
     await running;
 
@@ -75,7 +83,7 @@ describe('useReadabilityCheck', () => {
   });
 
   it('reports blocked drafts and failures as distinct states', async () => {
-    const url = ref('/check');
+    const url = ref(request('/check'));
     const blocked = ref<string | null>('Save the logo change to check it.');
     const { calls, fetcher } = deferred();
     const { state, check } = useReadabilityCheck(url, blocked, fetcher);
@@ -100,5 +108,21 @@ describe('useReadabilityCheck', () => {
       'The size must be at least 128.',
     );
     expect(failureMessage(new HttpError(429, null))).toMatch(/Too many checks/);
+  });
+});
+
+describe('postReadability', () => {
+  it('sends the draft as a JSON POST body instead of a query string', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(result('a')), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('document', { cookie: '' });
+
+    await postReadability({ url: '/qr-codes/abc/readability', body: { payload: { password: 'secret' } }, version: 2 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/qr-codes/abc/readability',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ payload: { password: 'secret' } }) }),
+    );
+    vi.unstubAllGlobals();
   });
 });

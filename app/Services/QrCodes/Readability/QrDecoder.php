@@ -4,8 +4,8 @@ namespace App\Services\QrCodes\Readability;
 
 use chillerlan\QRCode\Common\GDLuminanceSource;
 use chillerlan\QRCode\QRCode as Reader;
-use chillerlan\QRCode\QRCodeException;
 use GdImage;
+use Throwable;
 
 class QrDecoder
 {
@@ -18,7 +18,7 @@ class QrDecoder
     {
         try {
             return (string) (new Reader)->readFromSource(new GDLuminanceSource($image))->data;
-        } catch (QRCodeException) {
+        } catch (Throwable) {
             return null;
         }
     }

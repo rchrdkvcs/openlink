@@ -3,6 +3,7 @@
 namespace App\Services\QrCodes\Readability;
 
 use App\Models\QrCode;
+use App\Services\QrCodes\QrCodeLogoStorage;
 use App\Services\QrCodes\QrCodeRenderer;
 use App\Services\QrCodes\Rendering\QrGrid;
 use App\Services\ShortLinks\ShortLinkLifecycle;
@@ -14,39 +15,42 @@ class QrCodeReadability
 
     public function __construct(
         private readonly QrCodeRenderer $renderer,
-        private readonly SvgRasterizer $rasterizer,
+        private readonly QrCodeLogoStorage $logos,
         private readonly QrDecoder $decoder,
         private readonly ReadabilityWarnings $warnings,
         private readonly ShortLinkLifecycle $lifecycle,
     ) {}
 
-    public function check(QrCode $qrCode, int $size): array
+    public function check(QrCode $qrCode, int $size, ?float $printWidthMm = null): array
     {
         $expected = $qrCode->encodedContent();
         $grid = QrGrid::for($qrCode, $expected, $size);
+        $png = $this->decodePng($qrCode, $expected, min($size, self::MAX_DECODE_PIXELS));
 
         return [
             'size' => $size,
             'formats' => [
-                'png' => $this->decodeFormat($expected, fn () => $this->pngRaster($qrCode, $expected, $size)),
-                'svg' => $this->decodeFormat($expected, fn () => $this->rasterizer->rasterize($this->renderer->svg($qrCode, $expected, $size), $this->decodeSize($size))),
+                'png' => $png,
+                'svg' => $this->deriveSvg($qrCode, $png),
             ],
-            'warnings' => $this->warnings->for($qrCode, $grid),
-            'summary' => $this->summary($qrCode, $grid, $expected),
+            'warnings' => $this->warnings->for($qrCode, $grid, $printWidthMm),
+            'summary' => $this->summary($qrCode, $grid, $expected, $printWidthMm),
         ];
     }
 
-    private function decodeFormat(string $expected, callable $raster): array
+    private function decodePng(QrCode $qrCode, string $expected, int $size): array
     {
         if (! $this->decoder->available()) {
             return ['status' => 'unavailable', 'decoded' => null];
         }
 
-        try {
-            $decoded = $this->decoder->decode($raster());
-        } catch (UnsupportedImage $exception) {
-            return ['status' => 'unsupported', 'decoded' => null, 'reason' => $exception->getMessage()];
+        $raster = $this->onWhite($this->renderer->png($qrCode, $expected, $size));
+
+        if ($raster === null) {
+            return ['status' => 'unsupported', 'decoded' => null, 'reason' => 'The PNG export could not be read.'];
         }
+
+        $decoded = $this->decoder->decode($raster);
 
         return [
             'status' => match (true) {
@@ -58,32 +62,45 @@ class QrCodeReadability
         ];
     }
 
-    private function pngRaster(QrCode $qrCode, string $expected, int $size): GdImage
+    private function deriveSvg(QrCode $qrCode, array $png): array
     {
-        $source = @imagecreatefromstring($this->renderer->png($qrCode, $expected, $size));
+        $logo = $this->logos->contents($qrCode);
 
-        if (! $source) {
-            throw new UnsupportedImage('The PNG export could not be read.');
+        if ($png['status'] !== 'unavailable' && $logo !== null && ! @imagecreatefromstring($logo)) {
+            return [
+                'status' => 'unsupported',
+                'decoded' => null,
+                'reason' => 'The PNG renderer cannot read this logo, so the SVG cannot be checked through it.',
+            ];
         }
 
-        $target = $this->decodeSize($size);
-        $image = imagecreatetruecolor($target, $target);
-        imagefilledrectangle($image, 0, 0, $target - 1, $target - 1, imagecolorallocate($image, 255, 255, 255));
+        return [...$png, 'derived_from' => 'png'];
+    }
+
+    private function onWhite(string $png): ?GdImage
+    {
+        $source = @imagecreatefromstring($png);
+
+        if (! $source) {
+            return null;
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $image = imagecreatetruecolor($width, $height);
+        imagefilledrectangle($image, 0, 0, $width - 1, $height - 1, imagecolorallocate($image, 255, 255, 255));
         imagealphablending($image, true);
-        imagecopyresampled($image, $source, 0, 0, 0, 0, $target, $target, imagesx($source), imagesy($source));
+        imagecopy($image, $source, 0, 0, 0, 0, $width, $height);
 
         return $image;
     }
 
-    private function decodeSize(int $size): int
-    {
-        return min($size, self::MAX_DECODE_PIXELS);
-    }
-
-    private function summary(QrCode $qrCode, QrGrid $grid, string $expected): array
+    private function summary(QrCode $qrCode, QrGrid $grid, string $expected, ?float $printWidthMm): array
     {
         $shortLink = $qrCode->hasDirectPayload() ? null : $qrCode->shortLink;
         $shortLink?->loadMissing('domain');
+        $totalModules = $grid->count + 2 * $grid->margin;
+        $contrast = $qrCode->background_transparent ? null : ReadabilityWarnings::contrast($qrCode->foreground_color, $qrCode->background_color);
 
         return [
             'encoded_content' => $expected,
@@ -93,8 +110,13 @@ class QrCodeReadability
             'modules' => $grid->count,
             'quiet_zone' => $grid->margin,
             'module_pixels' => round($grid->moduleSize, 2),
+            'min_module_pixels' => ReadabilityWarnings::MIN_MODULE_PIXELS,
+            'print_width_mm' => $printWidthMm,
+            'module_mm' => $printWidthMm === null ? null : round($printWidthMm / $totalModules, 2),
+            'min_module_mm' => ReadabilityWarnings::MIN_MODULE_MM,
+            'min_print_width_mm' => (int) ceil($totalModules * ReadabilityWarnings::MIN_MODULE_MM),
             'error_correction' => QrGrid::errorCorrection($qrCode),
-            'contrast' => $qrCode->background_transparent ? null : ReadabilityWarnings::contrast($qrCode->foreground_color, $qrCode->background_color),
+            'contrast' => $contrast === null ? null : round($contrast, 2),
             'short_link' => $shortLink ? [
                 'short_url' => $shortLink->shortUrl(),
                 'status' => $this->lifecycle->status($shortLink),

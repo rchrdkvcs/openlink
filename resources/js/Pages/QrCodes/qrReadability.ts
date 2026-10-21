@@ -1,11 +1,15 @@
-import { asFlag, hasPendingLogoChange, type QrEditorFields } from './qrForm';
+import { hasPendingLogoChange, type QrEditorFields } from './qrForm';
 import { EXPORT_SIZE_OPTIONS } from './qrOptions';
-import { withQuery } from './qrUrls';
 import type { ExportFormat, QrAppearance, QrCodeRecord } from './types';
 
 export type DecodeStatus = 'readable' | 'mismatch' | 'unreadable' | 'unsupported' | 'unavailable';
 
-export type FormatCheck = { status: DecodeStatus; decoded: string | null; reason?: string };
+export type FormatCheck = {
+  status: DecodeStatus;
+  decoded: string | null;
+  reason?: string;
+  derived_from?: ExportFormat;
+};
 
 export type ReadabilityWarning = {
   code:
@@ -14,6 +18,7 @@ export type ReadabilityWarning = {
     | 'transparent_background'
     | 'quiet_zone'
     | 'small_modules'
+    | 'small_print_modules'
     | 'logo_obstruction';
   severity: 'warning' | 'notice';
   title: string;
@@ -28,6 +33,11 @@ export type ReadabilitySummary = {
   modules: number;
   quiet_zone: number;
   module_pixels: number;
+  min_module_pixels: number;
+  print_width_mm: number | null;
+  module_mm: number | null;
+  min_module_mm: number;
+  min_print_width_mm: number;
   error_correction: string;
   contrast: number | null;
   short_link: {
@@ -52,11 +62,11 @@ export type ReadabilityResult = {
 
 export type ReadableFixes = { appearance: Partial<QrAppearance>; exportSize?: number };
 
+export type ReadabilityRequest = { url: string; body: Record<string, unknown>; version: number };
+
 export const READABLE_COLORS = { foreground_color: '#111827', background_color: '#ffffff' } as const;
 
 export const READABLE_MARGIN = 4;
-
-export const MIN_MODULE_PIXELS = 4;
 
 const FIXABLE = new Set<ReadabilityWarning['code']>([
   'low_contrast',
@@ -71,6 +81,8 @@ type CheckFields = Pick<
   keyof QrAppearance | 'target_type' | 'short_link_id' | 'payload_type' | 'payload' | 'logo' | 'remove_logo'
 >;
 
+type FixableFields = Pick<QrAppearance, 'margin' | 'error_correction' | 'foreground_color' | 'background_color'>;
+
 export function blockedReason(form: CheckFields, qr: Pick<QrCodeRecord, 'is_direct' | 'short_link_id'>): string | null {
   if (hasPendingLogoChange(form)) return 'Save the logo change to check it.';
   if (form.target_type !== (qr.is_direct ? 'direct' : 'short_link')) return 'Save the new target to check it.';
@@ -81,72 +93,82 @@ export function blockedReason(form: CheckFields, qr: Pick<QrCodeRecord, 'is_dire
   return null;
 }
 
-export function readabilityQuery(
+export function readabilityBody(
   form: CheckFields,
   exportSize: number,
-  version: number,
-): Record<string, string | number> {
-  const query: Record<string, string | number> = {
+  printWidthMm: number | null,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
     size: exportSize,
+    print_width_mm: printWidthMm,
     foreground_color: form.foreground_color,
     background_color: form.background_color,
     margin: form.margin,
     error_correction: form.error_correction,
     style: form.style,
     eye_style: form.eye_style,
-    background_transparent: asFlag(form.background_transparent),
+    background_transparent: form.background_transparent,
   };
 
   if (form.target_type === 'direct') {
-    query.payload_type = form.payload_type;
-    for (const [key, value] of Object.entries(form.payload)) {
-      query[`payload[${key}]`] = typeof value === 'boolean' ? asFlag(value) : (value ?? '');
-    }
+    body.payload_type = form.payload_type;
+    body.payload = { ...form.payload };
   }
 
-  query.v = version;
-
-  return query;
+  return body;
 }
 
-export function readabilityUrl(token: string, form: CheckFields, exportSize: number, version: number): string {
-  return withQuery(route('qr-codes.readability', token), readabilityQuery(form, exportSize, version));
-}
-
-export function isFixable(warnings: ReadabilityWarning[]): boolean {
-  return warnings.some((warning) => warning.severity === 'warning' && FIXABLE.has(warning.code));
+export function readabilityRequest(
+  token: string,
+  form: CheckFields,
+  exportSize: number,
+  printWidthMm: number | null,
+  version: number,
+): ReadabilityRequest {
+  return { url: route('qr-codes.readability', token), body: readabilityBody(form, exportSize, printWidthMm), version };
 }
 
 export function readableFixes(
   warnings: ReadabilityWarning[],
-  form: Pick<QrAppearance, 'margin'>,
-  summary: Pick<ReadabilitySummary, 'modules'>,
+  draft: FixableFields,
+  exportSize: number,
+  summary: Pick<ReadabilitySummary, 'modules' | 'min_module_pixels'>,
 ): ReadableFixes {
   const codes = new Set(
     warnings
       .filter((warning) => warning.severity === 'warning' && FIXABLE.has(warning.code))
       .map((warning) => warning.code),
   );
-  const appearance: Partial<QrAppearance> = {};
-  let margin = form.margin;
+  const target: Partial<QrAppearance> = {};
+  let margin = draft.margin;
 
-  if (codes.has('low_contrast') || codes.has('inverted_colors')) Object.assign(appearance, READABLE_COLORS);
+  if (codes.has('low_contrast') || codes.has('inverted_colors')) Object.assign(target, READABLE_COLORS);
   if (codes.has('quiet_zone')) margin = Math.max(margin, READABLE_MARGIN);
   if (codes.has('logo_obstruction')) {
-    appearance.error_correction = 'high';
+    target.error_correction = 'high';
     margin = Math.min(margin, READABLE_MARGIN);
   }
-  if (margin !== form.margin) appearance.margin = margin;
+  target.margin = margin;
+
+  const appearance = Object.fromEntries(
+    Object.entries(target).filter(([key, value]) => draft[key as keyof FixableFields] !== value),
+  ) as Partial<QrAppearance>;
 
   if (!codes.has('small_modules')) return { appearance };
 
-  return { appearance, exportSize: exportSizeFor(summary.modules + 2 * margin) };
+  const size = exportSizeFor(summary.modules + 2 * margin, summary.min_module_pixels);
+
+  return size === exportSize ? { appearance } : { appearance, exportSize: size };
 }
 
-export function exportSizeFor(totalModules: number): number {
+export function hasFixes(fixes: ReadableFixes): boolean {
+  return Object.keys(fixes.appearance).length > 0 || fixes.exportSize !== undefined;
+}
+
+export function exportSizeFor(totalModules: number, minModulePixels: number): number {
   const sizes = EXPORT_SIZE_OPTIONS.map((option) => option.value);
 
-  return sizes.find((size) => size / totalModules >= MIN_MODULE_PIXELS) ?? sizes[sizes.length - 1];
+  return sizes.find((size) => size / totalModules >= minModulePixels) ?? sizes[sizes.length - 1];
 }
 
 export const DECODE_LABELS: Record<DecodeStatus, { label: string; tone: 'success' | 'danger' | 'default' }> = {

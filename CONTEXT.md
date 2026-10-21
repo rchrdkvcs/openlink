@@ -141,7 +141,7 @@ A Workspace-owned, named appearance preset saved from a QR Code's design: colors
 _Avoid_: QR style, brand kit, preset QR Code
 
 **Readability Check**:
-A pre-export check that decodes a QR Code draft's rendered PNG and SVG exports at the chosen export size and compares the result with the content the QR Code must encode. It also gives guidance on contrast, quiet zone, module size, and logo coverage, and summarises print readiness. A Readability Check is guidance, not a guarantee: it makes no visits or scans and does not replace a physical print test.
+A pre-export check that decodes a QR Code draft's rendered export at the chosen export size and compares the result with the content the QR Code must encode. It also gives guidance on contrast, quiet zone, module size on screen and in print, and logo coverage, and summarises print readiness. A Readability Check is guidance, not a guarantee: it makes no visits or scans and does not replace a physical print test.
 _Avoid_: Scannability score, QR validation, scan test
 
 **Protected Link**:

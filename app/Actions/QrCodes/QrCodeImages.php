@@ -50,9 +50,10 @@ class QrCodeImages
     public function readability(QrCode $qrCode, array $overrides): array
     {
         $size = (int) ($overrides['size'] ?? $qrCode->size);
-        $this->draft($qrCode, collect($overrides)->except('size')->all());
+        $printWidth = isset($overrides['print_width_mm']) ? (float) $overrides['print_width_mm'] : null;
+        $this->draft($qrCode, collect($overrides)->except(['size', 'print_width_mm'])->all());
 
-        return $this->readability->check($qrCode, $size);
+        return $this->readability->check($qrCode, $size, $printWidth);
     }
 
     private function draft(QrCode $qrCode, array $overrides): void

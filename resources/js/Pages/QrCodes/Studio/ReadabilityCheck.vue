@@ -4,12 +4,16 @@ import { computed } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
+import Field from '@/Components/ui/Field.vue';
+import Input from '@/Components/ui/Input.vue';
 
-import { DECODE_LABELS, isFixable, printRestrictions } from '../qrReadability';
+import { DECODE_LABELS, printRestrictions } from '../qrReadability';
 import type { ExportFormat } from '../types';
 import type { ReadabilityState } from './useReadabilityCheck';
 
-const props = defineProps<{ state: ReadabilityState; exportSize: number; canEdit: boolean }>();
+const props = defineProps<{ state: ReadabilityState; exportSize: number; canFix: boolean }>();
+
+const printWidth = defineModel<number | null>('printWidth', { required: true });
 
 defineEmits<{ check: []; applyFixes: [] }>();
 
@@ -17,7 +21,13 @@ const FORMATS: ExportFormat[] = ['png', 'svg'];
 
 const result = computed(() => (props.state.status === 'ready' ? props.state.result : null));
 const restrictions = computed(() => (result.value ? printRestrictions(result.value.summary) : []));
-const canFix = computed(() => props.canEdit && result.value !== null && isFixable(result.value.warnings));
+const printWidthInput = computed<string | number | null>({
+  get: () => printWidth.value ?? '',
+  set: (value) => {
+    const width = Number(value);
+    printWidth.value = value === '' || value === null || !Number.isFinite(width) || width <= 0 ? null : width;
+  },
+});
 const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.status));
 </script>
 
@@ -26,7 +36,7 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
     <header class="flex items-center gap-3 px-4 pb-3 pt-4">
       <div class="min-w-0 flex-1">
         <h2 id="readability-heading" class="text-sm font-medium text-foreground">Readability check</h2>
-        <p class="text-xs text-faint">Decodes the PNG and SVG exports at {{ exportSize }} px.</p>
+        <p class="text-xs text-faint">Decodes the PNG export at {{ exportSize }} px. The SVG draws the same design.</p>
       </div>
       <Button
         variant="secondary"
@@ -40,6 +50,12 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
         {{ hasRun ? 'Check again' : 'Check readability' }}
       </Button>
     </header>
+
+    <div class="border-t px-4 py-3">
+      <Field label="Print width (mm)" hint="Optional. Used to estimate module size on paper.">
+        <Input v-model="printWidthInput" type="number" min="5" max="5000" step="1" size="sm" placeholder="e.g. 30" />
+      </Field>
+    </div>
 
     <div class="border-t px-4 py-3 text-[13px]" aria-live="polite">
       <p v-if="state.status === 'blocked'" class="text-muted">{{ state.reason }}</p>
@@ -61,6 +77,9 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
             <Badge :variant="DECODE_LABELS[result.formats[format].status].tone" dot>
               {{ DECODE_LABELS[result.formats[format].status].label }}
             </Badge>
+            <span v-if="result.formats[format].derived_from" class="text-xs text-faint">
+              Same design as the {{ result.formats[format].derived_from.toUpperCase() }}
+            </span>
           </li>
         </ul>
         <template v-for="format in FORMATS" :key="`${format}-detail`">
@@ -102,6 +121,14 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
           <dd class="tabular-nums text-foreground">
             {{ result.summary.size }} px · {{ result.summary.modules }} modules · {{ result.summary.module_pixels }} px
             per module
+          </dd>
+          <dt class="text-faint">Print</dt>
+          <dd class="tabular-nums text-foreground">
+            <template v-if="result.summary.module_mm !== null">
+              {{ result.summary.print_width_mm }} mm wide · {{ result.summary.module_mm }} mm per module.
+            </template>
+            Guide: at least {{ result.summary.min_print_width_mm }} mm wide ({{ result.summary.min_module_mm }} mm per
+            module), more for scanning from a distance.
           </dd>
           <dt class="text-faint">Quiet zone</dt>
           <dd class="tabular-nums text-foreground">{{ result.summary.quiet_zone }} modules</dd>

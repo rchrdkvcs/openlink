@@ -22,7 +22,7 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode] = $this->linkWithQrCode();
 
         $response = $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'style' => 'dot', 'eye_style' => 'circle']))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'style' => 'dot', 'eye_style' => 'circle'])
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private');
 
@@ -32,6 +32,7 @@ class QrCodeReadabilityTest extends TestCase
             ->assertJsonPath('formats.png.decoded', $entryUrl)
             ->assertJsonPath('formats.svg.status', 'readable')
             ->assertJsonPath('formats.svg.decoded', $entryUrl)
+            ->assertJsonPath('formats.svg.derived_from', 'png')
             ->assertJsonPath('warnings', [])
             ->assertJsonPath('summary.encoded_content', $entryUrl)
             ->assertJsonPath('summary.is_direct', false)
@@ -48,7 +49,7 @@ class QrCodeReadabilityTest extends TestCase
         $qrCode = $this->directQrCode($workspace, 'text', ['text' => $text]);
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512])
             ->assertOk()
             ->assertJsonPath('formats.png.status', 'readable')
             ->assertJsonPath('formats.png.decoded', $text)
@@ -67,7 +68,7 @@ class QrCodeReadabilityTest extends TestCase
         $expected = app(QrCodeContent::class)->normalize('wifi', $wifi);
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'payload_type' => 'wifi', 'payload' => $wifi]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'payload_type' => 'wifi', 'payload' => $wifi])
             ->assertOk()
             ->assertJsonPath('summary.encoded_content', $expected)
             ->assertJsonPath('formats.png.decoded', $expected)
@@ -81,14 +82,14 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode] = $this->linkWithQrCode();
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'foreground_color' => '#d1d5db', 'background_color' => '#ffffff']))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'foreground_color' => '#d1d5db', 'background_color' => '#ffffff'])
             ->assertOk()
             ->assertJsonPath('warnings.0.code', 'low_contrast')
             ->assertJsonPath('warnings.0.severity', 'warning')
             ->assertJsonPath('summary.contrast', 1.47);
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'foreground_color' => '#ffffff', 'background_color' => '#ffffff']))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'foreground_color' => '#ffffff', 'background_color' => '#ffffff'])
             ->assertOk()
             ->assertJsonPath('formats.png.status', 'unreadable')
             ->assertJsonPath('formats.png.decoded', null)
@@ -100,7 +101,7 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode] = $this->linkWithQrCode();
 
         $codes = $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'foreground_color' => '#ffffff', 'background_color' => '#111827']))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'foreground_color' => '#ffffff', 'background_color' => '#111827'])
             ->assertOk()
             ->json('warnings.*.code');
 
@@ -112,14 +113,16 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode] = $this->linkWithQrCode();
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'margin' => 0]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'margin' => 0])
             ->assertOk()
+            ->assertJsonPath('formats.png.status', 'readable')
+            ->assertJsonPath('formats.svg.status', 'readable')
             ->assertJsonPath('warnings.0.code', 'quiet_zone')
             ->assertJsonPath('warnings.0.severity', 'warning')
             ->assertJsonPath('summary.quiet_zone', 0);
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'margin' => 1]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'margin' => 1])
             ->assertOk()
             ->assertJsonPath('warnings.0.severity', 'notice');
     }
@@ -130,7 +133,7 @@ class QrCodeReadabilityTest extends TestCase
         $qrCode = $this->directQrCode($workspace, 'text', ['text' => str_repeat('Long native payload ', 20)]);
 
         $response = $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 128]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 128])
             ->assertOk()
             ->assertJsonPath('warnings.0.code', 'small_modules');
 
@@ -142,7 +145,7 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode] = $this->linkWithQrCode();
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'background_transparent' => 1]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'background_transparent' => 1])
             ->assertOk()
             ->assertJsonPath('warnings.0.code', 'transparent_background')
             ->assertJsonPath('warnings.0.severity', 'notice')
@@ -159,7 +162,7 @@ class QrCodeReadabilityTest extends TestCase
         $qrCode->update(['logo_path' => 'qr-logos/logo.png']);
 
         $readable = $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512])
             ->assertOk();
         $readable->assertJsonPath('warnings', [])
             ->assertJsonPath('summary.error_correction', 'quartile')
@@ -167,14 +170,14 @@ class QrCodeReadabilityTest extends TestCase
             ->assertJsonPath('formats.svg.status', 'readable');
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'margin' => 16]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'margin' => 16])
             ->assertOk()
             ->assertJsonPath('warnings.0.code', 'logo_obstruction')
             ->assertJsonPath('formats.png.status', 'unreadable')
             ->assertJsonPath('formats.svg.status', 'unreadable');
 
         $message = $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512, 'margin' => 16, 'error_correction' => 'high']))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'margin' => 16, 'error_correction' => 'high'])
             ->assertOk()
             ->assertJsonPath('warnings.0.code', 'logo_obstruction')
             ->json('warnings.0.message');
@@ -193,7 +196,7 @@ class QrCodeReadabilityTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->getJson($this->checkUrl($qrCode, ['size' => 512]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512])
             ->assertOk()
             ->assertJsonPath('summary.short_link.status', 'expired')
             ->assertJsonPath('summary.short_link.visit_limit', 10)
@@ -207,7 +210,7 @@ class QrCodeReadabilityTest extends TestCase
         [, , $user, $qrCode, $link] = $this->linkWithQrCode();
         $link->update(['visit_limit' => 1, 'successful_visits' => 0]);
 
-        $this->actingAs($user)->getJson($this->checkUrl($qrCode, ['size' => 512]))->assertOk();
+        $this->actingAs($user)->postJson(route('qr-codes.readability', $qrCode), ['size' => 512])->assertOk();
 
         $this->assertSame(0, $link->fresh()->successful_visits);
         $this->assertDatabaseCount('analytics_events', 0);
@@ -219,15 +222,56 @@ class QrCodeReadabilityTest extends TestCase
         $viewer = $this->memberOf($workspace, WorkspaceMember::ROLE_VIEWER);
 
         $this->actingInWorkspace($viewer, $workspace)
-            ->getJson($this->checkUrl($qrCode, ['size' => 256]))
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 256])
             ->assertOk();
 
         $outsider = User::factory()->create();
         $this->workspaceFor($outsider, 'Other', 'other', WorkspaceMember::ROLE_OWNER);
-        $this->actingAs($outsider)->getJson($this->checkUrl($qrCode, ['size' => 256]))->assertForbidden();
+        $this->actingAs($outsider)->postJson(route('qr-codes.readability', $qrCode), ['size' => 256])->assertForbidden();
+        $status = $this->actingInWorkspace($outsider, $outsider->workspaces()->firstOrFail())
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 256])
+            ->status();
+        $this->assertContains($status, [403, 404]);
 
         auth()->logout();
-        $this->get($this->checkUrl($qrCode, ['size' => 256]))->assertRedirect(route('login'));
+        $this->post(route('qr-codes.readability', $qrCode), ['size' => 256])->assertRedirect(route('login'));
+    }
+
+    public function test_print_width_turns_module_size_into_print_guidance(): void
+    {
+        [, , $user, $qrCode] = $this->linkWithQrCode();
+
+        $response = $this->actingAs($user)
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'print_width_mm' => 8])
+            ->assertOk()
+            ->assertJsonPath('warnings.0.code', 'small_print_modules')
+            ->assertJsonPath('summary.print_width_mm', 8)
+            ->assertJsonPath('summary.min_module_mm', 0.4)
+            ->assertJsonPath('summary.min_module_pixels', 4);
+
+        $totalModules = $response->json('summary.modules') + 2 * $response->json('summary.quiet_zone');
+        $this->assertSame(round(8 / $totalModules, 2), $response->json('summary.module_mm'));
+        $this->assertSame((int) ceil($totalModules * 0.4), $response->json('summary.min_print_width_mm'));
+
+        $this->actingAs($user)
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512, 'print_width_mm' => 40])
+            ->assertOk()
+            ->assertJsonPath('warnings', []);
+
+        $this->actingAs($user)
+            ->postJson(route('qr-codes.readability', $qrCode), ['size' => 512])
+            ->assertOk()
+            ->assertJsonPath('summary.module_mm', null);
+    }
+
+    public function test_drafts_are_only_accepted_in_the_request_body(): void
+    {
+        [$workspace, , $user] = $this->linkWithQrCode();
+        $qrCode = $this->directQrCode($workspace, 'text', ['text' => 'Saved']);
+
+        $this->actingAs($user)
+            ->get(route('qr-codes.readability', $qrCode).'?'.http_build_query(['payload_type' => 'wifi', 'payload' => ['ssid' => 'Lobby', 'password' => 'secret']]))
+            ->assertNotFound();
     }
 
     public function test_invalid_export_settings_and_payloads_are_rejected(): void
@@ -235,17 +279,13 @@ class QrCodeReadabilityTest extends TestCase
         [$workspace, , $user, $qrCode] = $this->linkWithQrCode();
         $direct = $this->directQrCode($workspace, 'text', ['text' => 'Saved']);
 
-        $this->actingAs($user)->getJson($this->checkUrl($qrCode, ['size' => 64]))->assertUnprocessable()->assertJsonValidationErrors('size');
-        $this->actingAs($user)->getJson($this->checkUrl($qrCode, ['size' => 9000]))->assertUnprocessable();
-        $this->actingAs($user)->getJson($this->checkUrl($qrCode, ['foreground_color' => 'red']))->assertUnprocessable();
+        $this->actingAs($user)->postJson(route('qr-codes.readability', $qrCode), ['size' => 64])->assertUnprocessable()->assertJsonValidationErrors('size');
+        $this->actingAs($user)->postJson(route('qr-codes.readability', $qrCode), ['size' => 9000])->assertUnprocessable();
+        $this->actingAs($user)->postJson(route('qr-codes.readability', $qrCode), ['foreground_color' => 'red'])->assertUnprocessable();
+        $this->actingAs($user)->postJson(route('qr-codes.readability', $qrCode), ['print_width_mm' => 1])->assertUnprocessable()->assertJsonValidationErrors('print_width_mm');
         $this->actingAs($user)
-            ->getJson($this->checkUrl($direct, ['payload_type' => 'url', 'payload' => ['url' => 'not a url']]))
+            ->postJson(route('qr-codes.readability', $direct), ['payload_type' => 'url', 'payload' => ['url' => 'not a url']])
             ->assertUnprocessable();
-    }
-
-    private function checkUrl(QrCode $qrCode, array $query): string
-    {
-        return route('qr-codes.readability', $qrCode).'?'.http_build_query($query);
     }
 
     private function directQrCode(Workspace $workspace, string $type, array $payload): QrCode

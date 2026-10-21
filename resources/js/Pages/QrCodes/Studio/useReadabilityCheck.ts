@@ -2,10 +2,10 @@ import { computed, ref, shallowRef, type Ref } from 'vue';
 
 import { fetchJson, HttpError } from '@/lib/http';
 
-import type { ReadabilityResult } from '../qrReadability';
+import type { ReadabilityRequest, ReadabilityResult } from '../qrReadability';
 import { createLatestOnly } from '../useShortLinkSearch';
 
-export type ReadabilityFetcher = (url: string) => Promise<ReadabilityResult>;
+export type ReadabilityFetcher = (request: ReadabilityRequest) => Promise<ReadabilityResult>;
 
 export type ReadabilityState =
   | { status: 'blocked'; reason: string }
@@ -15,7 +15,11 @@ export type ReadabilityState =
   | { status: 'failed'; message: string }
   | { status: 'ready'; result: ReadabilityResult };
 
-type Settled = { url: string; result: ReadabilityResult } | { url: string; message: string };
+type Settled = { key: string; result: ReadabilityResult } | { key: string; message: string };
+
+export function postReadability(request: ReadabilityRequest): Promise<ReadabilityResult> {
+  return fetchJson<ReadabilityResult>(request.url, { method: 'POST', body: JSON.stringify(request.body) });
+}
 
 export function failureMessage(error: unknown): string {
   if (error instanceof HttpError && error.status === 422) {
@@ -28,40 +32,43 @@ export function failureMessage(error: unknown): string {
 }
 
 export function useReadabilityCheck(
-  url: Ref<string>,
+  request: Ref<ReadabilityRequest>,
   blocked: Ref<string | null>,
-  fetcher: ReadabilityFetcher = (target) => fetchJson<ReadabilityResult>(target),
+  fetcher: ReadabilityFetcher = postReadability,
 ) {
+  const key = computed(() => JSON.stringify(request.value));
   const settled = shallowRef<Settled | null>(null);
-  const pendingUrl = ref<string | null>(null);
+  const pendingKey = ref<string | null>(null);
   const requests = createLatestOnly();
 
   const state = computed<ReadabilityState>(() => {
     if (blocked.value) return { status: 'blocked', reason: blocked.value };
-    if (pendingUrl.value === url.value) return { status: 'checking' };
+    if (pendingKey.value === key.value) return { status: 'checking' };
 
     const last = settled.value;
     if (!last) return { status: 'idle' };
-    if ('message' in last)
-      return last.url === url.value ? { status: 'failed', message: last.message } : { status: 'idle' };
+    if ('message' in last) {
+      return last.key === key.value ? { status: 'failed', message: last.message } : { status: 'idle' };
+    }
 
-    return last.url === url.value ? { status: 'ready', result: last.result } : { status: 'stale', result: last.result };
+    return last.key === key.value ? { status: 'ready', result: last.result } : { status: 'stale', result: last.result };
   });
 
   async function check() {
     if (blocked.value) return;
 
-    const target = url.value;
-    const request = requests.next();
-    pendingUrl.value = target;
+    const target = request.value;
+    const targetKey = key.value;
+    const sequence = requests.next();
+    pendingKey.value = targetKey;
 
     try {
       const result = await fetcher(target);
-      if (requests.isLatest(request)) settled.value = { url: target, result };
+      if (requests.isLatest(sequence)) settled.value = { key: targetKey, result };
     } catch (error) {
-      if (requests.isLatest(request)) settled.value = { url: target, message: failureMessage(error) };
+      if (requests.isLatest(sequence)) settled.value = { key: targetKey, message: failureMessage(error) };
     } finally {
-      if (requests.isLatest(request)) pendingUrl.value = null;
+      if (requests.isLatest(sequence)) pendingKey.value = null;
     }
   }
 

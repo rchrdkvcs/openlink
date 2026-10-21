@@ -1,12 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialEditorFields } from './qrForm';
 import {
   blockedReason,
   exportSizeFor,
-  isFixable,
+  hasFixes,
   printRestrictions,
-  readabilityQuery,
+  readabilityBody,
+  readabilityRequest,
   readableFixes,
   type ReadabilitySummary,
   type ReadabilityWarning,
@@ -61,44 +62,51 @@ const linkSummary: ReadabilitySummary['short_link'] = {
   has_password: false,
 };
 
-describe('readabilityQuery', () => {
-  it('sends the export size, the draft appearance, and the native payload with boolean flags', () => {
-    const query = readabilityQuery(initialEditorFields(direct, descriptors), 2048, 3);
+beforeAll(() => {
+  vi.stubGlobal('route', (name: string, token: string) => `/qr-codes/${token}/${name.split('.').pop()}`);
+});
 
-    expect(query).toEqual({
+describe('readabilityBody', () => {
+  it('sends the export size, print width, draft appearance, and native payload in the request body', () => {
+    const body = readabilityBody(initialEditorFields(direct, descriptors), 2048, 30);
+
+    expect(body).toEqual({
       size: 2048,
+      print_width_mm: 30,
       foreground_color: '#111827',
       background_color: '#ffffff',
       margin: 2,
       error_correction: 'medium',
       style: 'dot',
       eye_style: 'circle',
-      background_transparent: 0,
+      background_transparent: false,
       payload_type: 'wifi',
-      'payload[ssid]': 'Café',
-      'payload[encryption]': 'WPA',
-      'payload[password]': '',
-      'payload[hidden]': 1,
-      v: 3,
+      payload: { ssid: 'Café', encryption: 'WPA', password: null, hidden: true },
     });
   });
 
   it('omits the payload for linked QR codes, which are checked against their stable entry URL', () => {
-    const query = readabilityQuery(initialEditorFields(linked, descriptors), 1024, 0);
+    const body = readabilityBody(initialEditorFields(linked, descriptors), 1024, null);
 
-    expect(Object.keys(query).some((key) => key.startsWith('payload'))).toBe(false);
+    expect(body).not.toHaveProperty('payload');
+    expect(body).not.toHaveProperty('payload_type');
   });
+});
 
-  it('changes whenever the payload, design, export size, or saved logo version changes', () => {
+describe('readabilityRequest', () => {
+  it('keeps the draft out of the URL and changes whenever the payload, design, size, or saved logo changes', () => {
     const fields = initialEditorFields(direct, descriptors);
-    const base = JSON.stringify(readabilityQuery(fields, 1024, 0));
+    const key = (request: ReturnType<typeof readabilityRequest>) => JSON.stringify(request);
+    const base = readabilityRequest('abc', fields, 1024, null, 0);
 
+    expect(base.url).toBe('/qr-codes/abc/readability');
     expect(
-      JSON.stringify(readabilityQuery({ ...fields, payload: { ...fields.payload, ssid: 'Other' } }, 1024, 0)),
-    ).not.toBe(base);
-    expect(JSON.stringify(readabilityQuery({ ...fields, margin: 0 }, 1024, 0))).not.toBe(base);
-    expect(JSON.stringify(readabilityQuery(fields, 2048, 0))).not.toBe(base);
-    expect(JSON.stringify(readabilityQuery(fields, 1024, 1))).not.toBe(base);
+      key(readabilityRequest('abc', { ...fields, payload: { ...fields.payload, ssid: 'Other' } }, 1024, null, 0)),
+    ).not.toBe(key(base));
+    expect(key(readabilityRequest('abc', { ...fields, margin: 0 }, 1024, null, 0))).not.toBe(key(base));
+    expect(key(readabilityRequest('abc', fields, 2048, null, 0))).not.toBe(key(base));
+    expect(key(readabilityRequest('abc', fields, 1024, 40, 0))).not.toBe(key(base));
+    expect(key(readabilityRequest('abc', fields, 1024, null, 1))).not.toBe(key(base));
   });
 });
 
@@ -115,39 +123,65 @@ describe('blockedReason', () => {
 });
 
 describe('readableFixes', () => {
-  it('only proposes fixes for actionable warnings', () => {
-    expect(isFixable([warning('transparent_background', 'notice')])).toBe(false);
-    expect(isFixable([warning('quiet_zone', 'notice')])).toBe(false);
-    expect(isFixable([warning('low_contrast')])).toBe(true);
+  const draft = { margin: 2, error_correction: 'medium', foreground_color: '#111827', background_color: '#ffffff' };
+  const summary = { modules: 25, min_module_pixels: 4 };
+
+  it('ignores notice-level guidance', () => {
+    const fixes = readableFixes(
+      [warning('transparent_background', 'notice'), warning('low_contrast', 'notice'), warning('quiet_zone', 'notice')],
+      { ...draft, margin: 1, foreground_color: '#9ca3af' },
+      1024,
+      summary,
+    );
+
+    expect(fixes).toEqual({ appearance: {} });
+    expect(hasFixes(fixes)).toBe(false);
   });
 
-  it('leaves notice-level guidance untouched', () => {
+  it('restores readable colors and quiet zone', () => {
     expect(
       readableFixes(
-        [warning('low_contrast', 'notice'), warning('quiet_zone', 'notice'), warning('small_modules')],
-        { margin: 1 },
-        { modules: 25 },
+        [warning('low_contrast'), warning('quiet_zone')],
+        { ...draft, margin: 0, foreground_color: '#d1d5db' },
+        1024,
+        summary,
       ),
-    ).toEqual({ appearance: {}, exportSize: 512 });
+    ).toEqual({ appearance: { foreground_color: '#111827', margin: 4 } });
   });
 
-  it('restores readable colors, quiet zone, error correction, and export size', () => {
-    expect(readableFixes([warning('low_contrast'), warning('quiet_zone')], { margin: 0 }, { modules: 25 })).toEqual({
-      appearance: { foreground_color: '#111827', background_color: '#ffffff', margin: 4 },
-    });
-    expect(readableFixes([warning('logo_obstruction')], { margin: 16 }, { modules: 25 })).toEqual({
+  it('raises error correction and trims the margin for logo obstruction', () => {
+    expect(readableFixes([warning('logo_obstruction')], { ...draft, margin: 16 }, 1024, summary)).toEqual({
       appearance: { error_correction: 'high', margin: 4 },
     });
-    expect(readableFixes([warning('small_modules')], { margin: 2 }, { modules: 177 })).toEqual({
+  });
+
+  it('offers no logo fix when the draft already uses its readable settings', () => {
+    const fixes = readableFixes(
+      [warning('logo_obstruction')],
+      { ...draft, error_correction: 'high', margin: 2 },
+      1024,
+      summary,
+    );
+
+    expect(fixes).toEqual({ appearance: {} });
+    expect(hasFixes(fixes)).toBe(false);
+  });
+
+  it('suggests a larger export size only when one exists', () => {
+    expect(readableFixes([warning('small_modules')], draft, 128, { modules: 177, min_module_pixels: 4 })).toEqual({
       appearance: {},
       exportSize: 1024,
     });
+    expect(
+      hasFixes(readableFixes([warning('small_modules')], draft, 4096, { modules: 2000, min_module_pixels: 4 })),
+    ).toBe(false);
   });
 
-  it('picks the smallest export size that keeps modules at least 4 px', () => {
-    expect(exportSizeFor(29)).toBe(512);
-    expect(exportSizeFor(181)).toBe(1024);
-    expect(exportSizeFor(5000)).toBe(4096);
+  it('picks the smallest export size that meets the module threshold from the server', () => {
+    expect(exportSizeFor(29, 4)).toBe(512);
+    expect(exportSizeFor(181, 4)).toBe(1024);
+    expect(exportSizeFor(181, 6)).toBe(2048);
+    expect(exportSizeFor(5000, 4)).toBe(4096);
   });
 });
 

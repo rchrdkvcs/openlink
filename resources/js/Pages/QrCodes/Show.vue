@@ -12,7 +12,7 @@ import { useSaveShortcut } from '@/lib/useSaveShortcut';
 
 import { studioDescription, targetLabel } from './qrLabels';
 import { PANELS } from './qrPanels';
-import { blockedReason, readabilityUrl, readableFixes } from './qrReadability';
+import { blockedReason, hasFixes, readabilityRequest, readableFixes } from './qrReadability';
 import AdvancedPanel from './Studio/AdvancedPanel.vue';
 import ContentPanel from './Studio/ContentPanel.vue';
 import QrCodeActions from './Studio/QrCodeActions.vue';
@@ -50,21 +50,30 @@ const {
 
 const exportSize = ref(props.qr.size);
 
+const printWidth = ref<number | null>(null);
+
 const { state: readability, check: checkReadability } = useReadabilityCheck(
-  computed(() => readabilityUrl(props.qr.token, form, exportSize.value, previewVersion.value)),
+  computed(() => readabilityRequest(props.qr.token, form, exportSize.value, printWidth.value, previewVersion.value)),
   computed(() => blockedReason(form, props.qr)),
 );
 
-function applyReadableFixes() {
-  if (readability.value.status !== 'ready') return;
+const fixes = computed(() =>
+  readability.value.status === 'ready'
+    ? readableFixes(readability.value.result.warnings, form, exportSize.value, readability.value.result.summary)
+    : null,
+);
 
-  const { warnings, summary } = readability.value.result;
-  const fixes = readableFixes(warnings, form, summary);
-  Object.assign(form, fixes.appearance);
-  if (fixes.exportSize) exportSize.value = fixes.exportSize;
+const canFix = computed(() => canEdit.value && fixes.value !== null && hasFixes(fixes.value));
+
+function applyReadableFixes() {
+  if (!fixes.value || !hasFixes(fixes.value)) return;
+
+  const { appearance, exportSize: size } = fixes.value;
+  Object.assign(form, appearance);
+  if (size) exportSize.value = size;
   toast({
-    title: 'Readable settings applied to the draft',
-    description: 'Review the preview, then save to keep them.',
+    title: 'Draft updated with readable settings',
+    description: 'Check again to confirm, then save to keep them.',
   });
 }
 
@@ -116,8 +125,9 @@ useSaveShortcut(() => {
             />
             <ReadabilityCheck
               :state="readability"
+              v-model:print-width="printWidth"
               :export-size="exportSize"
-              :can-edit="canEdit"
+              :can-fix="canFix"
               @check="checkReadability"
               @apply-fixes="applyReadableFixes"
             />

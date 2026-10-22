@@ -69,17 +69,20 @@ class DestinationChecks
             return $check;
         }
 
+        $generation = (string) Str::uuid();
         $queued = DestinationCheck::query()
             ->whereKey($check->id)
             ->where('generation', $check->generation)
-            ->update(['requested_at' => now(), 'started_at' => null, 'execution_state' => 'queued', 'generation' => (string) Str::uuid()]);
+            ->where('execution_state', $check->execution_state)
+            ->where('started_at', $check->started_at)
+            ->update(['requested_at' => now(), 'started_at' => null, 'execution_state' => 'queued', 'generation' => $generation]);
         $check->refresh();
 
         if (! $queued) {
             return $check;
         }
 
-        $job = CheckDestination::for($check);
+        $job = new CheckDestination($check->id, $check->host(), $generation);
 
         try {
             dispatch($job);
@@ -136,6 +139,7 @@ class DestinationChecks
             ->whereKey($check->id)
             ->where('generation', $check->generation)
             ->where('execution_state', 'running')
+            ->where('started_at', $check->started_at)
             ->update($attributes);
         $check->refresh();
 
@@ -189,22 +193,25 @@ class DestinationChecks
         return DestinationCheck::query()
             ->referenced()
             ->where(fn (Builder $query) => $query
-                ->whereNotIn('execution_state', ['queued', 'running'])
-                ->orWhere(fn (Builder $legacy) => $legacy
-                    ->whereNull('execution_state')
-                    ->where(fn (Builder $requested) => $requested
-                        ->whereNull('requested_at')
-                        ->orWhereColumn('requested_at', '<=', 'checked_at'))))
-            ->where(fn (Builder $query) => $query
-                ->whereNull('checked_at')
-                ->orWhere('checked_at', '<=', now()->subHours(self::RECHECK_AFTER_HOURS))
-                ->orWhere(fn (Builder $query) => $query
-                    ->whereNotNull('incident_opened_at')
-                    ->where('checked_at', '<=', now()->subMinutes(self::INCIDENT_RECHECK_AFTER_MINUTES)))
-                ->orWhere(fn (Builder $query) => $query
-                    ->where('consecutive_failures', '>', 0)
-                    ->whereNull('incident_opened_at')
-                    ->where('checked_at', '<=', now()->subMinutes(self::CONFIRM_AFTER_MINUTES))))
+                ->where(fn (Builder $ready) => $ready
+                    ->where(fn (Builder $state) => $state
+                        ->whereNotIn('execution_state', ['queued', 'running'])
+                        ->orWhere(fn (Builder $legacy) => $legacy
+                            ->whereNull('execution_state')
+                            ->where(fn (Builder $requested) => $requested
+                                ->whereNull('requested_at')
+                                ->orWhereColumn('requested_at', '<=', 'checked_at'))))
+                    ->where(fn (Builder $age) => $age
+                        ->whereNull('checked_at')
+                        ->orWhere('checked_at', '<=', now()->subHours(self::RECHECK_AFTER_HOURS))
+                        ->orWhere(fn (Builder $incident) => $incident
+                            ->whereNotNull('incident_opened_at')
+                            ->where('checked_at', '<=', now()->subMinutes(self::INCIDENT_RECHECK_AFTER_MINUTES)))
+                        ->orWhere(fn (Builder $confirming) => $confirming
+                            ->where('consecutive_failures', '>', 0)
+                            ->whereNull('incident_opened_at')
+                            ->where('checked_at', '<=', now()->subMinutes(self::CONFIRM_AFTER_MINUTES)))))
+                ->orWhere(fn (Builder $abandoned) => $abandoned->abandoned()))
             ->orderByRaw('checked_at asc nulls first')
             ->orderBy('id')
             ->limit($limit)

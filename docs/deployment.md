@@ -144,11 +144,19 @@ callbacks cannot overwrite the replacement. This also recovers pre-upgrade
 pending rows whose original job is missing. Repeated replacements can delay
 completion on a busy queue, so first verify that a worker is running.
 
+When Destination Monitoring is enabled, the scheduler also replaces abandoned
+queued requests after 32 minutes, beyond their 30-minute queue retry window,
+and running requests whose lease has expired. Recovery uses the same generation
+and execution-state comparison as manual retry, including when the previous
+health result is recent. Valid queued backlogs and active running leases are
+preserved. Recovery runs at the next monitoring tick, every fifteen minutes.
+
 Running has a 120-second lease, longer than the job timeout. If a worker is killed
 without reporting failure, the dashboard treats the expired lease as a failed
 execution and offers **Check now** again. The previous health is preserved;
-an expired lease never claims a successful probe. A restarted worker can also
-retry its reserved job normally until a user replaces its generation.
+an expired lease never claims a successful probe. A redelivered job waits for an active lease to expire, then queues a fresh
+generation before probing. Redelivery of a Completed or Failed generation does
+nothing, so a lost queue acknowledgement cannot count one check twice.
 
 Jobs time out after 90 seconds and report timeout failures. The Redis and
 database queue reservation defaults are 120 seconds, longer than that timeout;

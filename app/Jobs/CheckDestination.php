@@ -67,9 +67,20 @@ class CheckDestination implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
+        if ($check->execution_state === 'running') {
+            if ($check->isPending()) {
+                $this->release($check->started_at->copy()->addSeconds(DestinationCheck::RUNNING_LEASE_SECONDS));
+            } else {
+                $checks->queue($check);
+            }
+
+            return;
+        }
+
         $started = DestinationCheck::query()
             ->whereKey($check->id)
             ->where('generation', $this->generation ?? null)
+            ->awaitingProbe()
             ->update(['execution_state' => 'running', 'started_at' => now()]);
 
         if (! $started) {

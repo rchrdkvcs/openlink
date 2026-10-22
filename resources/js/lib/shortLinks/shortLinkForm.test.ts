@@ -146,11 +146,13 @@ describe('Link Preview image payloads', () => {
     expect(toPayload({ ...form, remove_preview_image: true })).toHaveProperty('remove_preview_image', true);
   });
 
-  it('spoofs PATCH and keeps cleared Routing Rules when an image is staged', () => {
+  it('spoofs PATCH when an image is staged and leaves Routing Rules to the routing editor', () => {
     const form = { ...toForm(link()), preview_image: file };
+    const payload = toPayload(form);
 
     expect(needsMultipart(form)).toBe(true);
-    expect(toPayload(form)).toMatchObject({ _method: 'patch', preview_image: file, routing_rules: '' });
+    expect(payload).toMatchObject({ _method: 'patch', preview_image: file });
+    expect(payload).not.toHaveProperty('routing_rules');
   });
 });
 

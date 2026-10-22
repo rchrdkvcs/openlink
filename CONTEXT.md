@@ -176,6 +176,18 @@ _Avoid_: System settings, global admin
 A user who administers the whole Openlink installation.
 _Avoid_: Super admin, system admin
 
+**Instance Diagnostics**:
+The read-only part of the Instance Admin Panel that reports whether the services an Openlink installation depends on are reachable, configured, and running. Instance Diagnostics never restart services, run commands, or change deployment configuration.
+_Avoid_: Health check, status page, monitoring
+
+**Heartbeat**:
+A timestamp that a running scheduler or queue worker records on a fixed cadence to prove it is alive. A heartbeat is fresh until it is older than three cadences and stale afterwards; a service that never recorded one is missing.
+_Avoid_: Ping, liveness probe
+
+**Check State**:
+The outcome of one Instance Diagnostics check: Healthy, Stale, Missing, Unavailable, Disabled when the installation does not use the service, or Not configured when the service is needed but has no usable configuration.
+_Avoid_: Status, health
+
 **Workspace Settings**:
 The settings that affect one workspace and the links, domains, members, and defaults inside it.
 _Avoid_: Account settings, organisation settings

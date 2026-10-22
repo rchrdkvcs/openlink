@@ -33,6 +33,53 @@ reverse proxy so it can resolve short links.
 Keep `APP_DEBUG=false` in production. Do not commit `.env` files or place
 infrastructure credentials in instance settings.
 
+## Diagnostics
+
+Instance administrators can open **Settings → Diagnostics** to see whether
+PostgreSQL, Redis, the queue worker, the scheduler, mail configuration, storage,
+and analytics recording are working. The screen is read-only: it never restarts
+services, runs commands, or changes deployment configuration. It complements the
+public `/up` endpoint, which stays a lightweight liveness check.
+
+Each check reports one state:
+
+- **Healthy**: the service answered or reported a fresh heartbeat.
+- **Stale**: the service reported a heartbeat, but it is too old.
+- **Missing**: the service never reported a heartbeat, or the check has not
+  run yet.
+- **Unavailable**: Openlink could not reach the service.
+- **Disabled**: this installation does not use or require the service.
+- **Not configured**: the service is needed but its configuration is unusable.
+
+The scheduler and queue worker prove they are running by recording heartbeats
+in PostgreSQL. The scheduler runs `openlink:heartbeat` and each queue worker
+records a heartbeat from its polling loop and around each job, both every
+`OPENLINK_HEARTBEAT_MINUTES` minutes (default `1`, at most `30`). A heartbeat is
+fresh until it is older than three cadences (three minutes by default) and stale
+afterwards. A stopped worker is therefore detected even while Redis is healthy,
+and a stopped scheduler even while a worker is healthy. A single job that runs
+longer than the stale threshold makes the worker look stale until it finishes;
+keep worker job timeouts below three cadences. When `QUEUE_CONNECTION=sync`, no
+worker is used and the worker check is disabled.
+
+Analytics are recorded after the response by default and need no worker. With
+`OPENLINK_ANALYTICS_VIA_QUEUE=true`, visits and scans wait in the queue until a
+worker records them; this is currently the only feature that requires a worker.
+When no feature requires a worker, a missing or stale worker is reported as
+disabled rather than as a problem.
+
+PostgreSQL, Redis, and storage are probed only when an administrator selects
+**Recheck**, never when the page is opened. The PostgreSQL and Redis probes use
+dedicated connections with two-second connect and query timeouts; PostgreSQL may
+retry a lost connection once. Only a local default storage disk is probed; a
+remote disk is reported as disabled. Rechecks are limited to
+six per minute and test emails to three every ten minutes per administrator.
+The mail check only reports whether a transport is configured; SMTP needs
+`MAIL_HOST` or `MAIL_URL`. A test email is
+sent to the administrator's own address with a ten-second transport timeout; a successful send means the mail server
+accepted it, not that it reached the inbox. Failure details are written to the
+application log and are never shown on the screen.
+
 ## Release deployment
 
 This repository currently uses Coolify for its hosted instance. Publishing the

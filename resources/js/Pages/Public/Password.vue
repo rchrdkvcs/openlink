@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { LockKeyhole } from '@lucide/vue';
+import { ArrowRight } from '@lucide/vue';
 
-import Input from '@/Components/ui/Input.vue';
+import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
+import StateArt from '@/Components/PublicState/StateArt.vue';
+import Button from '@/Components/ui/Button.vue';
+import PasswordInput from '@/Components/ui/PasswordInput.vue';
 
 const props = defineProps<{
   shortLinkId: number;
@@ -24,32 +27,32 @@ function submit() {
 <template>
   <Head title="Protected link" />
 
-  <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.12),transparent_65%)]"
-    />
+  <PublicStateLayout
+    title="Protected link"
+    description="This link is password protected. Enter the visitor password to continue."
+    :tone="error ? 'danger' : 'accent'"
+  >
+    <template #art>
+      <StateArt scene="locked" :tone="error ? 'danger' : 'accent'" :alert="Boolean(error)" />
+    </template>
 
-    <section class="relative w-full max-w-sm animate-slide-up rounded-xl border bg-surface p-6">
-      <div class="mb-6 flex flex-col items-center gap-3 text-center">
-        <div class="grid h-11 w-11 place-items-center rounded-xl border bg-elevated text-muted">
-          <LockKeyhole class="h-5 w-5" />
-        </div>
-        <div>
-          <h1 class="text-lg font-semibold text-foreground">Protected link</h1>
-          <p class="mt-1 text-sm text-muted">Enter the visitor password to continue.</p>
-        </div>
-      </div>
-
-      <form class="grid gap-3" @submit.prevent="submit">
-        <Input v-model="form.password" type="password" autofocus size="lg" placeholder="Password" />
-        <p v-if="error" class="text-sm text-danger">{{ error }}</p>
-        <button
-          class="inline-flex h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors duration-150 hover:bg-foreground/85 disabled:pointer-events-none disabled:opacity-50"
-          :disabled="form.processing"
-        >
-          Continue
-        </button>
-      </form>
-    </section>
-  </main>
+    <form class="grid gap-3 text-left" @submit.prevent="submit">
+      <label for="visitor-password" class="sr-only">Password</label>
+      <PasswordInput
+        id="visitor-password"
+        v-model="form.password"
+        size="lg"
+        autofocus
+        autocomplete="current-password"
+        placeholder="Password"
+        :aria-invalid="Boolean(error)"
+        :aria-describedby="error ? 'visitor-password-error' : undefined"
+      />
+      <p v-if="error" id="visitor-password-error" role="alert" class="text-xs text-danger">{{ error }}</p>
+      <Button class="mt-1 w-full" size="lg" :loading="form.processing">
+        Continue
+        <ArrowRight v-if="!form.processing" />
+      </Button>
+    </form>
+  </PublicStateLayout>
 </template>

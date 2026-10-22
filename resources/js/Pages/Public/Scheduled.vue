@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { CalendarClock, Check } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+
+import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
+import StateArt from '@/Components/PublicState/StateArt.vue';
+import Badge from '@/Components/ui/Badge.vue';
 
 const props = defineProps<{
   shortUrl: string;
@@ -62,49 +65,48 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
 <template>
   <Head title="Coming soon" />
 
-  <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.12),transparent_65%)]"
-    />
+  <PublicStateLayout
+    :title="done ? 'This link is live' : 'This link isn’t live yet'"
+    :tone="done ? 'success' : 'accent'"
+    wide
+  >
+    <template #art>
+      <StateArt :scene="done ? 'ready' : 'scheduled'" :tone="done ? 'success' : 'accent'" />
+    </template>
 
-    <section class="relative w-full max-w-xl animate-slide-up text-center">
-      <div class="mx-auto mb-5 grid h-11 w-11 place-items-center rounded-xl border bg-elevated text-accent">
-        <CalendarClock class="h-5 w-5" />
-      </div>
+    <template #badge>
+      <Badge :variant="done ? 'success' : 'accent'">
+        <span class="h-1.5 w-1.5 rounded-full bg-current" :class="{ 'animate-pulse': !done }" />
+        {{ done ? 'Live' : 'Scheduled' }}
+      </Badge>
+    </template>
 
-      <span
-        class="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent"
-      >
-        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-        Scheduled
-      </span>
-
-      <h1 class="mt-3 text-xl font-semibold text-foreground">This link isn't live yet</h1>
-      <p class="mt-1.5 text-sm text-muted">
+    <template #description>
+      <template v-if="done">Redirecting you to the destination…</template>
+      <template v-else>
         <span class="font-medium text-foreground">{{ shortUrl }}</span> goes live in
-      </p>
+      </template>
+    </template>
 
-      <div v-if="!done" class="mt-8 flex items-stretch justify-center gap-2 sm:gap-3">
-        <div v-for="unit in units" :key="unit.label" class="w-20 rounded-xl border bg-surface py-4 sm:w-24 sm:py-5">
-          <span class="block overflow-hidden text-4xl font-semibold tabular-nums text-foreground sm:text-5xl">
-            <span :key="unit.value" class="digit block">{{ pad(unit.value) }}</span>
-          </span>
-          <span class="mt-1.5 block text-[11px] font-medium uppercase tracking-wider text-faint">{{ unit.label }}</span>
-        </div>
+    <div v-if="!done" class="flex items-stretch justify-center gap-2 sm:gap-3" role="timer" aria-live="off">
+      <div
+        v-for="unit in units"
+        :key="unit.label"
+        class="w-[4.5rem] rounded-xl border bg-surface/80 py-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur sm:w-24 sm:py-5"
+      >
+        <span
+          class="block overflow-hidden text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl"
+        >
+          <span :key="unit.value" class="digit block">{{ pad(unit.value) }}</span>
+        </span>
+        <span class="mt-1.5 block text-[11px] font-medium uppercase tracking-[0.08em] text-faint">{{
+          unit.label
+        }}</span>
       </div>
+    </div>
 
-      <div v-else class="mt-8 flex flex-col items-center gap-3">
-        <div class="grid h-14 w-14 place-items-center rounded-full bg-success/15 text-success">
-          <Check class="h-7 w-7" />
-        </div>
-        <p class="text-sm text-muted">The link is live — redirecting…</p>
-      </div>
-
-      <p v-if="!done" class="mt-8 text-[13px] text-faint">
-        Goes live {{ activationLabel }} · this page will redirect automatically.
-      </p>
-    </section>
-  </main>
+    <template v-if="!done" #footer> Goes live {{ activationLabel }} · this page will redirect automatically. </template>
+  </PublicStateLayout>
 </template>
 
 <style scoped>
@@ -121,6 +123,12 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digit {
+    animation: none !important;
   }
 }
 </style>

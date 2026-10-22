@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { QrCode } from '@lucide/vue';
 import { ref } from 'vue';
 
+import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
+import StateArt from '@/Components/PublicState/StateArt.vue';
+import Badge from '@/Components/ui/Badge.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import type { PayloadType } from '@/Pages/QrCodes/types';
 
@@ -27,22 +29,22 @@ async function copyContent() {
 <template>
   <Head :title="name" />
 
-  <main class="min-h-screen bg-background px-4 py-8 text-foreground">
-    <section class="mx-auto grid w-full max-w-2xl animate-slide-up gap-5">
-      <div class="text-center">
-        <div class="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl border bg-elevated text-muted">
-          <QrCode class="h-5 w-5" />
-        </div>
-        <p class="text-xs font-medium uppercase tracking-wide text-faint">{{ payloadTypeLabel }}</p>
-        <h1 class="mt-1 text-xl font-semibold tracking-tight">{{ name }}</h1>
-      </div>
+  <PublicStateLayout :title="name" tone="accent" wide>
+    <template #art>
+      <StateArt scene="payload" tone="accent" />
+    </template>
 
-      <section class="overflow-hidden rounded-lg border bg-surface">
+    <template #badge>
+      <Badge variant="accent">{{ payloadTypeLabel }}</Badge>
+    </template>
+
+    <div class="grid gap-4 text-left">
+      <section class="overflow-hidden rounded-xl border bg-surface/90 backdrop-blur">
         <div class="flex items-center justify-between gap-3 border-b px-4 py-3">
-          <p class="truncate text-sm font-medium text-foreground">Current payload</p>
+          <p class="truncate text-[13px] font-medium text-foreground">Current payload</p>
           <button
             type="button"
-            class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
+            class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium text-muted transition-colors hover:border-border-strong hover:text-foreground"
             @click="copyContent"
           >
             <CopyCheckIcon :copied="copied" />
@@ -50,14 +52,14 @@ async function copyContent() {
           </button>
         </div>
 
-        <pre class="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-sm text-muted">{{
-          content
-        }}</pre>
+        <pre
+          class="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-sm leading-relaxed text-muted"
+          >{{ content }}</pre>
       </section>
 
-      <p v-if="payloadType === 'wifi'" class="text-center text-sm text-muted">
+      <p v-if="payloadType === 'wifi'" class="text-center text-[13px] leading-relaxed text-faint">
         Copy this Wi-Fi payload into a QR scanner or network setup tool if your device does not apply it automatically.
       </p>
-    </section>
-  </main>
+    </div>
+  </PublicStateLayout>
 </template>

@@ -32,9 +32,9 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
 </script>
 
 <template>
-  <section class="mt-6 rounded-xl border bg-surface" aria-labelledby="readability-heading">
-    <header class="flex items-center gap-3 px-4 pb-3 pt-4">
-      <div class="min-w-0 flex-1">
+  <section class="min-w-0 rounded-xl border bg-surface" aria-labelledby="readability-heading">
+    <header class="flex flex-wrap items-start gap-3 px-4 pb-3 pt-4">
+      <div class="min-w-0 basis-full">
         <h2 id="readability-heading" class="text-sm font-medium text-foreground">Readability check</h2>
         <p class="text-xs text-faint">Decodes the PNG export at {{ exportSize }} px. The SVG draws the same design.</p>
       </div>
@@ -72,7 +72,7 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
 
       <div v-else-if="result" class="grid gap-4">
         <ul class="grid gap-1.5">
-          <li v-for="format in FORMATS" :key="format" class="flex items-center gap-3">
+          <li v-for="format in FORMATS" :key="format" class="flex flex-wrap items-center gap-3">
             <span class="w-10 text-xs font-medium uppercase text-faint">{{ format }}</span>
             <Badge :variant="DECODE_LABELS[result.formats[format].status].tone" dot>
               {{ DECODE_LABELS[result.formats[format].status].label }}
@@ -101,14 +101,14 @@ const hasRun = computed(() => ['ready', 'stale', 'failed'].includes(props.state.
             </span>
           </li>
         </ul>
-        <div v-if="canFix" class="flex items-center gap-3">
+        <div v-if="canFix" class="flex flex-wrap items-center gap-3">
           <Button size="sm" variant="secondary" type="button" @click="$emit('applyFixes')"
             >Use readable settings</Button
           >
           <span class="text-xs text-faint">Updates the draft only. Save to keep it.</span>
         </div>
 
-        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-xs">
           <dt class="text-faint">Encodes</dt>
           <dd class="whitespace-pre-wrap break-all font-mono text-foreground">{{ result.summary.encoded_content }}</dd>
           <template v-if="result.summary.short_link">

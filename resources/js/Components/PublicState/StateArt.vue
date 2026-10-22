@@ -12,155 +12,169 @@ const props = withDefaults(
   { tone: 'neutral', alert: false },
 );
 
-const id = useId();
-const fadeId = `${id}-fade`;
-const maskId = `${id}-mask`;
-const scanId = `${id}-scan`;
+const scanId = `${useId()}-scan`;
+
+const now = new Date();
+const secondsIntoMinute = now.getSeconds() + now.getMilliseconds() / 1000;
+const secondsIntoHour = now.getMinutes() * 60 + secondsIntoMinute;
+
+const clock = {
+  second: { transform: `rotate(${Math.floor(secondsIntoMinute) * 6}deg)`, animationDelay: `-${secondsIntoMinute}s` },
+  minute: { transform: `rotate(${secondsIntoHour * 0.1}deg)`, animationDelay: `-${secondsIntoHour}s` },
+  arc: { animationDelay: `-${secondsIntoMinute}s` },
+};
 
 const style = computed(() => ({ '--tone': stateToneColor[props.tone] }));
 
 const qrFinders = [
-  { x: 5.5, y: 5.5 },
-  { x: 19.5, y: 5.5 },
-  { x: 5.5, y: 19.5 },
+  { x: 12, y: 12 },
+  { x: 38, y: 12 },
+  { x: 12, y: 38 },
 ];
 
 const qrModules = [
-  [15, 6],
-  [15, 10],
-  [6, 15],
-  [10, 15],
-  [15, 15],
-  [19.5, 15],
-  [24, 15],
-  [19.5, 19.5],
-  [24, 19.5],
-  [15, 20],
-  [19.5, 24],
-  [24, 24],
-  [15, 24.5],
+  [31, 13],
+  [31, 21],
+  [13, 31],
+  [21, 31],
+  [31, 31],
+  [39, 31],
+  [47, 31],
+  [31, 39],
+  [39, 39],
+  [47, 39],
+  [31, 47],
+  [39, 47],
+  [47, 47],
 ];
 </script>
 
 <template>
-  <div class="state-art relative mx-auto grid h-40 w-40 place-items-center" :style="style" aria-hidden="true">
-    <svg viewBox="0 0 160 160" fill="none" class="state-orbit absolute inset-0 h-full w-full overflow-visible">
-      <defs>
-        <radialGradient :id="fadeId" cx="50%" cy="50%" r="50%">
-          <stop offset="55%" stop-color="white" stop-opacity="1" />
-          <stop offset="100%" stop-color="white" stop-opacity="0" />
-        </radialGradient>
-        <mask :id="maskId">
-          <rect width="160" height="160" :fill="`url(#${fadeId})`" />
-        </mask>
-      </defs>
-      <g :mask="`url(#${maskId})`">
-        <circle cx="80" cy="80" r="54" stroke="hsl(var(--border-strong))" />
-        <g class="origin-center animate-orbit-spin [transform-box:view-box]">
-          <circle cx="80" cy="80" r="72" stroke="hsl(var(--border-strong))" stroke-dasharray="2 6" />
-          <circle cx="152" cy="80" r="2" fill="hsl(var(--tone))" />
-          <circle cx="8" cy="80" r="1.25" fill="hsl(var(--muted))" />
+  <div class="state-art mx-auto h-[88px] w-[88px]" :style="style" aria-hidden="true">
+    <svg
+      :key="`${scene}-${alert}`"
+      viewBox="0 0 64 64"
+      class="state-glyph h-full w-full overflow-visible"
+      :class="{ 'is-alert': alert }"
+      fill="none"
+      stroke="hsl(var(--foreground) / 0.88)"
+      stroke-width="1.25"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <template v-if="scene === 'locked'">
+        <path class="lock-shackle" d="M23 29v-7a9 9 0 0 1 18 0v7" />
+        <rect x="16" y="29" width="32" height="23" rx="6" />
+        <g class="lock-key" stroke="hsl(var(--tone))">
+          <circle cx="32" cy="39" r="2.25" fill="hsl(var(--tone))" stroke="none" />
+          <path d="M32 41v4" />
         </g>
-      </g>
-    </svg>
+      </template>
 
-    <div :key="`${scene}-${alert}`" class="state-tile relative" :class="{ 'is-alert': alert }">
-      <span class="state-halo absolute inset-0 rounded-[22px]" />
-      <div
-        class="relative grid h-[76px] w-[76px] place-items-center rounded-[22px] border bg-gradient-to-b from-elevated to-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_24px_48px_-16px_rgb(0_0_0/0.8)]"
-        :style="{ borderColor: 'hsl(var(--tone) / 0.32)' }"
-      >
-        <svg
-          viewBox="0 0 32 32"
-          class="h-9 w-9 overflow-visible"
-          fill="none"
+      <template v-else-if="scene === 'scheduled'">
+        <circle cx="32" cy="32" r="22" stroke="hsl(var(--foreground) / 0.16)" />
+        <circle
+          class="clock-arc"
+          :style="clock.arc"
+          cx="32"
+          cy="32"
+          r="22"
+          pathLength="1"
           stroke="hsl(var(--tone))"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <template v-if="scene === 'locked'">
-            <path class="lock-shackle" d="M11 14.5V11a5 5 0 0 1 10 0v3.5" />
-            <rect x="7.5" y="14.5" width="17" height="12" rx="3" />
-            <path class="lock-key" d="M16 19.25v2.5" />
-          </template>
+          transform="rotate(-90 32 32)"
+        />
+        <path class="clock-minute" :style="clock.minute" d="M32 32V19" />
+        <path class="clock-second" :style="clock.second" d="M32 35V14" stroke="hsl(var(--tone))" stroke-width="1" />
+        <circle cx="32" cy="32" r="1.75" fill="hsl(var(--tone))" stroke="none" />
+      </template>
 
-          <template v-else-if="scene === 'scheduled'">
-            <circle cx="16" cy="16" r="10.5" />
-            <path d="M16 16h4" />
-            <path class="clock-hand" d="M16 16V8.5" />
-            <circle cx="16" cy="16" r="1.1" fill="hsl(var(--tone))" stroke="none" />
-          </template>
+      <template v-else-if="scene === 'ready'">
+        <circle cx="32" cy="32" r="22" stroke="hsl(var(--tone) / 0.22)" />
+        <circle
+          class="ready-ring"
+          cx="32"
+          cy="32"
+          r="22"
+          pathLength="1"
+          stroke="hsl(var(--tone))"
+          transform="rotate(-90 32 32)"
+        />
+        <path class="ready-check" pathLength="1" d="M23 32.5l6 6 12-13" stroke="hsl(var(--tone))" />
+      </template>
 
-          <template v-else-if="scene === 'ready'">
-            <circle cx="16" cy="16" r="10.5" />
-            <path class="draw" pathLength="1" d="M11.5 16.5l3 3 6-6.5" />
-          </template>
+      <template v-else-if="scene === 'unlinked'">
+        <path class="link-high" d="M34 22l6-6a8.49 8.49 0 0 1 12 12l-6 6" />
+        <path class="link-low" d="M30 42l-6 6a8.49 8.49 0 0 1-12-12l6-6" />
+        <path class="link-bar" d="M26.5 37.5l11-11" />
+        <g class="link-sparks" stroke="hsl(var(--tone))">
+          <path d="M23.5 23.5 20 20M40.5 40.5l3.5 3.5" />
+          <path d="M30.5 17.5 29.5 14M33.5 46.5l1 3.5" />
+        </g>
+      </template>
 
-          <template v-else-if="scene === 'unlinked'">
-            <path class="link-high" d="M17 11l3-3a4.24 4.24 0 0 1 6 6l-3 3" />
-            <path class="link-low" d="M15 21l-3 3a4.24 4.24 0 0 1-6-6l3-3" />
-            <path class="link-bar" d="M13.5 18.5l5-5" />
-            <path class="spark" d="M11.6 11.6 9.8 9.8M20.4 20.4l1.8 1.8" />
-          </template>
+      <template v-else-if="scene === 'offline'">
+        <path d="M8 34h11l4-9 6 18 5-14 3 5h19" stroke="hsl(var(--foreground) / 0.32)" />
+        <path class="wave-pulse" pathLength="1" d="M8 34h11l4-9 6 18 5-14 3 5h19" stroke="hsl(var(--tone))" />
+        <circle class="wave-node" cx="56" cy="34" r="2" fill="hsl(var(--tone))" stroke="none" />
+      </template>
 
-          <template v-else-if="scene === 'offline'">
-            <path class="draw draw-slow" pathLength="1" d="M4.5 16.5H9l2.5-6 3.5 11 3-8 1.5 3h3" />
-            <circle class="beacon" cx="26.5" cy="16.5" r="1.6" fill="hsl(var(--tone))" stroke="none" />
-          </template>
+      <template v-else-if="scene === 'expired'">
+        <g class="hourglass">
+          <path d="M20 11h24M20 53h24" />
+          <path d="M23 11c0 10 9 13 9 21s-9 11-9 21M41 11c0 10-9 13-9 21s9 11 9 21" />
+          <path
+            class="sand-top"
+            d="M26 17h12c-1 4-3.5 7-6 9-2.5-2-5-5-6-9Z"
+            fill="hsl(var(--tone) / 0.85)"
+            stroke="none"
+          />
+          <path class="sand-stream" d="M32 27v14" stroke="hsl(var(--tone))" stroke-width="1" />
+          <path
+            class="sand-bottom"
+            d="M25 49h14c-1.5-4.5-4-7-7-8-3 1-5.5 3.5-7 8Z"
+            fill="hsl(var(--tone) / 0.85)"
+            stroke="none"
+          />
+        </g>
+      </template>
 
-          <template v-else-if="scene === 'expired'">
-            <g class="hourglass">
-              <path d="M10 5.5h12M10 26.5h12" />
-              <path
-                d="M11.5 5.5c0 5 4.5 6.5 4.5 10.5s-4.5 5.5-4.5 10.5M20.5 5.5c0 5-4.5 6.5-4.5 10.5s4.5 5.5 4.5 10.5"
-              />
-            </g>
-            <path
-              class="sand"
-              d="M13.3 24.5h5.4c-.5-1.8-1.6-2.9-2.7-3.5-1.1.6-2.2 1.7-2.7 3.5Z"
-              fill="hsl(var(--tone) / 0.55)"
-              stroke="none"
-            />
-          </template>
-
-          <template v-else-if="scene === 'payload'">
-            <defs>
-              <linearGradient :id="scanId" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="hsl(var(--tone))" stop-opacity="0" />
-                <stop offset="100%" stop-color="hsl(var(--tone))" stop-opacity="0.55" />
-              </linearGradient>
-            </defs>
-            <g v-for="(finder, index) in qrFinders" :key="index" class="qr-finder" :style="{ '--i': index }">
-              <rect :x="finder.x" :y="finder.y" width="7" height="7" rx="1.75" />
-              <rect
-                :x="finder.x + 2.5"
-                :y="finder.y + 2.5"
-                width="2"
-                height="2"
-                rx="0.5"
-                fill="hsl(var(--tone))"
-                stroke="none"
-              />
-            </g>
-            <rect
-              v-for="(module, index) in qrModules"
-              :key="`module-${index}`"
-              class="qr-module"
-              :style="{ '--i': index }"
-              :x="module[0]"
-              :y="module[1]"
-              width="2.5"
-              height="2.5"
-              rx="0.6"
-              fill="hsl(var(--tone) / 0.7)"
-              stroke="none"
-            />
-            <rect class="qr-scan" x="3" y="0" width="26" height="5" rx="1" :fill="`url(#${scanId})`" stroke="none" />
-          </template>
-        </svg>
-      </div>
-    </div>
+      <template v-else-if="scene === 'payload'">
+        <defs>
+          <linearGradient :id="scanId" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="hsl(var(--tone))" stop-opacity="0" />
+            <stop offset="50%" stop-color="hsl(var(--tone))" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="hsl(var(--tone))" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <g v-for="(finder, index) in qrFinders" :key="index">
+          <rect :x="finder.x" :y="finder.y" width="14" height="14" rx="3.5" />
+          <rect
+            :x="finder.x + 4.5"
+            :y="finder.y + 4.5"
+            width="5"
+            height="5"
+            rx="1.25"
+            fill="hsl(var(--foreground) / 0.88)"
+            stroke="none"
+          />
+        </g>
+        <rect
+          v-for="(module, index) in qrModules"
+          :key="`module-${index}`"
+          :x="module[0]"
+          :y="module[1]"
+          width="4"
+          height="4"
+          rx="1"
+          fill="hsl(var(--foreground) / 0.5)"
+          stroke="none"
+        />
+        <g class="qr-scan">
+          <rect x="6" y="-5" width="52" height="10" :fill="`url(#${scanId})`" stroke="none" />
+          <path d="M6 0h52" stroke="hsl(var(--tone))" />
+        </g>
+      </template>
+    </svg>
   </div>
 </template>
 
@@ -168,122 +182,124 @@ const qrModules = [
 .state-art {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  animation: art-in 0.6s var(--ease-out) both;
 }
 
-.state-orbit {
-  animation: art-fade 0.9s var(--ease-out) both;
-}
-
-.state-tile {
-  animation: tile-in 0.5s var(--ease-out) both;
-}
-
-.state-tile.is-alert {
-  animation:
-    tile-in 0.5s var(--ease-out) both,
-    tile-shake 0.42s var(--ease-out) 0.45s;
-}
-
-.state-halo {
-  box-shadow: 0 0 44px -8px hsl(var(--tone) / 0.45);
-  opacity: 0.8;
+.state-glyph.is-alert {
+  animation: glyph-shake 0.42s var(--ease-out) 0.1s;
 }
 
 .lock-shackle {
-  animation: shackle-close 0.28s var(--ease-out) 0.45s both;
+  animation: lock-shackle 5.6s ease-in-out infinite;
 }
 
 .lock-key {
-  animation: art-fade 0.2s ease 0.7s both;
+  animation: lock-key 5.6s ease-in-out infinite;
 }
 
-.clock-hand {
+.clock-arc {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0.25;
+  animation: clock-arc 60s linear infinite;
+}
+
+.clock-minute,
+.clock-second {
   transform-box: view-box;
-  transform-origin: 16px 16px;
-  animation: clock-tick 60s steps(60) infinite;
+  transform-origin: 32px 32px;
 }
 
-.draw {
+.clock-minute {
+  animation: clock-turn 3600s linear infinite;
+}
+
+.clock-second {
+  animation: clock-turn 60s steps(60) infinite;
+}
+
+.ready-ring,
+.ready-check {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
-  animation: draw 0.45s var(--ease-out) 0.2s both;
 }
 
-.draw-slow {
-  animation-duration: 0.9s;
-  animation-timing-function: var(--ease-in-out);
+.ready-ring {
+  animation: ready-ring 3.2s var(--ease-out) infinite;
 }
 
-.beacon {
-  animation:
-    art-fade 0.2s ease 1s both,
-    beacon 2.4s var(--ease-out) 1.2s infinite;
+.ready-check {
+  animation: ready-check 3.2s var(--ease-out) infinite;
 }
 
 .link-high,
 .link-low {
-  animation: link-split 0.7s var(--ease-out) 0.35s both;
+  animation: link-split 5.2s var(--ease-in-out) infinite;
 }
 
 .link-high {
-  --joined: translate(-2px, 2px);
+  --joined: translate(-3px, 3px);
 }
 
 .link-low {
-  --joined: translate(2px, -2px);
+  --joined: translate(3px, -3px);
 }
 
 .link-bar {
   opacity: 0;
-  animation: link-bar-break 0.3s ease 0.3s both;
+  animation: link-bar 5.2s ease-in-out infinite;
 }
 
-.spark {
-  stroke: hsl(var(--tone) / 0.7);
-  animation: art-fade 0.25s ease 0.55s both;
+.link-sparks {
+  animation: link-sparks 5.2s ease-out infinite;
+}
+
+.wave-pulse {
+  stroke-dasharray: 1 0;
+  animation: wave-pulse 3.2s var(--ease-in-out) infinite;
+}
+
+.wave-node {
+  animation: wave-node 3.2s ease-in-out infinite;
 }
 
 .hourglass {
   transform-box: view-box;
-  transform-origin: 16px 16px;
-  animation: hourglass-flip 0.8s var(--ease-in-out) 0.3s both;
+  transform-origin: 32px 32px;
+  animation: hourglass-flip 6.4s var(--ease-in-out) infinite;
 }
 
-.sand {
-  animation: art-fade 0.3s ease 1.05s both;
+.sand-top {
+  transform-box: view-box;
+  transform-origin: 32px 26px;
+  transform: scaleY(0.55);
+  animation: sand-top 6.4s linear infinite;
 }
 
-.qr-finder {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: module-in 0.4s var(--ease-out) both;
-  animation-delay: calc(0.15s + var(--i) * 60ms);
+.sand-bottom {
+  transform-box: view-box;
+  transform-origin: 32px 49px;
+  transform: scaleY(0.55);
+  animation: sand-bottom 6.4s linear infinite;
 }
 
-.qr-module {
-  animation: art-fade 0.2s ease both;
-  animation-delay: calc(0.35s + var(--i) * 30ms);
+.sand-stream {
+  stroke-dasharray: 1.5 2.5;
+  animation: sand-stream 6.4s linear infinite;
 }
 
 .qr-scan {
   opacity: 0;
-  animation: qr-scan 1s var(--ease-in-out) 0.8s both;
+  animation: qr-scan 3.6s var(--ease-in-out) infinite alternate;
 }
 
-@keyframes art-fade {
+@keyframes art-in {
   from {
     opacity: 0;
+    transform: translateY(4px);
   }
 }
 
-@keyframes tile-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.96);
-  }
-}
-
-@keyframes tile-shake {
+@keyframes glyph-shake {
   0%,
   100% {
     transform: translateX(0);
@@ -306,86 +322,238 @@ const qrModules = [
   }
 }
 
-@keyframes shackle-close {
-  from {
-    transform: translateY(-3px);
+@keyframes lock-shackle {
+  0%,
+  58%,
+  86%,
+  100% {
+    transform: translateY(0);
+  }
+
+  70% {
+    transform: translateY(-2.5px);
   }
 }
 
-@keyframes clock-tick {
+@keyframes lock-key {
+  0%,
+  58%,
+  86%,
+  100% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes clock-arc {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes clock-turn {
+  from {
+    transform: rotate(0deg);
+  }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes draw {
-  from {
+@keyframes ready-ring {
+  0% {
     stroke-dashoffset: 1;
-  }
-}
-
-@keyframes beacon {
-  0%,
-  100% {
     opacity: 1;
   }
 
-  50% {
-    opacity: 0.35;
+  35%,
+  82% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes ready-check {
+  0%,
+  25% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+
+  50%,
+  82% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
   }
 }
 
 @keyframes link-split {
-  from {
+  0%,
+  14%,
+  100% {
     transform: var(--joined);
+  }
+
+  32%,
+  80% {
+    transform: translate(0, 0);
   }
 }
 
-@keyframes link-bar-break {
-  from {
+@keyframes link-bar {
+  0%,
+  16%,
+  100% {
+    opacity: 1;
+  }
+
+  26%,
+  84% {
+    opacity: 0;
+  }
+}
+
+@keyframes link-sparks {
+  0%,
+  28% {
+    opacity: 0;
+  }
+
+  36% {
+    opacity: 1;
+  }
+
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wave-pulse {
+  0% {
+    stroke-dasharray: 0.32 1;
+    stroke-dashoffset: 0.32;
+  }
+
+  72%,
+  100% {
+    stroke-dasharray: 0.32 1;
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes wave-node {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+
+  74% {
     opacity: 1;
   }
 }
 
 @keyframes hourglass-flip {
-  from {
-    transform: rotate(-180deg);
+  0%,
+  80% {
+    transform: rotate(0deg);
+  }
+
+  94%,
+  100% {
+    transform: rotate(180deg);
   }
 }
 
-@keyframes module-in {
-  from {
+@keyframes sand-top {
+  0% {
+    transform: scaleY(1);
+  }
+
+  78%,
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes sand-bottom {
+  0% {
+    transform: scaleY(0);
+  }
+
+  78%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sand-stream {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+
+  74% {
+    opacity: 1;
+    stroke-dashoffset: -16;
+  }
+
+  78%,
+  100% {
     opacity: 0;
-    transform: scale(0.9);
+    stroke-dashoffset: -16;
   }
 }
 
 @keyframes qr-scan {
   0% {
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(10px);
   }
 
-  15% {
-    opacity: 1;
-  }
-
-  85% {
+  12%,
+  88% {
     opacity: 1;
   }
 
   100% {
     opacity: 0;
-    transform: translateY(25px);
+    transform: translateY(54px);
+  }
+}
+
+@keyframes art-fade {
+  from {
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .state-art,
   .state-art * {
     animation: none !important;
   }
 
-  .state-art .state-tile {
+  .state-art {
     animation: art-fade 0.2s ease both !important;
   }
 }

@@ -5,7 +5,7 @@ import { computed } from 'vue';
 
 import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
 import StateArt from '@/Components/PublicState/StateArt.vue';
-import Badge from '@/Components/ui/Badge.vue';
+import StateBadge from '@/Components/PublicState/StateBadge.vue';
 import Button from '@/Components/ui/Button.vue';
 import { errorState } from '@/lib/publicStates';
 
@@ -29,7 +29,7 @@ function retry() {
     </template>
 
     <template #badge>
-      <Badge variant="outline" class="font-mono tabular-nums">Error {{ status }}</Badge>
+      <StateBadge :tone="state.tone" class="tabular-nums">Error {{ status }}</StateBadge>
     </template>
 
     <div class="grid gap-2 sm:flex sm:justify-center">

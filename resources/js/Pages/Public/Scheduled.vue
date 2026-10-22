@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
 import StateArt from '@/Components/PublicState/StateArt.vue';
-import Badge from '@/Components/ui/Badge.vue';
+import StateBadge from '@/Components/PublicState/StateBadge.vue';
 
 const props = defineProps<{
   shortUrl: string;
@@ -75,10 +75,7 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
     </template>
 
     <template #badge>
-      <Badge :variant="done ? 'success' : 'accent'">
-        <span class="h-1.5 w-1.5 rounded-full bg-current" :class="{ 'animate-pulse': !done }" />
-        {{ done ? 'Live' : 'Scheduled' }}
-      </Badge>
+      <StateBadge :tone="done ? 'success' : 'accent'" :live="!done">{{ done ? 'Live' : 'Scheduled' }}</StateBadge>
     </template>
 
     <template #description>
@@ -88,21 +85,22 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
       </template>
     </template>
 
-    <div v-if="!done" class="flex items-stretch justify-center gap-2 sm:gap-3" role="timer" aria-live="off">
-      <div
-        v-for="unit in units"
-        :key="unit.label"
-        class="w-[4.5rem] rounded-xl border bg-surface/80 py-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur sm:w-24 sm:py-5"
-      >
-        <span
-          class="block overflow-hidden text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl"
+    <div v-if="!done" class="flex items-start justify-center gap-2 sm:gap-4" role="timer" aria-live="off">
+      <template v-for="(unit, index) in units" :key="unit.label">
+        <span v-if="index" class="pt-1 text-4xl font-light leading-none text-faint/50 sm:text-5xl" aria-hidden="true"
+          >:</span
         >
-          <span :key="unit.value" class="digit block">{{ pad(unit.value) }}</span>
-        </span>
-        <span class="mt-1.5 block text-[11px] font-medium uppercase tracking-[0.08em] text-faint">{{
-          unit.label
-        }}</span>
-      </div>
+        <div class="w-16 sm:w-20">
+          <span
+            class="block overflow-hidden text-5xl font-semibold tabular-nums leading-none tracking-[-0.04em] text-foreground sm:text-6xl"
+          >
+            <span :key="unit.value" class="digit block">{{ pad(unit.value) }}</span>
+          </span>
+          <span class="mt-3 block text-[11px] font-medium uppercase tracking-[0.14em] text-faint">{{
+            unit.label
+          }}</span>
+        </div>
+      </template>
     </div>
 
     <template v-if="!done" #footer> Goes live {{ activationLabel }} · this page will redirect automatically. </template>

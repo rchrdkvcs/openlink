@@ -4,7 +4,7 @@ import { ref } from 'vue';
 
 import PublicStateLayout from '@/Components/PublicState/PublicStateLayout.vue';
 import StateArt from '@/Components/PublicState/StateArt.vue';
-import Badge from '@/Components/ui/Badge.vue';
+import StateBadge from '@/Components/PublicState/StateBadge.vue';
 import CopyCheckIcon from '@/Components/ui/CopyCheckIcon.vue';
 import type { PayloadType } from '@/Pages/QrCodes/types';
 
@@ -35,11 +35,11 @@ async function copyContent() {
     </template>
 
     <template #badge>
-      <Badge variant="accent">{{ payloadTypeLabel }}</Badge>
+      <StateBadge tone="accent">{{ payloadTypeLabel }}</StateBadge>
     </template>
 
     <div class="grid gap-4 text-left">
-      <section class="overflow-hidden rounded-xl border bg-surface/90 backdrop-blur">
+      <section class="overflow-hidden rounded-xl border bg-surface">
         <div class="flex items-center justify-between gap-3 border-b px-4 py-3">
           <p class="truncate text-[13px] font-medium text-foreground">Current payload</p>
           <button

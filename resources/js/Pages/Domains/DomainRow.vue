@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { ArrowRightLeft, Ban, Globe, MoreHorizontal, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
+import { ArrowRightLeft, Ban, Globe, MoreHorizontal, RefreshCw, Settings2, Smartphone, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
@@ -102,6 +102,13 @@ async function destroy() {
       <MenuItem :icon="RefreshCw" @select="verify">Check DNS now</MenuItem>
       <MenuItem v-if="needsSetup" :icon="Settings2" @select="router.visit(route('domains.setup', domain.id))">
         Continue setup
+      </MenuItem>
+      <MenuItem
+        v-if="domain.status === 'active'"
+        :icon="Smartphone"
+        @select="router.visit(route('domains.apps', domain.id))"
+      >
+        Mobile apps
       </MenuItem>
       <MenuItem :icon="ArrowRightLeft" :disabled="!canTransfer" @select="emit('transfer', domain)"
         >Transfer to…</MenuItem

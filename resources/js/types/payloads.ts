@@ -32,6 +32,20 @@ export type DomainSetup = Domain &
     dns_check_error: string | null;
   };
 
+export type AppPlatform = 'ios' | 'android';
+
+export type AppAssociation = {
+  id: number;
+  platform: AppPlatform;
+  app_id: string;
+  team_id: string | null;
+  identifier: string;
+  paths: string[] | null;
+  sha256_cert_fingerprints: string[] | null;
+};
+
+export type AppAssociationFile = { url: string; content: unknown | null };
+
 export type Folder = { id: number; name: string };
 
 export type Tag = { id: number; name: string };

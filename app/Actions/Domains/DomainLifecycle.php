@@ -10,6 +10,7 @@ use App\Services\Dns\DnsLookup;
 use App\Services\Dns\DomainDnsTarget;
 use App\Services\InstanceSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class DomainLifecycle
@@ -79,15 +80,22 @@ class DomainLifecycle
             ->update(['is_default' => false]);
 
         $domain = Domain::query()->firstOrNew(['hostname' => $hostname]);
-        $domain->forceFill([
-            'workspace_id' => null,
-            'status' => DomainStatus::Active,
-            'verification_token' => $domain->verification_token ?? Str::random(40),
-            'is_default' => true,
-            'verified_at' => $domain->verified_at ?? now(),
-            'dns_pointed_at' => $domain->dns_pointed_at ?? now(),
-            'disabled_at' => null,
-        ])->save();
+
+        DB::transaction(function () use ($domain): void {
+            if ($domain->exists && $domain->workspace_id !== null) {
+                $domain->appAssociations()->delete();
+            }
+
+            $domain->forceFill([
+                'workspace_id' => null,
+                'status' => DomainStatus::Active,
+                'verification_token' => $domain->verification_token ?? Str::random(40),
+                'is_default' => true,
+                'verified_at' => $domain->verified_at ?? now(),
+                'dns_pointed_at' => $domain->dns_pointed_at ?? now(),
+                'disabled_at' => null,
+            ])->save();
+        });
 
         $this->settings->set('default_domain', $hostname);
 

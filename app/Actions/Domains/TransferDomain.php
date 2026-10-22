@@ -6,6 +6,7 @@ use App\Models\Domain;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Contracts\Auth\Access\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransferDomain
@@ -33,11 +34,14 @@ class TransferDomain
             ]);
         }
 
-        if ((int) $workspace->preferred_domain_id === $domain->id) {
-            $workspace->forceFill(['preferred_domain_id' => null])->save();
-        }
+        DB::transaction(function () use ($workspace, $domain, $targetWorkspace): void {
+            if ((int) $workspace->preferred_domain_id === $domain->id) {
+                $workspace->forceFill(['preferred_domain_id' => null])->save();
+            }
 
-        $domain->workspace()->associate($targetWorkspace)->save();
+            $domain->appAssociations()->delete();
+            $domain->workspace()->associate($targetWorkspace)->save();
+        });
 
         return $domain;
     }

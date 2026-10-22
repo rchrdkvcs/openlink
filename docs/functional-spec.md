@@ -66,6 +66,8 @@ Domain states:
 
 The instance has a default domain so new installations can create links before a workspace-owned domain is configured. A workspace can choose a preferred domain from its usable domains.
 
+Owners and Admins can add App Associations to an active workspace-owned domain so their iOS or Android app can open matching short URLs. Openlink publishes the matching `apple-app-site-association` and `assetlinks.json` files for that domain. When the app does not open, the short URL resolves normally. See [verified-app-links.md](verified-app-links.md).
+
 ## Short Links
 
 A short link connects a domain and slug to a destination URL. Destination URLs must be valid HTTP or HTTPS URLs and must not create obvious resolution loops.

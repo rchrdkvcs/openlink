@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { BarChart3, Home, LayoutList, Link2, QrCode, Search, TriangleAlert } from '@lucide/vue';
+import { BarChart3, Home, LayoutList, Link2, Megaphone, QrCode, Search, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 import SidebarFolders from '@/Components/Shell/SidebarFolders.vue';
@@ -37,7 +37,7 @@ function createWorkspace() {
   emit('createWorkspace');
 }
 
-const { navigation, query } = useShell();
+const { navigation, query, canManage } = useShell();
 
 const allLinksActive = computed(
   () => route().current('links.index') && !query.value.get('folder') && query.value.get('status') !== 'archived',
@@ -99,6 +99,13 @@ const modifier = isMac() ? '⌘' : 'Ctrl';
             :icon="LayoutList"
             label="Link pages"
             :active="route().current('link-pages.*')"
+          />
+          <SidebarItem
+            v-if="canManage"
+            :href="route('utm-templates.index')"
+            :icon="Megaphone"
+            label="UTM templates"
+            :active="route().current('utm-templates.*')"
           />
           <SidebarItem
             :href="route('analytics.index')"

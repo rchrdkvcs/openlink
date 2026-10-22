@@ -175,11 +175,52 @@ class UtmTemplateManagementTest extends TestCase
                 ->where('utmTemplates.1.name', 'Social'));
 
         $this->actingInWorkspace($owner, $workspace)
-            ->get(route('settings.workspace'))
+            ->get(route('utm-templates.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('utmTemplates', 2)
-                ->where('utmTemplates.1.utm_source', 'social'));
+                ->component('UtmTemplates/Index')
+                ->has('templates', 2)
+                ->where('templates.0.name', 'Email')
+                ->where('templates.1.utm_source', 'social'));
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->get(route('settings.workspace'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->missing('utmTemplates'));
+    }
+
+    #[DataProvider('nonManagerRoles')]
+    public function test_non_managers_cannot_open_the_template_section(string $role): void
+    {
+        [$workspace] = $this->workspaceWithOwner();
+        $member = $this->memberOf($workspace, $role);
+
+        $this->actingInWorkspace($member, $workspace)
+            ->get(route('utm-templates.index'))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_open_the_template_section_and_switch_workspaces(): void
+    {
+        [$workspace] = $this->workspaceWithOwner();
+        $admin = $this->memberOf($workspace, WorkspaceMember::ROLE_ADMIN);
+        $other = $this->workspaceFor($admin, 'Second');
+        $this->template($other, 'Second only', ['utm_source' => 'second']);
+
+        $this->actingInWorkspace($admin, $workspace)
+            ->get(route('utm-templates.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('templates', 0));
+
+        $this->actingInWorkspace($admin, $workspace)
+            ->post(route('workspaces.switch', $other), ['destination' => 'utm-templates.index'])
+            ->assertRedirect(route('utm-templates.index'));
+
+        $this->get(route('utm-templates.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('templates', 1)
+                ->where('templates.0.name', 'Second only'));
     }
 
     public function test_template_names_are_unique_within_a_workspace_only(): void

@@ -41,6 +41,30 @@ class UtmDestinationTest extends TestCase
             ->assertHeader('Location', self::BUILT);
     }
 
+    public function test_editor_saves_and_reopens_a_destination_after_removing_utm_parameters(): void
+    {
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $editor = $this->memberOf($workspace, WorkspaceMember::ROLE_EDITOR);
+        $link = $this->shortLink($workspace, $domain, 'clean', ['destination_url' => self::BUILT]);
+        $cleaned = 'https://example.com/caf%C3%A9?a=1&a=2&q=café&next=%2Fhome%3Fx%3D1#section';
+
+        $this->actingInWorkspace($editor, $workspace)
+            ->patch(route('short-links.update', $link), $this->updatePayload($link->slug, $domain->id, $cleaned))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($cleaned, $link->fresh()->destination_url);
+
+        $this->get(route('links.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('links.0.destination_url', $cleaned));
+
+        $this->withHeader('Host', 'localhost')
+            ->get('/clean')
+            ->assertRedirect()
+            ->assertHeader('Location', $cleaned);
+    }
+
     public function test_viewer_cannot_save_a_built_destination(): void
     {
         [$workspace, $domain] = $this->workspaceWithActiveDomain();

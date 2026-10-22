@@ -48,6 +48,7 @@ describe('navigationCommands', () => {
       'link-pages',
       'analytics',
       'folder-7',
+      'utm-templates',
       'ws-settings',
       'domains',
       'members',

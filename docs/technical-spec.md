@@ -173,7 +173,8 @@ The authenticated app should prioritize dense, clear workflows:
 - Link Page editor with live preview and publication controls
 - Domain management and verification screen
 - Workspace members and invite links
-- Workspace settings for UTM Templates, webhooks, and weekly summaries
+- Dedicated UTM Templates section for Owners and Admins
+- Workspace settings for webhooks and weekly summaries
 - Instance admin panel with Diagnostics and release information
 
 Avoid a marketing-style landing page as the primary product surface. The first screen after login should be the working dashboard.

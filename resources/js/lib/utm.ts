@@ -61,6 +61,12 @@ export function readUtm(url: string): UtmValues {
   return values;
 }
 
+export function presentUtm(url: string): UtmKey[] {
+  const keys = new Set(splitUrl(url).query?.split('&').map(segmentKey));
+
+  return UTM_KEYS.filter((key) => keys.has(key));
+}
+
 export function hasUrlBase(url: string): boolean {
   return splitUrl(url).base.trim() !== '';
 }

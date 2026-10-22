@@ -13,6 +13,14 @@ class ErrorPageResponder
 {
     private const STATUSES = [403, 404, 419, 429, 500, 503];
 
+    private const FORWARDED_HEADERS = [
+        'Retry-After',
+        'Refresh',
+        'X-RateLimit-Limit',
+        'X-RateLimit-Remaining',
+        'X-RateLimit-Reset',
+    ];
+
     public function toResponse(Request $request, Response $response): Response
     {
         if (! $this->shouldRender($request, $response)) {
@@ -41,8 +49,16 @@ class ErrorPageResponder
 
     private function forwardedHeaders(Response $response): array
     {
-        return array_filter([
-            'Retry-After' => $response->headers->get('Retry-After'),
-        ]);
+        $headers = [];
+
+        foreach (self::FORWARDED_HEADERS as $name) {
+            $value = $response->headers->get($name);
+
+            if ($value !== null) {
+                $headers[$name] = $value;
+            }
+        }
+
+        return $headers;
     }
 }

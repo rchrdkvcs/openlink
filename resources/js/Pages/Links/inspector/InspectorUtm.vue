@@ -78,7 +78,7 @@ const {
       </Link>
     </p>
 
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-3">
       <Field v-for="field in UTM_FIELDS" :key="field.key" :label="field.label">
         <Input
           :model-value="values[field.key]"

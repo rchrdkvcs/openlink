@@ -83,6 +83,33 @@ export function describeChange(change: RevisionChange): ChangeDescription {
   return {
     label: field.label,
     before,
-    after: change.field === 'routing_rules' && before === after ? `${after} (conditions changed)` : after,
+    after:
+      before === after && ['destination_url', 'fallback_url', 'routing_rules'].includes(change.field)
+        ? `${after} (configuration changed; URL query values are hidden)`
+        : after,
   };
+}
+
+export function revisionSummary(revision: LinkRevision): string {
+  if (revision.action === 'created') return 'Short link created with the settings below.';
+  if (revision.action === 'baseline') return 'Settings recorded before the first tracked change.';
+  if (revision.action === 'restored')
+    return `Settings copied from revision ${revision.restored_from}. Earlier changes are kept.`;
+  if (!revision.changes.length) return 'Link settings updated.';
+
+  if (revision.changes.length === 1) {
+    const change = revision.changes[0];
+    if (change.field === 'is_enabled') return change.after ? 'Link enabled.' : 'Link disabled.';
+    if (change.field === 'is_archived') return change.after ? 'Link archived.' : 'Link removed from archive.';
+    if (change.field === 'has_password')
+      return change.after ? 'Password protection added.' : 'Password protection removed.';
+    if (change.field === 'password_changed') return 'Visitor password replaced.';
+  }
+
+  const labels = [...new Set(revision.changes.map((change) => describeChange(change).label))];
+  const listed =
+    labels.length > 2
+      ? `${labels.slice(0, 2).join(', ')} and ${labels.length - 2} more setting${labels.length === 3 ? '' : 's'}`
+      : labels.join(' and ');
+  return `${listed} updated.`;
 }

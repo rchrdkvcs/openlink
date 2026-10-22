@@ -6,7 +6,9 @@ PHP 8.5.12 or newer is required. The image build checks the PHP version and
 refuses older FrankenPHP base images. Build with `docker build --pull` to fetch
 the latest base images; CI and release builds do this automatically.
 Stable releases publish versioned and `latest` images to
-`ghcr.io/rchrdkvcs/openlink`. The image embeds its release version.
+`ghcr.io/rchrdkvcs/openlink`. Prereleases publish an image tagged with the exact
+release tag, such as `v1.2.0-beta.1`, without updating `latest`. The image embeds
+its release version.
 
 The example in [`docker/`](../docker/) is the quickest way to evaluate the full
 stack. For production, use a container platform or an orchestrator that can:
@@ -110,6 +112,14 @@ latest stable GitHub Release triggers `.github/workflows/deploy.yml`, which
 publishes the multi-architecture GHCR image and then calls a Coolify deployment
 webhook. The package must be made public in GitHub package settings for
 anonymous self-hosted pulls.
+
+To publish a prerelease package, create a GitHub Release with a semantic version
+tag such as `v1.2.0-alpha.1`, `v1.2.0-beta.1`, or `v1.2.0-rc.1`, select
+**Set as a pre-release**, and publish it. The same workflow publishes the GHCR
+image for `linux/amd64` and `linux/arm64`. It does not update `latest` or call
+Coolify. For example, pull `ghcr.io/rchrdkvcs/openlink:v1.2.0-beta.1`, or set
+`OPENLINK_IMAGE_TAG=v1.2.0-beta.1` in `docker/.env` when using the Compose stack.
+The image tag preserves the release tag, including its optional `v` prefix.
 
 The instance administrator sees the installed and latest stable versions in
 Settings. The update button is available only with the optional Compose updater

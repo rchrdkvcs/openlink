@@ -1,4 +1,4 @@
-name: Deploy to Coolify
+name: Publish release image and deploy stable
 
 on:
   release:
@@ -17,20 +17,27 @@ env:
 
 jobs:
   check-release:
-    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
     outputs:
       publish: ${{ steps.release.outputs.publish }}
+      latest: ${{ steps.release.outputs.latest }}
     steps:
-      - name: Check that this is the latest release
+      - name: Select release publication
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ github.event.release.id }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
+          if [ "$PRERELEASE" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           latest_release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.id')"
           if [ "$RELEASE_ID" = "$latest_release_id" ]; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "latest=true" >> "$GITHUB_OUTPUT"
           fi
 
   build-image:
@@ -96,7 +103,7 @@ jobs:
           retention-days: 1
 
   publish-image:
-    needs: build-image
+    needs: [check-release, build-image]
     runs-on: ubuntu-latest
     steps:
       - name: Download image digests
@@ -116,15 +123,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish versioned and latest manifests
+      - name: Publish release manifest
         working-directory: ${{ runner.temp }}/digests
         env:
           TAG: ${{ github.event.release.tag_name }}
+          PUBLISH_LATEST: ${{ needs.check-release.outputs.latest }}
         run: |
-          docker buildx imagetools create \
-            --tag "$IMAGE:$TAG" \
-            --tag "$IMAGE:latest" \
-            $(printf "$IMAGE@sha256:%s " *)
+          tags=(--tag "$IMAGE:$TAG")
+          if [ "$PUBLISH_LATEST" = "true" ]; then
+            tags+=(--tag "$IMAGE:latest")
+          fi
+
+          docker buildx imagetools create "${tags[@]}" $(printf "$IMAGE@sha256:%s " *)
 
       - name: Inspect published image
         env:
@@ -132,7 +142,8 @@ jobs:
         run: docker buildx imagetools inspect "$IMAGE:$TAG"
 
   deploy:
-    needs: publish-image
+    needs: [check-release, publish-image]
+    if: needs.check-release.outputs.latest == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy

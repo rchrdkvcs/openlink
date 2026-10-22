@@ -56,6 +56,20 @@ The local development services are defined separately in
 stack because both files publish PostgreSQL and Redis on ports `5432` and
 `6379`.
 
+## Choose a version
+
+Set `OPENLINK_IMAGE_TAG` in `docker/.env`:
+
+- `latest` follows stable releases and is the default.
+- `beta` follows beta prerelease publications.
+- An exact published release tag pins that version, including its `v` prefix when present. For example, `v1.2.0-beta.1` illustrates a pinned prerelease; replace it with an available release tag.
+
+Beta releases never replace `latest`. Alpha and release-candidate prereleases
+use their exact tags only. The **Latest** badge on GitHub's package page may
+feature a prerelease; it does not change what Docker pulls with `:latest`.
+All four application services (`app`, `worker`, `scheduler`, and `migrate`) use
+the selected tag. See [Deployment](../docs/deployment.md#choose-an-image).
+
 ## Updates
 
 The instance administrator can see the installed version and latest stable
@@ -80,12 +94,26 @@ does not receive the socket. The updater uses this Compose file and does not
 modify it; apply changes to deployment files separately when upgrading across
 releases that require them. Back up PostgreSQL and `app-storage` before updating.
 
-For manual updates, leave the updater disabled and run:
+For manual updates, leave the updater disabled. Back up PostgreSQL and
+`app-storage`, read the release notes, and change `OPENLINK_IMAGE_TAG` first
+if selecting a different channel or pinned release. Then run:
 
 ```bash
 docker compose --env-file docker/.env -f docker/compose.yml pull app worker scheduler migrate
 docker compose --env-file docker/.env -f docker/compose.yml up -d --wait app worker scheduler
 ```
+
+The `migrate` dependency runs before the app, worker, and scheduler start with
+the new image. Wait for the commands to finish, then check service status and
+logs. The updater supports `latest` only; use these manual commands for `beta`
+and exact tags. Changing an image tag does not reverse database migrations.
+
+```bash
+docker compose --env-file docker/.env -f docker/compose.yml ps -a
+```
+
+Deployment-file changes are separate from image updates: review and apply
+changes to `compose.yml`, `.env.example`, and `update.sh` from the release too.
 
 ## Common commands
 
@@ -114,6 +142,25 @@ Stop containers and delete all local data:
 docker compose --env-file docker/.env -f docker/compose.yml down --volumes
 ```
 
+## Configuration
+
+The example is configured for local evaluation at `http://localhost:8080`.
+For a public host, set `APP_URL` to the full HTTPS URL and `APP_HOST` to the
+hostname only. Route the application host and every workspace domain to this
+stack through your HTTPS reverse proxy.
+
+`docker/.env` supplies Compose substitutions. Laravel receives only the entries
+listed under `x-app-environment` in `compose.yml`. To configure mail, OAuth,
+proxy settings, or optional analytics queueing, add the needed environment
+entries to that shared mapping. They then apply to app, worker, scheduler, and
+migration services together. The example's `MAIL_MAILER: log` must be replaced
+with a real mail transport for verification emails, resets, and weekly summaries.
+See [Required configuration](../docs/deployment.md#required-configuration).
+
+Keep the worker and scheduler running: they support webhooks, Destination
+Checks, weekly summaries, domain rechecks, and retention. Ordinary analytics
+writes happen after the response unless queue mode is enabled.
+
 ## Production use
 
 This is a starting example, not a complete hardened deployment. Before
@@ -122,7 +169,7 @@ production use:
 - replace all example credentials and keep `APP_DEBUG=false`;
 - configure a transactional mail provider;
 - terminate HTTPS at a reverse proxy;
-- back up PostgreSQL and the `app-storage` volume;
+- back up PostgreSQL, the `app-storage` volume, deployment configuration, and `APP_KEY`;
 - remove the published PostgreSQL and Redis ports;
 - configure monitoring and container updates.
 

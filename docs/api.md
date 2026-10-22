@@ -1,6 +1,6 @@
 # HTTP API
 
-Openlink exposes a token-based JSON API under `/api/v1` that mirrors the functionality of the web interface. It is designed for browser extensions, CLI tools, and other integrations. API access requires a verified email only when instance settings require email verification.
+Openlink exposes a token-based JSON API under `/api/v1` for the integration endpoints documented below. Some dashboard features, including Link Pages and webhook endpoint management, are not exposed through this API. It is designed for browser extensions, CLI tools, and other integrations. API access requires a verified email only when instance settings require email verification.
 
 ## Authentication
 
@@ -14,9 +14,11 @@ Content-Type: application/json
   "email": "user@example.com",
   "password": "secret",
   "device_name": "chrome-extension",
-  "one_time_password": "123456"   // required only when 2FA is enabled
+  "one_time_password": "123456"
 }
 ```
+
+`one_time_password` is required only when two-factor authentication is enabled.
 
 Response (`201`):
 
@@ -133,8 +135,6 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags. `conversion_goal` (at most 80 characters) turns on conversion tracking for the link; omit it to keep the current goal, or send `null`/an empty string to stop tracking. See [Conversions](#conversions).
 
 `GET /api/v1/links/export` accepts the same `search`, `status`, `tag`, and `folder` filters as the list and also includes archived links when no status is given. `POST /api/v1/links/import` takes a multipart `file` (UTF-8 CSV, at most 1,000 links and 1 MB), an optional `mapping` object from column name to zero-based header position, an optional `domain_id` for rows without a domain, and `dry_run`. With `dry_run=1` nothing is created and the response lists `headers`, the resolved `mapping`, each row with `status` `ready` or `invalid` and its `errors`, and a `summary`. Without it, rows are validated again, ready rows are created, and each row reports `created` or `skipped`. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
-
-Every link payload includes `revision`, the number of its latest link revision. Send it back as `expected_revision` on `PATCH` to reject the edit with a `422` on `expected_revision` when someone else changed the link in the meantime. Restoring always requires `expected_revision`.
 
 Every link payload includes `revision`, the number of its latest link revision, and single-link responses carry it as an `ETag` header (`"3"`). To detect concurrent updates, send it back either as `If-Match: "3"` on `PATCH`, `move`, `archive`, and `restore`, which answers `412` when the link has moved on, or as `expected_revision` in the `PATCH` or `restore` body, which answers `422` on `expected_revision`. Restoring always requires one of the two. For backward compatibility, `PATCH`, `move`, and `archive` without either precondition are still accepted and overwrite whatever is current (last write wins); new clients should always send `If-Match`. A link created before link history existed reports revision `0` until its first change, which records a `baseline` revision first.
 
@@ -268,7 +268,6 @@ Responses follow Laravel conventions, always as JSON on `/api/*`:
 - `404` unknown resource, or a member outside the active workspace
 - `410` invite link expired, revoked, or out of uses
 - `412` `If-Match` does not name the link's current revision
-
 - `429` rate limit reached
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 

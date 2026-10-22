@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import PublicBackdrop from '@/Components/PublicState/PublicBackdrop.vue';
 
 defineProps<{
   title?: string;
@@ -10,10 +11,8 @@ defineProps<{
 </script>
 
 <template>
-  <main class="relative flex min-h-screen flex-col overflow-hidden bg-background">
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,hsl(var(--accent)/0.08),transparent_65%)]"
-    />
+  <main class="relative isolate flex min-h-dvh flex-col overflow-hidden bg-background">
+    <PublicBackdrop />
 
     <header class="relative px-5 pt-6 sm:px-10 sm:pt-8">
       <Link

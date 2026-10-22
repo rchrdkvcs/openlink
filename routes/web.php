@@ -12,6 +12,7 @@ use App\Http\Controllers\InstanceSettingsController;
 use App\Http\Controllers\InstanceUpdateController;
 use App\Http\Controllers\InviteLinkController;
 use App\Http\Controllers\JoinController;
+use App\Http\Controllers\LinkPreviewImageController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileApiTokenController;
@@ -34,6 +35,7 @@ use App\Http\Middleware\EnsureHasWorkspace;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
 use App\Models\User;
 use App\Services\ApplicationHost;
+use App\Services\LinkPreviews\LinkPreviewImageStorage;
 use Illuminate\Support\Facades\Route;
 
 Route::domain(app(ApplicationHost::class)->host())->group(function () {
@@ -139,6 +141,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');
         Route::put('/short-links/{shortLink}/routing', [ShortLinkRoutingController::class, 'update'])->name('short-links.routing.update');
         Route::post('/short-links/{shortLink}/routing-preview', [ShortLinkController::class, 'routingPreview'])->name('short-links.routing-preview');
+        Route::get('/short-links/{shortLink}/preview-image', [LinkPreviewImageController::class, 'show'])->name('short-links.preview-image');
         Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
@@ -190,6 +193,10 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
 
 Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');
 Route::get('/qr/{qrCode}', [PublicLinkController::class, 'qr'])->middleware('throttle:public-resolution')->name('public.qr');
+Route::get('/_preview/{image}', [LinkPreviewImageController::class, 'public'])
+    ->middleware('throttle:public-resolution')
+    ->where('image', LinkPreviewImageStorage::FILENAME_PATTERN)
+    ->name('public.preview-image');
 Route::post('/password/{shortLink}', [PublicLinkController::class, 'password'])->middleware('throttle:public-resolution')->name('public.password');
 Route::get('/{slug}', [PublicLinkController::class, 'show'])
     ->middleware('throttle:public-resolution')

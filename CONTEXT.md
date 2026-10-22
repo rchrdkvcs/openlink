@@ -144,6 +144,14 @@ _Avoid_: QR style, brand kit, preset QR Code
 A pre-export check that decodes a QR Code draft's rendered export at the chosen export size and compares the result with the content the QR Code must encode. It also gives guidance on contrast, quiet zone, module size on screen and in print, and logo coverage, and summarises print readiness. A Readability Check is guidance, not a guarantee: it makes no visits or scans and does not replace a physical print test.
 _Avoid_: Scannability score, QR validation, scan test
 
+**Link Preview**:
+The optional title, description, and image that a short link presents to preview crawlers when its short URL is shared. Only active, unprotected short links present their link preview; every other request from a preview crawler receives neutral metadata.
+_Avoid_: Social card, OG tags, unfurl, link metadata
+
+**Preview Crawler**:
+A supported sharing platform's fetcher that requests a short URL to build a card. A preview crawler request never produces a visit and cannot unlock a protected link.
+_Avoid_: Social bot, unfurler, scraper
+
 **Protected Link**:
 A short link that requires a visitor to provide a password before it can resolve to the destination URL.
 _Avoid_: Locked link, private link, password link

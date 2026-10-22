@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\ShortLinkCsvController;
 use App\Http\Controllers\Api\V1\ShortLinkRevisionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
+use App\Http\Controllers\LinkPreviewImageController;
 use App\Http\Middleware\EnsureApiEmailIsVerified;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
 use Illuminate\Support\Facades\Route;
@@ -67,6 +68,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/links/import', [ShortLinkCsvController::class, 'import'])->name('links.import');
             Route::get('/links/{shortLink}', [ShortLinkController::class, 'show'])->name('links.show');
             Route::patch('/links/{shortLink}', [ShortLinkController::class, 'update'])->name('links.update');
+            Route::get('/links/{shortLink}/preview-image', [LinkPreviewImageController::class, 'show'])->name('links.preview-image');
             Route::post('/links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('links.move');
             Route::post('/links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('links.archive');
             Route::delete('/links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('links.destroy');

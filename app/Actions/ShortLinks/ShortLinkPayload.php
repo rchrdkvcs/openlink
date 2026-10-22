@@ -46,6 +46,11 @@ class ShortLinkPayload
             'successful_visits' => $link->successful_visits,
             'has_password' => $link->hasPassword(),
             'revision' => $link->revision,
+            'preview' => [
+                'title' => $link->preview_title,
+                'description' => $link->preview_description,
+                'image_url' => $this->previewImageUrl($link),
+            ],
             'routing_rules' => $link->routingRules->map(fn ($rule) => [
                 'id' => $rule->id,
                 'name' => $rule->name,
@@ -65,6 +70,17 @@ class ShortLinkPayload
                 ])->values(),
             ])->values(),
         ];
+    }
+
+    private function previewImageUrl(ShortLink $link): ?string
+    {
+        if (! $link->hasPreviewImage()) {
+            return null;
+        }
+
+        $route = request()->routeIs('api.*') ? 'api.v1.links.preview-image' : 'short-links.preview-image';
+
+        return route($route, ['shortLink' => $link, 'v' => basename($link->preview_image_path, '.jpg')]);
     }
 
     private function loadMissing(ShortLink $link): void

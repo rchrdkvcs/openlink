@@ -24,7 +24,14 @@ export type ShortLink = {
   successful_visits: number;
   has_password: boolean;
   revision: number;
+  preview?: LinkPreview;
   routing_rules: RoutingRuleDraft[];
+};
+
+export type LinkPreview = {
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
 };
 
 export type RoutingRange = { from?: string; to?: string };

@@ -58,7 +58,7 @@ class VisitRecordingTest extends TestCase
         [$workspace, $domain] = $this->workspaceWithActiveDomain();
         $this->shortLink($workspace, $domain, 'botcheck');
 
-        $this->withHeaders(['Host' => 'localhost', 'User-Agent' => 'Twitterbot/1.0'])
+        $this->withHeaders(['Host' => 'localhost', 'User-Agent' => 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'])
             ->get('/botcheck')
             ->assertRedirect('https://example.com/landing');
 

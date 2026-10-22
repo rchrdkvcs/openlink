@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import { isLikelyUrl, normalizeUrl } from '@/lib/links';
 import {
   closedSections,
+  needsMultipart,
   sectionsWithErrors,
   type ShortLinkForm,
   toForm,
@@ -29,27 +30,30 @@ export function useShortLinkEditor(link: () => ShortLink, canEdit: () => boolean
     if (!canEdit() || !form.isDirty || form.processing) return;
 
     const target = link();
-    form
-      .transform((data) => ({
-        ...toPayload(data, { hasPassword: target.has_password }),
-        expected_revision: target.revision,
-      }))
-      .patch(route('short-links.update', target.id), {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => toast({ title: 'Changes saved', tone: 'success', duration: 2000 }),
-        onError: (errors) => {
-          if (errors.expected_revision) {
-            toast({
-              title: 'This link changed',
-              description: errors.expected_revision,
-              tone: 'danger',
-              duration: 6000,
-            });
-          }
-          sectionsWithErrors(form.errors).forEach((section) => (sections.value[section] = true));
-        },
-      });
+    const options = {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => toast({ title: 'Changes saved', tone: 'success', duration: 2000 }),
+      onError: (errors: Record<string, string>) => {
+        if (errors.expected_revision) {
+          toast({
+            title: 'This link changed',
+            description: errors.expected_revision,
+            tone: 'danger',
+            duration: 6000,
+          });
+        }
+        sectionsWithErrors(form.errors).forEach((section) => (sections.value[section] = true));
+      },
+    };
+    const request = form.transform((data) => ({
+      ...toPayload(data, { hasPassword: target.has_password }),
+      expected_revision: target.revision,
+    }));
+    const url = route('short-links.update', target.id);
+
+    if (needsMultipart(form)) request.post(url, options);
+    else request.patch(url, options);
   }
 
   return {

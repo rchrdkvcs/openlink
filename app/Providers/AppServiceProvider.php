@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Diagnostics\Heartbeats;
 use App\Services\Dns\DnsLookup;
 use App\Services\Dns\SystemDnsLookup;
+use App\Services\LinkPreviews\LinkPreviewImageCleanup;
 use App\Services\QrCodes\QrCodeLogoCleanup;
 use App\Services\ShortLinks\History\UrlRedaction;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -72,5 +73,6 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::subscribe(QrCodeLogoCleanup::class);
+        Event::subscribe(LinkPreviewImageCleanup::class);
     }
 }

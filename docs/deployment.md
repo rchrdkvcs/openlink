@@ -7,7 +7,8 @@ refuses older FrankenPHP base images. Build with `docker build --pull` to fetch
 the latest base images; CI and release builds do this automatically.
 Stable releases publish versioned and `latest` images to
 `ghcr.io/rchrdkvcs/openlink`. Prereleases publish an image tagged with the exact
-release tag, such as `v1.2.0-beta.1`, without updating `latest`. The image embeds
+release tag, such as `v1.2.0-beta.1`, without updating `latest`. Beta prereleases
+also update the floating `beta` tag. The image embeds
 its release version.
 
 The example in [`docker/`](../docker/) is the quickest way to evaluate the full
@@ -119,6 +120,18 @@ image for `linux/amd64` and `linux/arm64` without updating `latest`.
 For example, pull `ghcr.io/rchrdkvcs/openlink:v1.2.0-beta.1`, or set
 `OPENLINK_IMAGE_TAG=v1.2.0-beta.1` in `docker/.env` when using the Compose stack.
 The image tag preserves the release tag, including its optional `v` prefix.
+
+Beta prereleases (`v1.2.0-beta`, `v1.2.0-beta.1`, or the same tags without `v`)
+also publish `ghcr.io/rchrdkvcs/openlink:beta`. Use `OPENLINK_IMAGE_TAG=beta` to
+follow beta publications without changing the Compose configuration each time.
+Alpha and release-candidate prereleases keep only their exact release tag and
+do not update `beta`. Stable releases update `latest` and do not update `beta`.
+
+The GitHub package page can feature the most recently published image, including
+a prerelease, as **Latest** and suggest its versioned pull command. That badge
+is separate from the Docker `latest` tag. Pull
+`ghcr.io/rchrdkvcs/openlink:latest` explicitly for the stable channel, or
+`ghcr.io/rchrdkvcs/openlink:beta` for the beta channel.
 
 The instance administrator sees the installed and latest stable versions in
 Settings. The update button is available only with the optional Compose updater

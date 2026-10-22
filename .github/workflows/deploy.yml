@@ -21,6 +21,7 @@ jobs:
     outputs:
       publish: ${{ steps.release.outputs.publish }}
       latest: ${{ steps.release.outputs.latest }}
+      beta: ${{ steps.release.outputs.beta }}
     steps:
       - name: Select release publication
         id: release
@@ -28,9 +29,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ github.event.release.id }}
           PRERELEASE: ${{ github.event.release.prerelease }}
+          TAG: ${{ github.event.release.tag_name }}
         run: |
           if [ "$PRERELEASE" = "true" ]; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
+            if [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+-beta(\.[0-9A-Za-z-]+)*(\+[0-9A-Za-z.-]+)?$ ]]; then
+              echo "beta=true" >> "$GITHUB_OUTPUT"
+            fi
             exit 0
           fi
 
@@ -128,10 +133,14 @@ jobs:
         env:
           TAG: ${{ github.event.release.tag_name }}
           PUBLISH_LATEST: ${{ needs.check-release.outputs.latest }}
+          PUBLISH_BETA: ${{ needs.check-release.outputs.beta }}
         run: |
           tags=(--tag "$IMAGE:$TAG")
           if [ "$PUBLISH_LATEST" = "true" ]; then
             tags+=(--tag "$IMAGE:latest")
+          fi
+          if [ "$PUBLISH_BETA" = "true" ]; then
+            tags+=(--tag "$IMAGE:beta")
           fi
 
           docker buildx imagetools create "${tags[@]}" $(printf "$IMAGE@sha256:%s " *)

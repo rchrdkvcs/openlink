@@ -211,7 +211,7 @@ Before exporting, any workspace member can run a Readability Check from the stud
 
 ## Link Pages
 
-A Link Page is a Workspace-owned public page with an internal name, a path, a title, an optional description of up to 280 characters, an optional logo, and an ordered list of up to 50 explicitly selected Short Links from the same Workspace. Each entry can have its own label; without one, the Short URL is shown. See ADR 0015.
+A Link Page is a Workspace-owned public page with an internal name, a path, a title, an optional description of up to 280 characters, an optional logo, and an ordered list of up to 50 explicitly selected Short Links from the same Workspace. Each entry can have its own label; without one, the Short URL is shown. See ADR 0025.
 
 - A new Link Page is a draft. Only a published Link Page is public, at `https://{application host}/p/{path}`. Unpublishing or deleting it makes that URL show the neutral unavailable page again.
 - The path uses lowercase letters, digits, and hyphens, and is unique across the instance. Short Link slugs `p` and `p/…` are always reserved on the application host, and a path already used by an application-host Short Link `p/{path}` cannot be chosen.

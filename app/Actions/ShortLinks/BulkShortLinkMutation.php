@@ -4,10 +4,12 @@ namespace App\Actions\ShortLinks;
 
 use App\Enums\BulkLinkAction;
 use App\Enums\RevisionAction;
+use App\Enums\WebhookEventType;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\ShortLinks\History\LinkHistory;
+use App\Services\Webhooks\WebhookEvents;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +25,7 @@ class BulkShortLinkMutation
         private readonly ShortLinkMutation $shortLinks,
         private readonly ShortLinkTags $tags,
         private readonly LinkHistory $history,
+        private readonly WebhookEvents $webhooks,
     ) {}
 
     public function apply(User $user, Workspace $workspace, BulkLinkAction $action, array $ids, ?int $folderId = null, array $tags = []): int
@@ -52,6 +55,7 @@ class BulkShortLinkMutation
         $change();
 
         $this->history->recordMany($links, RevisionAction::Updated, $before, $user);
+        $links->each(fn (ShortLink $shortLink) => $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink));
     }
 
     private function selection(Workspace $workspace, array $ids): Collection

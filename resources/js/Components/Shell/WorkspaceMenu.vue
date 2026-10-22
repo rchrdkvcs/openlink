@@ -22,6 +22,7 @@ const switchDestination = computed(() => {
     ['domains.*', 'domains.index'],
     ['members.*', 'members.index'],
     ['settings.workspace', 'settings.workspace'],
+    ['settings.webhooks', 'settings.webhooks'],
     ['settings.index', 'settings.index'],
   ];
 

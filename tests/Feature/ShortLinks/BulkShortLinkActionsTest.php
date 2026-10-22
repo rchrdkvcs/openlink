@@ -300,8 +300,8 @@ class BulkShortLinkActionsTest extends TestCase
         $remove = $this->countingQueries(fn () => $this->bulk($this->owner, 'remove_tags', $links, ['tags' => $tags])->assertSessionHasNoErrors());
 
         $this->assertDatabaseCount('short_link_tag', 0);
-        $this->assertLessThan(25 + 6 * count($links), $add);
-        $this->assertLessThan(25 + 6 * count($links), $remove);
+        $this->assertLessThan(25 + 7 * count($links), $add);
+        $this->assertLessThan(25 + 7 * count($links), $remove);
     }
 
     public function test_cache_invalidation_only_loads_domains_for_revision_snapshots(): void

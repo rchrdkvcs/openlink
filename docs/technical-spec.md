@@ -14,8 +14,8 @@ The configured application host is the only hostname that serves the authenticat
 - Inertia/Vue frontend for authenticated product screens.
 - PostgreSQL for durable application data.
 - Redis for cache, rate limiting, and Laravel queues.
-- Optional queue workers for analytics writes, DNS verification tasks, and background maintenance.
-- Scheduler for repeated DNS checks, analytics retention, and cleanup.
+- Queue workers for webhook deliveries, analytics writes, DNS verification tasks, and background maintenance.
+- Scheduler for repeated DNS checks, analytics retention, webhook delivery history retention, and cleanup.
 
 ## Application Areas
 
@@ -31,6 +31,7 @@ The codebase stays modular without over-engineering. Its main Laravel areas are:
 - Resolution
 - Analytics
 - InstanceSettings
+- Webhooks
 
 Each area owns its actions, policies, requests, and tests where practical.
 
@@ -50,6 +51,8 @@ Primary records:
 - domains
 - qr_codes
 - analytics_events
+- webhook_endpoints
+- webhook_deliveries
 - instance_settings
 
 ## Short Link Constraints

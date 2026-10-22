@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   User,
   Users,
+  Webhook,
 } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -43,6 +44,12 @@ const groups = computed(() => {
         },
         { label: 'Domains', href: route('domains.index'), icon: Globe2, active: route().current('domains.*') },
         { label: 'Members', href: route('members.index'), icon: Users, active: route().current('members.*') },
+        {
+          label: 'Webhooks',
+          href: route('settings.webhooks'),
+          icon: Webhook,
+          active: route().current('settings.webhooks'),
+        },
       ],
     });
   }

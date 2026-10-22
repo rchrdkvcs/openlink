@@ -58,6 +58,12 @@ Infrastructure secrets remain outside the instance admin panel and workspace set
 
 Product settings can be managed through the instance admin panel or workspace settings when they are safe to change at runtime.
 
+Webhook signing secrets are integration credentials, not infrastructure secrets. Openlink generates them per webhook endpoint, encrypts them at rest with the application key, shows them only when they are created or rotated, keeps a rotated-out secret only for a 24-hour signing overlap, and keeps them out of payloads, queued jobs, and delivery history. See ADR 0021.
+
+## Webhooks
+
+Webhook endpoints are managed only by workspace Owners and Admins. Event payloads contain the workspace's own short link data and never include passwords or password hashes, API tokens, visitor IP addresses or hashes, or visitor request headers. Outbound requests require HTTPS, verify TLS certificates, do not follow redirects, and refuse to connect to loopback, private, link-local, reserved, or metadata addresses; the connection is pinned to the address checked before each attempt to prevent DNS rebinding. Delivery history stores only status codes, timing, and short sanitized errors.
+
 ## Abuse Controls
 
 Redis-backed rate limiting should protect public resolution, password attempts, login, invite link joins, and domain verification checks.

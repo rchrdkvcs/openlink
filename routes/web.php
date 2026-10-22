@@ -26,6 +26,7 @@ use App\Http\Controllers\ShortLinkRevisionController;
 use App\Http\Controllers\ShortLinkRoutingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UtmTemplateController;
+use App\Http\Controllers\WebhookEndpointController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsureHasWorkspace;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
@@ -59,6 +60,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/settings/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
         Route::get('/settings/members', [DashboardController::class, 'members'])->name('members.index');
         Route::get('/settings/workspace', [WorkspaceController::class, 'settings'])->name('settings.workspace');
+        Route::get('/settings/webhooks', [WebhookEndpointController::class, 'index'])->name('settings.webhooks');
         Route::redirect('/settings', '/settings/workspace')->name('settings');
         Route::get('/domains', fn () => redirect()->route('domains.index'));
         Route::get('/members', fn () => redirect()->route('members.index'));
@@ -154,6 +156,12 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/qr-code-templates', [QrCodeTemplateController::class, 'store'])->name('qr-code-templates.store');
         Route::patch('/qr-code-templates/{qrCodeTemplate}', [QrCodeTemplateController::class, 'update'])->name('qr-code-templates.update');
         Route::delete('/qr-code-templates/{qrCodeTemplate}', [QrCodeTemplateController::class, 'destroy'])->name('qr-code-templates.destroy');
+        Route::post('/webhook-endpoints', [WebhookEndpointController::class, 'store'])->name('webhook-endpoints.store');
+        Route::patch('/webhook-endpoints/{webhookEndpoint}', [WebhookEndpointController::class, 'update'])->name('webhook-endpoints.update');
+        Route::post('/webhook-endpoints/{webhookEndpoint}/rotate-secret', [WebhookEndpointController::class, 'rotateSecret'])->name('webhook-endpoints.rotate-secret');
+        Route::post('/webhook-endpoints/{webhookEndpoint}/test', [WebhookEndpointController::class, 'test'])->middleware('throttle:10,1')->name('webhook-endpoints.test');
+        Route::delete('/webhook-endpoints/{webhookEndpoint}', [WebhookEndpointController::class, 'destroy'])->name('webhook-endpoints.destroy');
+        Route::post('/webhook-deliveries/{webhookDelivery}/retry', [WebhookEndpointController::class, 'retry'])->middleware('throttle:30,1')->name('webhook-deliveries.retry');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');

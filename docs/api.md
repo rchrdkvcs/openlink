@@ -197,6 +197,10 @@ A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter thr
 
 `registration_mode`, `require_email_verification`, `default_domain`, `slug_length`, `analytics_retention_days`, `public_unavailable_title`, and `public_unavailable_message` are required. `dns_target`, `reserved_slugs`, and `reserved_prefixes` are optional: omit them to keep their current values, or send `null`/an empty string to clear them. Saving makes `default_domain` the active Default Domain.
 
+## Webhooks
+
+Webhook endpoints are managed by workspace Owners and Admins from **Settings → Webhooks**, not through API tokens. Short link changes made through the API send the same webhook events as changes made in the dashboard. See [`webhooks.md`](./webhooks.md) for events, payloads, signature verification, and retries.
+
 ## Errors
 
 Responses follow Laravel conventions, always as JSON on `/api/*`:

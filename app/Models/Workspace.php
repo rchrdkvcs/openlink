@@ -76,4 +76,9 @@ class Workspace extends Model
     {
         return $this->hasMany(QrCodeTemplate::class);
     }
+
+    public function webhookEndpoints(): HasMany
+    {
+        return $this->hasMany(WebhookEndpoint::class);
+    }
 }

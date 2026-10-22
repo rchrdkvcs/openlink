@@ -53,3 +53,30 @@ export type InviteLink = {
 export type MemberUser = { id: number; name: string; email: string; profile_avatar_url?: string | null };
 
 export type Member = { id: number; role: string; created_at: string; user: MemberUser };
+
+export type WebhookEventOption = { value: string; label: string };
+
+export type WebhookDeliveryStatus = 'pending' | 'retrying' | 'succeeded' | 'failed';
+
+export type WebhookDelivery = {
+  id: number;
+  event_id: string;
+  event_type: string;
+  status: WebhookDeliveryStatus;
+  attempts: number;
+  response_status: number | null;
+  error: string | null;
+  duration_ms: number | null;
+  last_attempted_at: string | null;
+  next_attempt_at: string | null;
+  created_at: string;
+};
+
+export type WebhookEndpoint = {
+  id: number;
+  url: string;
+  events: string[];
+  is_enabled: boolean;
+  created_at: string;
+  deliveries: WebhookDelivery[];
+};

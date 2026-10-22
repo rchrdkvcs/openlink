@@ -1,4 +1,4 @@
-import { asFlag } from './qrForm';
+import { asFlag, type QrEditorFields } from './qrForm';
 import type { ExportFormat, QrAppearance } from './types';
 
 const PREVIEW_SIZE = 512;
@@ -9,7 +9,16 @@ export function withQuery(base: string, params: Record<string, string | number>)
   return query ? `${base}?${query}` : base;
 }
 
-export function previewQuery(appearance: QrAppearance, version: number): Record<string, string | number> {
+type PreviewDesign = QrAppearance & Partial<Pick<QrEditorFields, 'remove_logo' | 'template_id'>>;
+
+export function previewDesignQuery(design: Partial<PreviewDesign>): Record<string, number> {
+  return {
+    ...(design.template_id ? { template_id: design.template_id } : {}),
+    ...(design.remove_logo ? { remove_logo: 1 } : {}),
+  };
+}
+
+export function previewQuery(appearance: PreviewDesign, version: number): Record<string, string | number> {
   return {
     size: PREVIEW_SIZE,
     foreground_color: appearance.foreground_color,
@@ -19,6 +28,7 @@ export function previewQuery(appearance: QrAppearance, version: number): Record<
     style: appearance.style,
     eye_style: appearance.eye_style,
     background_transparent: asFlag(appearance.background_transparent),
+    ...previewDesignQuery(appearance),
     v: version,
   };
 }
@@ -27,7 +37,7 @@ export function thumbnailUrl(token: string): string {
   return route('qr-codes.preview', token);
 }
 
-export function previewUrl(token: string, appearance: QrAppearance, version: number): string {
+export function previewUrl(token: string, appearance: PreviewDesign, version: number): string {
   return withQuery(thumbnailUrl(token), previewQuery(appearance, version));
 }
 

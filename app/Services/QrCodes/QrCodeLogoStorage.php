@@ -3,9 +3,11 @@
 namespace App\Services\QrCodes;
 
 use App\Models\QrCode;
+use App\Models\QrCodeTemplate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -13,32 +15,14 @@ class QrCodeLogoStorage
 {
     private const DIRECTORY = 'qr-logos';
 
-    public function save(QrCode $qrCode, ?UploadedFile $upload = null, bool $remove = false): QrCode
+    public function save(QrCode|QrCodeTemplate $owner, ?UploadedFile $upload = null, bool $remove = false): QrCode|QrCodeTemplate
     {
-        $previous = $qrCode->logo_path;
-        $stored = $upload ? $this->store($upload) : null;
+        return $this->persist($owner, $upload ? $this->store($upload) : null, $remove);
+    }
 
-        if ($stored) {
-            $qrCode->logo_path = $stored;
-        } elseif ($remove) {
-            $qrCode->logo_path = null;
-        }
-
-        try {
-            if (! $qrCode->save()) {
-                throw new RuntimeException('Unable to save the QR Code.');
-            }
-        } catch (Throwable $exception) {
-            $this->delete([$stored]);
-
-            throw $exception;
-        }
-
-        if ($previous !== $qrCode->logo_path) {
-            $this->delete([$previous]);
-        }
-
-        return $qrCode;
+    public function saveCopy(QrCode|QrCodeTemplate $owner, ?string $source): QrCode|QrCodeTemplate
+    {
+        return $this->persist($owner, $this->copy($source), true);
     }
 
     public function contents(QrCode $qrCode): ?string
@@ -48,6 +32,11 @@ class QrCodeLogoStorage
         }
 
         return Storage::get($qrCode->logo_path);
+    }
+
+    public function exists(?string $path): bool
+    {
+        return is_string($path) && $path !== '' && Storage::exists($path);
     }
 
     public function pathsOf(Builder $qrCodes): array
@@ -62,6 +51,48 @@ class QrCodeLogoStorage
         if ($paths !== []) {
             Storage::delete($paths);
         }
+    }
+
+    private function persist(QrCode|QrCodeTemplate $owner, ?string $stored, bool $remove): QrCode|QrCodeTemplate
+    {
+        $previous = $owner->logo_path;
+
+        if ($stored) {
+            $owner->logo_path = $stored;
+        } elseif ($remove) {
+            $owner->logo_path = null;
+        }
+
+        try {
+            if (! $owner->save()) {
+                throw new RuntimeException('Unable to save the QR Code design.');
+            }
+        } catch (Throwable $exception) {
+            $this->delete([$stored]);
+
+            throw $exception;
+        }
+
+        if ($previous !== $owner->logo_path) {
+            $this->delete([$previous]);
+        }
+
+        return $owner;
+    }
+
+    private function copy(?string $source): ?string
+    {
+        if (! $this->exists($source)) {
+            return null;
+        }
+
+        $path = self::DIRECTORY.'/'.Str::random(40).'.'.(pathinfo($source, PATHINFO_EXTENSION) ?: 'png');
+
+        if (! Storage::copy($source, $path)) {
+            throw new RuntimeException('Unable to copy the QR Code logo.');
+        }
+
+        return $path;
     }
 
     private function store(UploadedFile $upload): string

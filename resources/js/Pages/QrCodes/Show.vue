@@ -18,22 +18,20 @@ import QrCodePreview from './Studio/QrCodePreview.vue';
 import StudioSaveBar from './Studio/StudioSaveBar.vue';
 import StylePanel from './Studio/StylePanel.vue';
 import { useQrCodeEditor } from './Studio/useQrCodeEditor';
-import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
+import type { PayloadDescriptors, QrCodeRecord, QrCodeTemplate, ShortLinkOption } from './types';
 
 const props = defineProps<{
   qr: QrCodeRecord;
   payloadTypes: Record<string, string>;
   payloadDescriptors: PayloadDescriptors;
   shortLinks: ShortLinkOption[];
+  templates: QrCodeTemplate[];
 }>();
 
-const { canEdit } = useShell();
+const { canEdit, canManage } = useShell();
 
-const { form, panel, isDirty, previewUrl, save, discard, pickLogo, removeLogo } = useQrCodeEditor(
-  props.qr,
-  props.payloadDescriptors,
-  () => canEdit.value,
-);
+const { form, panel, isDirty, previewUrl, appliedTemplate, save, discard, applyTemplate, pickLogo, removeLogo } =
+  useQrCodeEditor(props.qr, props.payloadDescriptors, () => canEdit.value);
 
 const exportSize = ref(props.qr.size);
 
@@ -106,8 +104,14 @@ useSaveShortcut(() => {
               v-show="panel === 'style'"
               :form="form"
               :has-saved-logo="qr.has_logo"
+              :templates="templates"
+              :applied-template="appliedTemplate"
+              :can-manage-templates="canManage"
+              :has-unsaved-changes="isDirty"
+              :qr-token="qr.token"
               @pick-logo="pickLogo"
               @remove-logo="removeLogo"
+              @apply-template="applyTemplate"
             />
             <AdvancedPanel v-show="panel === 'advanced'" :form="form" />
           </fieldset>

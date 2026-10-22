@@ -6,6 +6,7 @@ use App\Actions\QrCodes\CreateQrCode;
 use App\Actions\QrCodes\DeleteQrCode;
 use App\Actions\QrCodes\QrCodeImages;
 use App\Actions\QrCodes\QrCodePayload;
+use App\Actions\QrCodes\QrCodeTemplates;
 use App\Actions\QrCodes\ShortLinkOptions;
 use App\Actions\QrCodes\UpdateQrCode;
 use App\Actions\Workspaces\CurrentWorkspace;
@@ -62,7 +63,7 @@ class QrCodeController extends Controller
         return redirect()->route('qr-codes.show', $qrCode);
     }
 
-    public function show(Request $request, QrCode $qrCode, CurrentWorkspace $current, ShortLinkOptions $options): \Inertia\Response
+    public function show(Request $request, QrCode $qrCode, CurrentWorkspace $current, ShortLinkOptions $options, QrCodeTemplates $templates): \Inertia\Response
     {
         $workspace = $current->require();
         Gate::authorize('view', $qrCode);
@@ -73,6 +74,7 @@ class QrCodeController extends Controller
             'payloadTypes' => QrCodeContent::types(),
             'payloadDescriptors' => QrCodeContent::descriptors(),
             'shortLinks' => $options->for($workspace, selectedId: $qrCode->short_link_id),
+            'templates' => Gate::allows('update', $qrCode) ? $templates->list($workspace) : [],
         ]);
     }
 

@@ -50,6 +50,7 @@ describe('toUpdatePayload', () => {
       style: 'square',
       eye_style: 'square',
       logo: null,
+      template_id: null,
       _method: 'patch',
       background_transparent: 1,
       remove_logo: 0,
@@ -78,6 +79,7 @@ describe('panelForErrors', () => {
   it('reveals the first panel containing an error', () => {
     expect(panelForErrors(['payload.url'])).toBe('content');
     expect(panelForErrors(['margin', 'logo'])).toBe('style');
+    expect(panelForErrors(['template_id'])).toBe('style');
     expect(panelForErrors([])).toBeNull();
   });
 });

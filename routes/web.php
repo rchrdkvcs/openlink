@@ -19,6 +19,7 @@ use App\Http\Controllers\ProfileConnectedIdentityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLinkController;
 use App\Http\Controllers\QrCodeController;
+use App\Http\Controllers\QrCodeTemplateController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\ShortLinkCsvController;
 use App\Http\Controllers\ShortLinkRevisionController;
@@ -148,6 +149,10 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
         Route::get('/qr-codes/{qrCode}/preview', [QrCodeController::class, 'preview'])->name('qr-codes.preview');
         Route::get('/qr-codes/{qrCode}/{format}', [QrCodeController::class, 'export'])->name('qr-codes.export');
+
+        Route::post('/qr-code-templates', [QrCodeTemplateController::class, 'store'])->name('qr-code-templates.store');
+        Route::patch('/qr-code-templates/{qrCodeTemplate}', [QrCodeTemplateController::class, 'update'])->name('qr-code-templates.update');
+        Route::delete('/qr-code-templates/{qrCodeTemplate}', [QrCodeTemplateController::class, 'destroy'])->name('qr-code-templates.destroy');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');

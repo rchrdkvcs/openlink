@@ -13,6 +13,7 @@ class UpdateQrCode
         private readonly Gate $gate,
         private readonly QrCodeTargets $targets,
         private readonly QrCodeAppearance $appearance,
+        private readonly QrCodeTemplates $templates,
         private readonly QrCodeLogoStorage $logos,
     ) {}
 
@@ -24,12 +25,21 @@ class UpdateQrCode
             $qrCode->fill($this->targets->resolve($qrCode->workspace, $data, $qrCode)->attributes());
         }
 
+        $template = isset($data['template_id']) ? $this->templates->find($qrCode, (int) $data['template_id']) : null;
+
+        if ($template) {
+            $this->templates->apply($qrCode, $template);
+        }
+
         $this->appearance->fill($qrCode, $data);
 
-        return $this->logos->save(
-            $qrCode,
-            $request->hasFile('logo') ? $request->file('logo') : null,
-            (bool) ($data['remove_logo'] ?? false),
-        );
+        $upload = $request->hasFile('logo') ? $request->file('logo') : null;
+        $remove = (bool) ($data['remove_logo'] ?? false);
+
+        if ($template && ! $upload && ! $remove) {
+            return $this->logos->saveCopy($qrCode, $this->templates->logoOf($template, 'template_id'));
+        }
+
+        return $this->logos->save($qrCode, $upload, $remove);
     }
 }

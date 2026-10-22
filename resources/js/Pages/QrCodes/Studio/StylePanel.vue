@@ -1,23 +1,47 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import Switch from '@/Components/ui/Switch.vue';
 
 import { logoLabel, showsLogo } from '../qrForm';
 import { EYE_STYLE_OPTIONS, STYLE_OPTIONS } from '../qrOptions';
+import type { QrCodeTemplate } from '../types';
 import ColorField from './ColorField.vue';
 import LogoField from './LogoField.vue';
+import TemplateField from './TemplateField.vue';
 import type { QrEditorForm } from './useQrCodeEditor';
 
-defineProps<{
+const props = defineProps<{
   form: QrEditorForm;
   hasSavedLogo: boolean;
+  templates: QrCodeTemplate[];
+  appliedTemplate: QrCodeTemplate | null;
+  canManageTemplates: boolean;
+  hasUnsavedChanges: boolean;
+  qrToken: string;
 }>();
 
-const emit = defineEmits<{ pickLogo: [file: File | null]; removeLogo: [] }>();
+const emit = defineEmits<{
+  pickLogo: [file: File | null];
+  removeLogo: [];
+  applyTemplate: [template: QrCodeTemplate];
+}>();
+
+const currentLogo = computed(() => (props.appliedTemplate ? props.appliedTemplate.has_logo : props.hasSavedLogo));
 </script>
 
 <template>
   <div class="grid gap-5">
+    <TemplateField
+      :templates="templates"
+      :applied="appliedTemplate"
+      :can-manage="canManageTemplates"
+      :has-unsaved-changes="hasUnsavedChanges"
+      :qr-token="qrToken"
+      @apply="emit('applyTemplate', $event)"
+    />
+
     <div class="grid gap-1.5">
       <span class="text-[13px] font-medium text-foreground">Modules</span>
       <SegmentedControl v-model="form.style" :options="STYLE_OPTIONS" label="Module style" class="w-full" />
@@ -50,9 +74,9 @@ const emit = defineEmits<{ pickLogo: [file: File | null]; removeLogo: [] }>();
     </label>
 
     <LogoField
-      :label="logoLabel(hasSavedLogo, form)"
+      :label="logoLabel(currentLogo, form)"
       :file="form.logo"
-      :removable="showsLogo(hasSavedLogo, form)"
+      :removable="showsLogo(currentLogo, form)"
       :error="form.errors.logo"
       @pick="emit('pickLogo', $event)"
       @remove="emit('removeLogo')"

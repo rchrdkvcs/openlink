@@ -14,8 +14,14 @@ class QueueWorkspaceSummaries
 {
     public const QUEUE_FAILURE = 'The queue did not accept the summary. Check the queue connection.';
 
+    public const NOT_QUEUED_FAILURE = 'The summary was never handed to the queue before its send window closed.';
+
+    public const STALE_MINUTES = 10;
+
     public function handle(AnalyticsSummarySchedule $schedule, CarbonImmutable $now): int
     {
+        $this->expireUnqueued($schedule, $now);
+
         if (! $schedule->is_enabled) {
             return 0;
         }
@@ -55,8 +61,14 @@ class QueueWorkspaceSummaries
         }
 
         return $this->delivery($schedule, $userId, $period)
-            ->where('status', AnalyticsSummaryDelivery::STATUS_FAILED)
-            ->where('failure', self::QUEUE_FAILURE)
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $failed) => $failed
+                    ->where('status', AnalyticsSummaryDelivery::STATUS_FAILED)
+                    ->where('failure', self::QUEUE_FAILURE))
+                ->orWhere(fn (Builder $stale) => $stale
+                    ->where('status', AnalyticsSummaryDelivery::STATUS_PENDING)
+                    ->whereNull('queued_at')
+                    ->where('updated_at', '<', $now->subMinutes(self::STALE_MINUTES))))
             ->update(['status' => AnalyticsSummaryDelivery::STATUS_PENDING, 'failure' => null, 'updated_at' => $now]) === 1;
     }
 
@@ -66,6 +78,7 @@ class QueueWorkspaceSummaries
 
         try {
             SendWorkspaceSummary::dispatch($delivery->id);
+            $delivery->update(['queued_at' => $now]);
 
             return true;
         } catch (Throwable $exception) {
@@ -78,6 +91,20 @@ class QueueWorkspaceSummaries
 
             return false;
         }
+    }
+
+    private function expireUnqueued(AnalyticsSummarySchedule $schedule, CarbonImmutable $now): void
+    {
+        $schedule->deliveries()
+            ->where('status', AnalyticsSummaryDelivery::STATUS_PENDING)
+            ->whereNull('queued_at')
+            ->where('created_at', '<', $now->subHours(SummaryPeriod::DUE_HOURS))
+            ->update([
+                'status' => AnalyticsSummaryDelivery::STATUS_FAILED,
+                'failed_at' => $now,
+                'failure' => self::NOT_QUEUED_FAILURE,
+                'updated_at' => $now,
+            ]);
     }
 
     private function delivery(AnalyticsSummarySchedule $schedule, int $userId, SummaryPeriod $period): Builder

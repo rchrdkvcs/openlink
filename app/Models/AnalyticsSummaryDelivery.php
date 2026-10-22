@@ -23,6 +23,7 @@ class AnalyticsSummaryDelivery extends Model
             'period_date' => 'immutable_date',
             'period_start' => 'immutable_datetime',
             'period_end' => 'immutable_datetime',
+            'queued_at' => 'datetime',
             'sent_at' => 'datetime',
             'failed_at' => 'datetime',
         ];

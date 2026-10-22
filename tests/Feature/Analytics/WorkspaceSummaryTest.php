@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Analytics;
 
+use App\Actions\Analytics\BuildWorkspaceSummary;
 use App\Actions\Analytics\QueueWorkspaceSummaries;
 use App\Jobs\SendWorkspaceSummary;
 use App\Mail\WorkspaceSummaryMail;
@@ -9,8 +10,11 @@ use App\Models\AnalyticsSummaryDelivery;
 use App\Models\AnalyticsSummarySchedule;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
+use App\Services\Analytics\SummaryPeriod;
 use App\Services\InstanceSettings;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -121,9 +125,101 @@ class WorkspaceSummaryTest extends TestCase
         $this->assertSame(169.0, $delivery->period_start->diffInHours($delivery->period_end));
         Queue::assertPushed(SendWorkspaceSummary::class, 1);
 
-        $schedule->update(['timezone' => 'Europe/London']);
-        $this->artisan('openlink:send-workspace-summaries')->assertSuccessful();
+        Queue::assertPushed(SendWorkspaceSummary::class, 1);
+    }
+
+    public function test_changing_timezone_after_delivery_does_not_resend_the_same_week(): void
+    {
+        Queue::fake();
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $schedule = $this->schedule($workspace, [$owner], 'Europe/Paris');
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-26 08:30', 'UTC'));
+        $this->artisan('openlink:send-workspace-summaries');
+
+        foreach (['Europe/London', 'Asia/Tokyo', 'Asia/Kolkata'] as $timezone) {
+            $schedule->update(['timezone' => $timezone]);
+            $this->assertTrue(SummaryPeriod::latest($timezone, CarbonImmutable::now())->isDue(CarbonImmutable::now()));
+            $this->assertSame(0, app(QueueWorkspaceSummaries::class)->handle($schedule->fresh(), CarbonImmutable::now()));
+        }
+
         $this->assertSame(1, AnalyticsSummaryDelivery::query()->count());
+        Queue::assertPushed(SendWorkspaceSummary::class, 1);
+    }
+
+    public function test_dst_week_compares_with_the_previous_local_week_using_half_open_periods(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-26 08:00', 'UTC'));
+        [$workspace, $domain] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'dst');
+        $this->analyticsEvent($link, ['occurred_at' => CarbonImmutable::parse('2026-10-11 21:30', 'UTC')]);
+        $this->analyticsEvent($link, ['occurred_at' => CarbonImmutable::parse('2026-10-11 22:00', 'UTC')]);
+        $this->analyticsEvent($link, ['occurred_at' => CarbonImmutable::parse('2026-10-18 22:00', 'UTC')]);
+        $this->analyticsEvent($link, ['occurred_at' => CarbonImmutable::parse('2026-10-25 23:00', 'UTC')]);
+
+        $period = SummaryPeriod::latest('Europe/Paris', CarbonImmutable::now());
+        $summary = app(BuildWorkspaceSummary::class)->build($workspace, $period);
+
+        $this->assertSame('2026-10-19', $period->date());
+        $this->assertSame(1, $summary['metrics'][0]['value']);
+        $this->assertSame(0.0, $summary['metrics'][0]['change']);
+    }
+
+    public function test_restart_between_claim_and_dispatch_is_recovered_within_the_due_window(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $viewer = $this->memberOf($workspace, WorkspaceMember::ROLE_VIEWER);
+        $schedule = $this->schedule($workspace, [$owner, $viewer], 'UTC');
+        $this->pendingDelivery($schedule, $owner->id, now()->subMinutes(20));
+        $this->pendingDelivery($schedule, $viewer->id, now()->subMinutes(2));
+
+        $this->artisan('openlink:send-workspace-summaries');
+
+        Queue::assertPushed(SendWorkspaceSummary::class, 1);
+        $this->assertNotNull($this->deliveryFor($owner->id)->queued_at);
+        $this->assertNull($this->deliveryFor($viewer->id)->queued_at);
+
+        $this->travel(15)->minutes();
+        $this->artisan('openlink:send-workspace-summaries');
+        $this->artisan('openlink:send-workspace-summaries');
+
+        Queue::assertPushed(SendWorkspaceSummary::class, 2);
+        $this->assertNotNull($this->deliveryFor($viewer->id)->queued_at);
+    }
+
+    public function test_delivery_never_queued_before_the_window_closed_becomes_a_visible_failure(): void
+    {
+        Queue::fake();
+        $this->travelTo(CarbonImmutable::parse('2026-10-19 09:00', 'UTC'));
+        [$workspace, , $owner] = $this->workspaceWithActiveDomain();
+        $schedule = $this->schedule($workspace, [$owner], 'UTC');
+        $this->pendingDelivery($schedule, $owner->id, now());
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 09:00', 'UTC'));
+        $this->artisan('openlink:send-workspace-summaries');
+
+        Queue::assertNothingPushed();
+        $delivery = $this->deliveryFor($owner->id);
+        $this->assertSame(AnalyticsSummaryDelivery::STATUS_FAILED, $delivery->status);
+        $this->assertSame(QueueWorkspaceSummaries::NOT_QUEUED_FAILURE, $delivery->failure);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->get(route('settings.summaries'))
+            ->assertInertia(fn ($page) => $page
+                ->where('status.last_failure.message', QueueWorkspaceSummaries::NOT_QUEUED_FAILURE)
+                ->where('status.pending', 0));
+    }
+
+    public function test_scheduler_lock_expires_quickly(): void
+    {
+        $event = collect(app(Schedule::class)->events())
+            ->first(fn ($event) => str_contains((string) $event->command, 'openlink:send-workspace-summaries'));
+
+        $this->assertTrue($event->withoutOverlapping);
+        $this->assertSame(10, $event->expiresAt);
     }
 
     public function test_summary_is_not_sent_before_send_time_or_after_the_due_window(): void
@@ -431,6 +527,21 @@ class WorkspaceSummaryTest extends TestCase
         $schedule->recipients()->sync(collect($users)->map(fn ($user) => $this->membershipOf($workspace, $user)->id)->all());
 
         return $schedule;
+    }
+
+    private function pendingDelivery(AnalyticsSummarySchedule $schedule, int $userId, CarbonInterface $at): AnalyticsSummaryDelivery
+    {
+        $delivery = AnalyticsSummaryDelivery::create([
+            'analytics_summary_schedule_id' => $schedule->id,
+            'user_id' => $userId,
+            'period_date' => '2026-10-12',
+            'period_start' => '2026-10-12 00:00:00',
+            'period_end' => '2026-10-19 00:00:00',
+            'status' => AnalyticsSummaryDelivery::STATUS_PENDING,
+        ]);
+        $delivery->forceFill(['created_at' => $at, 'updated_at' => $at])->saveQuietly();
+
+        return $delivery;
     }
 
     private function deliveryFor(int $userId): AnalyticsSummaryDelivery

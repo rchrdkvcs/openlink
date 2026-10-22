@@ -9,8 +9,6 @@ use Illuminate\Validation\Rule;
 
 class AnalyticsViewRequest extends FormRequest
 {
-    private const TARGETS = ['link', 'qr', 'domain', 'folder', 'tag', 'rule', 'variant'];
-
     public function rules(): array
     {
         $rules = [
@@ -27,7 +25,7 @@ class AnalyticsViewRequest extends FormRequest
             'filters.from' => ['exclude_unless:filters.range,custom', 'required', 'date_format:Y-m-d'],
             'filters.to' => ['exclude_unless:filters.range,custom', 'required', 'date_format:Y-m-d', 'after_or_equal:filters.from'],
             'filters.metric' => ['nullable', Rule::enum(AnalyticsMetric::class)],
-            ...collect(self::TARGETS)->mapWithKeys(fn (string $key) => ["filters.{$key}" => ['nullable', 'integer', 'min:1']])->all(),
+            ...collect(AnalyticsFilters::TARGET_KEYS)->mapWithKeys(fn (string $key) => ["filters.{$key}" => ['nullable', 'integer', 'min:1']])->all(),
         ];
     }
 

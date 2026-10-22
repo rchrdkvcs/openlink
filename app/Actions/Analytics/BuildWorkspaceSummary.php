@@ -18,7 +18,7 @@ class BuildWorkspaceSummary
 
     public function build(Workspace $workspace, SummaryPeriod $period): array
     {
-        $filters = new AnalyticsFilters(range: 'custom', from: $period->start->utc(), to: $period->end->utc());
+        $filters = new AnalyticsFilters(range: 'custom', from: $period->start, to: $period->end);
         $cutoff = CarbonImmutable::now()->subDays((int) $this->settings->get('analytics_retention_days', 365));
         $comparable = $filters->previous()->from->greaterThanOrEqualTo($cutoff);
         $summary = $this->reporter->summary($workspace, $filters);

@@ -43,6 +43,7 @@ return new class extends Migration
             $table->timestamp('period_end');
             $table->string('status', 16)->default('pending');
             $table->unsignedSmallInteger('attempts')->default(0);
+            $table->timestamp('queued_at')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('failed_at')->nullable();
             $table->string('failure')->nullable();

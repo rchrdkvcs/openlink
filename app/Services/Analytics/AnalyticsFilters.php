@@ -10,6 +10,8 @@ class AnalyticsFilters
 {
     public const RANGES = ['24h', '7d', '14d', '30d', '90d', '12m', 'custom'];
 
+    public const TARGET_KEYS = ['link', 'qr', 'domain', 'folder', 'tag', 'rule', 'variant'];
+
     public function __construct(
         public readonly string $range,
         public readonly CarbonImmutable $from,
@@ -35,69 +37,62 @@ class AnalyticsFilters
         $range = in_array($query['range'] ?? null, self::RANGES, true) ? $query['range'] : '30d';
         $now = CarbonImmutable::now();
 
+        $end = $now->endOfSecond();
+
         [$from, $to] = match ($range) {
-            '24h' => [$now->subHours(24), $now],
-            '7d' => [$now->subDays(7)->startOfDay(), $now],
-            '14d' => [$now->subDays(14)->startOfDay(), $now],
-            '90d' => [$now->subDays(90)->startOfDay(), $now],
-            '12m' => [$now->subMonths(12)->startOfDay(), $now],
+            '24h' => [$now->subHours(24)->startOfSecond(), $end],
+            '7d' => [$now->subDays(7)->startOfDay(), $end],
+            '14d' => [$now->subDays(14)->startOfDay(), $end],
+            '90d' => [$now->subDays(90)->startOfDay(), $end],
+            '12m' => [$now->subMonths(12)->startOfDay(), $end],
             'custom' => self::customRange($query, $now),
-            default => [$now->subDays(30)->startOfDay(), $now],
+            default => [$now->subDays(30)->startOfDay(), $end],
         };
 
         $metric = $query['metric'] ?? null;
+        $metricValue = is_string($metric) ? AnalyticsMetric::tryFrom($metric)?->value : null;
+        $ids = [];
+        $invalid = [];
+
+        foreach (self::TARGET_KEYS as $key) {
+            $ids[$key] = self::id($query, $key);
+
+            if ($ids[$key] === null && self::present($query, $key)) {
+                $invalid[] = $key;
+            }
+        }
+
+        if ($metricValue === null && self::present($query, 'metric')) {
+            $invalid[] = 'metric';
+        }
 
         return new self(
             range: $range,
             from: $from,
             to: $to,
-            shortLinkId: self::id($query, 'link'),
-            qrCodeId: self::id($query, 'qr'),
-            domainId: self::id($query, 'domain'),
-            folderId: self::id($query, 'folder'),
-            tagId: self::id($query, 'tag'),
-            routingRuleId: self::id($query, 'rule'),
-            routingVariantId: self::id($query, 'variant'),
-            metric: is_string($metric) ? AnalyticsMetric::tryFrom($metric)?->value : null,
+            shortLinkId: $ids['link'],
+            qrCodeId: $ids['qr'],
+            domainId: $ids['domain'],
+            folderId: $ids['folder'],
+            tagId: $ids['tag'],
+            routingRuleId: $ids['rule'],
+            routingVariantId: $ids['variant'],
+            metric: $metricValue,
+            unavailable: $invalid,
         );
     }
 
     public function previous(): self
     {
-        $duration = $this->from->diffInSeconds($this->to);
-
-        return new self(
-            range: $this->range,
-            from: $this->from->subSeconds($duration),
+        return $this->with(
+            from: $this->from->sub($this->from->diff($this->to)),
             to: $this->from,
-            shortLinkId: $this->shortLinkId,
-            qrCodeId: $this->qrCodeId,
-            domainId: $this->domainId,
-            folderId: $this->folderId,
-            tagId: $this->tagId,
-            routingRuleId: $this->routingRuleId,
-            routingVariantId: $this->routingVariantId,
-            metric: $this->metric,
-            unavailable: $this->unavailable,
         );
     }
 
     public function withUnavailable(array $keys): self
     {
-        return new self(
-            range: $this->range,
-            from: $this->from,
-            to: $this->to,
-            shortLinkId: $this->shortLinkId,
-            qrCodeId: $this->qrCodeId,
-            domainId: $this->domainId,
-            folderId: $this->folderId,
-            tagId: $this->tagId,
-            routingRuleId: $this->routingRuleId,
-            routingVariantId: $this->routingVariantId,
-            metric: $this->metric,
-            unavailable: array_values($keys),
-        );
+        return $this->with(unavailable: array_values(array_unique([...$this->unavailable, ...$keys])));
     }
 
     public function targets(): array
@@ -110,7 +105,7 @@ class AnalyticsFilters
             'tag' => $this->tagId,
             'rule' => $this->routingRuleId,
             'variant' => $this->routingVariantId,
-        ]);
+        ], fn (?int $id) => $id !== null);
     }
 
     public function bucketUnit(): string
@@ -153,10 +148,40 @@ class AnalyticsFilters
         return [$from, $to->min($now->endOfDay())];
     }
 
+    private function with(
+        ?CarbonImmutable $from = null,
+        ?CarbonImmutable $to = null,
+        ?array $unavailable = null,
+    ): self {
+        return new self(
+            range: $this->range,
+            from: $from ?? $this->from,
+            to: $to ?? $this->to,
+            shortLinkId: $this->shortLinkId,
+            qrCodeId: $this->qrCodeId,
+            domainId: $this->domainId,
+            folderId: $this->folderId,
+            tagId: $this->tagId,
+            routingRuleId: $this->routingRuleId,
+            routingVariantId: $this->routingVariantId,
+            metric: $this->metric,
+            unavailable: $unavailable ?? $this->unavailable,
+        );
+    }
+
+    private static function present(array $query, string $key): bool
+    {
+        return array_key_exists($key, $query) && $query[$key] !== null && $query[$key] !== '';
+    }
+
     private static function id(array $query, string $key): ?int
     {
         $value = $query[$key] ?? null;
 
-        return is_numeric($value) ? (int) $value : null;
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+
+        return is_string($value) && preg_match('/^[1-9][0-9]{0,17}$/', $value) === 1 ? (int) $value : null;
     }
 }

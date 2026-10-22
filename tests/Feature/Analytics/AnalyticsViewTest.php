@@ -204,6 +204,34 @@ class AnalyticsViewTest extends TestCase
         $this->assertCount(1, array_filter(explode("\n", trim($csv))));
     }
 
+    public function test_invalid_filter_ids_produce_unavailable_state_instead_of_unfiltered_report(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 21)->setTime(12, 0));
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'valid');
+        $this->analyticsEvent($link, ['occurred_at' => now()->subHour()]);
+
+        foreach ([['link' => '0'], ['link' => 'abc'], ['link' => '1.5'], ['link' => '-3'], ['qr' => '1e3'], ['metric' => 'bogus']] as $query) {
+            $key = array_key_first($query);
+
+            $this->actingInWorkspace($owner, $workspace)
+                ->withHeader('Host', 'localhost')
+                ->get(route('analytics.index', $query))
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->where('unavailableFilters', [$key])
+                    ->where('report.summary.visits', 0));
+        }
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->withHeader('Host', 'localhost')
+            ->get(route('analytics.index', ['link' => (string) $link->id]))
+            ->assertInertia(fn ($page) => $page
+                ->where('unavailableFilters', [])
+                ->where('filters.link', $link->id)
+                ->where('report.summary.visits', 1));
+    }
+
     public function test_views_are_personal(): void
     {
         [$workspace, , $owner] = $this->workspaceWithActiveDomain();

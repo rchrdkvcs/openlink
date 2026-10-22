@@ -39,6 +39,7 @@ const linkPage: LinkPageRecord = {
   public_url: 'https://openlink.test/p/spring',
   items_count: 1,
   description: null,
+  display: { show_icons: true, show_labels: true, show_urls: false },
   has_logo: false,
   logo: null,
   published_at: null,
@@ -50,6 +51,7 @@ const linkPage: LinkPageRecord = {
       destination_url: 'https://tickets.example.com',
       display_label: 'Tickets',
       availability: 'active',
+      icon: null,
     },
   ],
 };

@@ -18,10 +18,19 @@ class LinkPage extends Model
 
     protected $guarded = [];
 
+    protected $attributes = [
+        'show_icons' => true,
+        'show_labels' => true,
+        'show_urls' => false,
+    ];
+
     protected function casts(): array
     {
         return [
             'published_at' => 'datetime',
+            'show_icons' => 'boolean',
+            'show_labels' => 'boolean',
+            'show_urls' => 'boolean',
         ];
     }
 
@@ -48,5 +57,10 @@ class LinkPage extends Model
     public function publicUrl(): string
     {
         return route('public.link-page', $this->path, true);
+    }
+
+    public function displaySettings(): array
+    {
+        return $this->only(['show_icons', 'show_labels', 'show_urls']);
     }
 }

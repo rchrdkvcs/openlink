@@ -32,11 +32,12 @@ class PublicLinkPageTest extends TestCase
                 ->component('Public/LinkPage')
                 ->where('page', [
                     'title' => 'Spring conference',
+                    'display' => ['show_icons' => true, 'show_labels' => true, 'show_urls' => false],
                     'description' => 'Everything for the event.',
                     'logo' => null,
                     'links' => [
-                        ['label' => 'Buy tickets', 'url' => 'https://go.example.test/tickets'],
-                        ['label' => 'go.example.test/schedule', 'url' => 'https://go.example.test/schedule'],
+                        ['label' => 'Buy tickets', 'url' => 'https://go.example.test/tickets', 'icon' => null],
+                        ['label' => 'go.example.test/schedule', 'url' => 'https://go.example.test/schedule', 'icon' => null],
                     ],
                 ]));
     }
@@ -96,7 +97,7 @@ class PublicLinkPageTest extends TestCase
             ->assertDontSee('archived')
             ->assertDontSee('expired')
             ->assertInertia(fn ($page) => $page
-                ->where('page.links', [['label' => 'go.example.test/active', 'url' => 'https://go.example.test/active']]));
+                ->where('page.links', [['label' => 'go.example.test/active', 'url' => 'https://go.example.test/active', 'icon' => null]]));
     }
 
     public function test_deleted_short_links_are_removed_and_an_empty_page_stays_neutral(): void

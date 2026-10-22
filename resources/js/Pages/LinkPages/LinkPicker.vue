@@ -2,6 +2,7 @@
 import { Plus, Search } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
+import LinkPageIcon from '@/Components/LinkPages/LinkPageIcon.vue';
 import Input from '@/Components/ui/Input.vue';
 import { displayUrl } from '@/lib/links';
 
@@ -52,6 +53,7 @@ const available = computed(() => options.value.filter((link) => !props.selectedI
           :aria-label="`Add ${displayUrl(link.short_url)}`"
           @click="emit('add', link)"
         >
+          <LinkPageIcon :icon="link.icon" />
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[13px] font-medium text-foreground">{{ displayUrl(link.short_url) }}</span>
             <span class="block truncate text-xs text-faint">{{ displayUrl(link.destination_url) }}</span>

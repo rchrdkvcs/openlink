@@ -16,6 +16,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
 
+import DisplaySettings from './DisplaySettings.vue';
 import LinkPageActions from './LinkPageActions.vue';
 import LinkPageItemRow from './LinkPageItemRow.vue';
 import {
@@ -45,6 +46,7 @@ function fields(linkPage: LinkPageRecord) {
     path: linkPage.path,
     title: linkPage.title,
     description: linkPage.description ?? '',
+    display: { ...linkPage.display },
     items: toEditable(linkPage.items),
     logo: null as File | null,
     remove_logo: false,
@@ -139,16 +141,25 @@ function discard() {
         <span v-if="canEdit && isDirty" class="text-faint">Save changes before publishing.</span>
       </div>
 
-      <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
-        <form class="grid content-start gap-6" @submit.prevent="save">
+      <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
+        <form class="grid min-w-0 content-start gap-6" @submit.prevent="save">
           <fieldset :disabled="!canEdit" class="contents">
-            <SectionCard title="Page" description="Plain text only. Visitors never see the name or your workspace.">
-              <div class="grid gap-4">
-                <div class="grid gap-4 sm:grid-cols-2">
+            <SectionCard
+              title="Page"
+              description="Plain text only. Visitors never see the name or your workspace."
+              class="[&_header_p]:whitespace-normal"
+            >
+              <div class="grid gap-5 p-4 sm:p-5">
+                <div class="grid gap-5 sm:grid-cols-2">
                   <Field label="Name" hint="Shown only in your dashboard." :error="form.errors.name">
                     <Input v-model="form.name" maxlength="120" />
                   </Field>
-                  <Field label="Path" :hint="`${pathPrefix}${form.path}`" :error="form.errors.path">
+                  <Field
+                    label="Path"
+                    :hint="`${pathPrefix}${form.path}`"
+                    :error="form.errors.path"
+                    class="min-w-0 [&>span]:[overflow-wrap:anywhere]"
+                  >
                     <Input
                       :model-value="form.path"
                       maxlength="64"
@@ -190,12 +201,17 @@ function discard() {
               </div>
             </SectionCard>
 
+            <SectionCard title="Display" description="Choose what visitors see on each link.">
+              <DisplaySettings v-model="form.display" :error="form.errors.display" />
+            </SectionCard>
+
             <SectionCard
               title="Links"
               :description="`Visitors open each short URL, so passwords, schedules, and routing still apply. ${form.items.length}/${MAX_ITEMS} links.`"
+              class="[&_header_p]:whitespace-normal"
             >
-              <div class="grid gap-4">
-                <ol v-if="form.items.length" class="grid gap-2" aria-label="Links on this page">
+              <div class="grid gap-5 p-4 sm:p-5">
+                <ol v-if="form.items.length" class="grid min-w-0 gap-2" aria-label="Links on this page">
                   <LinkPageItemRow
                     v-for="(item, index) in form.items"
                     :key="item.short_link_id"
@@ -232,7 +248,7 @@ function discard() {
           />
         </form>
 
-        <aside class="lg:sticky lg:top-6 lg:self-start" aria-label="Preview">
+        <aside class="xl:sticky xl:top-6 xl:self-start" aria-label="Preview">
           <p class="mb-2 text-xs font-medium text-faint">Preview</p>
           <div class="max-h-[80vh] overflow-y-auto rounded-xl border bg-background px-4 py-10" inert>
             <LinkPageContent :page="preview" />

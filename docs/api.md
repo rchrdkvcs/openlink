@@ -100,6 +100,9 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | `POST` | `/api/v1/links/{id}/move` | Move to a folder (`folder_id`, null to unfile) |
 | `POST` | `/api/v1/links/{id}/archive` | Archive the link |
 | `DELETE` | `/api/v1/links/{id}` | Delete permanently (managers only) |
+| `GET` | `/api/v1/links/{id}/revisions` | List the link history, newest first (20 per page) |
+| `GET` | `/api/v1/links/{id}/revisions/{number}` | Show one link revision with its snapshot and a restore preview |
+| `POST` | `/api/v1/links/{id}/revisions/{number}/restore` | Restore a link revision (`expected_revision` or `If-Match` required) |
 
 Create payload (only `destination_url` is required):
 
@@ -124,6 +127,12 @@ When `domain_id` is omitted the API falls back to the workspace's preferred doma
 The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags.
 
 `GET /api/v1/links/export` accepts the same `search`, `status`, `tag`, and `folder` filters as the list and also includes archived links when no status is given. `POST /api/v1/links/import` takes a multipart `file` (UTF-8 CSV, at most 1,000 links and 1 MB), an optional `mapping` object from column name to zero-based header position, an optional `domain_id` for rows without a domain, and `dry_run`. With `dry_run=1` nothing is created and the response lists `headers`, the resolved `mapping`, each row with `status` `ready` or `invalid` and its `errors`, and a `summary`. Without it, rows are validated again, ready rows are created, and each row reports `created` or `skipped`. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
+
+Every link payload includes `revision`, the number of its latest link revision. Send it back as `expected_revision` on `PATCH` to reject the edit with a `422` on `expected_revision` when someone else changed the link in the meantime. Restoring always requires `expected_revision`.
+
+Every link payload includes `revision`, the number of its latest link revision, and single-link responses carry it as an `ETag` header (`"3"`). To detect concurrent updates, send it back either as `If-Match: "3"` on `PATCH`, `move`, `archive`, and `restore`, which answers `412` when the link has moved on, or as `expected_revision` in the `PATCH` or `restore` body, which answers `422` on `expected_revision`. Restoring always requires one of the two. For backward compatibility, `PATCH`, `move`, and `archive` without either precondition are still accepted and overwrite whatever is current (last write wins); new clients should always send `If-Match`. A link created before link history existed reports revision `0` until its first change, which records a `baseline` revision first.
+
+Each link revision lists `number`, `action` (`baseline`, `created`, `updated`, `moved`, `archived`, `restored`), `channel` (`dashboard`, `api`, `system`), `actor` (`null` once the member's account is deleted), `restored_from`, and `changes` as `{ field, before, after }` entries. URL query values and fragments appear as `•••`, snapshots carry a `url_digests` map of keyed hashes for those URLs, and a replaced password appears as a value-free `password_changed` entry. The detail endpoint adds `restore`: whether the revision is restorable, why not, the changes a restore would make, and notes about deleted folders, recreated tags or routing rules, passwords, and the short URL. Restoring never changes the short URL, visit totals, analytics, QR codes, or passwords. Routing rules and variants that analytics refer to are never deleted by a restore; they stay on the link turned off. A revision recorded in an unsupported format, or whose redacted URL the link no longer uses, answers `422` on `revision`.
 
 ### Domains
 
@@ -196,6 +205,7 @@ Responses follow Laravel conventions, always as JSON on `/api/*`:
 - `403` no accessible workspace, insufficient role, or a link, QR code, domain, folder, or invite link outside the active workspace
 - `404` unknown resource, or a member outside the active workspace
 - `410` invite link expired, revoked, or out of uses
+- `412` `If-Match` does not name the link's current revision
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 
 ## CORS and browser extensions

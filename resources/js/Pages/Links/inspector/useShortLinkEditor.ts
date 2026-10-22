@@ -30,12 +30,25 @@ export function useShortLinkEditor(link: () => ShortLink, canEdit: () => boolean
 
     const target = link();
     form
-      .transform((data) => toPayload(data, { hasPassword: target.has_password }))
+      .transform((data) => ({
+        ...toPayload(data, { hasPassword: target.has_password }),
+        expected_revision: target.revision,
+      }))
       .patch(route('short-links.update', target.id), {
         preserveScroll: true,
         preserveState: true,
         onSuccess: () => toast({ title: 'Changes saved', tone: 'success', duration: 2000 }),
-        onError: () => sectionsWithErrors(form.errors).forEach((section) => (sections.value[section] = true)),
+        onError: (errors) => {
+          if (errors.expected_revision) {
+            toast({
+              title: 'This link changed',
+              description: errors.expected_revision,
+              tone: 'danger',
+              duration: 6000,
+            });
+          }
+          sectionsWithErrors(form.errors).forEach((section) => (sections.value[section] = true));
+        },
       });
   }
 

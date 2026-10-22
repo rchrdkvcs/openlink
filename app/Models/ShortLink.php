@@ -20,6 +20,7 @@ class ShortLink extends Model
             'archived_at' => 'datetime',
             'activates_at' => 'datetime',
             'expires_at' => 'datetime',
+            'revision' => 'integer',
         ];
     }
 
@@ -51,6 +52,16 @@ class ShortLink extends Model
     public function routingRules(): HasMany
     {
         return $this->hasMany(RoutingRule::class)->orderBy('position');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(ShortLinkRevision::class);
+    }
+
+    public function findRevision(int $number): ShortLinkRevision
+    {
+        return $this->revisions()->with('actor')->where('number', $number)->firstOrFail();
     }
 
     public function analyticsEvents(): HasMany

@@ -3,9 +3,11 @@
 namespace App\Actions\ShortLinks;
 
 use App\Enums\BulkLinkAction;
+use App\Enums\RevisionAction;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\ShortLinks\History\LinkHistory;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,7 @@ class BulkShortLinkMutation
         private readonly Gate $gate,
         private readonly ShortLinkMutation $shortLinks,
         private readonly ShortLinkTags $tags,
+        private readonly LinkHistory $history,
     ) {}
 
     public function apply(User $user, Workspace $workspace, BulkLinkAction $action, array $ids, ?int $folderId = null, array $tags = []): int
@@ -31,8 +34,8 @@ class BulkShortLinkMutation
 
             match ($action) {
                 BulkLinkAction::Move => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->move($user, $shortLink, $folderId)),
-                BulkLinkAction::AddTags => $this->tags->addToEach($links, $workspace->id, $tags),
-                BulkLinkAction::RemoveTags => $this->tags->removeFromEach($links, $workspace->id, $tags),
+                BulkLinkAction::AddTags => $this->recordedTags($user, $links, fn () => $this->tags->addToEach($links, $workspace->id, $tags)),
+                BulkLinkAction::RemoveTags => $this->recordedTags($user, $links, fn () => $this->tags->removeFromEach($links, $workspace->id, $tags)),
                 BulkLinkAction::Enable => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->setEnabled($user, $shortLink, true)),
                 BulkLinkAction::Disable => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->setEnabled($user, $shortLink, false)),
                 BulkLinkAction::Archive => $links->each(fn (ShortLink $shortLink) => $this->shortLinks->archive($user, $shortLink)),
@@ -40,6 +43,15 @@ class BulkShortLinkMutation
 
             return $links->count();
         });
+    }
+
+    private function recordedTags(User $user, Collection $links, callable $change): void
+    {
+        $before = $this->history->lockManyForChange($links);
+
+        $change();
+
+        $this->history->recordMany($links, RevisionAction::Updated, $before, $user);
     }
 
     private function selection(Workspace $workspace, array $ids): Collection

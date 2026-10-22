@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Dns\DnsLookup;
 use App\Services\Dns\SystemDnsLookup;
 use App\Services\QrCodes\QrCodeLogoCleanup;
+use App\Services\ShortLinks\History\UrlRedaction;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -21,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
+        $this->app->bind(UrlRedaction::class, fn ($app) => new UrlRedaction((string) $app['config']->get('app.key')));
     }
 
     public function boot(): void

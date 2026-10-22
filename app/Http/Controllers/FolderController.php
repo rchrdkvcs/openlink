@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Folders\DeleteFolder;
 use App\Actions\Workspaces\CurrentWorkspace;
 use App\Models\Folder;
 use Illuminate\Http\RedirectResponse;
@@ -36,11 +37,11 @@ class FolderController extends Controller
         return back();
     }
 
-    public function destroy(Folder $folder): RedirectResponse
+    public function destroy(Request $request, Folder $folder, DeleteFolder $deleteFolder): RedirectResponse
     {
         Gate::authorize('delete', $folder);
 
-        $folder->delete();
+        $deleteFolder->handle($request->user(), $folder);
 
         return back();
     }

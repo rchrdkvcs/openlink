@@ -84,6 +84,18 @@ _Avoid_: Live link, valid link
 A short link whose lifecycle rules no longer allow it to resolve because its expiration date or visit limit has been reached.
 _Avoid_: Dead link, invalid link
 
+**Link History**:
+The append-only, ordered record of every successful change to a short link's configuration, kept for as long as the short link exists.
+_Avoid_: Audit log, activity feed, changelog
+
+**Link Revision**:
+One entry in a link history: the short link's configuration right after one change, with who made it, through which channel, and what changed.
+_Avoid_: Version, snapshot, history entry
+
+**Restore**:
+Copying a link revision's configuration forward onto its short link as a new link revision, leaving the intervening history in place.
+_Avoid_: Rollback, revert, undo
+
 **Visit**:
 A successful resolution of a short link that sends a visitor to the destination URL.
 _Avoid_: Click, hit, request

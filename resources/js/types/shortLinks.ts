@@ -23,6 +23,7 @@ export type ShortLink = {
   visit_limit?: number | null;
   successful_visits: number;
   has_password: boolean;
+  revision: number;
   routing_rules: RoutingRuleDraft[];
 };
 
@@ -83,4 +84,38 @@ export type RoutingSchema = {
   valueOptions: Record<string, RoutingOption[]>;
   defaults: Record<string, string>;
   presets: RoutingPreset[];
+};
+
+export type RevisionAction = 'baseline' | 'created' | 'updated' | 'moved' | 'archived' | 'restored';
+
+export type MutationChannel = 'dashboard' | 'api' | 'system';
+
+export type RevisionChange = { field: string; before: unknown; after: unknown };
+
+export type LinkRevision = {
+  number: number;
+  action: RevisionAction;
+  channel: MutationChannel;
+  actor: { id: number; name: string } | null;
+  restored_from: number | null;
+  changes: RevisionChange[];
+  created_at: string;
+};
+
+export type RestorePreview = {
+  restorable: boolean;
+  reason: string | null;
+  changes: RevisionChange[];
+  notes: string[];
+};
+
+export type LinkRevisionDetail = LinkRevision & {
+  schema_version: number;
+  snapshot: Record<string, unknown>;
+  restore: RestorePreview;
+};
+
+export type LinkRevisionPage = {
+  data: LinkRevision[];
+  meta: { current_page: number; last_page: number; per_page: number; total: number; current_revision: number };
 };

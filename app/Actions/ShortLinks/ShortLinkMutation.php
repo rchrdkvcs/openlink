@@ -2,9 +2,11 @@
 
 namespace App\Actions\ShortLinks;
 
+use App\Enums\RevisionAction;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\ShortLinks\History\LinkHistory;
 use App\Services\ShortLinks\ShortUrlAddress;
 use App\Services\ShortLinks\SmartRouting;
 use Illuminate\Contracts\Auth\Access\Gate;
@@ -18,6 +20,7 @@ class ShortLinkMutation
         private readonly ShortUrlAddresses $addresses,
         private readonly ShortLinkTags $tags,
         private readonly SmartRouting $routing,
+        private readonly LinkHistory $history,
     ) {}
 
     public function create(User $user, Workspace $workspace, array $data): ShortLink
@@ -27,7 +30,7 @@ class ShortLinkMutation
         $address = $this->addresses->forNewLink($workspace, $this->integer($data, 'domain_id'), $data['slug'] ?? null);
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
-        return DB::transaction(function () use ($workspace, $address, $data): ShortLink {
+        return DB::transaction(function () use ($user, $workspace, $address, $data): ShortLink {
             $shortLink = new ShortLink(['workspace_id' => $workspace->id]);
             $this->fill($shortLink, $address, [
                 'is_enabled' => true,
@@ -37,6 +40,7 @@ class ShortLinkMutation
 
             $this->tags->replace($shortLink, $data['tags'] ?? null);
             $this->routing->sync($shortLink, $data['routing_rules'] ?? []);
+            $this->history->record($shortLink, RevisionAction::Created, null, $user);
 
             return $shortLink;
         });
@@ -49,7 +53,8 @@ class ShortLinkMutation
         $address = $this->addresses->forExistingLink($shortLink, $this->integer($data, 'domain_id'), $data['slug'] ?? null);
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
-        return DB::transaction(function () use ($shortLink, $address, $data): ShortLink {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, $this->integer($data, 'expected_revision'), function () use ($shortLink, $address, $data): array {
+            $wasProtected = $shortLink->hasPassword();
             $this->fill($shortLink, $address, $data);
             $shortLink->save();
 
@@ -61,7 +66,9 @@ class ShortLinkMutation
                 $this->tags->replace($shortLink, $data['tags']);
             }
 
-            return $shortLink;
+            return $wasProtected && $shortLink->hasPassword() && $shortLink->wasChanged('password_hash')
+                ? [['field' => 'password_changed', 'before' => null, 'after' => null]]
+                : [];
         });
     }
 
@@ -70,45 +77,71 @@ class ShortLinkMutation
         $this->gate->forUser($user)->authorize('update', $shortLink);
         ShortUrlAddress::of($shortLink)->rejectLoop($destinationUrl, 'destination_url');
 
-        return DB::transaction(function () use ($shortLink, $destinationUrl, $rules): ShortLink {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $destinationUrl, $rules): void {
             $shortLink->update(['destination_url' => $destinationUrl]);
             $this->routing->sync($shortLink, $rules);
-
-            return $shortLink;
         });
     }
 
-    public function move(User $user, ShortLink $shortLink, ?int $folderId): ShortLink
+    public function restore(User $user, ShortLink $shortLink, int $sourceRevision, int $expectedRevision, array $data): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
-        $shortLink->update(['folder_id' => $folderId]);
 
-        return $shortLink;
+        $address = $this->addresses->forExistingLink($shortLink, null, null);
+        $address->rejectLoop($data['destination_url'], 'destination_url');
+
+        return $this->recorded($user, $shortLink, RevisionAction::Restored, $expectedRevision, function () use ($shortLink, $address, $data): void {
+            $this->fill($shortLink, $address, $data);
+            $shortLink->archived_at = $data['is_archived'] ? ($shortLink->archived_at ?? now()) : null;
+            $shortLink->save();
+
+            $this->routing->sync($shortLink, $data['routing_rules']);
+            $this->tags->replace($shortLink, $data['tags']);
+        }, $sourceRevision);
     }
 
-    public function archive(User $user, ShortLink $shortLink): ShortLink
+    public function move(User $user, ShortLink $shortLink, ?int $folderId, ?int $expectedRevision = null): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
 
-        if (! $shortLink->isArchived()) {
-            $shortLink->update(['archived_at' => now()]);
-        }
+        return $this->recorded($user, $shortLink, RevisionAction::Moved, $expectedRevision, function () use ($shortLink, $folderId): void {
+            $shortLink->update(['folder_id' => $folderId]);
+        });
+    }
 
-        return $shortLink;
+    public function archive(User $user, ShortLink $shortLink, ?int $expectedRevision = null): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+
+        return $this->recorded($user, $shortLink, RevisionAction::Archived, $expectedRevision, function () use ($shortLink): void {
+            $shortLink->update(['archived_at' => $shortLink->archived_at ?? now()]);
+        });
     }
 
     public function setEnabled(User $user, ShortLink $shortLink, bool $enabled): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
-        $shortLink->update(['is_enabled' => $enabled]);
 
-        return $shortLink;
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $enabled): void {
+            $shortLink->update(['is_enabled' => $enabled]);
+        });
     }
 
     public function delete(User $user, ShortLink $shortLink): void
     {
         $this->gate->forUser($user)->authorize('delete', $shortLink);
         $shortLink->delete();
+    }
+
+    private function recorded(User $user, ShortLink $shortLink, RevisionAction $action, ?int $expectedRevision, callable $change, ?int $restoredFrom = null): ShortLink
+    {
+        return DB::transaction(function () use ($user, $shortLink, $action, $expectedRevision, $change, $restoredFrom): ShortLink {
+            $before = $this->history->lockForChange($shortLink, $expectedRevision);
+            $extraChanges = $change() ?? [];
+            $this->history->record($shortLink, $action, $before, $user, $restoredFrom, $extraChanges);
+
+            return $shortLink;
+        });
     }
 
     private function fill(ShortLink $shortLink, ShortUrlAddress $address, array $data): void

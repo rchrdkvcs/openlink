@@ -44,7 +44,7 @@ class RoutingEditorPageTest extends TestCase
 
         $this->actingInWorkspace($owner, $workspace)->get(route('links.routing', $foreign))->assertForbidden();
         $this->actingInWorkspace($owner, $workspace)
-            ->put(route('short-links.routing.update', $foreign), ['destination_url' => 'https://example.com/x', 'routing_rules' => []])
+            ->put(route('short-links.routing.update', $foreign), ['expected_revision' => $foreign->revision, 'destination_url' => 'https://example.com/x', 'routing_rules' => []])
             ->assertForbidden();
 
         $this->assertSame('https://example.com/landing', $foreign->fresh()->destination_url);
@@ -58,6 +58,7 @@ class RoutingEditorPageTest extends TestCase
 
         $this->actingInWorkspace($editor, $workspace)
             ->put(route('short-links.routing.update', $link), [
+                'expected_revision' => $link->fresh()->revision,
                 'destination_url' => 'https://example.com/new-default',
                 'routing_rules' => [
                     ['name' => 'Mobile', 'destination_url' => 'https://example.com/mobile', 'conditions' => [['type' => 'device_type', 'operator' => 'is', 'value' => 'mobile']]],
@@ -83,7 +84,7 @@ class RoutingEditorPageTest extends TestCase
         $viewer = $this->memberOf($workspace, WorkspaceRole::Viewer->value);
 
         $this->actingInWorkspace($viewer, $workspace)
-            ->put(route('short-links.routing.update', $link), ['destination_url' => 'https://example.com/x', 'routing_rules' => []])
+            ->put(route('short-links.routing.update', $link), ['expected_revision' => $link->fresh()->revision, 'destination_url' => 'https://example.com/x', 'routing_rules' => []])
             ->assertForbidden();
 
         $this->assertSame('https://example.com/landing', $link->fresh()->destination_url);
@@ -95,11 +96,11 @@ class RoutingEditorPageTest extends TestCase
         $link = $this->shortLink($workspace, $domain, 'loop');
 
         $this->actingInWorkspace($owner, $workspace)
-            ->put(route('short-links.routing.update', $link), ['destination_url' => 'https://localhost/loop', 'routing_rules' => []])
+            ->put(route('short-links.routing.update', $link), ['expected_revision' => $link->fresh()->revision, 'destination_url' => 'https://localhost/loop', 'routing_rules' => []])
             ->assertSessionHasErrors('destination_url');
 
         $this->actingInWorkspace($owner, $workspace)
-            ->put(route('short-links.routing.update', $link), ['destination_url' => 'https://example.com/ok', 'routing_rules' => [
+            ->put(route('short-links.routing.update', $link), ['expected_revision' => $link->fresh()->revision, 'destination_url' => 'https://example.com/ok', 'routing_rules' => [
                 ['destination_url' => 'https://localhost/loop', 'conditions' => []],
             ]])
             ->assertSessionHasErrors('routing_rules.0.destination_url');
@@ -119,7 +120,7 @@ class RoutingEditorPageTest extends TestCase
 
         foreach ([['destination_url' => 'https://example.com/x'], ['destination_url' => 'https://example.com/x', 'routing_rules' => null]] as $payload) {
             $this->actingInWorkspace($owner, $workspace)
-                ->put(route('short-links.routing.update', $link), $payload)
+                ->put(route('short-links.routing.update', $link), ['expected_revision' => $link->fresh()->revision, ...$payload])
                 ->assertSessionHasErrors('routing_rules');
         }
 
@@ -127,7 +128,7 @@ class RoutingEditorPageTest extends TestCase
         $this->assertSame('https://example.com/landing', $link->fresh()->destination_url);
 
         $this->actingInWorkspace($owner, $workspace)
-            ->put(route('short-links.routing.update', $link), ['destination_url' => 'https://example.com/x', 'routing_rules' => []])
+            ->put(route('short-links.routing.update', $link), ['expected_revision' => $link->fresh()->revision, 'destination_url' => 'https://example.com/x', 'routing_rules' => []])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(0, $link->routingRules()->count());

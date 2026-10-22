@@ -4,10 +4,11 @@ import { nextTick, onBeforeMount, onUnmounted, ref } from 'vue';
 import Dialog from '@/Components/ui/Dialog.vue';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
+import type { RoutingSaveReceipt } from './inspectorDraft';
 import RoutingEditor from './RoutingEditor.vue';
 
 defineProps<{ link: ShortLink; routingSchema: RoutingSchema; inspectorDirty: boolean }>();
-const emit = defineEmits<{ close: []; settled: [] }>();
+const emit = defineEmits<{ close: []; saved: [receipt: RoutingSaveReceipt] }>();
 const editor = ref<InstanceType<typeof RoutingEditor> | null>(null);
 let trigger: HTMLElement | null = null;
 
@@ -31,7 +32,7 @@ onUnmounted(() => nextTick(() => trigger?.focus({ preventScroll: true })));
       :inspector-dirty="inspectorDirty"
       class="h-full"
       @close="emit('close')"
-      @settled="emit('settled')"
+      @saved="emit('saved', $event)"
     />
   </Dialog>
 </template>

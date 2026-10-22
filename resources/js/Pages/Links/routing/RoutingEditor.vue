@@ -17,6 +17,7 @@ import { useSaveShortcut } from '@/lib/useSaveShortcut';
 import type { RoutingRuleDraft, RoutingSchema, ShortLink } from '@/types/shortLinks';
 
 import RoutingGraph from './graph/RoutingGraph.vue';
+import type { RoutingSaveReceipt } from './inspectorDraft';
 import { dropPriority, invalidNode, ruleDestination } from './nodeSelection';
 import { presetIcon } from './presetIcons';
 import RoutingDialog from './RoutingDialog.vue';
@@ -24,14 +25,18 @@ import RoutingNodeEditor from './RoutingNodeEditor.vue';
 import RoutingPreviewPanel from './RoutingPreviewPanel.vue';
 
 const props = defineProps<{ link: ShortLink; routingSchema: RoutingSchema; inspectorDirty?: boolean }>();
-const emit = defineEmits<{ close: []; settled: [] }>();
+const emit = defineEmits<{ close: []; saved: [receipt: RoutingSaveReceipt] }>();
 
 const { canEdit } = useShell();
 
-type RoutingForm = { destination_url: string; routing_rules: RoutingRuleDraft[] };
+type RoutingForm = { destination_url: string; routing_rules: RoutingRuleDraft[]; expected_revision: number };
 
 function formFrom(link: ShortLink): RoutingForm {
-  return { destination_url: link.destination_url, routing_rules: cloneRules(link.routing_rules ?? []) };
+  return {
+    destination_url: link.destination_url,
+    routing_rules: cloneRules(link.routing_rules ?? []),
+    expected_revision: link.revision,
+  };
 }
 
 const form = useForm<RoutingForm>(formFrom(props.link));
@@ -130,11 +135,12 @@ function save() {
     .put(route('short-links.routing.update', props.link.id), {
       preserveScroll: true,
       preserveState: true,
-      onSuccess: () => {
+      onSuccess: (page) => {
+        const receipt = (page.flash as { routingSaved?: RoutingSaveReceipt }).routingSaved;
+        if (receipt) emit('saved', receipt);
         loadSaved(props.link);
         toast({ title: 'Routing saved', tone: 'success', duration: 2000 });
       },
-      onFinish: () => emit('settled'),
       onError: (errors) => {
         const id = invalidNode(graph.value.nodes, errors);
         if (id) select(id);
@@ -143,11 +149,8 @@ function save() {
 }
 
 function discard() {
-  form.reset();
-  form.clearErrors();
-  preview.value = null;
+  loadSaved(props.link);
   selectedId.value = null;
-  nodeOpen.value = false;
 }
 
 useSaveShortcut(save);
@@ -284,6 +287,7 @@ defineExpose({ requestClose });
     </p>
     <p v-if="errorCount" role="alert" class="shrink-0 border-b px-5 py-2 text-xs text-danger">
       {{
+        form.errors.expected_revision ||
         form.errors.routing_rules ||
         `${errorCount} ${errorCount === 1 ? 'field needs' : 'fields need'} attention. Open the highlighted nodes to review.`
       }}

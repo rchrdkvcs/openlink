@@ -637,6 +637,7 @@ class LinkHistoryTest extends TestCase
         $link = ShortLink::query()->firstOrFail();
 
         $this->put(route('short-links.routing.update', $link), [
+            'expected_revision' => $link->fresh()->revision,
             'destination_url' => 'https://example.com/a',
             'routing_rules' => [$this->franceRule()],
         ])->assertRedirect();

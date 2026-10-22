@@ -16,6 +16,7 @@ export type LinksPageProps = {
   tags: Tag[];
   utmTemplates: UtmTemplate[];
   links: ShortLink[];
+  inspectedLink: ShortLink | null;
   linksPagination: Pagination;
   filters: LinkFilters;
   routingSchema: RoutingSchema;

@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 
 import { isLikelyUrl, normalizeUrl } from '@/lib/links';
 import {
@@ -13,27 +13,51 @@ import {
 import { toast } from '@/lib/toast';
 import type { ShortLink } from '@/types/shortLinks';
 
+import { changedFields, type RoutingSaveReceipt } from '../routing/inspectorDraft';
+
 export function useShortLinkEditor(link: () => ShortLink, canEdit: () => boolean) {
+  const base = shallowRef(link());
   const form = useForm<ShortLinkForm>(toForm(link()));
   const sections = ref(closedSections());
 
   function load(target: ShortLink, resetSections: boolean) {
+    base.value = target;
     form.defaults(toForm(target));
     form.reset();
     form.clearErrors();
     if (resetSections) sections.value = closedSections();
   }
 
-  watch(link, (current, previous) => load(current, current.id !== previous?.id));
+  watch(link, (current, previous) => {
+    if (current.id !== previous?.id) load(current, true);
+    else if (!form.isDirty && !form.processing) load(current, false);
+  });
+
+  function acceptRoutingSave(receipt: RoutingSaveReceipt) {
+    const current = link();
+    if (
+      receipt.link_id !== base.value.id ||
+      receipt.link_id !== current.id ||
+      receipt.expected_revision !== base.value.revision ||
+      receipt.revision !== current.revision
+    )
+      return;
+    const changes = changedFields(form.data(), toForm(base.value));
+    load(current, false);
+    Object.assign(form, changes);
+  }
 
   function save() {
     if (!canEdit() || !form.isDirty || form.processing) return;
 
-    const target = link();
+    const target = base.value;
     const options = {
       preserveScroll: true,
       preserveState: true,
-      onSuccess: () => toast({ title: 'Changes saved', tone: 'success', duration: 2000 }),
+      onSuccess: () => {
+        load(link(), false);
+        toast({ title: 'Changes saved', tone: 'success', duration: 2000 });
+      },
       onError: (errors: Record<string, string>) => {
         if (errors.expected_revision) {
           toast({
@@ -60,6 +84,8 @@ export function useShortLinkEditor(link: () => ShortLink, canEdit: () => boolean
     form,
     sections,
     save,
+    acceptRoutingSave,
+    stale: computed(() => base.value.revision !== link().revision),
     discard: () => load(link(), false),
     destinationValid: computed(() => isLikelyUrl(normalizeUrl(form.destination_url))),
     hasErrors: computed(() => Object.keys(form.errors).length > 0),

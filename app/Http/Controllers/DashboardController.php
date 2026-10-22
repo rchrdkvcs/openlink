@@ -41,8 +41,9 @@ class DashboardController extends Controller
     public function links(Request $request, CurrentWorkspace $current, LinksQuery $links, DomainPayload $domains, SmartRouting $routing, DestinationHealthPayload $health): Response
     {
         $workspace = $current->require();
-        $filters = $request->validate(LinksQuery::rules());
+        $filters = $request->validate([...LinksQuery::rules(), 'link' => ['nullable', 'integer', 'min:1']]);
         $page = $links->paginate($workspace, $filters);
+        $inspected = $links->inspected($workspace, $request->integer('link') ?: null, $filters);
 
         return Inertia::render('Links/Index', [
             'domains' => $domains->forWorkspace($workspace),
@@ -50,10 +51,11 @@ class DashboardController extends Controller
             'tags' => $workspace->tags()->orderBy('name')->get(),
             'utmTemplates' => $workspace->utmTemplates()->orderBy('name')->get(),
             'links' => $page->items(),
+            'inspectedLink' => Inertia::always($inspected),
             'linksPagination' => LinksQuery::pagination($page),
             'filters' => LinksQuery::filterState($filters),
             'routingSchema' => $routing->editorPayload(),
-            'destinationHealth' => $health->forLinks($workspace, $page->items()),
+            'destinationHealth' => $health->forLinks($workspace, $inspected ? [...$page->items(), $inspected] : $page->items()),
         ]);
     }
 

@@ -12,7 +12,6 @@ import type { DestinationHealth } from '@/lib/destinationHealth';
 import { randomSlug } from '@/lib/links';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
-import { toForm, type ShortLinkForm } from '@/lib/shortLinks/shortLinkForm';
 import type { UtmTemplate } from '@/lib/utm';
 import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
@@ -26,7 +25,6 @@ import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
 import InspectorUtm from './inspector/InspectorUtm.vue';
 import { useShortLinkEditor } from './inspector/useShortLinkEditor';
-import { changedFields } from './routing/inspectorDraft';
 import RoutingEditorModal from './routing/RoutingEditorModal.vue';
 
 const props = defineProps<{
@@ -43,7 +41,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const { canEdit, canManage } = useShell();
 
-const { form, sections, save, discard, destinationValid, hasErrors } = useShortLinkEditor(
+const { form, sections, save, discard, destinationValid, hasErrors, acceptRoutingSave, stale } = useShortLinkEditor(
   () => props.link,
   () => canEdit.value,
 );
@@ -57,18 +55,6 @@ const folderOptions = computed(() => [
 ]);
 
 const routingOpen = ref(false);
-let inspectorChanges: Partial<ShortLinkForm> = {};
-
-function openRouting() {
-  inspectorChanges = changedFields(form.data(), toForm(props.link));
-  routingOpen.value = true;
-}
-
-async function routingSettled() {
-  await nextTick();
-  Object.assign(form, inspectorChanges);
-}
-
 const healthOpen = ref(false);
 const historyOpen = ref(false);
 const historyButton = ref<HTMLButtonElement | null>(null);
@@ -202,7 +188,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorPreview v-model:open="sections.preview" :form="form" :link="link" />
-          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" @open="openRouting" />
+          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" @open="routingOpen = true" />
           <InspectorHealth
             v-model:open="healthOpen"
             :link="link"
@@ -236,8 +222,13 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
       :routing-schema="routingSchema"
       :inspector-dirty="canEdit && form.isDirty"
       @close="routingOpen = false"
-      @settled="routingSettled"
+      @saved="acceptRoutingSave"
     />
+
+    <p v-if="stale && form.isDirty" role="alert" class="shrink-0 border-t px-5 py-3 text-xs text-warning">
+      This link changed while you were editing. Your draft is kept. Discard it to load the latest saved version before
+      editing again.
+    </p>
 
     <InspectorSaveBar
       :visible="!historyOpen && canEdit && form.isDirty"

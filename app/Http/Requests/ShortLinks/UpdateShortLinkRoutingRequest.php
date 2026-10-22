@@ -21,6 +21,7 @@ class UpdateShortLinkRoutingRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'expected_revision' => ['required', 'integer', 'min:0'],
             'destination_url' => ['required', 'url:http,https'],
             ...RoutingRulesValidator::inputRules(),
             'routing_rules' => ['present', 'array', 'max:50'],

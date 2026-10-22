@@ -38,6 +38,7 @@ class WorkspaceController extends Controller
                 'dashboard',
                 'links.index',
                 'qr-codes.index',
+                'utm-templates.index',
                 'analytics.index',
                 'domains.index',
                 'members.index',
@@ -50,7 +51,13 @@ class WorkspaceController extends Controller
         Gate::authorize('view', $workspace);
         $current->select($workspace);
 
-        return redirect()->route($data['destination'] ?? 'dashboard');
+        $destination = $data['destination'] ?? 'dashboard';
+
+        if ($destination === 'utm-templates.index' && $request->user()->cannot('manage', $workspace)) {
+            $destination = 'profile.edit';
+        }
+
+        return redirect()->route($destination);
     }
 
     public function settings(Request $request, CurrentWorkspace $current, DomainPayload $domains): Response|RedirectResponse
@@ -67,7 +74,6 @@ class WorkspaceController extends Controller
                 ->filter(fn (array $domain) => $domain['is_default'] || $domain['status'] === 'active')
                 ->values(),
             'canDelete' => $this->canDelete($user, $workspace),
-            'utmTemplates' => $workspace->utmTemplates()->orderBy('name')->get(),
         ]);
     }
 

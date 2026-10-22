@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { ChevronRight, Dices, History } from '@lucide/vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-import ShortUrlComposer from '@/Components/Links/ShortUrlComposer.vue';
 import Field from '@/Components/ui/Field.vue';
+import IconButton from '@/Components/ui/IconButton.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import Switch from '@/Components/ui/Switch.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
 import type { DestinationHealth } from '@/lib/destinationHealth';
+import { randomSlug } from '@/lib/links';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
 import type { UtmTemplate } from '@/lib/utm';
@@ -52,6 +54,28 @@ const folderOptions = computed(() => [
 ]);
 
 const healthOpen = ref(false);
+const historyOpen = ref(false);
+const historyButton = ref<HTMLButtonElement | null>(null);
+const details = ref<HTMLFormElement | null>(null);
+const detailsScroll = ref(0);
+const domainOptions = computed(() => props.domains.map((domain) => ({ value: domain.id, label: domain.hostname })));
+
+function openHistory() {
+  detailsScroll.value = details.value?.scrollTop ?? 0;
+  historyOpen.value = true;
+}
+
+async function closeHistory() {
+  historyOpen.value = false;
+  await nextTick();
+  if (details.value) details.value.scrollTop = detailsScroll.value;
+  historyButton.value?.focus({ preventScroll: true });
+}
+
+watch(
+  () => props.link.id,
+  () => (historyOpen.value = false),
+);
 
 const shortUrlChanged = computed(
   () => form.slug !== props.link.slug || Number(form.domain_id) !== props.link.domain.id,
@@ -60,7 +84,7 @@ const shortUrlChanged = computed(
 function onKeydown(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
     event.preventDefault();
-    save();
+    if (!historyOpen.value) save();
     return;
   }
 
@@ -83,7 +107,19 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
   <aside class="flex h-full flex-col overflow-hidden bg-canvas" aria-label="Link details">
     <InspectorHeader :link="link" :preview-url="form.destination_url" @close="emit('close')" />
 
-    <form class="min-h-0 flex-1 overflow-y-auto overscroll-contain" @submit.prevent="save">
+    <InspectorHistory
+      v-if="historyOpen"
+      :link="link"
+      :has-unsaved-changes="canEdit && form.isDirty"
+      @back="closeHistory"
+    />
+
+    <form
+      v-show="!historyOpen"
+      ref="details"
+      class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      @submit.prevent="save"
+    >
       <fieldset :disabled="!canEdit" class="contents">
         <div class="grid grid-cols-3 divide-x border-b">
           <div class="px-5 py-3">
@@ -109,18 +145,22 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             <Input v-model="form.destination_url" spellcheck="false" placeholder="https://example.com/page" />
           </Field>
 
+          <Field label="Domain" :error="form.errors.domain_id">
+            <Select v-model="form.domain_id" :options="domainOptions" :disabled="!canEdit" />
+          </Field>
           <div class="grid gap-1.5">
-            <span class="text-[13px] font-medium text-foreground">Short link</span>
-            <ShortUrlComposer
-              v-model:domain-id="form.domain_id"
-              v-model:slug="form.slug"
-              :domains="domains"
-              :disabled="!canEdit"
-              slug-placeholder="slug"
-            />
-            <p v-if="form.errors.slug || form.errors.domain_id" class="text-xs text-danger">
-              {{ form.errors.slug ?? form.errors.domain_id }}
-            </p>
+            <label for="inspector-slug" class="text-[13px] font-medium text-foreground">Slug</label>
+            <div class="flex items-center gap-2">
+              <Input
+                id="inspector-slug"
+                v-model="form.slug"
+                spellcheck="false"
+                placeholder="slug"
+                class="min-w-0 flex-1"
+              />
+              <IconButton v-if="canEdit" title="Random slug" @click="form.slug = randomSlug()"><Dices /></IconButton>
+            </div>
+            <p v-if="form.errors.slug" class="text-xs text-danger">{{ form.errors.slug }}</p>
             <p v-else-if="shortUrlChanged" class="text-xs text-warning">
               Links already shared will stop working. QR codes keep working.
             </p>
@@ -145,12 +185,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorPreview v-model:open="sections.preview" :form="form" :link="link" />
-          <InspectorRouting
-            :rules="link.routing_rules ?? []"
-            :schema="routingSchema"
-            :link-id="link.id"
-            :dirty="canEdit && form.isDirty"
-          />
+          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" :dirty="canEdit && form.isDirty" />
           <InspectorHealth
             v-model:open="healthOpen"
             :link="link"
@@ -161,11 +196,25 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
         </div>
       </fieldset>
 
-      <InspectorHistory :link="link" :has-unsaved-changes="canEdit && form.isDirty" />
+      <div class="mx-5 mb-4 overflow-hidden rounded-xl border bg-surface">
+        <button
+          ref="historyButton"
+          type="button"
+          class="flex min-h-11 w-full items-center gap-2.5 px-3.5 py-2.5 text-start transition-colors hover:bg-elevated/40 focus-visible:bg-elevated/40 focus-visible:outline-none"
+          @click="openHistory"
+        >
+          <History class="h-4 w-4 shrink-0 text-faint" />
+          <span class="flex-1 text-[13px] font-medium">History</span>
+          <span class="text-[13px] text-faint">{{
+            link.revision ? `Revision ${link.revision}` : 'No changes recorded'
+          }}</span>
+          <ChevronRight class="h-3.5 w-3.5 shrink-0 text-faint" />
+        </button>
+      </div>
     </form>
 
     <InspectorSaveBar
-      :visible="canEdit && form.isDirty"
+      :visible="!historyOpen && canEdit && form.isDirty"
       :has-errors="hasErrors"
       :processing="form.processing"
       :can-save="destinationValid"

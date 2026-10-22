@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Megaphone } from '@lucide/vue';
+import { Megaphone, X } from '@lucide/vue';
 
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
+import IconButton from '@/Components/ui/IconButton.vue';
 import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import { UTM_FIELDS, type UtmTemplate } from '@/lib/utm';
@@ -31,6 +32,7 @@ const {
   showCreateTemplateLink,
   finalUrl,
   update,
+  removeAll,
   apply,
 } = useUtmBuilder({
   destination,
@@ -48,6 +50,20 @@ const {
     :summary="summary"
     :active="filled.length > 0"
   >
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-faint" aria-live="polite">
+        {{ filled.length }} {{ filled.length === 1 ? 'parameter' : 'parameters' }} in this URL.
+      </p>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        :disabled="fieldsDisabled || filled.length === 0"
+        @click="removeAll"
+      >
+        Remove all UTM parameters
+      </Button>
+    </div>
     <div v-if="templates.length" class="space-y-2">
       <div class="flex items-end gap-2">
         <Field label="Template" class="flex-1">
@@ -73,21 +89,31 @@ const {
     </div>
     <p v-else class="text-xs text-faint">
       No UTM templates yet.
-      <Link v-if="showCreateTemplateLink" :href="route('settings.workspace')" class="text-accent hover:underline">
-        Create one in workspace settings.
+      <Link v-if="showCreateTemplateLink" :href="route('utm-templates.index')" class="text-accent hover:underline">
+        Create a UTM template.
       </Link>
     </p>
 
-    <div class="grid gap-3 sm:grid-cols-2">
-      <Field v-for="field in UTM_FIELDS" :key="field.key" :label="field.label">
-        <Input
-          :model-value="values[field.key]"
-          :placeholder="field.placeholder"
-          spellcheck="false"
-          :disabled="fieldsDisabled"
-          @update:model-value="update(field.key, String($event ?? ''))"
-        />
-      </Field>
+    <div class="grid gap-3">
+      <div v-for="field in UTM_FIELDS" :key="field.key" class="flex items-end gap-1.5">
+        <Field :label="field.label" class="min-w-0 flex-1">
+          <Input
+            :model-value="values[field.key]"
+            :placeholder="field.placeholder"
+            spellcheck="false"
+            :disabled="fieldsDisabled"
+            @update:model-value="update(field.key, String($event ?? ''))"
+          />
+        </Field>
+        <IconButton
+          :title="`Remove ${field.key}`"
+          :disabled="fieldsDisabled || !filled.includes(field.key)"
+          class="mb-1"
+          @click="update(field.key, '')"
+        >
+          <X />
+        </IconButton>
+      </div>
     </div>
 
     <div class="grid gap-1">

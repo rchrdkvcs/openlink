@@ -18,6 +18,7 @@ const switchDestination = computed(() => {
   const sections = [
     ['links.*', 'links.index'],
     ['qr-codes.*', 'qr-codes.index'],
+    ['utm-templates.*', 'utm-templates.index'],
     ['analytics.*', 'analytics.index'],
     ['domains.*', 'domains.index'],
     ['members.*', 'members.index'],

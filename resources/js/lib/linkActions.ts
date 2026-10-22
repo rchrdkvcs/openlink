@@ -43,6 +43,23 @@ export function archiveLink(link: LinkRef, onSuccess?: () => void) {
   );
 }
 
+export function unarchiveLink(link: LinkRef & { revision: number }, onSuccess?: () => void) {
+  router.post(
+    route('short-links.unarchive', link.id),
+    { expected_revision: link.revision },
+    {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        toast({ title: 'Link unarchived', description: displayUrl(link.short_url) });
+        onSuccess?.();
+      },
+      onError: (errors) =>
+        toast({ title: 'Could not unarchive this link', description: Object.values(errors)[0], tone: 'danger' }),
+    },
+  );
+}
+
 export async function deleteLink(link: LinkRef, onSuccess?: () => void) {
   const confirmed = await confirmAction({
     title: 'Delete this link permanently?',

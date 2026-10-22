@@ -83,6 +83,40 @@ describe('useUtmBuilder', () => {
     expect(destination.value).toBe('https://example.com/?ref=x&utm_source=newsletter&utm_medium=sms#top');
   });
 
+  it('removes a copied template and keeps unrelated URL bytes after reopening', () => {
+    const url = 'https://example.com/caf%C3%A9?a=1&a=2&q=café&next=%2fhome#route?utm_source=fragment';
+    const { builder, destination } = setup({ url });
+
+    builder.selectedId.value = '1';
+    builder.apply();
+    builder.update('utm_campaign', 'été sale');
+    builder.removeAll();
+
+    expect(destination.value).toBe(url);
+    expect(builder.selectedId.value).toBe('');
+    expect(builder.filled.value).toEqual([]);
+    expect(setup({ url: destination.value }).builder.summary.value).toBe('None');
+  });
+
+  it('offers removal for empty and repeated parameters and removes one key at a time', () => {
+    const { builder, destination } = setup({
+      url: 'https://example.com/?ref=%2f&utm_source&utm_source=copy&utm_medium=email#top',
+    });
+
+    expect(builder.filled.value).toEqual(['utm_source', 'utm_medium']);
+    builder.update('utm_source', '');
+    expect(destination.value).toBe('https://example.com/?ref=%2f&utm_medium=email#top');
+    expect(builder.filled.value).toEqual(['utm_medium']);
+  });
+
+  it('keeps removal disabled for viewers', () => {
+    const { builder, destination } = setup({ disabled: true });
+
+    builder.removeAll();
+
+    expect(destination.value).toBe('https://example.com/?ref=x&utm_source=old#top');
+  });
+
   it('disables Apply when the destination already matches the template', () => {
     const { builder } = setup({ url: 'https://example.com/?utm_source=newsletter&utm_medium=email' });
 

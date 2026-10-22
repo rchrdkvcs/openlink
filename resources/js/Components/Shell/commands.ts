@@ -7,6 +7,7 @@ import {
   KeyRound,
   LayoutList,
   Link2,
+  Megaphone,
   QrCode,
   Server,
   ShieldCheck,
@@ -77,6 +78,13 @@ export function navigationCommands(context: CommandContext, actions: CommandActi
     ...settings(
       context.canManage
         ? [
+            {
+              id: 'utm-templates',
+              label: 'UTM templates',
+              icon: Megaphone,
+              keywords: 'source medium campaign term content',
+              run: () => visit('utm-templates.index'),
+            },
             {
               id: 'ws-settings',
               label: 'Workspace settings',

@@ -14,17 +14,13 @@ import { confirmAction } from '@/lib/confirm';
 import type { SelectOption } from '@/lib/controls';
 import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
-import type { UtmTemplate } from '@/lib/utm';
 import type { Domain, WorkspaceSummary } from '@/types/payloads';
-
-import UtmTemplatesGroup from './UtmTemplatesGroup.vue';
 
 const props = defineProps<{
   currentWorkspace: WorkspaceSummary;
   role: string;
   domains: Domain[];
   canDelete: boolean;
-  utmTemplates: UtmTemplate[];
 }>();
 
 const { isOwner } = useShell();
@@ -111,8 +107,6 @@ async function destroy() {
         @save="save"
       />
     </form>
-
-    <UtmTemplatesGroup :templates="utmTemplates" />
 
     <SettingsGroup v-if="isOwner" title="Danger zone">
       <SettingsRow

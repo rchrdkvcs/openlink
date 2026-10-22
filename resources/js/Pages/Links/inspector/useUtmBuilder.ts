@@ -3,10 +3,11 @@ import { computed, type Ref, ref, watch } from 'vue';
 import { normalizeUrl } from '@/lib/links';
 import {
   applyTemplate,
+  emptyUtm,
   hasUrlBase,
+  presentUtm,
   readUtm,
   templateChanges,
-  UTM_KEYS,
   type UtmKey,
   type UtmTemplate,
   writeUtm,
@@ -21,9 +22,14 @@ export type UtmBuilderOptions = {
 
 export function useUtmBuilder({ destination, templates, disabled, canManageTemplates }: UtmBuilderOptions) {
   const values = computed(() => readUtm(destination.value));
-  const filled = computed(() => UTM_KEYS.filter((key) => values.value[key] !== ''));
+  const filled = computed(() => presentUtm(destination.value));
   const summary = computed(() =>
-    filled.value.length ? filled.value.map((key) => values.value[key]).join(' · ') : 'None',
+    filled.value.length
+      ? filled.value
+          .map((key) => values.value[key])
+          .filter(Boolean)
+          .join(' · ') || 'Empty parameters'
+      : 'None',
   );
   const hasDestination = computed(() => hasUrlBase(destination.value));
   const fieldsDisabled = computed(() => disabled() || !hasDestination.value);
@@ -53,6 +59,12 @@ export function useUtmBuilder({ destination, templates, disabled, canManageTempl
     destination.value = writeUtm(destination.value, { [key]: value });
   }
 
+  function removeAll() {
+    if (fieldsDisabled.value) return;
+    destination.value = writeUtm(destination.value, emptyUtm());
+    selectedId.value = '';
+  }
+
   function apply() {
     if (!canApply.value) return;
     destination.value = applied.value;
@@ -74,6 +86,7 @@ export function useUtmBuilder({ destination, templates, disabled, canManageTempl
     showCreateTemplateLink,
     finalUrl: computed(() => normalizeUrl(destination.value)),
     update,
+    removeAll,
     apply,
   };
 }

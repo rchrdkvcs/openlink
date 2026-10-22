@@ -223,6 +223,55 @@ class UtmTemplateManagementTest extends TestCase
                 ->where('templates.0.name', 'Second only'));
     }
 
+    #[DataProvider('managerToNonManagerRoles')]
+    public function test_switching_to_a_non_manager_workspace_uses_an_accessible_destination(string $sourceRole, string $targetRole): void
+    {
+        [$source, $owner] = $this->workspaceWithOwner('Source');
+        $user = $sourceRole === WorkspaceMember::ROLE_OWNER ? $owner : $this->memberOf($source, $sourceRole);
+        [$target] = $this->workspaceWithOwner('Target');
+        WorkspaceMember::create(['workspace_id' => $target->id, 'user_id' => $user->id, 'role' => $targetRole]);
+        $sourceTemplate = $this->template($source, 'Source only', ['utm_source' => 'source']);
+        $this->template($target, 'Target only', ['utm_source' => 'target']);
+
+        $this->actingInWorkspace($user, $source)
+            ->get(route('utm-templates.index'))
+            ->assertOk();
+
+        $this->from(route('utm-templates.index'))
+            ->post(route('workspaces.switch', $target), ['destination' => 'utm-templates.index'])
+            ->assertRedirect(route('profile.edit'))
+            ->assertSessionHas('workspace_id', $target->id);
+
+        $this->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('currentWorkspace.id', $target->id)
+                ->where('role', $targetRole)
+                ->where('canManageWorkspace', false)
+                ->missing('templates'));
+
+        $this->get(route('utm-templates.index'))->assertForbidden();
+        $this->delete(route('utm-templates.destroy', $sourceTemplate))->assertForbidden();
+
+        $this->get(route('links.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('utmTemplates', 1)
+                ->where('utmTemplates.0.name', 'Target only'));
+
+        $this->assertDatabaseHas('utm_templates', ['id' => $sourceTemplate->id, 'utm_source' => 'source']);
+    }
+
+    public static function managerToNonManagerRoles(): array
+    {
+        return [
+            'owner to editor' => [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_EDITOR],
+            'owner to viewer' => [WorkspaceMember::ROLE_OWNER, WorkspaceMember::ROLE_VIEWER],
+            'admin to editor' => [WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_EDITOR],
+            'admin to viewer' => [WorkspaceMember::ROLE_ADMIN, WorkspaceMember::ROLE_VIEWER],
+        ];
+    }
+
     public function test_template_names_are_unique_within_a_workspace_only(): void
     {
         [$workspace, $owner] = $this->workspaceWithOwner();

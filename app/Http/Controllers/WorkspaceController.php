@@ -51,7 +51,13 @@ class WorkspaceController extends Controller
         Gate::authorize('view', $workspace);
         $current->select($workspace);
 
-        return redirect()->route($data['destination'] ?? 'dashboard');
+        $destination = $data['destination'] ?? 'dashboard';
+
+        if ($destination === 'utm-templates.index' && $request->user()->cannot('manage', $workspace)) {
+            $destination = 'profile.edit';
+        }
+
+        return redirect()->route($destination);
     }
 
     public function settings(Request $request, CurrentWorkspace $current, DomainPayload $domains): Response|RedirectResponse

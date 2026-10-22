@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Folders\DeleteFolder;
 use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
@@ -42,11 +43,11 @@ class FolderController extends Controller
         return response()->json(['data' => $folder]);
     }
 
-    public function destroy(Folder $folder): JsonResponse
+    public function destroy(Request $request, Folder $folder, DeleteFolder $deleteFolder): JsonResponse
     {
         Gate::authorize('delete', $folder);
 
-        $folder->delete();
+        $deleteFolder->handle($request->user(), $folder);
 
         return response()->json(['message' => 'Folder deleted.']);
     }

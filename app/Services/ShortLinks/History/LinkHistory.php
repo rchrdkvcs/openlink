@@ -28,19 +28,29 @@ class LinkHistory
         }
 
         $shortLink->refresh();
+        $before = $this->snapshots->capture($shortLink);
 
-        return $this->snapshots->capture($shortLink);
+        if ($current === 0) {
+            $this->append($shortLink, RevisionAction::Baseline, $before, [], null, null);
+        }
+
+        return $before;
     }
 
-    public function record(ShortLink $shortLink, RevisionAction $action, ?array $before, ?User $actor, ?int $restoredFrom = null): ?ShortLinkRevision
+    public function record(ShortLink $shortLink, RevisionAction $action, ?array $before, ?User $actor, ?int $restoredFrom = null, array $extraChanges = []): ?ShortLinkRevision
     {
         $after = $this->snapshots->capture($shortLink);
-        $changes = $this->snapshots->diff($before, $after);
+        $changes = [...$this->snapshots->diff($before, $after), ...$extraChanges];
 
         if ($before !== null && $changes === []) {
             return null;
         }
 
+        return $this->append($shortLink, $action, $after, $changes, $actor, $restoredFrom);
+    }
+
+    private function append(ShortLink $shortLink, RevisionAction $action, array $snapshot, array $changes, ?User $actor, ?int $restoredFrom): ShortLinkRevision
+    {
         $number = (int) ShortLink::query()->whereKey($shortLink->id)->value('revision') + 1;
         ShortLink::query()->whereKey($shortLink->id)->update(['revision' => $number]);
         $shortLink->forceFill(['revision' => $number])->syncOriginalAttribute('revision');
@@ -49,11 +59,11 @@ class LinkHistory
             'workspace_id' => $shortLink->workspace_id,
             'number' => $number,
             'action' => $action,
-            'channel' => MutationChannel::of($this->request),
+            'channel' => $action === RevisionAction::Baseline ? MutationChannel::System : MutationChannel::of($this->request),
             'actor_id' => $actor?->id,
             'restored_from' => $restoredFrom,
             'schema_version' => LinkSnapshot::SCHEMA_VERSION,
-            'snapshot' => $after,
+            'snapshot' => $snapshot,
             'changes' => $changes,
         ]);
     }

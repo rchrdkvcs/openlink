@@ -223,7 +223,7 @@ class LinkHistoryTest extends TestCase
         ])->assertOk();
 
         $this->getJson("/api/v1/links/$id/revisions/1")
-            ->assertJsonPath('data.restore.notes.0', 'Deleted routing rules come back as new rules, so their earlier analytics stay separate: Other.');
+            ->assertJsonPath('data.restore.notes.0', 'Routing rules deleted since this revision come back as new rules: Other.');
 
         $this->restore($id, 1, 2)->assertOk();
 
@@ -383,6 +383,221 @@ class LinkHistoryTest extends TestCase
             ->assertJsonPath('data.restore.reason', 'This revision matches the current configuration.');
         $this->restore($id, 1, 3)->assertUnprocessable()->assertJsonValidationErrors('revision');
         $this->assertSame(3, ShortLinkRevision::query()->count());
+    }
+
+    public function test_restore_keeps_routing_rules_and_variants_that_have_analytics_turned_off(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $split = ['name' => 'Split', 'type' => 'split_test', 'conditions' => [], 'variants' => [
+            ['name' => 'A', 'destination_url' => 'https://example.com/va', 'weight' => 50],
+            ['name' => 'Z', 'destination_url' => 'https://example.com/vz', 'weight' => 50],
+        ]];
+        $id = $this->createLink($domain->id, ['routing_rules' => [$split]]);
+        $splitRule = $this->link($id)->routingRules()->with('variants')->firstOrFail();
+        $variantA = $splitRule->variants[0]->id;
+        $variantZ = $splitRule->variants[1]->id;
+
+        $this->patchJson("/api/v1/links/$id", [
+            'destination_url' => 'https://example.com/a',
+            'is_enabled' => true,
+            'routing_rules' => [
+                [...$split, 'id' => $splitRule->id, 'variants' => [
+                    ['id' => $variantA, 'name' => 'A', 'destination_url' => 'https://example.com/va', 'weight' => 50],
+                    ['id' => $variantZ, 'name' => 'Z', 'destination_url' => 'https://example.com/vz', 'weight' => 50],
+                    ['name' => 'B', 'destination_url' => 'https://example.com/vb', 'weight' => 50],
+                ]],
+                $this->franceRule(),
+                ['name' => 'Quiet', 'conditions' => [], 'destination_url' => 'https://example.com/quiet'],
+            ],
+        ])->assertOk();
+        $rules = $this->link($id)->routingRules()->with('variants')->get();
+        $variantB = $rules[0]->variants[2]->id;
+        $franceId = $rules[1]->id;
+        $quietId = $rules[2]->id;
+        $ruleEvent = $this->analyticsEvent($this->link($id), ['routing_rule_id' => $franceId]);
+        $variantEvent = $this->analyticsEvent($this->link($id), ['routing_rule_id' => $splitRule->id, 'routing_variant_id' => $variantB]);
+
+        $this->getJson("/api/v1/links/$id/revisions/1")
+            ->assertJsonPath('data.restore.notes.0', 'These routing rules and variants have analytics, so they stay on the link turned off instead of being deleted: B, France.');
+        $this->restore($id, 1, 2)->assertOk();
+
+        $this->assertDatabaseHas('analytics_events', ['id' => $ruleEvent->id, 'routing_rule_id' => $franceId]);
+        $this->assertDatabaseHas('analytics_events', ['id' => $variantEvent->id, 'routing_rule_id' => $splitRule->id, 'routing_variant_id' => $variantB]);
+        $this->assertDatabaseHas('routing_rules', ['id' => $franceId, 'is_enabled' => false]);
+        $this->assertDatabaseHas('routing_variants', ['id' => $variantB, 'is_enabled' => false]);
+        $this->assertDatabaseHas('routing_variants', ['id' => $variantA, 'is_enabled' => true]);
+        $this->assertDatabaseMissing('routing_rules', ['id' => $quietId]);
+        $this->getJson("/api/v1/links/$id/revisions/1")
+            ->assertJsonPath('data.restore.reason', 'This revision matches the current configuration.');
+    }
+
+    public function test_query_strings_and_fragments_never_reach_history(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id, [
+            'destination_url' => 'https://example.com/p?token=s3cr3t-value&utm=mail#access=frag-secret',
+            'routing_rules' => [[...$this->franceRule(), 'destination_url' => 'https://example.com/fr?key=rule-secret']],
+        ]);
+
+        $this->patchJson("/api/v1/links/$id", [
+            'destination_url' => 'https://example.com/p?token=rotated-value&utm=mail#access=frag-secret',
+            'is_enabled' => true,
+        ])->assertOk()->assertJsonPath('data.revision', 2);
+
+        $stored = ShortLinkRevision::query()->get()->toJson(JSON_UNESCAPED_UNICODE);
+        foreach (['s3cr3t-value', 'rotated-value', 'frag-secret', 'rule-secret'] as $secret) {
+            $this->assertStringNotContainsString($secret, $stored);
+        }
+
+        $this->getJson("/api/v1/links/$id/revisions/2")
+            ->assertJsonPath('data.changes.0.field', 'destination_url')
+            ->assertJsonPath('data.changes.0.after', 'https://example.com/p?token=•••&utm=•••#•••')
+            ->assertJsonPath('data.snapshot.routing_rules.0.destination_url', 'https://example.com/fr?key=•••');
+    }
+
+    public function test_a_redacted_url_is_restored_only_while_the_link_still_uses_it(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $secretUrl = 'https://example.com/p?token=s3cr3t';
+        $id = $this->createLink($domain->id, ['destination_url' => $secretUrl]);
+        $this->patchJson("/api/v1/links/$id", [
+            'destination_url' => 'https://example.com/q',
+            'fallback_url' => $secretUrl,
+            'is_enabled' => true,
+        ])->assertOk();
+
+        $this->restore($id, 1, 2)->assertOk()->assertJsonPath('data.destination_url', $secretUrl);
+
+        $this->patchJson("/api/v1/links/$id", [
+            'destination_url' => 'https://example.com/elsewhere',
+            'fallback_url' => null,
+            'is_enabled' => true,
+        ])->assertOk();
+        $reason = 'History keeps no query strings or fragments, and this revision used https://example.com/p?token=••• with one the link no longer has. Edit the link to restore that URL by hand.';
+
+        $this->getJson("/api/v1/links/$id/revisions/1")
+            ->assertJsonPath('data.restore.restorable', false)
+            ->assertJsonPath('data.restore.reason', $reason);
+        $this->restore($id, 1, 4)->assertUnprocessable()->assertJsonPath('errors.revision.0', $reason);
+        $this->assertSame('https://example.com/elsewhere', $this->link($id)->destination_url);
+    }
+
+    public function test_api_clients_can_use_etags_to_detect_concurrent_updates(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id);
+        $payload = ['destination_url' => 'https://example.com/b', 'is_enabled' => true];
+
+        $this->getJson("/api/v1/links/$id")->assertOk()->assertHeader('ETag', '"1"');
+        $this->patchJson("/api/v1/links/$id", $payload, ['If-Match' => '"0"'])->assertStatus(412);
+        $this->postJson("/api/v1/links/$id/archive", [], ['If-Match' => '"0"'])->assertStatus(412);
+        $this->assertSame('https://example.com/a', $this->link($id)->destination_url);
+
+        $this->patchJson("/api/v1/links/$id", $payload, ['If-Match' => '"1"'])->assertOk()->assertHeader('ETag', '"2"');
+        $this->postJson("/api/v1/links/$id/revisions/1/restore", [], ['If-Match' => '"2"'])->assertOk()->assertHeader('ETag', '"3"');
+        $this->patchJson("/api/v1/links/$id", ['destination_url' => 'https://example.com/c', 'is_enabled' => true])
+            ->assertOk()
+            ->assertHeader('ETag', '"4"');
+    }
+
+    public function test_links_without_history_get_a_baseline_before_their_first_change(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $legacy = $this->shortLink($workspace, $domain, 'legacy', ['destination_url' => 'https://example.com/original']);
+        Sanctum::actingAs($owner);
+
+        $this->getJson("/api/v1/links/$legacy->id")->assertJsonPath('data.revision', 0);
+        $this->updateDestination($legacy->id, 'https://example.com/changed', 0);
+
+        $this->getJson("/api/v1/links/$legacy->id/revisions")
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.action', 'updated')
+            ->assertJsonPath('data.1.number', 1)
+            ->assertJsonPath('data.1.action', 'baseline')
+            ->assertJsonPath('data.1.channel', 'system')
+            ->assertJsonPath('data.1.actor', null)
+            ->assertJsonPath('data.1.changes', []);
+
+        $this->restore($legacy->id, 1, 2)->assertOk()->assertJsonPath('data.destination_url', 'https://example.com/original');
+    }
+
+    public function test_deleting_a_folder_records_a_revision_for_each_link_inside_it(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Spring']);
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id, ['folder_id' => $folder->id]);
+
+        $this->deleteJson("/api/v1/folders/$folder->id")->assertOk();
+
+        $this->getJson("/api/v1/links/$id/revisions")
+            ->assertJsonPath('data.0.action', 'moved')
+            ->assertJsonPath('data.0.actor.id', $owner->id)
+            ->assertJsonPath('data.0.changes.0.before.name', 'Spring')
+            ->assertJsonPath('data.0.changes.0.after', null);
+        $this->assertNull($this->link($id)->folder_id);
+    }
+
+    public function test_a_renamed_folder_is_not_a_restore_change(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $folder = Folder::create(['workspace_id' => $workspace->id, 'name' => 'Spring']);
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id, ['folder_id' => $folder->id]);
+        $this->patchJson("/api/v1/links/$id", ['destination_url' => 'https://example.com/b', 'is_enabled' => true, 'folder_id' => $folder->id])->assertOk();
+        $folder->update(['name' => 'Summer']);
+
+        $this->getJson("/api/v1/links/$id/revisions/1")
+            ->assertJsonCount(1, 'data.restore.changes')
+            ->assertJsonPath('data.restore.changes.0.field', 'destination_url');
+    }
+
+    public function test_replacing_a_password_is_recorded_without_any_secret(): void
+    {
+        [, $domain, $owner] = $this->workspaceWithActiveDomain();
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id, ['password' => 'first-secret']);
+
+        $this->patchJson("/api/v1/links/$id", [
+            'destination_url' => 'https://example.com/a',
+            'is_enabled' => true,
+            'password' => 'second-secret',
+        ])->assertOk();
+
+        $this->getJson("/api/v1/links/$id/revisions/2")
+            ->assertJsonPath('data.changes', [['field' => 'password_changed', 'before' => null, 'after' => null]]);
+        $stored = ShortLinkRevision::query()->get()->toJson();
+        $this->assertStringNotContainsString('second-secret', $stored);
+        $this->assertStringNotContainsString((string) $this->link($id)->password_hash, $stored);
+    }
+
+    public function test_restore_ignores_folders_and_routing_rules_from_other_workspaces_and_links(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        [$otherWorkspace, $otherDomain] = $this->workspaceWithActiveDomain('other.test');
+        $foreignFolder = Folder::create(['workspace_id' => $otherWorkspace->id, 'name' => 'Theirs']);
+        $foreignLink = $this->shortLink($otherWorkspace, $otherDomain, 'theirs');
+        $foreignRule = $foreignLink->routingRules()->create(['name' => 'Theirs', 'destination_url' => 'https://example.com/theirs', 'conditions' => []]);
+        Sanctum::actingAs($owner);
+        $id = $this->createLink($domain->id);
+        $this->updateDestination($id, 'https://example.com/b', 1);
+
+        $revision = ShortLinkRevision::query()->where('short_link_id', $id)->where('number', 1)->firstOrFail();
+        $revision->update(['snapshot' => [
+            ...$revision->snapshot,
+            'folder' => ['id' => $foreignFolder->id, 'name' => 'Theirs'],
+            'routing_rules' => [['id' => $foreignRule->id, 'name' => 'Mine', 'type' => 'conditional', 'is_enabled' => true, 'match_mode' => 'all', 'conditions' => [], 'destination_url' => 'https://example.com/mine', 'variants' => []]],
+        ]]);
+
+        $this->restore($id, 1, 2)->assertOk()->assertJsonPath('data.folder', null);
+
+        $this->assertNotSame($foreignRule->id, $this->link($id)->routingRules()->value('id'));
+        $this->assertDatabaseHas('routing_rules', ['id' => $foreignRule->id, 'short_link_id' => $foreignLink->id, 'name' => 'Theirs']);
+        $this->assertNull($foreignFolder->fresh()->shortLinks()->first());
     }
 
     public function test_dashboard_restore_redirects_back_and_records_the_dashboard_channel(): void

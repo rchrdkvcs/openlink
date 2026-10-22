@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\ShortLinks\LinksQuery;
+use App\Actions\ShortLinks\RevisionPrecondition;
 use App\Actions\ShortLinks\ShortLinkMutation;
 use App\Actions\ShortLinks\ShortLinkPayload;
 use App\Actions\Workspaces\CurrentWorkspace;
@@ -38,39 +39,43 @@ class ShortLinkController extends Controller
         ]);
     }
 
+    public function __construct(private readonly RevisionPrecondition $precondition) {}
+
     public function show(ShortLink $shortLink, ShortLinkPayload $payload): JsonResponse
     {
         Gate::authorize('view', $shortLink);
 
-        return response()->json(['data' => $payload->handle($shortLink)]);
+        return $this->precondition->tag(response()->json(['data' => $payload->handle($shortLink)]), $shortLink);
     }
 
     public function store(StoreShortLinkRequest $request, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
         $shortLink = $shortLinks->create($request->user(), $request->workspace(), $request->validated());
 
-        return response()->json(['data' => $payload->handle($shortLink)], 201);
+        return $this->precondition->tag(response()->json(['data' => $payload->handle($shortLink)], 201), $shortLink);
     }
 
     public function update(UpdateShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->update($request->user(), $shortLink, $request->validated());
+        $data = $request->validated();
+        $data['expected_revision'] = $this->precondition->expected($request, $shortLink, isset($data['expected_revision']) ? (int) $data['expected_revision'] : null);
+        $shortLink = $shortLinks->update($request->user(), $shortLink, $data);
 
-        return response()->json(['data' => $payload->handle($shortLink)]);
+        return $this->precondition->tag(response()->json(['data' => $payload->handle($shortLink)]), $shortLink);
     }
 
     public function move(MoveShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->move($request->user(), $shortLink, $request->folderId());
+        $shortLink = $shortLinks->move($request->user(), $shortLink, $request->folderId(), $this->precondition->expected($request, $shortLink));
 
-        return response()->json(['data' => $payload->handle($shortLink->fresh(['domain', 'folder', 'tags', 'qrCodes']))]);
+        return $this->precondition->tag(response()->json(['data' => $payload->handle($shortLink->fresh(['domain', 'folder', 'tags', 'qrCodes']))]), $shortLink);
     }
 
     public function archive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks, ShortLinkPayload $payload): JsonResponse
     {
-        $shortLink = $shortLinks->archive($request->user(), $shortLink);
+        $shortLink = $shortLinks->archive($request->user(), $shortLink, $this->precondition->expected($request, $shortLink));
 
-        return response()->json(['data' => $payload->handle($shortLink)]);
+        return $this->precondition->tag(response()->json(['data' => $payload->handle($shortLink)]), $shortLink);
     }
 
     public function destroy(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): JsonResponse

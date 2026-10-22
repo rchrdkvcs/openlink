@@ -44,9 +44,9 @@ Daily aggregates are retained for 12 months by default. Lifetime totals remain w
 
 ## Link History
 
-Link history is operational workspace data about who changed a short link, not visitor data. Snapshots and diffs never contain visitor passwords, password hashes, API tokens, QR Code tokens, or infrastructure secrets; they record only whether a link was protected. Restoring checks the member's current workspace role and revalidates destinations and routing rules.
+Link history is operational workspace data about who changed a short link, not visitor data. Snapshots and diffs never contain visitor passwords, password hashes, API tokens, QR Code tokens, or infrastructure secrets; they record only whether a link was protected and, as a value-free entry, when its password was replaced. Restoring checks the member's current workspace role and revalidates destinations and routing rules.
 
-Link history is kept for as long as its short link exists and is deleted with the short link or its workspace. Revisions by a deleted member remain without the member's name. Removing a URL from a short link does not remove it from earlier revisions, so URLs carrying secrets in their query string stay readable by every member until the short link is deleted.
+Link history is kept for as long as its short link exists and is deleted with the short link or its workspace. Revisions by a deleted member remain without the member's name. Query values and fragments of every URL are replaced by `•••` before a snapshot or diff is stored, so tokens carried in URLs never reach history. A keyed HMAC of the full URL, derived from the application key, lets a restore reuse such a URL only while the link still holds it; otherwise the restore is refused rather than writing a masked value. Path segments are stored as they are, so tokens must not be placed in URL paths if they should stay out of history.
 
 ## Secrets and Configuration
 

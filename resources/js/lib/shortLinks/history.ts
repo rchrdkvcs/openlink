@@ -6,6 +6,7 @@ export type ChangeDescription = { label: string; before: string; after: string }
 type Named = { name?: string };
 
 const ACTIONS: Record<Exclude<LinkRevision['action'], 'restored'>, string> = {
+  baseline: 'Recorded as first known state',
   created: 'Created',
   updated: 'Edited',
   moved: 'Moved',
@@ -72,6 +73,8 @@ export function channelLabel(channel: MutationChannel): string {
 }
 
 export function describeChange(change: RevisionChange): ChangeDescription {
+  if (change.field === 'password_changed') return { label: 'Password', before: 'Protected', after: 'Replaced' };
+
   const field = FIELDS[change.field] ?? { label: change.field, format: orNone };
 
   const before = field.format(change.before);

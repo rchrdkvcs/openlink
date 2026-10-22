@@ -102,7 +102,7 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | `DELETE` | `/api/v1/links/{id}` | Delete permanently (managers only) |
 | `GET` | `/api/v1/links/{id}/revisions` | List the link history, newest first (20 per page) |
 | `GET` | `/api/v1/links/{id}/revisions/{number}` | Show one link revision with its snapshot and a restore preview |
-| `POST` | `/api/v1/links/{id}/revisions/{number}/restore` | Restore a link revision (`expected_revision` required) |
+| `POST` | `/api/v1/links/{id}/revisions/{number}/restore` | Restore a link revision (`expected_revision` or `If-Match` required) |
 
 Create payload (only `destination_url` is required):
 
@@ -130,7 +130,9 @@ The link list returns 50 items per page in `data` and pagination details in `met
 
 Every link payload includes `revision`, the number of its latest link revision. Send it back as `expected_revision` on `PATCH` to reject the edit with a `422` on `expected_revision` when someone else changed the link in the meantime. Restoring always requires `expected_revision`.
 
-Each link revision lists `number`, `action` (`created`, `updated`, `moved`, `archived`, `restored`), `channel` (`dashboard`, `api`, `system`), `actor` (`null` once the member's account is deleted), `restored_from`, and `changes` as `{ field, before, after }` entries. The detail endpoint adds `restore`: whether the revision is restorable, why not, the changes a restore would make, and notes about deleted folders, recreated tags or routing rules, passwords, and the short URL. Restoring never changes the short URL, visit totals, analytics, QR codes, or passwords. A revision recorded in an unsupported format answers `422` on `revision`.
+Every link payload includes `revision`, the number of its latest link revision, and single-link responses carry it as an `ETag` header (`"3"`). To detect concurrent updates, send it back either as `If-Match: "3"` on `PATCH`, `move`, `archive`, and `restore`, which answers `412` when the link has moved on, or as `expected_revision` in the `PATCH` or `restore` body, which answers `422` on `expected_revision`. Restoring always requires one of the two. For backward compatibility, `PATCH`, `move`, and `archive` without either precondition are still accepted and overwrite whatever is current (last write wins); new clients should always send `If-Match`. A link created before link history existed reports revision `0` until its first change, which records a `baseline` revision first.
+
+Each link revision lists `number`, `action` (`baseline`, `created`, `updated`, `moved`, `archived`, `restored`), `channel` (`dashboard`, `api`, `system`), `actor` (`null` once the member's account is deleted), `restored_from`, and `changes` as `{ field, before, after }` entries. URL query values and fragments appear as `•••`, snapshots carry a `url_digests` map of keyed hashes for those URLs, and a replaced password appears as a value-free `password_changed` entry. The detail endpoint adds `restore`: whether the revision is restorable, why not, the changes a restore would make, and notes about deleted folders, recreated tags or routing rules, passwords, and the short URL. Restoring never changes the short URL, visit totals, analytics, QR codes, or passwords. Routing rules and variants that analytics refer to are never deleted by a restore; they stay on the link turned off. A revision recorded in an unsupported format, or whose redacted URL the link no longer uses, answers `422` on `revision`.
 
 ### Domains
 
@@ -203,6 +205,7 @@ Responses follow Laravel conventions, always as JSON on `/api/*`:
 - `403` no accessible workspace, insufficient role, or a link, QR code, domain, folder, or invite link outside the active workspace
 - `404` unknown resource, or a member outside the active workspace
 - `410` invite link expired, revoked, or out of uses
+- `412` `If-Match` does not name the link's current revision
 - `422` validation error, shape `{ "message": "...", "errors": { "field": ["..."] } }`
 
 ## CORS and browser extensions

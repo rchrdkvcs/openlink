@@ -4,6 +4,7 @@ import { History } from '@lucide/vue';
 import { ref, watch } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
+import { confirmAction } from '@/lib/confirm';
 import { relativeTime, shortDate } from '@/lib/datetime';
 import { fetchJson } from '@/lib/http';
 import { useShell } from '@/lib/shell';
@@ -13,7 +14,7 @@ import type { LinkRevision, LinkRevisionDetail, LinkRevisionPage, ShortLink } fr
 
 import InspectorRow from './InspectorRow.vue';
 
-const props = defineProps<{ link: ShortLink }>();
+const props = defineProps<{ link: ShortLink; hasUnsavedChanges: boolean }>();
 
 const { canEdit } = useShell();
 
@@ -79,7 +80,19 @@ async function showPreview(number: number) {
   }
 }
 
-function restore(number: number) {
+async function restore(number: number) {
+  if (
+    props.hasUnsavedChanges &&
+    !(await confirmAction({
+      title: 'Discard unsaved changes?',
+      message: `Restoring revision ${number} replaces the edits you haven't saved in this link.`,
+      confirmLabel: 'Discard and restore',
+      destructive: true,
+    }))
+  ) {
+    return;
+  }
+
   restoring.value = true;
   router.post(
     route('short-links.revisions.restore', [props.link.id, number]),

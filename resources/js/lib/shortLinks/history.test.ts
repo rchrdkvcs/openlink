@@ -30,6 +30,9 @@ describe('actorLabel', () => {
 
 describe('actionLabel', () => {
   it('describes each action', () => {
+    expect(actionLabel(revision({ action: 'baseline', channel: 'system', actor: null }))).toBe(
+      'Recorded as first known state',
+    );
     expect(actionLabel(revision({ action: 'created' }))).toBe('Created');
     expect(actionLabel(revision())).toBe('Edited');
     expect(actionLabel(revision({ action: 'moved' }))).toBe('Moved');
@@ -67,6 +70,11 @@ describe('describeChange', () => {
       after: 'Protected',
     });
     expect(describeChange({ field: 'is_archived', before: false, after: true }).after).toBe('Archived');
+    expect(describeChange({ field: 'password_changed', before: null, after: null })).toEqual({
+      label: 'Password',
+      before: 'Protected',
+      after: 'Replaced',
+    });
   });
 
   it('formats folders, tags, limits and routing rules', () => {

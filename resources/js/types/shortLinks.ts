@@ -86,7 +86,7 @@ export type RoutingSchema = {
   presets: RoutingPreset[];
 };
 
-export type RevisionAction = 'created' | 'updated' | 'moved' | 'archived' | 'restored';
+export type RevisionAction = 'baseline' | 'created' | 'updated' | 'moved' | 'archived' | 'restored';
 
 export type MutationChannel = 'dashboard' | 'api' | 'system';
 

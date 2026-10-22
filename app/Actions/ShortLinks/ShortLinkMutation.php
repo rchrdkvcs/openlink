@@ -53,7 +53,8 @@ class ShortLinkMutation
         $address = $this->addresses->forExistingLink($shortLink, $this->integer($data, 'domain_id'), $data['slug'] ?? null);
         $address->rejectLoop($data['destination_url'], 'destination_url');
 
-        return $this->recorded($user, $shortLink, RevisionAction::Updated, $this->integer($data, 'expected_revision'), function () use ($shortLink, $address, $data): void {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, $this->integer($data, 'expected_revision'), function () use ($shortLink, $address, $data): array {
+            $wasProtected = $shortLink->hasPassword();
             $this->fill($shortLink, $address, $data);
             $shortLink->save();
 
@@ -64,6 +65,10 @@ class ShortLinkMutation
             if (array_key_exists('tags', $data)) {
                 $this->tags->replace($shortLink, $data['tags']);
             }
+
+            return $wasProtected && $shortLink->hasPassword() && $shortLink->wasChanged('password_hash')
+                ? [['field' => 'password_changed', 'before' => null, 'after' => null]]
+                : [];
         });
     }
 
@@ -97,20 +102,20 @@ class ShortLinkMutation
         }, $sourceRevision);
     }
 
-    public function move(User $user, ShortLink $shortLink, ?int $folderId): ShortLink
+    public function move(User $user, ShortLink $shortLink, ?int $folderId, ?int $expectedRevision = null): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
 
-        return $this->recorded($user, $shortLink, RevisionAction::Moved, null, function () use ($shortLink, $folderId): void {
+        return $this->recorded($user, $shortLink, RevisionAction::Moved, $expectedRevision, function () use ($shortLink, $folderId): void {
             $shortLink->update(['folder_id' => $folderId]);
         });
     }
 
-    public function archive(User $user, ShortLink $shortLink): ShortLink
+    public function archive(User $user, ShortLink $shortLink, ?int $expectedRevision = null): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
 
-        return $this->recorded($user, $shortLink, RevisionAction::Archived, null, function () use ($shortLink): void {
+        return $this->recorded($user, $shortLink, RevisionAction::Archived, $expectedRevision, function () use ($shortLink): void {
             $shortLink->update(['archived_at' => $shortLink->archived_at ?? now()]);
         });
     }
@@ -133,8 +138,8 @@ class ShortLinkMutation
     {
         return DB::transaction(function () use ($user, $shortLink, $action, $expectedRevision, $change, $restoredFrom): ShortLink {
             $before = $this->history->lockForChange($shortLink, $expectedRevision);
-            $change();
-            $this->history->record($shortLink, $action, $before, $user, $restoredFrom);
+            $extraChanges = $change() ?? [];
+            $this->history->record($shortLink, $action, $before, $user, $restoredFrom, $extraChanges);
 
             return $shortLink;
         });

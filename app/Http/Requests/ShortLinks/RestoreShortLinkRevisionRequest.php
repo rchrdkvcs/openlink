@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\ShortLinks;
 
+use App\Actions\ShortLinks\RevisionPrecondition;
 use App\Models\ShortLink;
 use App\Models\ShortLinkRevision;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RestoreShortLinkRevisionRequest extends FormRequest
 {
@@ -16,7 +18,7 @@ class RestoreShortLinkRevisionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'expected_revision' => ['required', 'integer', 'min:0'],
+            'expected_revision' => [Rule::requiredIf(! $this->hasHeader('If-Match')), 'integer', 'min:0'],
         ];
     }
 
@@ -32,6 +34,9 @@ class RestoreShortLinkRevisionRequest extends FormRequest
 
     public function expectedRevision(): int
     {
-        return (int) $this->validated('expected_revision');
+        $fromBody = $this->validated('expected_revision');
+
+        return (int) $this->container->make(RevisionPrecondition::class)
+            ->expected($this, $this->shortLink(), $fromBody === null ? null : (int) $fromBody);
     }
 }

@@ -147,7 +147,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
         </div>
       </fieldset>
 
-      <InspectorHistory :link="link" />
+      <InspectorHistory :link="link" :has-unsaved-changes="canEdit && form.isDirty" />
     </form>
 
     <InspectorSaveBar

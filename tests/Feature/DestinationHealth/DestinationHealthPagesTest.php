@@ -2,16 +2,23 @@
 
 namespace Tests\Feature\DestinationHealth;
 
+use App\Actions\DestinationHealth\DestinationHealthPayload;
+use App\Enums\DestinationHealthStatus;
 use App\Jobs\CheckDestination;
 use App\Models\DestinationCheck;
 use App\Models\User;
 use App\Models\WorkspaceMember;
+use App\Services\DestinationHealth\DestinationProbe;
+use App\Services\Dns\DnsLookup;
 use App\Services\InstanceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
+use RuntimeException;
 use Tests\Support\CreatesAnalyticsEvents;
 use Tests\Support\CreatesWorkspaces;
+use Tests\Support\InMemoryDnsLookup;
 use Tests\TestCase;
 
 class DestinationHealthPagesTest extends TestCase
@@ -19,6 +26,13 @@ class DestinationHealthPagesTest extends TestCase
     use CreatesAnalyticsEvents;
     use CreatesWorkspaces;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['queue.default' => 'database']);
+    }
 
     public function test_editor_can_request_checks_for_every_destination_of_a_short_link(): void
     {
@@ -44,6 +58,141 @@ class DestinationHealthPagesTest extends TestCase
 
         $this->actingInWorkspace($editor, $workspace)->post(route('short-links.destination-checks.store', $link));
         Queue::assertPushed(CheckDestination::class, 2);
+    }
+
+    public function test_a_manual_check_waits_for_a_real_worker_and_publishes_its_result_after_a_backlog(): void
+    {
+        config(['queue.default' => 'database']);
+        $this->app->instance(DnsLookup::class, (new InMemoryDnsLookup)->pointTo('example.com', '93.184.216.34'));
+        Http::fake(function () {
+            $check = DestinationCheck::query()->firstOrFail();
+            $this->assertSame('running', $check->executionState());
+            $this->assertNotNull($check->started_at);
+            $this->assertSame('running', app(DestinationHealthPayload::class)->check($check)['execution_state']);
+
+            return Http::response('', 404);
+        });
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('short-links.destination-checks.store', $link))
+            ->assertRedirect();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('jobs', 1);
+        $this->travel(11)->minutes();
+
+        $this->get(route('links.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('destinationHealth.0.status', 'unchecked')
+            ->where('destinationHealth.0.pending', true)
+            ->where('destinationHealth.0.execution_state', 'queued'));
+
+        $this->artisan('queue:work', ['connection' => 'database', '--once' => true])->assertSuccessful();
+
+        $this->get(route('links.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('destinationHealth.0.status', 'http_failure')
+            ->where('destinationHealth.0.http_status', 404)
+            ->where('destinationHealth.0.pending', false)
+            ->where('destinationHealth.0.execution_state', 'completed'));
+        $this->assertDatabaseCount('jobs', 0);
+    }
+
+    public function test_an_unexpected_worker_failure_preserves_the_last_result_and_allows_a_retry(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+        $checkedAt = now()->subHour()->startOfSecond();
+        $check = $this->check($workspace->id, $link->destination_url, [
+            'status' => 'reachable', 'http_status' => 200, 'checked_at' => $checkedAt,
+        ]);
+        $this->mock(DestinationProbe::class)->shouldReceive('check')->once()->andThrow(new RuntimeException('worker failed'));
+
+        $this->actingInWorkspace($owner, $workspace)->post(route('short-links.destination-checks.store', $link))->assertRedirect();
+        $this->artisan('queue:work', ['connection' => 'database', '--once' => true])->assertSuccessful();
+
+        $this->assertSame('failed', $check->fresh()->executionState());
+        $this->assertFalse($check->fresh()->isPending());
+        $this->assertTrue($check->fresh()->checked_at->equalTo($checkedAt));
+        $this->get(route('links.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('destinationHealth.0.execution_state', 'failed')
+            ->where('destinationHealth.0.status', 'reachable')
+            ->where('destinationHealth.0.http_status', 200));
+
+        $this->post(route('short-links.destination-checks.store', $link))->assertRedirect();
+        $this->assertSame('queued', $check->fresh()->executionState());
+        $this->assertDatabaseCount('jobs', 1);
+    }
+
+    public function test_synchronous_configuration_does_not_run_a_destination_check_in_the_request(): void
+    {
+        config(['queue.default' => 'sync']);
+        Http::fake();
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('short-links.destination-checks.store', $link))
+            ->assertSessionHasErrors('destination_health');
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertFalse(DestinationCheck::query()->firstOrFail()->isPending());
+    }
+
+    public function test_queue_failure_is_reported_and_can_be_retried_without_a_stranded_unique_lock(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+        $checkedAt = now()->subHour()->startOfSecond();
+        $previous = $this->check($workspace->id, $link->destination_url, [
+            'status' => 'inconclusive', 'http_status' => 403, 'checked_at' => $checkedAt,
+        ]);
+        Queue::shouldReceive('connection')->once()->andThrow(new RuntimeException('queue unavailable'));
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('short-links.destination-checks.store', $link))
+            ->assertSessionHasErrors('destination_health');
+
+        $check = DestinationCheck::query()->firstOrFail();
+        $this->assertSame('failed', $check->executionState());
+        $this->assertSame(DestinationHealthStatus::Inconclusive, $previous->fresh()->status);
+        $this->assertSame(403, $previous->fresh()->http_status);
+        $this->assertTrue($previous->fresh()->checked_at->equalTo($checkedAt));
+        $this->assertStringNotContainsString('queue unavailable', session('errors')->first('destination_health'));
+        Queue::clearResolvedInstance('queue');
+        $this->app->forgetInstance('queue');
+        $this->post(route('short-links.destination-checks.store', $link))->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('jobs', 1);
+    }
+
+    public function test_a_recheck_in_the_same_second_stays_pending_until_the_worker_completes(): void
+    {
+        $this->freezeSecond();
+        Queue::fake();
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+        $check = $this->check($workspace->id, $link->destination_url, ['status' => 'reachable', 'checked_at' => now()]);
+
+        $this->actingInWorkspace($owner, $workspace)->post(route('short-links.destination-checks.store', $link));
+        $this->assertTrue($check->fresh()->isPending());
+        $this->assertSame('queued', $check->fresh()->executionState());
+    }
+
+    public function test_a_recheck_can_be_queued_while_the_previous_job_still_holds_its_unique_lock(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'launch');
+        $this->actingInWorkspace($owner, $workspace)->post(route('short-links.destination-checks.store', $link));
+        $check = DestinationCheck::query()->firstOrFail();
+        $generation = $check->generation;
+        $check->update(['execution_state' => 'completed', 'checked_at' => now(), 'status' => 'reachable']);
+
+        $this->post(route('short-links.destination-checks.store', $link))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('jobs', 2);
+        $this->assertNotSame($generation, $check->fresh()->generation);
+        $this->assertSame('queued', $check->fresh()->executionState());
     }
 
     public function test_viewers_and_other_workspaces_cannot_request_checks(): void

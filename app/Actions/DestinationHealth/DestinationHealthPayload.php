@@ -104,7 +104,11 @@ class DestinationHealthPayload
             'incident_opened_at' => $check->incident_opened_at,
             'recovered_at' => $check->recovered_at,
             'has_incident' => $check->hasIncident(),
+            'execution_state' => $check->executionState(),
+            'requested_at' => $check->requested_at,
+            'started_at' => $check->started_at,
             'pending' => $check->isPending(),
+            'can_retry' => $check->canRetry(),
             'stale' => $check->isStale(),
         ];
     }

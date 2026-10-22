@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Archive, Download, Folder as FolderIcon, Inbox, Link2, Upload } from '@lucide/vue';
-import { useIntervalFn } from '@vueuse/core';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ComposerLink } from '@/Components/Links/composerLink';
@@ -15,6 +14,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { hasPendingCheck, healthByUrl, linkHealthSummary } from '@/lib/destinationHealth';
 import { useShell } from '@/lib/shell';
 import { selectableDomains } from '@/lib/shortLinks/shortLinkForm';
+import { useDestinationHealthPolling } from '@/lib/useDestinationHealthPolling';
 import { useServerFilters } from '@/lib/useServerFilters';
 import { useNumericUrlParam } from '@/lib/useUrlParam';
 import type { LinksPageProps } from '@/Pages/Links/types';
@@ -90,30 +90,7 @@ function exportLinks() {
 
 const health = computed(() => healthByUrl(props.destinationHealth));
 
-const HEALTH_POLL_LIMIT = 20;
-let healthPolls = 0;
-const healthPoll = useIntervalFn(
-  () => {
-    healthPolls += 1;
-    if (healthPolls > HEALTH_POLL_LIMIT) return healthPoll.pause();
-    router.reload({ only: ['destinationHealth', 'navigation'] });
-  },
-  3000,
-  { immediate: false },
-);
-
-watch(
-  () => hasPendingCheck(props.destinationHealth),
-  (pending) => {
-    if (pending) {
-      healthPolls = 0;
-      healthPoll.resume();
-    } else {
-      healthPoll.pause();
-    }
-  },
-  { immediate: true },
-);
+useDestinationHealthPolling(() => hasPendingCheck(props.destinationHealth), ['destinationHealth', 'navigation']);
 
 const toolbar = ref<InstanceType<typeof LinksToolbar> | null>(null);
 const composer = ref<InstanceType<typeof LinkComposer> | null>(null);

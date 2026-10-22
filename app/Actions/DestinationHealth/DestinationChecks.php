@@ -9,10 +9,13 @@ use App\Models\ShortLink;
 use App\Models\User;
 use App\Services\DestinationHealth\DestinationProbeResult;
 use App\Services\DestinationHealth\DestinationReferences;
+use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class DestinationChecks
 {
@@ -23,8 +26,6 @@ class DestinationChecks
     public const INCIDENT_RECHECK_AFTER_MINUTES = 60;
 
     public const CONFIRM_AFTER_MINUTES = 10;
-
-    private const REQUEST_COOLDOWN_SECONDS = 60;
 
     public function __construct(
         private readonly Gate $gate,
@@ -56,14 +57,55 @@ class DestinationChecks
 
     public function queue(DestinationCheck $check): DestinationCheck
     {
-        if ($check->isPending() && $check->requested_at->greaterThan(now()->subSeconds(self::REQUEST_COOLDOWN_SECONDS))) {
+        $connection = config('queue.default');
+
+        if (! in_array(config("queue.connections.$connection.driver"), ['redis', 'database', 'sqs', 'beanstalkd'], true)) {
+            throw ValidationException::withMessages([
+                'destination_health' => 'Destination Checks need an asynchronous queue and a running worker. Ask the instance administrator to configure them.',
+            ]);
+        }
+
+        if ($check->isPending() && ! $check->canRetry()) {
             return $check;
         }
 
-        $check->forceFill(['requested_at' => now()])->save();
-        dispatch(CheckDestination::for($check));
+        $generation = (string) Str::uuid();
+        $queued = DestinationCheck::query()
+            ->whereKey($check->id)
+            ->where('generation', $check->generation)
+            ->where('execution_state', $check->execution_state)
+            ->where('started_at', $check->started_at)
+            ->update(['requested_at' => now(), 'started_at' => null, 'execution_state' => 'queued', 'generation' => $generation]);
+        $check->refresh();
+
+        if (! $queued) {
+            return $check;
+        }
+
+        $job = new CheckDestination($check->id, $check->host(), $generation);
+
+        try {
+            dispatch($job);
+        } catch (Throwable $exception) {
+            $this->releaseUniqueLock($job);
+            DestinationCheck::query()->whereKey($check->id)->where('generation', $job->generation)->update(['execution_state' => 'failed']);
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'destination_health' => 'The Destination Check could not be queued. Try again or ask the instance administrator to check the worker.',
+            ]);
+        }
 
         return $check;
+    }
+
+    private function releaseUniqueLock(CheckDestination $job): void
+    {
+        try {
+            app(UniqueLock::class)->release($job);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     public function record(DestinationCheck $check, DestinationProbeResult $result): DestinationCheck
@@ -74,6 +116,7 @@ class DestinationChecks
             'http_status' => $result->httpStatus,
             'detail' => $result->detail === null ? null : Str::limit($result->detail, 250),
             'checked_at' => $now,
+            'execution_state' => 'completed',
         ];
 
         if ($result->status->isFailure()) {
@@ -92,7 +135,13 @@ class DestinationChecks
             ];
         }
 
-        $check->forceFill($attributes)->save();
+        DestinationCheck::query()
+            ->whereKey($check->id)
+            ->where('generation', $check->generation)
+            ->where('execution_state', 'running')
+            ->where('started_at', $check->started_at)
+            ->update($attributes);
+        $check->refresh();
 
         return $check;
     }
@@ -144,19 +193,25 @@ class DestinationChecks
         return DestinationCheck::query()
             ->referenced()
             ->where(fn (Builder $query) => $query
-                ->whereNull('requested_at')
-                ->orWhereColumn('requested_at', '<=', 'checked_at')
-                ->orWhere('requested_at', '<=', now()->subMinutes(DestinationCheck::PENDING_FOR_MINUTES)))
-            ->where(fn (Builder $query) => $query
-                ->whereNull('checked_at')
-                ->orWhere('checked_at', '<=', now()->subHours(self::RECHECK_AFTER_HOURS))
-                ->orWhere(fn (Builder $query) => $query
-                    ->whereNotNull('incident_opened_at')
-                    ->where('checked_at', '<=', now()->subMinutes(self::INCIDENT_RECHECK_AFTER_MINUTES)))
-                ->orWhere(fn (Builder $query) => $query
-                    ->where('consecutive_failures', '>', 0)
-                    ->whereNull('incident_opened_at')
-                    ->where('checked_at', '<=', now()->subMinutes(self::CONFIRM_AFTER_MINUTES))))
+                ->where(fn (Builder $ready) => $ready
+                    ->where(fn (Builder $state) => $state
+                        ->whereNotIn('execution_state', ['queued', 'running'])
+                        ->orWhere(fn (Builder $legacy) => $legacy
+                            ->whereNull('execution_state')
+                            ->where(fn (Builder $requested) => $requested
+                                ->whereNull('requested_at')
+                                ->orWhereColumn('requested_at', '<=', 'checked_at'))))
+                    ->where(fn (Builder $age) => $age
+                        ->whereNull('checked_at')
+                        ->orWhere('checked_at', '<=', now()->subHours(self::RECHECK_AFTER_HOURS))
+                        ->orWhere(fn (Builder $incident) => $incident
+                            ->whereNotNull('incident_opened_at')
+                            ->where('checked_at', '<=', now()->subMinutes(self::INCIDENT_RECHECK_AFTER_MINUTES)))
+                        ->orWhere(fn (Builder $confirming) => $confirming
+                            ->where('consecutive_failures', '>', 0)
+                            ->whereNull('incident_opened_at')
+                            ->where('checked_at', '<=', now()->subMinutes(self::CONFIRM_AFTER_MINUTES)))))
+                ->orWhere(fn (Builder $abandoned) => $abandoned->abandoned()))
             ->orderByRaw('checked_at asc nulls first')
             ->orderBy('id')
             ->limit($limit)

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleCheck, QrCode, RefreshCw } from '@lucide/vue';
-import { useIntervalFn } from '@vueuse/core';
-import { computed, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -19,6 +18,7 @@ import {
 } from '@/lib/destinationHealth';
 import { displayUrl } from '@/lib/links';
 import { useShell } from '@/lib/shell';
+import { useDestinationHealthPolling } from '@/lib/useDestinationHealthPolling';
 
 const props = defineProps<{
   issues: { open: DestinationIssue[]; recovered: DestinationIssue[] };
@@ -26,6 +26,7 @@ const props = defineProps<{
 }>();
 
 const { canEdit } = useShell();
+const error = ref<string | null>(null);
 
 const description = computed(() =>
   props.monitoringEnabled
@@ -34,35 +35,20 @@ const description = computed(() =>
 );
 
 const pending = computed(() => hasPendingCheck([...props.issues.open, ...props.issues.recovered]));
-const POLL_LIMIT = 20;
-let polls = 0;
-const poll = useIntervalFn(
-  () => {
-    polls += 1;
-    if (polls > POLL_LIMIT) return poll.pause();
-    router.reload({ only: ['issues', 'navigation'] });
-  },
-  3000,
-  { immediate: false },
-);
-watch(
-  pending,
-  (value) => {
-    if (value) {
-      polls = 0;
-      poll.resume();
-    } else {
-      poll.pause();
-    }
-  },
-  { immediate: true },
-);
+useDestinationHealthPolling(() => pending.value, ['issues', 'navigation']);
 
 function retry(issue: DestinationIssue) {
+  error.value = null;
   router.post(
     route('destination-checks.retry', issue.id),
     {},
-    { preserveScroll: true, only: ['issues', 'navigation'] },
+    {
+      preserveScroll: true,
+      only: ['issues', 'navigation', 'errors'],
+      onError: (errors) => {
+        error.value = errors.destination_health ?? 'The Destination Check could not be requested. Try again.';
+      },
+    },
   );
 }
 
@@ -76,6 +62,7 @@ function traffic(count: number): string {
 
   <AuthenticatedLayout>
     <div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
       <PageHeader title="Issues" :description="description" />
 
       <section class="mt-6 overflow-hidden rounded-xl border bg-surface" aria-labelledby="open-issues">
@@ -105,10 +92,10 @@ function traffic(count: number): string {
                 variant="secondary"
                 size="sm"
                 type="button"
-                :disabled="issue.pending"
+                :disabled="issue.pending && !issue.can_retry"
                 @click="retry(issue)"
               >
-                <RefreshCw /> {{ issue.pending ? 'Checking…' : 'Retry' }}
+                <RefreshCw /> {{ issue.pending && !issue.can_retry ? 'Checking…' : 'Retry' }}
               </Button>
             </div>
             <ul class="mt-3 space-y-1.5">

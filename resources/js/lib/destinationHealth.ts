@@ -14,6 +14,9 @@ export type DestinationHealthStatus =
 export type DestinationHealth = {
   url: string;
   status: DestinationHealthStatus;
+  execution_state: 'idle' | 'queued' | 'running' | 'completed' | 'failed';
+  requested_at: string | null;
+  started_at: string | null;
   http_status: number | null;
   detail: string | null;
   consecutive_failures: number;
@@ -23,6 +26,7 @@ export type DestinationHealth = {
   recovered_at: string | null;
   has_incident: boolean;
   pending: boolean;
+  can_retry: boolean;
   stale: boolean;
 };
 
@@ -69,6 +73,7 @@ export function isFailure(status: DestinationHealthStatus): boolean {
 
 export function healthLabel(health: DestinationHealth | undefined): string {
   if (!health) return STATUS_LABELS.unchecked;
+  if (health.status === 'unchecked' && health.execution_state !== 'idle') return checkLabel(health);
   if (health.status === 'http_failure' && health.http_status) return `HTTP ${health.http_status}`;
   return STATUS_LABELS[health.status];
 }
@@ -128,7 +133,10 @@ export function linkHealthSummary(
 
 export function healthNote(health: DestinationHealth | undefined, relative: (value: string) => string): string {
   if (!health) return 'Never checked';
-  if (health.pending) return 'Checking…';
+  if (health.execution_state === 'queued') return 'Waiting for a worker';
+  if (health.execution_state === 'running') return 'Checking the destination…';
+  if (health.execution_state === 'failed')
+    return 'The check could not complete. Retry or contact the instance administrator.';
   if (health.has_incident && health.failing_since) return `Failing since ${relative(health.failing_since)}`;
   if (isFailure(health.status)) return 'Failed once, confirming';
   if (health.recovered_at && health.status === 'reachable') return `Recovered ${relative(health.recovered_at)}`;
@@ -140,4 +148,19 @@ export function healthNote(health: DestinationHealth | undefined, relative: (val
 
 export function hasPendingCheck(entries: DestinationHealth[]): boolean {
   return entries.some((entry) => entry.pending);
+}
+
+export function checkLabel(health: DestinationHealth | undefined): string {
+  switch (health?.execution_state) {
+    case 'queued':
+      return 'Queued';
+    case 'running':
+      return 'Running';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Check failed';
+    default:
+      return 'Not requested';
+  }
 }

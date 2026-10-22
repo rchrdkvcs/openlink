@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\DestinationHealth;
 
+use App\Actions\DestinationHealth\DestinationChecks;
 use App\Enums\DestinationHealthStatus;
 use App\Jobs\CheckDestination;
 use App\Models\DestinationCheck;
@@ -28,6 +29,8 @@ class DestinationMonitoringTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config(['queue.default' => 'database']);
 
         $this->dns = (new InMemoryDnsLookup)->pointTo('example.com', '93.184.216.34');
         $this->app->instance(DnsLookup::class, $this->dns);
@@ -103,7 +106,7 @@ class DestinationMonitoringTest extends TestCase
         $this->assertEqualsCanonicalizing([$old->id, $confirming->id], $pushed);
 
         Queue::fake();
-        DestinationCheck::query()->update(['checked_at' => now()->subDay(), 'requested_at' => null]);
+        DestinationCheck::query()->update(['checked_at' => now()->subDay(), 'requested_at' => null, 'execution_state' => null]);
         $this->artisan('openlink:monitor-destinations', ['--limit' => 2])->assertSuccessful();
         Queue::assertPushed(CheckDestination::class, 2);
     }
@@ -118,7 +121,7 @@ class DestinationMonitoringTest extends TestCase
             return Http::response('', $status);
         });
 
-        CheckDestination::dispatchSync($check->id);
+        $this->runCheck($check);
         $check->refresh();
         $this->assertSame(DestinationHealthStatus::HttpFailure, $check->status);
         $this->assertSame(404, $check->http_status);
@@ -126,20 +129,20 @@ class DestinationMonitoringTest extends TestCase
         $this->assertNotNull($check->failing_since);
         $this->assertFalse($check->hasIncident());
 
-        CheckDestination::dispatchSync($check->id);
+        $this->runCheck($check);
         $check->refresh();
         $this->assertSame(2, $check->consecutive_failures);
         $this->assertTrue($check->hasIncident());
 
         $status = 403;
-        CheckDestination::dispatchSync($check->id);
+        $this->runCheck($check);
         $check->refresh();
         $this->assertSame(DestinationHealthStatus::Inconclusive, $check->status);
         $this->assertTrue($check->hasIncident());
         $this->assertSame(2, $check->consecutive_failures);
 
         $status = 200;
-        CheckDestination::dispatchSync($check->id);
+        $this->runCheck($check);
         $check->refresh();
         $this->assertSame(DestinationHealthStatus::Reachable, $check->status);
         $this->assertFalse($check->hasIncident());
@@ -155,9 +158,9 @@ class DestinationMonitoringTest extends TestCase
         $check = $this->check($workspace->id, 'https://example.com/page');
         Http::fake(fn () => Http::response('', 429));
 
-        CheckDestination::dispatchSync($check->id);
-        CheckDestination::dispatchSync($check->id);
-        CheckDestination::dispatchSync($check->id);
+        $this->runCheck($check);
+        $this->runCheck($check);
+        $this->runCheck($check);
 
         $check->refresh();
         $this->assertSame(DestinationHealthStatus::Inconclusive, $check->status);
@@ -310,6 +313,12 @@ class DestinationMonitoringTest extends TestCase
 
         $this->assertSame(7, $ran);
         $job->assertReleased();
+    }
+
+    private function runCheck(DestinationCheck $check): void
+    {
+        app(DestinationChecks::class)->queue($check->refresh());
+        $this->artisan('queue:work', ['connection' => 'database', '--once' => true])->assertSuccessful();
     }
 
     private function throughMiddleware(CheckDestination $job, callable $handle): void

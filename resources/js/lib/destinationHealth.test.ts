@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type DestinationHealth,
   healthByUrl,
+  checkLabel,
   healthLabel,
   healthNote,
   healthVariant,
@@ -14,6 +15,9 @@ import type { RoutingRuleDraft } from '@/types/shortLinks';
 const health = (overrides: Partial<DestinationHealth> = {}): DestinationHealth => ({
   url: 'https://example.com/a',
   status: 'reachable',
+  execution_state: 'completed',
+  requested_at: null,
+  started_at: null,
   http_status: 200,
   detail: null,
   consecutive_failures: 0,
@@ -23,6 +27,7 @@ const health = (overrides: Partial<DestinationHealth> = {}): DestinationHealth =
   recovered_at: null,
   has_incident: false,
   pending: false,
+  can_retry: true,
   stale: false,
   ...overrides,
 });
@@ -75,6 +80,24 @@ describe('destination health', () => {
     expect(healthVariant(health())).toBe('success');
   });
 
+  it('shows a queued observation without presenting it as never requested', () => {
+    expect(
+      healthLabel(health({ status: 'unchecked', checked_at: null, pending: true, execution_state: 'queued' })),
+    ).toBe('Queued');
+  });
+
+  it('keeps the latest normalized result separate from execution', () => {
+    expect(
+      healthLabel(health({ execution_state: 'running', pending: true, status: 'http_failure', http_status: 404 })),
+    ).toBe('HTTP 404');
+    expect(checkLabel(health({ execution_state: 'running' }))).toBe('Running');
+    expect(checkLabel(health())).toBe('Completed');
+    expect(healthLabel(health({ status: 'unchecked', checked_at: null, execution_state: 'failed' }))).toBe(
+      'Check failed',
+    );
+    expect(healthNote(health({ execution_state: 'failed' }), () => '')).toContain('could not complete');
+  });
+
   it('summarises a link from its current destinations', () => {
     const map = (entries: DestinationHealth[]) => healthByUrl(entries);
     const all = ['a', 'fallback', 'ios', 'b'].map((path) => health({ url: `https://example.com/${path}` }));
@@ -94,7 +117,10 @@ describe('destination health', () => {
     const relative = (value: string) => `at ${value}`;
 
     expect(healthNote(undefined, relative)).toBe('Never checked');
-    expect(healthNote(health({ pending: true }), relative)).toBe('Checking…');
+    expect(healthNote(health({ pending: true, execution_state: 'queued' }), relative)).toBe('Waiting for a worker');
+    expect(healthNote(health({ pending: true, execution_state: 'running' }), relative)).toBe(
+      'Checking the destination…',
+    );
     expect(healthNote(health({ status: 'timeout', consecutive_failures: 1 }), relative)).toBe(
       'Failed once, confirming',
     );

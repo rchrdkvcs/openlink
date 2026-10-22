@@ -1,30 +1,41 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import { ChevronRight, Route } from '@lucide/vue';
 import { computed } from 'vue';
 
-import Button from '@/Components/ui/Button.vue';
-import Dialog from '@/Components/ui/Dialog.vue';
-import { createRouting, type FormErrors, ruleName } from '@/lib/routing';
+import { confirmAction } from '@/lib/confirm';
+import { createRouting, ruleName } from '@/lib/routing';
 import type { RoutingRuleDraft, RoutingSchema } from '@/types/shortLinks';
 
-import RoutingRulesEditor from '../routing/RoutingRulesEditor.vue';
-
 const props = defineProps<{
+  rules: RoutingRuleDraft[];
   schema: RoutingSchema;
-  errors: FormErrors;
-  hasErrors: boolean;
-  defaultDestination: string;
+  linkId: number;
+  dirty: boolean;
 }>();
-
-const rules = defineModel<RoutingRuleDraft[]>({ required: true });
-const open = defineModel<boolean>('open', { required: true });
 
 const PREVIEW_LIMIT = 3;
 
-const enabledRules = computed(() => rules.value.filter((rule) => rule.is_enabled).length);
+const editorUrl = computed(() => route('links.routing', props.linkId));
+
+async function openEditor(event: MouseEvent) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+  event.preventDefault();
+  const leave =
+    !props.dirty ||
+    (await confirmAction({
+      title: 'Leave without saving?',
+      message: 'Your changes to this link are not saved yet.',
+      confirmLabel: 'Leave',
+      destructive: true,
+    }));
+  if (leave) router.visit(editorUrl.value);
+}
+
+const enabledRules = computed(() => props.rules.filter((rule) => rule.is_enabled).length);
 
 const status = computed(() => {
-  if (props.hasErrors) return 'Needs attention';
   if (!enabledRules.value) return 'Off';
   return `${enabledRules.value} rule${enabledRules.value === 1 ? '' : 's'}`;
 });
@@ -32,7 +43,7 @@ const status = computed(() => {
 const preview = computed(() => {
   const routing = createRouting(props.schema);
 
-  return rules.value.slice(0, PREVIEW_LIMIT).map((rule, index) => ({
+  return props.rules.slice(0, PREVIEW_LIMIT).map((rule, index) => ({
     key: rule.id ?? rule.client_id ?? index,
     name: ruleName(rule),
     enabled: rule.is_enabled,
@@ -43,21 +54,13 @@ const preview = computed(() => {
 
 <template>
   <div>
-    <button
-      type="button"
-      class="flex h-10 w-full items-center gap-2.5 px-3.5 text-left transition-colors hover:bg-elevated/40 focus-visible:bg-elevated/40 focus-visible:outline-none"
-      aria-haspopup="dialog"
-      @click="open = true"
-    >
+    <div class="flex h-10 w-full items-center gap-2.5 px-3.5">
       <Route class="h-4 w-4 shrink-0" :class="enabledRules > 0 ? 'text-accent' : 'text-faint'" />
       <span class="flex-1 text-[13px] font-medium text-foreground">Smart routing</span>
-      <span
-        class="max-w-[55%] truncate text-[13px]"
-        :class="hasErrors ? 'text-danger' : enabledRules > 0 ? 'text-muted' : 'text-faint'"
-        >{{ status }}</span
-      >
-      <ChevronRight class="h-3.5 w-3.5 shrink-0 text-faint" />
-    </button>
+      <span class="max-w-[45%] truncate text-[13px]" :class="enabledRules > 0 ? 'text-muted' : 'text-faint'">{{
+        status
+      }}</span>
+    </div>
     <ul v-if="preview.length" class="grid gap-2 pb-3 pe-3.5 ps-[1.625rem]">
       <li v-for="rule in preview" :key="rule.key" class="flex min-w-0 items-start gap-2">
         <span
@@ -74,20 +77,13 @@ const preview = computed(() => {
         {{ rules.length - PREVIEW_LIMIT }} more
       </li>
     </ul>
-  </div>
-
-  <Dialog
-    v-model:open="open"
-    size="xl"
-    class="top-[8vh]"
-    title="Smart routing"
-    description="Send visitors to different destinations based on country, device, campaign, time, or split traffic between variants. Rules are checked top to bottom; the first match wins."
-  >
-    <div class="max-h-[min(640px,70vh)] overflow-y-auto overscroll-contain px-5 pb-5 pt-4">
-      <RoutingRulesEditor v-model="rules" :errors="errors" :schema="schema" :default-destination="defaultDestination" />
+    <div class="px-3.5 pb-3 ps-[1.625rem]">
+      <a
+        :href="editorUrl"
+        @click="openEditor"
+        class="inline-flex h-7 items-center gap-1.5 rounded-md text-xs font-medium text-accent transition-colors hover:text-foreground"
+        >Open routing editor<ChevronRight class="h-3.5 w-3.5"
+      /></a>
     </div>
-    <footer class="flex items-center justify-end gap-2 border-t px-5 py-3.5">
-      <Button type="button" @click="open = false">Done</Button>
-    </footer>
-  </Dialog>
+  </div>
 </template>

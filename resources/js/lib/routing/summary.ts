@@ -48,7 +48,7 @@ export function conditionsLead(rule: RoutingRuleDraft): string {
   return rule.match_mode === 'all' ? 'the visitor matches all of these' : 'the visitor matches any of these';
 }
 
-function conditionSummary(schema: RoutingSchema, condition: RoutingCondition): string {
+export function conditionSummary(schema: RoutingSchema, condition: RoutingCondition): string {
   const operator = condition.operator.replaceAll('_', ' ');
 
   return `${conditionLabel(schema, condition.type)} ${operator} ${formatConditionValue(schema, condition)}`.trim();

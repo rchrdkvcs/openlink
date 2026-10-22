@@ -4,6 +4,7 @@ namespace App\Services\ShortLinks\Routing;
 
 use App\Models\RoutingRule;
 use App\Services\ShortLinks\ShortUrlAddress;
+use Closure;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -21,7 +22,7 @@ class RoutingRulesValidator
             'routing_rules.*.conditions' => ['nullable', 'array', 'max:20'],
             'routing_rules.*.conditions.*.type' => ['required_with:routing_rules.*.conditions', Rule::in(RoutingEditorSchema::conditionTypes())],
             'routing_rules.*.conditions.*.operator' => ['required_with:routing_rules.*.conditions', Rule::in(RoutingEditorSchema::operators())],
-            'routing_rules.*.conditions.*.value' => ['nullable'],
+            'routing_rules.*.conditions.*.value' => ['nullable', self::scalarOrScalarList(...)],
             'routing_rules.*.conditions.*.timezone' => ['nullable', 'timezone'],
             'routing_rules.*.destination_url' => ['nullable', 'url:http,https'],
             'routing_rules.*.variants' => ['nullable', 'array', 'max:20'],
@@ -33,10 +34,23 @@ class RoutingRulesValidator
         ];
     }
 
+    public static function scalarOrScalarList(string $attribute, mixed $value, Closure $fail): void
+    {
+        $values = is_array($value) ? $value : [$value];
+
+        foreach ($values as $item) {
+            if ($item !== null && ! is_scalar($item)) {
+                $fail('A condition value must be text or a list of text values.');
+
+                return;
+            }
+        }
+    }
+
     public function validate(ShortUrlAddress $address, array $rules): void
     {
         foreach (array_values($rules) as $index => $rule) {
-            if (! ($rule['is_enabled'] ?? true)) {
+            if (! RoutingRuleDrafts::enabled($rule)) {
                 continue;
             }
 
@@ -60,7 +74,7 @@ class RoutingRulesValidator
     private function validateSplitTest(ShortUrlAddress $address, array $rule, string $field): void
     {
         $activeVariants = collect($rule['variants'] ?? [])
-            ->filter(fn (array $variant) => ($variant['is_enabled'] ?? true) && (int) ($variant['weight'] ?? 50) > 0);
+            ->filter(fn (array $variant) => RoutingRuleDrafts::enabled($variant) && (int) ($variant['weight'] ?? 50) > 0);
 
         if ($activeVariants->count() < 2) {
             $this->fail("$field.variants", 'An active split test needs at least two active variants with positive weights.');

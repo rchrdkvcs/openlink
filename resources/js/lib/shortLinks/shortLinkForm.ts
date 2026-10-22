@@ -1,7 +1,6 @@
 import { normalizeUrl } from '@/lib/links';
-import { cloneRules, isRoutingErrorKey } from '@/lib/routing';
 import type { Domain } from '@/types/payloads';
-import type { RoutingRuleDraft, ShortLink } from '@/types/shortLinks';
+import type { ShortLink } from '@/types/shortLinks';
 
 export const PASSWORD_MASK = '********';
 
@@ -17,12 +16,11 @@ export type ShortLinkForm = {
   visit_limit: string;
   password: string;
   tags: string;
-  routing_rules: RoutingRuleDraft[];
 };
 
 export type QuickLinkForm = Pick<ShortLinkForm, 'destination_url' | 'domain_id' | 'folder_id' | 'slug' | 'is_enabled'>;
 
-export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback' | 'routing';
+export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback';
 
 export type PayloadOptions = { hasPassword?: boolean };
 
@@ -67,7 +65,6 @@ export function toForm(link: ShortLink): ShortLinkForm {
     visit_limit: link.visit_limit ? String(link.visit_limit) : '',
     password: link.has_password ? PASSWORD_MASK : '',
     tags: link.tags.map((tag) => tag.name).join(', '),
-    routing_rules: cloneRules(link.routing_rules ?? []),
   };
 }
 
@@ -85,12 +82,10 @@ export function toPayload<T extends { destination_url: string; password?: string
 }
 
 export function closedSections(): Record<InspectorSection, boolean> {
-  return { utm: false, schedule: false, limit: false, password: false, fallback: false, routing: false };
+  return { utm: false, schedule: false, limit: false, password: false, fallback: false };
 }
 
 export function sectionFor(errorKey: string): InspectorSection | null {
-  if (isRoutingErrorKey(errorKey)) return 'routing';
-
   return SECTION_BY_FIELD[errorKey] ?? null;
 }
 

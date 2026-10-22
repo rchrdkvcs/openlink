@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ShortLinks\BulkShortLinkMutation;
+use App\Actions\ShortLinks\PreviewSmartRouting;
 use App\Actions\ShortLinks\ShortLinkMutation;
 use App\Actions\ShortLinks\ShortLinkPayload;
 use App\Http\Requests\ShortLinks\BulkShortLinkRequest;
 use App\Http\Requests\ShortLinks\MoveShortLinkRequest;
+use App\Http\Requests\ShortLinks\PreviewSmartRoutingRequest;
 use App\Http\Requests\ShortLinks\StoreShortLinkRequest;
 use App\Http\Requests\ShortLinks\UpdateShortLinkRequest;
 use App\Models\ShortLink;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,6 +33,11 @@ class ShortLinkController extends Controller
         $shortLinks->update($request->user(), $shortLink, $request->validated());
 
         return back();
+    }
+
+    public function routingPreview(PreviewSmartRoutingRequest $request, ShortLink $shortLink, PreviewSmartRouting $preview): JsonResponse
+    {
+        return response()->json($preview->handle($shortLink, $request->validated()));
     }
 
     public function archive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse

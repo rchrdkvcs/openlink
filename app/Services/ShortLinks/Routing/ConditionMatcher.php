@@ -11,17 +11,29 @@ class ConditionMatcher
 
     public function matches(RoutingRule $rule, ResolutionContext $context): bool
     {
-        $conditions = collect($rule->conditions ?? [])->filter(fn ($condition) => is_array($condition));
+        return $this->combine($rule, $this->results($rule, $context));
+    }
 
-        if ($conditions->isEmpty()) {
+    public function results(RoutingRule $rule, ResolutionContext $context): array
+    {
+        return collect($rule->conditions ?? [])
+            ->filter(fn ($condition) => is_array($condition))
+            ->map(fn (array $condition) => ['condition' => $condition, 'matched' => $this->conditionMatches($condition, $context)])
+            ->values()
+            ->all();
+    }
+
+    public function combine(RoutingRule $rule, array $results): bool
+    {
+        if ($results === []) {
             return true;
         }
 
-        $results = $conditions->map(fn (array $condition) => $this->conditionMatches($condition, $context));
+        $matched = array_column($results, 'matched');
 
         return $rule->match_mode === RoutingRule::MATCH_ANY
-            ? $results->contains(true)
-            : $results->every(fn (bool $result) => $result);
+            ? in_array(true, $matched, true)
+            : ! in_array(false, $matched, true);
     }
 
     public function conditionMatches(array $condition, ResolutionContext $context): bool
@@ -53,6 +65,7 @@ class ConditionMatcher
 
         $actual = mb_strtolower((string) $actual);
         $expectedValues = collect(is_array($expected) ? $expected : [$expected])
+            ->filter(fn ($value) => $value === null || is_scalar($value))
             ->map(fn ($value) => mb_strtolower(trim((string) $value)))
             ->filter(fn (string $value) => $value !== '')
             ->values();

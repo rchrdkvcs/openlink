@@ -19,6 +19,7 @@ use App\Http\Controllers\PublicLinkController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\ShortLinkCsvController;
+use App\Http\Controllers\ShortLinkRoutingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UtmTemplateController;
 use App\Http\Controllers\WorkspaceController;
@@ -46,6 +47,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
         Route::get('/links/export', [ShortLinkCsvController::class, 'export'])->name('links.export');
         Route::get('/links/import/example', [ShortLinkCsvController::class, 'example'])->name('links.import.example');
+        Route::get('/links/{shortLink}/routing', [ShortLinkRoutingController::class, 'edit'])->name('links.routing');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
@@ -115,6 +117,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/short-links', [ShortLinkController::class, 'store'])->name('short-links.store');
         Route::post('/short-links/bulk', [ShortLinkController::class, 'bulk'])->name('short-links.bulk');
         Route::patch('/short-links/{shortLink}', [ShortLinkController::class, 'update'])->name('short-links.update');
+        Route::put('/short-links/{shortLink}/routing', [ShortLinkRoutingController::class, 'update'])->name('short-links.routing.update');
+        Route::post('/short-links/{shortLink}/routing-preview', [ShortLinkController::class, 'routingPreview'])->name('short-links.routing-preview');
         Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');

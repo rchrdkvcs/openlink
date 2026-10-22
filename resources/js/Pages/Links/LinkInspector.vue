@@ -33,7 +33,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const { canEdit, canManage } = useShell();
 
-const { form, sections, save, discard, destinationValid, routingHasErrors, hasErrors } = useShortLinkEditor(
+const { form, sections, save, discard, destinationValid, hasErrors } = useShortLinkEditor(
   () => props.link,
   () => canEdit.value,
 );
@@ -128,7 +128,6 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             </Field>
           </div>
         </div>
-
         <div class="mx-5 mb-4 divide-y overflow-hidden rounded-xl border bg-surface">
           <InspectorUtm
             v-model="form.destination_url"
@@ -139,12 +138,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorRouting
-            v-model="form.routing_rules"
-            v-model:open="sections.routing"
+            :rules="link.routing_rules ?? []"
             :schema="routingSchema"
-            :errors="form.errors"
-            :has-errors="routingHasErrors"
-            :default-destination="form.destination_url"
+            :link-id="link.id"
+            :dirty="canEdit && form.isDirty"
           />
         </div>
       </fieldset>

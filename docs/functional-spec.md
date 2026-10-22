@@ -109,6 +109,22 @@ Owners, Admins, and Editors can select short links on the current page of the Li
 
 The Links page exports the links in the current view as a versioned Link CSV, and imports a Link CSV after a preview and an explicit confirmation. Imports are create-only: they never change or overwrite existing links, keep short URLs only on domains the workspace controls, and never reset visit counts or analytics. Visitor passwords, Smart Routing rules, QR Codes, and analytics are not exported or imported. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
+### Routing editor
+
+Smart Routing is edited on a dedicated page for each short link, opened from the link inspector with "Open routing editor". The inspector keeps a compact summary of the first rules.
+
+The page shows the routing as a left-to-right graph. An incoming visit enters the first rule. Each rule node lists its conditions; its "Match" output leads to its destination or its split-test variants, and its "No match" output leads to the next rule. The chain ends at the default destination. The graph is laid out automatically from the ordered rules; dragging a rule up or down changes its priority, and node positions are not saved.
+
+Selecting a node opens it in the side panel, where members who can edit content change, duplicate, reorder, disable, or delete the rule, or change the default destination. Validation errors are shown on the affected node and in the panel. A List view shows the same rules as an ordered list for keyboard and screen reader users. Viewers can open the page and run a Routing Preview, but every editing control is read-only.
+
+### Routing Preview
+
+The routing editor's Test panel runs a Routing Preview. After a preview, the graph highlights the path the simulated visit took and the chosen destination, and dims the other branches. It accepts a synthetic country, language, device, browser, OS, referrer URL, UTM parameters, date and time with an explicit timezone, and a visitor seed. Members who can edit content test the current editor state, including unsaved changes, after the same validation used on save. Viewers test the saved routing.
+
+The result lists every routing rule with its status (matched, no match, disabled, skipped, or not checked), each condition result, configured variant weights and shares, the selected variant, and the final or default destination. The seed replaces the daily visitor hash, so the same seed always picks the same variant; real visitors keep a variant for one day. The short link's public availability (lifecycle status, domain status, password protection) is shown separately from the simulated destination.
+
+A Routing Preview never records visits or analytics, unlocks a protected link, activates a domain, saves drafts, or requests destination URLs.
+
 ## Public Resolution
 
 When a visitor opens a short URL, Openlink resolves it in this order:

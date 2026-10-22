@@ -7,6 +7,7 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useShell } from '@/lib/shell';
+import { useSaveShortcut } from '@/lib/useSaveShortcut';
 
 import { studioDescription, targetLabel } from './qrLabels';
 import { PANELS } from './qrPanels';
@@ -17,7 +18,6 @@ import QrCodePreview from './Studio/QrCodePreview.vue';
 import StudioSaveBar from './Studio/StudioSaveBar.vue';
 import StylePanel from './Studio/StylePanel.vue';
 import { useQrCodeEditor } from './Studio/useQrCodeEditor';
-import { useSaveShortcut } from './Studio/useSaveShortcut';
 import type { PayloadDescriptors, QrCodeRecord, ShortLinkOption } from './types';
 
 const props = defineProps<{

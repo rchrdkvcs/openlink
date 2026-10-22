@@ -24,8 +24,16 @@ final class LinkCsvReader
         $delimiter = $this->delimiter($contents);
         $headers = null;
         $rows = [];
+        $lines = [];
+        $line = 1;
+        $position = 0;
 
         while (($cells = fgetcsv($stream, separator: $delimiter, escape: '')) !== false) {
+            $startLine = $line;
+            $next = ftell($stream);
+            $line += substr_count($contents, "\n", $position, $next - $position);
+            $position = $next;
+
             if ($cells === [null]) {
                 continue;
             }
@@ -42,6 +50,7 @@ final class LinkCsvReader
             }
 
             $rows[] = array_map(fn (?string $cell) => (string) $cell, $cells);
+            $lines[] = $startLine;
         }
 
         fclose($stream);
@@ -50,7 +59,7 @@ final class LinkCsvReader
             $this->fail('The file needs a header row and at least one link.');
         }
 
-        return new LinkCsvFile($headers, $rows);
+        return new LinkCsvFile($headers, $rows, $lines);
     }
 
     private function withoutByteOrderMark(string $contents): string

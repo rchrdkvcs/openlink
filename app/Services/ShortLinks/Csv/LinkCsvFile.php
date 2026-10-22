@@ -6,11 +6,10 @@ use Illuminate\Validation\ValidationException;
 
 final class LinkCsvFile
 {
-    public const FIRST_ROW_NUMBER = 2;
-
     public function __construct(
         public readonly array $headers,
         public readonly array $rows,
+        public readonly array $lines,
     ) {}
 
     public function mapping(?array $requested): array

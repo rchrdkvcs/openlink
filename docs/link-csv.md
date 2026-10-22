@@ -30,7 +30,7 @@ Other columns are ignored, including IDs, workspace IDs, and visit counts copied
 - Cells follow RFC 4180 quoting: cells containing the separator, double quotes, or line breaks are wrapped in double quotes, and double quotes inside them are doubled. A backslash has no special meaning.
 - Quoted cells can span several lines. Line breaks are kept in folder and tag names; URLs and slugs with line breaks are invalid.
 - Leading and trailing spaces are trimmed from every cell. An empty cell means the value is not set.
-- Rows are numbered as in a spreadsheet: the header is row 1 and the first link is row 2. Blank lines are skipped.
+- Blank lines are skipped. Rows are reported by the line of the file they start on, counting the header as line 1, so blank lines and quoted cells spanning several lines keep the numbers in step with a text editor. Spreadsheet applications show a multiline cell as one row, so their row numbers can be lower.
 
 ## Dates and time zones
 
@@ -53,7 +53,7 @@ Exports leave out visitor passwords and their hashes, Smart Routing rules, QR Co
 A Link Import is create-only and runs in two steps:
 
 1. **Preview.** The file is read and every row is validated. Nothing is created or reserved, including folders, tags, and slugs. Each row is reported as ready or invalid with its reasons.
-2. **Import.** After confirmation the file is sent again and every row is validated again, including permissions, domain availability, and slug uniqueness. Ready rows are created; the rest are skipped with a reason.
+2. **Import.** After confirmation the file is sent again and every row is validated again, including permissions, domain availability, and slug uniqueness. Ready rows are created; the rest are skipped with a reason. Each row is created on its own, so rows created before an unexpected failure stay created, and a retry skips them as already imported or as slug conflicts.
 
 Rules:
 
@@ -61,6 +61,7 @@ Rules:
 - Folders and tags are matched by name in the current workspace and created there when missing.
 - A short URL is kept only when its domain is an active domain of the current workspace, or the instance default domain. Domains of other workspaces and domains the workspace does not control are rejected. Links from a shared domain run by another service cannot keep their public short URL through an import; leave the `domain` column unmapped to give them a short URL on a domain you control.
 - A slug already used on its domain, a reserved slug, an invalid slug, or a destination URL that points to its own short URL makes the row invalid. Existing links are never changed.
+- Loop detection matches the rest of Openlink: only a destination URL that points to the row's own short URL is rejected. Longer loops, such as two links pointing at each other, are not detected, in the file or against existing links.
 - A row repeating the domain and slug of an earlier row, or repeating an earlier row without a slug, is reported as a duplicate.
 - Rows without a slug are remembered by their content. Importing the same row again, from a retry or another file, is skipped instead of creating a second link with a new generated slug.
 - Archived rows are created as Archived Links and keep their slug reserved.

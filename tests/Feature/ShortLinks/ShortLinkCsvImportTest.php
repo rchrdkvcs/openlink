@@ -2,16 +2,20 @@
 
 namespace Tests\Feature\ShortLinks;
 
+use App\Actions\ShortLinks\ShortLinkMutation;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\ShortLink;
 use App\Models\Tag;
 use App\Models\WorkspaceMember;
 use App\Services\InstanceSettings;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use PDOException;
 use Tests\Support\CreatesAnalyticsEvents;
 use Tests\Support\CreatesWorkspaces;
 use Tests\TestCase;
@@ -334,6 +338,58 @@ class ShortLinkCsvImportTest extends TestCase
 
         $this->flashed('linkImportResult', $this->actingInWorkspace($editor, $workspace), route('short-links.import'), ['file' => $this->csv(['url', 'https://example.com'])])
             ->assertOk()->assertJsonPath('summary.created', 1);
+    }
+
+    public function test_rows_are_numbered_by_the_physical_line_they_start_on(): void
+    {
+        [$workspace, , $owner] = $this->workspaceWithPreferredDomain('go.example.test');
+
+        $response = $this->flashed('linkImportPreview', $this->actingInWorkspace($owner, $workspace), route('short-links.import.preview'), [
+            'file' => UploadedFile::fake()->createWithContent('links.csv', "slug,destination_url,folder\r\n\r\none,https://example.com/1,\"Multi\r\nline\"\r\n\r\n\r\ntwo,not-a-url,\r\nthree,https://example.com/3,\n"),
+        ]);
+
+        $this->assertSame([3, 7, 8], array_column($response->json('rows'), 'row'));
+        $response->assertJsonPath('rows.1.status', 'invalid');
+    }
+
+    public function test_files_with_a_utf8_byte_order_mark_are_imported(): void
+    {
+        [$workspace, , $owner] = $this->workspaceWithPreferredDomain('go.example.test');
+
+        $this->flashed('linkImportResult', $this->actingInWorkspace($owner, $workspace), route('short-links.import'), [
+            'file' => UploadedFile::fake()->createWithContent('links.csv', "\u{FEFF}slug,destination_url,folder\nbom,https://example.com,Café\n"),
+        ])->assertJsonPath('summary.created', 1)->assertJsonPath('rows.0.row', 2);
+
+        $link = ShortLink::query()->where('slug', 'bom')->with('folder')->sole();
+        $this->assertSame('Café', $link->folder->name);
+    }
+
+    public function test_concurrent_unique_violations_skip_the_row(): void
+    {
+        [$workspace, , $owner] = $this->workspaceWithPreferredDomain('go.example.test');
+        $this->mock(ShortLinkMutation::class)->shouldReceive('create')->andThrow(
+            new UniqueConstraintViolationException('pgsql', 'insert', [], new PDOException('duplicate key')),
+        );
+
+        $this->flashed('linkImportResult', $this->actingInWorkspace($owner, $workspace), route('short-links.import'), [
+            'file' => $this->csv(['slug,destination_url', 'race,https://example.com']),
+        ])->assertJsonPath('rows.0.status', 'skipped')
+            ->assertJsonPath('rows.0.errors.0', 'Another link with this address or content was created at the same time.');
+    }
+
+    public function test_other_database_errors_are_not_reported_as_row_conflicts(): void
+    {
+        [$workspace, , $owner] = $this->workspaceWithPreferredDomain('go.example.test');
+        $this->mock(ShortLinkMutation::class)->shouldReceive('create')->andThrow(
+            new QueryException('pgsql', 'insert', [], new PDOException('value too long for type character varying(64)')),
+        );
+
+        $this->withoutExceptionHandling();
+        $this->expectException(QueryException::class);
+
+        $this->actingInWorkspace($owner, $workspace)->post(route('short-links.import'), [
+            'file' => $this->csv(['slug,destination_url', 'toolong,https://example.com']),
+        ]);
     }
 
     private function flashed(string $key, self $client, string $url, array $data): TestResponse

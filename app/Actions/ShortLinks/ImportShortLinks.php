@@ -12,7 +12,7 @@ use App\Services\ShortLinks\Csv\LinkCsvFormat;
 use App\Services\ShortLinks\ShortUrlAddress;
 use App\Services\SlugService;
 use Illuminate\Contracts\Auth\Access\Gate;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -62,10 +62,10 @@ class ImportShortLinks
         $mapping = $file->mapping($mapping);
         $plans = $this->plan($workspace, $file, $mapping, $domainId);
 
-        $rows = DB::transaction(fn () => array_map(
+        $rows = array_map(
             fn (array $plan) => $plan['errors'] === [] ? $this->create($user, $workspace, $plan) : $this->outcome($plan, 'skipped'),
             $plans,
-        ));
+        );
 
         $created = count(array_filter($rows, fn (array $row) => $row['status'] === 'created'));
 
@@ -84,7 +84,7 @@ class ImportShortLinks
 
         foreach ($file->rows as $offset => $row) {
             $plan = $this->planRow($workspace, $file->values($row, $mapping), $domainId);
-            $plan['row'] = $offset + LinkCsvFile::FIRST_ROW_NUMBER;
+            $plan['row'] = $file->lines[$offset];
 
             if ($plan['errors'] === []) {
                 $key = $plan['slug'] !== null ? $plan['domain']->id.'/'.$plan['slug'] : null;
@@ -264,7 +264,7 @@ class ImportShortLinks
             });
         } catch (ValidationException $exception) {
             return $this->outcome([...$plan, 'errors' => Arr::flatten($exception->errors())], 'skipped');
-        } catch (QueryException) {
+        } catch (UniqueConstraintViolationException) {
             return $this->outcome([...$plan, 'errors' => ['Another link with this address or content was created at the same time.']], 'skipped');
         }
 

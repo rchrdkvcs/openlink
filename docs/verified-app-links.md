@@ -1,6 +1,6 @@
 # Verified app links
 
-App Associations let a workspace's own iOS or Android app open Short URLs on one of its active Domains through iOS Universal Links and Android App Links. The design is recorded in [ADR 0015](adr/0015-publish-app-associations-on-workspace-domains.md). Platform facts and their sources are in [research/verified-app-links.md](research/verified-app-links.md).
+App Associations let a workspace's own iOS or Android app open Short URLs on one of its active Domains through iOS Universal Links and Android App Links. The design is recorded in [ADR 0026](adr/0026-publish-app-associations-on-workspace-domains.md). Platform facts and their sources are in [research/verified-app-links.md](research/verified-app-links.md).
 
 ## Use case
 

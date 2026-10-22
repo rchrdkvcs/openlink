@@ -89,7 +89,7 @@ class SvgQrRenderer
         }
 
         $box = $size * QrGrid::LOGO_RATIO;
-        $pad = $box + $bs * 1.6;
+        $pad = $box + $bs * QrGrid::LOGO_PADDING;
         $padStart = SvgShapes::n(($size - $pad) / 2);
         $boxStart = SvgShapes::n(($size - $box) / 2);
 

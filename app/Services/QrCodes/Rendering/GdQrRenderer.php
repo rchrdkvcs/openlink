@@ -97,7 +97,7 @@ class GdQrRenderer
         imagesavealpha($logo, true);
 
         $box = (int) round($size * QrGrid::LOGO_RATIO);
-        $pad = (int) round($box + $bs * 1.6);
+        $pad = (int) round($box + $bs * QrGrid::LOGO_PADDING);
         $padStart = intdiv($size - $pad, 2);
         GdShapes::roundedRect($image, $padStart, $padStart, $padStart + $pad - 1, $padStart + $pad - 1, (int) round($bs), GdShapes::color($image, $qrCode->background_color));
 

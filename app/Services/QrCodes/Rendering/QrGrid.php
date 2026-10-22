@@ -12,6 +12,8 @@ final class QrGrid
 
     public const LOGO_RATIO = 0.22;
 
+    public const LOGO_PADDING = 1.6;
+
     private function __construct(
         public readonly array $modules,
         public readonly int $count,
@@ -93,15 +95,25 @@ final class QrGrid
         return false;
     }
 
-    private static function level(QrCode $qrCode): ErrorCorrectionLevel
+    public static function errorCorrection(QrCode $qrCode): string
     {
-        $level = $qrCode->error_correction;
+        $level = (string) $qrCode->error_correction;
 
         if ($qrCode->hasLogo() && in_array($level, ['low', 'medium'], true)) {
-            $level = 'quartile';
+            return 'quartile';
         }
 
-        return match ($level) {
+        return $level;
+    }
+
+    public function logoModules(): float
+    {
+        return self::LOGO_RATIO * ($this->count + 2 * $this->margin) + self::LOGO_PADDING;
+    }
+
+    private static function level(QrCode $qrCode): ErrorCorrectionLevel
+    {
+        return match (self::errorCorrection($qrCode)) {
             'low' => ErrorCorrectionLevel::L(),
             'quartile' => ErrorCorrectionLevel::Q(),
             'high' => ErrorCorrectionLevel::H(),

@@ -154,8 +154,8 @@ preserved. Recovery runs at the next monitoring tick, every fifteen minutes.
 Running has a 120-second lease, longer than the job timeout. If a worker is killed
 without reporting failure, the dashboard treats the expired lease as a failed
 execution and offers **Check now** again. The previous health is preserved;
-an expired lease never claims a successful probe. A redelivered job waits for an active lease to expire, then queues a fresh
-generation before probing. Redelivery of a Completed or Failed generation does
+an expired lease never claims a successful probe. A redelivered job waits for an
+active lease to expire, then queues a fresh generation before probing. Redelivery of a Completed or Failed generation does
 nothing, so a lost queue acknowledgement cannot count one check twice.
 
 Jobs time out after 90 seconds and report timeout failures. The Redis and

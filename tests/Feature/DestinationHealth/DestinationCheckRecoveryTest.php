@@ -24,13 +24,15 @@ class DestinationCheckRecoveryTest extends TestCase
     use CreatesWorkspaces;
     use RefreshDatabase;
 
+    private int $httpStatus = 200;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         config(['queue.default' => 'database']);
         $this->app->instance(DnsLookup::class, (new InMemoryDnsLookup)->pointTo('example.com', '93.184.216.34'));
-        Http::fake(fn () => Http::response('', 200));
+        Http::fake(fn () => Http::response('', $this->httpStatus));
     }
 
     public function test_a_lost_queued_job_can_be_replaced_explicitly_without_expiring_a_backlog(): void
@@ -147,7 +149,7 @@ class DestinationCheckRecoveryTest extends TestCase
 
     public function test_a_completed_job_can_be_redelivered_without_probing_or_counting_a_second_failure(): void
     {
-        Http::fake(fn () => Http::response('', 404));
+        $this->httpStatus = 404;
         [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
         $link = $this->shortLink($workspace, $domain, 'launch');
         $this->actingInWorkspace($owner, $workspace)->post(route('short-links.destination-checks.store', $link));
@@ -155,6 +157,8 @@ class DestinationCheckRecoveryTest extends TestCase
         $job = CheckDestination::for($check);
         $this->artisan('queue:work', ['connection' => 'database', '--once' => true])->assertSuccessful();
         $recorded = $check->fresh()->getAttributes();
+        Http::assertSentCount(2);
+        $this->assertSame(1, $check->fresh()->consecutive_failures);
         $this->travel(1)->minute();
 
         $job->handle(app(DestinationProbe::class), app(DestinationChecks::class));

@@ -137,7 +137,12 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :disabled="!canEdit"
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
-          <InspectorRouting :rules="link.routing_rules ?? []" :schema="routingSchema" :link-id="link.id" />
+          <InspectorRouting
+            :rules="link.routing_rules ?? []"
+            :schema="routingSchema"
+            :link-id="link.id"
+            :dirty="canEdit && form.isDirty"
+          />
         </div>
       </fieldset>
     </form>

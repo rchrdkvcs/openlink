@@ -107,4 +107,29 @@ class RoutingEditorPageTest extends TestCase
         $this->assertSame('https://example.com/landing', $link->fresh()->destination_url);
         $this->assertSame(0, $link->routingRules()->count());
     }
+
+    public function test_saving_without_a_routing_rule_list_keeps_the_existing_rules(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $link = $this->shortLink($workspace, $domain, 'kept');
+        $link->routingRules()->create([
+            'name' => 'France', 'type' => RoutingRule::TYPE_CONDITIONAL, 'position' => 1, 'match_mode' => 'all',
+            'conditions_version' => 1, 'conditions' => [], 'destination_url' => 'https://example.com/fr',
+        ]);
+
+        foreach ([['destination_url' => 'https://example.com/x'], ['destination_url' => 'https://example.com/x', 'routing_rules' => null]] as $payload) {
+            $this->actingInWorkspace($owner, $workspace)
+                ->put(route('short-links.routing.update', $link), $payload)
+                ->assertSessionHasErrors('routing_rules');
+        }
+
+        $this->assertSame(['France'], $link->routingRules()->pluck('name')->all());
+        $this->assertSame('https://example.com/landing', $link->fresh()->destination_url);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->put(route('short-links.routing.update', $link), ['destination_url' => 'https://example.com/x', 'routing_rules' => []])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $link->routingRules()->count());
+    }
 }

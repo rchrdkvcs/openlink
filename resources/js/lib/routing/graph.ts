@@ -31,6 +31,7 @@ export type DestinationNodeData = {
   url: string;
   enabled: boolean;
   share: number | null;
+  hint?: string;
 };
 
 export type DefaultNodeData = { path: PathState; url: string; errors: string[] };
@@ -191,7 +192,7 @@ export function buildRoutingGraph(
       },
     });
 
-    if (rule.type === 'split_test') {
+    if (variants.length > 0) {
       variants.forEach((variant, position) => {
         const variantId = variantNodeId(rule, index, variant, position);
         nodes.push({
@@ -217,6 +218,7 @@ export function buildRoutingGraph(
       });
     } else {
       const destinationId = destinationNodeId(rule, index);
+      const splitTest = rule.type === 'split_test';
       nodes.push({
         id: destinationId,
         type: 'destination',
@@ -224,13 +226,14 @@ export function buildRoutingGraph(
         data: {
           path: state(destinationId),
           index,
-          label: 'Redirect to',
-          url: rule.destination_url,
-          enabled: rule.is_enabled,
+          label: splitTest ? 'No variants' : 'Redirect to',
+          url: splitTest ? '' : rule.destination_url,
+          enabled: rule.is_enabled && !splitTest,
           share: null,
+          ...(splitTest ? { hint: 'Add variants to split traffic' } : {}),
         },
       });
-      edge(matchEdgeId(rule, index), id, destinationId, 'match', !rule.is_enabled);
+      edge(matchEdgeId(rule, index), id, destinationId, 'match', !rule.is_enabled || splitTest);
     }
 
     y += rowHeight + LAYOUT.rowGap;

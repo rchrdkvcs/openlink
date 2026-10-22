@@ -91,7 +91,7 @@ const frame = computed(() => [
         class="truncate text-[13px]"
         :class="destination.url ? 'text-foreground' : 'text-faint'"
         :title="destination.url"
-        >{{ destination.url ? displayUrl(destination.url) : 'No destination yet' }}</span
+        >{{ destination.url ? displayUrl(destination.url) : (destination.hint ?? 'No destination yet') }}</span
       >
     </span>
     <span v-if="destination.share !== null" class="shrink-0 text-xs tabular-nums text-muted"

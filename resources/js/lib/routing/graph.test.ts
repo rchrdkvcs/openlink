@@ -120,6 +120,23 @@ describe('buildRoutingGraph', () => {
     expect(edges.map((edge) => edge.target)).toEqual(['default']);
   });
 
+  it('gives a split test without variants a placeholder match output', () => {
+    const empty = { ...split(2), variants: [] };
+    const { nodes, edges } = buildRoutingGraph([empty], '', { schema });
+
+    expect(nodes.map((node) => node.id)).toEqual(['entry', 'rule-2', 'destination-2', 'default']);
+    expect(nodes[2].data).toMatchObject({
+      label: 'No variants',
+      url: '',
+      enabled: false,
+      hint: 'Add variants to split traffic',
+    });
+    expect(edges.find((edge) => edge.target === 'destination-2')).toMatchObject({
+      kind: 'match',
+      data: { muted: true },
+    });
+  });
+
   it('keys unsaved rules and variants by their client ids', () => {
     const draft = routing().newRule('conditional', 'country');
     const { nodes } = buildRoutingGraph([draft], '', { schema });

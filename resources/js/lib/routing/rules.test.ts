@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cloneRules, firstInvalidRule, isRoutingErrorKey, ruleErrors } from './index';
+import { cloneRules, firstInvalidRule, isRoutingErrorKey, remapRuleErrors, ruleErrors } from './index';
 import { conditional, routing } from './testRouting';
 
 describe('rules', () => {
@@ -80,5 +80,28 @@ describe('errors', () => {
 
     expect(source[0].conditions[0].value).toBe('FR');
     expect(source[0].name).toBe('France');
+  });
+
+  it('moves rule errors with their rule and drops errors of removed rules', () => {
+    const [a, b, c] = [conditional('A'), conditional('B'), conditional('C')];
+    const formErrors = {
+      destination_url: 'Default',
+      routing_rules: 'List',
+      'routing_rules.0.destination_url': 'A url',
+      'routing_rules.1.variants.0.weight': 'B weight',
+      'routing_rules.2.conditions': 'C conditions',
+    };
+
+    expect(remapRuleErrors(formErrors, [a, b, c], [c, a])).toEqual({
+      destination_url: 'Default',
+      routing_rules: 'List',
+      'routing_rules.1.destination_url': 'A url',
+      'routing_rules.0.conditions': 'C conditions',
+    });
+    expect(remapRuleErrors(formErrors, [a, b, c], [a, conditional('A copy'), b, c])).toMatchObject({
+      'routing_rules.0.destination_url': 'A url',
+      'routing_rules.2.variants.0.weight': 'B weight',
+      'routing_rules.3.conditions': 'C conditions',
+    });
   });
 });

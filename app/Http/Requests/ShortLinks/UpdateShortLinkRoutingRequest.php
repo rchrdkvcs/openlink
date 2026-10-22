@@ -23,6 +23,7 @@ class UpdateShortLinkRoutingRequest extends FormRequest
         return [
             'destination_url' => ['required', 'url:http,https'],
             ...RoutingRulesValidator::inputRules(),
+            'routing_rules' => ['present', 'array', 'max:50'],
         ];
     }
 }

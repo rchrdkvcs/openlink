@@ -13,7 +13,14 @@ import SaveBar from '@/Components/ui/SaveBar.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { normalizeUrl } from '@/lib/links';
-import { cloneRules, createRouting, firstInvalidRule, type RuleListChange, ruleErrors } from '@/lib/routing';
+import {
+  cloneRules,
+  createRouting,
+  firstInvalidRule,
+  remapRuleErrors,
+  type RuleListChange,
+  ruleErrors,
+} from '@/lib/routing';
 import { buildRoutingGraph, dropIndex, nodeRuleIndex, reorderRule, ruleNodeId } from '@/lib/routing/graph';
 import type { RoutingPreview } from '@/lib/routing/preview';
 import { useShell } from '@/lib/shell';
@@ -54,16 +61,18 @@ const panels = [
   { value: 'test' as const, label: 'Test' },
 ];
 
+function loadSaved(link: ShortLink) {
+  const index = selectedRuleIndex.value;
+  form.defaults(formFrom(link));
+  form.reset();
+  form.clearErrors();
+  const rule = index === null ? undefined : form.routing_rules[index];
+  selectedId.value = rule ? ruleNodeId(rule, index!) : selectedId.value === 'default' ? 'default' : null;
+}
+
 watch(
-  () => props.link,
-  (link) => {
-    const index = selectedRuleIndex.value;
-    form.defaults(formFrom(link));
-    form.reset();
-    form.clearErrors();
-    const rule = index === null ? undefined : form.routing_rules[index];
-    if (rule) selectedId.value = ruleNodeId(rule, index!);
-  },
+  () => props.link.id,
+  () => loadSaved(props.link),
 );
 
 const graph = computed(() =>
@@ -94,9 +103,16 @@ function select(id: string | null) {
   if (id && id !== 'entry') panel.value = 'edit';
 }
 
+function replaceRules(rules: RoutingRuleDraft[]) {
+  const errors = remapRuleErrors(form.errors, form.routing_rules, rules);
+  form.routing_rules = rules;
+  form.clearErrors();
+  form.setError(errors as Record<string, string>);
+}
+
 function apply(change: RuleListChange | null) {
   if (!change) return;
-  form.routing_rules = change.rules;
+  replaceRules(change.rules);
   select(change.focus === null ? null : ruleNodeId(change.rules[change.focus], change.focus));
 }
 
@@ -123,7 +139,10 @@ function save() {
     .put(route('short-links.routing.update', props.link.id), {
       preserveScroll: true,
       preserveState: true,
-      onSuccess: () => toast({ title: 'Routing saved', tone: 'success', duration: 2000 }),
+      onSuccess: () => {
+        loadSaved(props.link);
+        toast({ title: 'Routing saved', tone: 'success', duration: 2000 });
+      },
       onError: (errors) => {
         const index = firstInvalidRule(form.routing_rules, errors);
         if (index !== null) select(ruleNodeId(form.routing_rules[index], index));
@@ -232,7 +251,8 @@ onUnmounted(() => {
             />
           </Field>
           <RoutingRulesEditor
-            v-model="form.routing_rules"
+            :model-value="form.routing_rules"
+            @update:model-value="replaceRules"
             :errors="form.errors"
             :schema="routingSchema"
             :default-destination="form.destination_url"

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { ChevronRight, Route } from '@lucide/vue';
 import { computed } from 'vue';
 
+import { confirmAction } from '@/lib/confirm';
 import { createRouting, ruleName } from '@/lib/routing';
 import type { RoutingRuleDraft, RoutingSchema } from '@/types/shortLinks';
 
@@ -10,9 +11,27 @@ const props = defineProps<{
   rules: RoutingRuleDraft[];
   schema: RoutingSchema;
   linkId: number;
+  dirty: boolean;
 }>();
 
 const PREVIEW_LIMIT = 3;
+
+const editorUrl = computed(() => route('links.routing', props.linkId));
+
+async function openEditor(event: MouseEvent) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+  event.preventDefault();
+  const leave =
+    !props.dirty ||
+    (await confirmAction({
+      title: 'Leave without saving?',
+      message: 'Your changes to this link are not saved yet.',
+      confirmLabel: 'Leave',
+      destructive: true,
+    }));
+  if (leave) router.visit(editorUrl.value);
+}
 
 const enabledRules = computed(() => props.rules.filter((rule) => rule.is_enabled).length);
 
@@ -59,11 +78,12 @@ const preview = computed(() => {
       </li>
     </ul>
     <div class="px-3.5 pb-3 ps-[1.625rem]">
-      <Link
-        :href="route('links.routing', linkId)"
+      <a
+        :href="editorUrl"
+        @click="openEditor"
         class="inline-flex h-7 items-center gap-1.5 rounded-md text-xs font-medium text-accent transition-colors hover:text-foreground"
         >Open routing editor<ChevronRight class="h-3.5 w-3.5"
-      /></Link>
+      /></a>
     </div>
   </div>
 </template>

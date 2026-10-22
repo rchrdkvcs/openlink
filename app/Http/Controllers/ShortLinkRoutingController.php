@@ -27,7 +27,7 @@ class ShortLinkRoutingController extends Controller
     public function update(UpdateShortLinkRoutingRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
     {
         $data = $request->validated();
-        $shortLinks->updateRouting($request->user(), $shortLink, $data['destination_url'], $data['routing_rules'] ?? []);
+        $shortLinks->updateRouting($request->user(), $shortLink, $data['destination_url'], $data['routing_rules']);
 
         return back();
     }

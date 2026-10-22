@@ -27,6 +27,8 @@ const emit = defineEmits<{
 
 const { fitView, updateNode } = useVueFlow('routing-graph');
 
+const REORDER_HINT_ID = 'routing-graph-reorder-hint';
+
 const EDGE_LABELS = { flow: '', match: 'Match', next: 'No match' } as const;
 
 function pathLabel(node: GraphNode): string {
@@ -52,7 +54,7 @@ function nodeLabel(node: GraphNode): string {
     case 'default':
       return `Default destination, ${node.data.url || 'not set'}${node.data.errors.length ? `, problem: ${node.data.errors[0]}` : ''}${pathLabel(node)}${selected}`;
     default:
-      return `${node.data.label}, ${node.data.url || 'no destination'}${node.data.share !== null ? `, ${node.data.share}%` : ''}${node.data.enabled ? '' : ', off'}${pathLabel(node)}${selected}`;
+      return `${node.data.label}, ${node.data.url || node.data.hint || 'no destination'}${node.data.share !== null ? `, ${node.data.share}%` : ''}${node.data.enabled ? '' : ', off'}${pathLabel(node)}${selected}`;
   }
 }
 
@@ -65,6 +67,7 @@ const flowNodes = computed<Node[]>(() =>
     draggable: props.canEdit && node.type === 'rule',
     connectable: false,
     ariaLabel: nodeLabel(node),
+    domAttributes: props.canEdit && node.type === 'rule' ? { 'aria-describedby': REORDER_HINT_ID } : undefined,
   })),
 );
 
@@ -130,6 +133,9 @@ function onDragStop(event: NodeDragEvent) {
 
 <template>
   <div class="routing-graph relative h-full min-h-[420px] w-full" @keydown.capture="onKeydown">
+    <p :id="REORDER_HINT_ID" class="sr-only">
+      Press Enter to edit. Press Alt with the Up or Down arrow key to change the priority.
+    </p>
     <VueFlow
       id="routing-graph"
       :nodes="flowNodes"
@@ -152,13 +158,17 @@ function onDragStop(event: NodeDragEvent) {
       <template #node-routing="nodeProps">
         <RoutingGraphNode v-bind="nodeProps" />
       </template>
-      <Background :gap="20" :size="1" pattern-color="hsl(var(--border-strong))" />
+      <Background :gap="20" :size="1" />
       <Controls :show-interactive="false" position="bottom-left" />
     </VueFlow>
   </div>
 </template>
 
 <style>
+.routing-graph .vue-flow__background pattern circle {
+  fill: hsl(var(--border-strong));
+}
+
 .routing-graph .vue-flow__node {
   border-radius: 0.75rem;
 }

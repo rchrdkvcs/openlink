@@ -21,3 +21,22 @@ export function firstInvalidRule(rules: RoutingRuleDraft[], errors: FormErrors |
 
   return index >= 0 ? index : null;
 }
+
+const RULE_ERROR_KEY = /^routing_rules\.(\d+)(\..*)?$/;
+
+export function remapRuleErrors(errors: FormErrors, before: RoutingRuleDraft[], after: RoutingRuleDraft[]): FormErrors {
+  const remapped: FormErrors = {};
+
+  for (const [key, message] of Object.entries(errors)) {
+    const match = key.match(RULE_ERROR_KEY);
+    if (!match) {
+      remapped[key] = message;
+      continue;
+    }
+
+    const target = after.indexOf(before[Number(match[1])]);
+    if (target >= 0) remapped[`${ROUTING_ERROR_KEY}.${target}${match[2] ?? ''}`] = message;
+  }
+
+  return remapped;
+}

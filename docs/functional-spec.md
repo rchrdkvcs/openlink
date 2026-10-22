@@ -2,7 +2,7 @@
 
 ## Product Shape
 
-Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, and settings. Every short link belongs to exactly one workspace.
+Openlink is a self-hosted multi-workspace application. Each workspace contains its own members, domains, folders, short links, QR codes, link pages, and settings. Every short link belongs to exactly one workspace.
 
 The product is a focused operational tool: fast lists, clear status indicators, predictable forms, and enough analytics to understand link and QR code performance without visitor profiling.
 
@@ -59,10 +59,15 @@ Domain verification uses a DNS TXT record. The UI should show the required TXT r
 
 Domain states:
 
-- Pending verification
-- Verified
-- Failed verification
-- Disabled
+- Pending verification (`pending_verification`)
+- Failed verification (`failed_verification`)
+- Ownership verified, waiting for traffic routing (`ownership_verified`)
+- Active (`active`)
+- Disabled (`disabled`)
+
+A successful TXT check proves ownership. The domain becomes Active when its DNS
+points to the instance or real traffic reaches Openlink on that hostname.
+Disabled domains stay disabled until explicitly changed.
 
 The instance has a default domain so new installations can create links before a workspace-owned domain is configured. A workspace can choose a preferred domain from its usable domains.
 
@@ -96,8 +101,6 @@ The link editor includes a UTM builder for the default destination URL (see ADR 
 
 Owners and admins manage UTM Templates in workspace settings: they can create, rename, update, and delete them. Templates belong to one workspace and hold parameter values only. Any member who can edit links can apply a template from the link editor: the editor lists the changes the template makes, applies them only when confirmed, and leaves every field editable before saving. Applying a template sets only the parameters the template defines. The resulting destination URL is saved like any other destination; links do not remember which template was applied, so updating or deleting a template does not change existing links.
 
-Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0015.
-
 Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0017.
 
 Disabled links do not resolve, regardless of lifecycle rules. Archived links are hidden from primary dashboard views, preserved for history and analytics, do not resolve, and keep their slug reserved.
@@ -117,6 +120,12 @@ Owners, Admins, and Editors can select short links on the current page of the Li
 The Links page exports the links in the current view as a versioned Link CSV, and imports a Link CSV after a preview and an explicit confirmation. Imports are create-only: they never change or overwrite existing links, keep short URLs only on domains the workspace controls, and never reset visit counts or analytics. Visitor passwords, Smart Routing rules, QR Codes, and analytics are not exported or imported. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
 ### Routing editor
+
+Smart Routing evaluates enabled rules in order after availability, visit-limit,
+and password checks. The first matching rule chooses its destination or a
+weighted split-test variant; without a match, the default destination is used.
+Variant assignment is stable for the same visitor within a day. Linked QR Codes
+use the Short Link's routing and retain their own scan attribution.
 
 Smart Routing is edited on a dedicated page for each short link, opened from the link inspector with "Open routing editor". The inspector keeps a compact summary of the first rules.
 
@@ -209,6 +218,12 @@ QR code features:
 
 Each QR code has a dedicated studio page with a live preview of unsaved settings, copyable entry URL, and PNG/SVG downloads at a chosen size.
 
+Owners and Admins can save a persisted QR Code design as a named workspace QR
+Code Template, then rename, replace, or delete it. Members who can edit QR Codes
+can preview and apply templates in the studio. Applying copies appearance and
+logo only; the payload, linked Short Link, and tracking token are unchanged.
+Later template changes do not alter existing QR Codes. See ADR 0019.
+
 Before exporting, any workspace member can run a Readability Check from the studio. It decodes the PNG export of the current draft at the chosen export size (rendered at up to 1024 px for decoding) and reports, per format, whether the code decodes to the expected content, decodes to other content, cannot be decoded, uses an unsupported format, or cannot be checked. The SVG verdict is derived from the PNG decode because both exports draw the same module matrix and design. The check flags weak or inverted contrast, transparent backgrounds, missing or narrow quiet zones, small modules, estimated logo coverage that error correction may not recover, and, when an optional print width is entered, modules smaller than 0.4 mm on paper. It summarises the encoded content, linked Short URL, output and suggested minimum print dimensions, domain availability, and lifecycle restrictions. The draft is sent in a POST body so native payloads never appear in URLs. Results are discarded as out of date as soon as the payload, design, logo, export size, or print width changes. Members who can edit may apply readable settings to the draft when that changes something; nothing is saved until they save. Unsaved logo or target changes must be saved before they can be checked. The check makes no visits or scans, its warnings are guidance, and it always recommends a physical print test. See ADR 0020.
 
 ## Link Pages
@@ -249,6 +264,15 @@ Members can save the current filters as a named Saved View that only they see. R
 
 Owners and Admins can schedule a weekly Workspace Summary email from Settings → Weekly summary, choosing a timezone and current members as recipients. Each Monday at 08:00 in that timezone, recipients receive the previous Monday–Sunday totals for visits, QR scans, and visitors, the change against the week before, and the top five links, plus a link to the full report that requires signing in. Empty weeks and weeks whose comparison falls outside the retention window are labelled as such. The settings page shows the last successful delivery, the last sanitized failure, deliveries still waiting for the queue, and the next send time. Turning the summary off, deselecting a recipient, or removing a member cancels deliveries that have not been sent yet.
 
+## Webhooks
+
+Workspace Owners and Admins manage HTTPS webhook endpoints in Settings →
+Webhooks. Short link changes from the dashboard, API, imports, bulk actions, and
+restores use the same event delivery path. Events are signed, delivered after
+commit through the queue, and retried on failure. The settings screen provides
+delivery history, retries, and signing-secret rotation. See
+[webhooks.md](webhooks.md) for the exact event list and receiver contract.
+
 ## Instance Admin Panel
 
 The instance admin panel manages product settings for the whole installation. It does not manage infrastructure secrets or boot-time server configuration.
@@ -266,3 +290,12 @@ Instance settings include:
 - Public unavailable page basics
 
 Secrets, database credentials, Redis credentials, mail credentials, storage credentials, and boot-time Laravel configuration remain outside the panel.
+
+Instance administrators can inspect infrastructure from **Settings →
+Diagnostics**, recheck dependencies, and send a test email to their own address.
+Diagnostics do not restart services or change deployment configuration.
+
+Settings also shows the installed version and latest stable release. **Update
+now** requires the optional Docker Compose updater and the `latest` image tag.
+Pinned releases, prereleases, and deployments on other platforms are updated
+through their deployment process. See [deployment.md](deployment.md).

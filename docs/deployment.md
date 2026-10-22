@@ -1,27 +1,55 @@
 # Deployment
 
-Openlink ships a production `Dockerfile`. The image runs Laravel Octane with
-FrankenPHP on port `8080`. PostgreSQL and Redis are required.
-PHP 8.5.12 or newer is required. The image build checks the PHP version and
-refuses older FrankenPHP base images. Build with `docker build --pull` to fetch
-the latest base images; CI and release builds do this automatically.
-Stable releases publish versioned and `latest` images to
-`ghcr.io/rchrdkvcs/openlink`. Prereleases publish an image tagged with the exact
-release tag, such as `v1.2.0-beta.1`, without updating `latest`. Beta prereleases
-also update the floating `beta` tag. The image embeds
-its release version.
+Openlink runs as a container with PostgreSQL and Redis. The image serves HTTP
+on port `8080` through Laravel Octane and FrankenPHP.
 
-The example in [`docker/`](../docker/) is the quickest way to evaluate the full
-stack. For production, use a container platform or an orchestrator that can:
+For a first installation, use the [Docker Compose guide](../docker/README.md).
+This guide explains image selection and the requirements for production or
+another container platform.
 
-- provide PostgreSQL and Redis;
-- inject environment variables and secrets;
-- persist Laravel's `storage` directory;
-- run database migrations during deployment;
-- run at least one queue worker, which delivers webhooks;
-- run the Laravel scheduler, which also prunes webhook delivery history;
-- terminate TLS and forward requests to port `8080`;
-- restart unhealthy containers using the `/up` health endpoint.
+## Choose an image
+
+The image is published to `ghcr.io/rchrdkvcs/openlink` for `linux/amd64` and
+`linux/arm64`. All application services must use the same version.
+
+- **Stable:** `ghcr.io/rchrdkvcs/openlink:latest` follows stable releases.
+- **Beta:** `ghcr.io/rchrdkvcs/openlink:beta` follows beta prerelease publications.
+- **Pinned:** an exact release tag, for example `ghcr.io/rchrdkvcs/openlink:v1.2.0-beta.1`, stays on that release. Use a tag that exists in the registry; this version is an example.
+
+Exact tags preserve the release tag, including its `v` prefix when present.
+Alpha and release-candidate prereleases have exact tags only. Prereleases never
+update `latest`, and stable releases never update `beta`. For a deployment
+pinned to specific image content, use the published `sha256` digest.
+
+The GitHub package page can feature a prerelease as **Latest**. That badge is
+separate from Docker's `latest` tag: select `:latest` explicitly for stable
+releases or `:beta` for the beta channel.
+
+A public package needs no registry login. For a private package, authenticate
+the deployment host to `ghcr.io` with credentials that can read the package.
+See [Release image publication](#release-image-publication) for how images are
+built and made available.
+
+## Production requirements
+
+Your container platform must provide:
+
+- PostgreSQL and Redis, reachable by every application process.
+- Environment variables and secrets, including a persistent `APP_KEY`.
+- Persistent storage mounted at `/app/storage`, shared by the app and background processes.
+- A one-shot database migration before the new app and workers start.
+- A queue worker and scheduler that restart when they exit.
+- HTTPS through a reverse proxy forwarding to port `8080`.
+- Monitoring, database and file backups, and a tested restore process.
+
+The image runs as `www-data`. Its storage and `bootstrap/cache` directories must
+be writable. Uploaded QR logos, template logos, Link Page logos, and social
+preview images live in storage; preserve them alongside PostgreSQL and the
+application key. Changing the key can make encrypted integration secrets
+unreadable.
+
+The image's `/up` health endpoint is a lightweight liveness check. Configure
+container restarts and use Diagnostics and service logs to investigate failures.
 
 ## Required configuration
 
@@ -30,8 +58,17 @@ Start from [`.env.example`](../.env.example). At minimum, set a unique
 connection details, and mail credentials.
 
 `APP_HOST` is the hostname that serves the dashboard and authentication routes.
+Set `APP_URL` to the complete public HTTPS URL and `APP_HOST` to its hostname
+only, without a scheme, port, or path. Link Pages are served at `/p/{path}` on
+this application host. Workspace domains serve short links rather than the
+application dashboard.
+
 Every domain configured in Openlink must also reach the application through the
-reverse proxy so it can resolve short links. Forward
+reverse proxy so it can resolve short links. Provision DNS and TLS for each
+hostname; a TXT ownership record alone does not route traffic or issue a
+certificate. Preserve the request host and forwarded HTTPS headers. Configure
+`TRUSTED_PROXIES` for your proxy infrastructure and `OCTANE_HTTPS=true` when
+Octane generates URLs for an HTTPS deployment. Forward
 `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` to
 Openlink over HTTPS without redirects so App Associations work; see
 [verified-app-links.md](verified-app-links.md).
@@ -44,6 +81,36 @@ HTTP proxy environment variables.
 Keep `APP_DEBUG=false` in production. Do not commit `.env` files or place
 infrastructure credentials in instance settings.
 
+The Compose example defines its environment explicitly in
+`x-app-environment`. Adding a variable to `docker/.env` alone does not pass it
+to Laravel: add the matching entry there so app, worker, scheduler, and migration
+services receive the same configuration. In particular, the example fixes
+`MAIL_MAILER` to `log`; replace it with your mail transport and forward the
+matching mail settings before expecting outgoing emails.
+
+## Background processes
+
+Keep these processes running with the same image and configuration as the app:
+
+```bash
+php artisan queue:work --sleep=3 --tries=3 --timeout=90
+php artisan schedule:work
+```
+
+These are separate long-running processes. Alternatively, run
+`php artisan schedule:run` every minute through your platform's scheduler.
+To invoke Artisan in the image, override its default web-server entrypoint;
+the Compose file already does this for its background services.
+
+The queue handles webhook deliveries, Destination Checks, weekly summary
+emails, and analytics when `OPENLINK_ANALYTICS_VIA_QUEUE=true`. Keep
+`QUEUE_CONNECTION=redis` for asynchronous execution.
+
+The scheduler verifies pending domains hourly, checks due destinations and
+workspace summaries every fifteen minutes, records its heartbeat, and prunes
+analytics and webhook history daily. Destination Monitoring must also be enabled
+by the instance administrator; starting the scheduler alone does not enable it.
+
 ## Diagnostics
 
 Instance administrators can open **Settings → Diagnostics** to see whether
@@ -52,44 +119,22 @@ and analytics recording are working. The screen is read-only: it never restarts
 services, runs commands, or changes deployment configuration. It complements the
 public `/up` endpoint, which stays a lightweight liveness check.
 
-Each check reports one state:
+Checks report Healthy, Stale, Missing, Unavailable, Disabled, or Not configured.
+The queue worker and scheduler record independent heartbeats in PostgreSQL.
+Their default cadence is one minute, controlled by `OPENLINK_HEARTBEAT_MINUTES`
+(up to 30); a heartbeat is stale after three cadences. Keep job timeouts below
+that threshold to avoid reporting a busy worker as stale.
 
-- **Healthy**: the service answered or reported a fresh heartbeat.
-- **Stale**: the service reported a heartbeat, but it is too old.
-- **Missing**: the service never reported a heartbeat, or the check has not
-  run yet.
-- **Unavailable**: Openlink could not reach the service.
-- **Disabled**: this installation does not use or require the service.
-- **Not configured**: the service is needed but its configuration is unusable.
+The current worker diagnostic bases its required/disabled state only on
+`OPENLINK_ANALYTICS_VIA_QUEUE`. It can report a missing worker as disabled even
+when webhooks, Destination Checks, or summary emails need one. Keep the worker
+running for those features and inspect their delivery states and logs.
 
-The scheduler and queue worker prove they are running by recording heartbeats
-in PostgreSQL. The scheduler runs `openlink:heartbeat` and each queue worker
-records a heartbeat from its polling loop and around each job, both every
-`OPENLINK_HEARTBEAT_MINUTES` minutes (default `1`, at most `30`). A heartbeat is
-fresh until it is older than three cadences (three minutes by default) and stale
-afterwards. A stopped worker is therefore detected even while Redis is healthy,
-and a stopped scheduler even while a worker is healthy. A single job that runs
-longer than the stale threshold makes the worker look stale until it finishes;
-keep worker job timeouts below three cadences. When `QUEUE_CONNECTION=sync`, no
-worker is used and the worker check is disabled.
-
-Analytics are recorded after the response by default and need no worker. With
-`OPENLINK_ANALYTICS_VIA_QUEUE=true`, visits and scans wait in the queue until a
-worker records them; this is currently the only feature that requires a worker.
-When no feature requires a worker, a missing or stale worker is reported as
-disabled rather than as a problem.
-
-PostgreSQL, Redis, and storage are probed only when an administrator selects
-**Recheck**, never when the page is opened. The PostgreSQL and Redis probes use
-dedicated connections with two-second connect and query timeouts; PostgreSQL may
-retry a lost connection once. Only a local default storage disk is probed; a
-remote disk is reported as disabled. Rechecks are limited to
-six per minute and test emails to three every ten minutes per administrator.
-The mail check only reports whether a transport is configured; SMTP needs
-`MAIL_HOST` or `MAIL_URL`. A test email is
-sent to the administrator's own address with a ten-second transport timeout; a successful send means the mail server
-accepted it, not that it reached the inbox. Failure details are written to the
-application log and are never shown on the screen.
+PostgreSQL, Redis, and local storage are probed only when an administrator
+selects **Recheck**. A mail check confirms configuration; sending a test email
+checks that the mail transport accepts it, not inbox delivery. Test emails go
+to the administrator's own address. Detailed failures go to the application
+log rather than the screen.
 
 ## Weekly Workspace Summaries
 
@@ -106,36 +151,72 @@ message on Settings → Weekly summary, and the full exception goes to the
 application log. A summary that was missed for more than 24 hours after its
 Monday 08:00 send time is skipped rather than sent late.
 
-## Release images
+## Updates and recovery
 
-Publishing the latest stable GitHub Release or a prerelease triggers
-`.github/workflows/deploy.yml`, which publishes the multi-architecture GHCR
-image. The package must be made public in GitHub package settings for anonymous
-self-hosted pulls. Deployments are managed separately from image publication.
+Before an update, read the release notes, back up PostgreSQL and `/app/storage`,
+and retain the current image reference, deployment files, and `APP_KEY` through
+your normal secret backup process. Pull the selected image for every application
+service, run migrations, and recreate the app, workers, and scheduler. Long-lived
+processes must restart to load the new code and configuration.
 
-To publish a prerelease package, create a GitHub Release with a semantic version
-tag such as `v1.2.0-alpha.1`, `v1.2.0-beta.1`, or `v1.2.0-rc.1`, select
-**Set as a pre-release**, and publish it. The same workflow publishes the GHCR
-image for `linux/amd64` and `linux/arm64` without updating `latest`.
-For example, pull `ghcr.io/rchrdkvcs/openlink:v1.2.0-beta.1`, or set
-`OPENLINK_IMAGE_TAG=v1.2.0-beta.1` in `docker/.env` when using the Compose stack.
-The image tag preserves the release tag, including its optional `v` prefix.
+The [Docker guide](../docker/README.md#updates) provides manual commands and the
+optional updater. On another platform, run this once as a deployment job before
+starting the new application processes:
 
-Beta prereleases (`v1.2.0-beta`, `v1.2.0-beta.1`, or the same tags without `v`)
-also publish `ghcr.io/rchrdkvcs/openlink:beta`. Use `OPENLINK_IMAGE_TAG=beta` to
-follow beta publications without changing the Compose configuration each time.
-Alpha and release-candidate prereleases keep only their exact release tag and
-do not update `beta`. Stable releases update `latest` and do not update `beta`.
+```bash
+docker run --rm --env-file /path/to/production.env --network openlink \
+  --entrypoint php ghcr.io/rchrdkvcs/openlink:latest \
+  artisan migrate --force --no-interaction
+```
 
-The GitHub package page can feature the most recently published image, including
-a prerelease, as **Latest** and suggest its versioned pull command. That badge
-is separate from the Docker `latest` tag. Pull
-`ghcr.io/rchrdkvcs/openlink:latest` explicitly for the stable channel, or
-`ghcr.io/rchrdkvcs/openlink:beta` for the beta channel.
+Replace the environment file, network, and image reference with your deployment
+values; attach its storage volume too if your deployment requires it. The job
+must reach PostgreSQL and Redis using the same configuration as the app.
 
-The instance administrator sees the installed and latest stable versions in
-Settings. The update button is available only with the optional Compose updater
-and a `latest` image tag; deployments on other platforms should update through
-their own deployment process. See [`docker/README.md`](../docker/README.md).
+After deployment, check `/up`, **Settings → Diagnostics**, the worker and
+scheduler logs, and an existing Short URL. For enabled integrations, check a
+webhook delivery or Destination Check and the weekly summary delivery state.
 
-Drafts and stable releases that are not marked as latest do not publish images.
+The **Update now** button requires the optional Compose updater and the `latest`
+image tag. The `beta` channel and exact tags are updated manually or through
+your deployment platform. Image publication never updates a running instance.
+
+An older image may not be compatible with a newly migrated database. Recovery
+may require restoring the matching database and storage backup as well as the
+previous image and key; do not assume changing the image tag reverses migrations.
+
+## Release image publication
+
+Publishing a GitHub Release triggers
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml). It builds the
+release tag on native AMD64 and ARM64 runners, pushes image digests, and combines
+them into a multi-architecture manifest. The release tag is embedded as
+`OPENLINK_VERSION` and in the image metadata.
+
+- A stable release publishes its exact tag and `latest` only when it is GitHub's latest stable release.
+- Every published prerelease gets its exact tag. Beta version tags such as `v1.2.0-beta`, `v1.2.0-beta.1`, and their equivalents without `v` also update `beta`.
+- Alpha and release-candidate prereleases do not update `beta` or `latest`.
+- Drafts, ordinary pushes, and stable releases not selected as latest do not publish images through this workflow.
+
+For a prerelease, publish a GitHub Release with its version tag and **Set as a
+pre-release** selected. Wait for the workflow to finish before pulling it. The
+workflow uses `GITHUB_TOKEN` with package-write permission; it does not deploy
+to Coolify or any other host.
+
+The registry path comes from `github.repository`. A fork therefore publishes
+to its own GHCR namespace; change the image reference in your Compose file if
+you want to use that package. Make the package public in GitHub package settings
+for anonymous pulls.
+
+## Build from source
+
+The production image includes PHP and frontend assets; a Docker host does not
+need Composer or Node.js. The build requires PHP 8.5.12 or newer in its
+FrankenPHP base and refuses older versions. To build locally from a checkout:
+
+```bash
+docker build --pull --build-arg OPENLINK_VERSION=dev -t openlink:local .
+```
+
+`--pull` refreshes the base images; CI and release builds also enable it. Point
+all application services at your built image when using a local build.

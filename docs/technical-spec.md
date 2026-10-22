@@ -14,8 +14,14 @@ The configured application host is the only hostname that serves the authenticat
 - Inertia/Vue frontend for authenticated product screens.
 - PostgreSQL for durable application data.
 - Redis for cache, rate limiting, and Laravel queues.
-- Queue workers for webhook deliveries, analytics writes, DNS verification tasks, and background maintenance.
-- Scheduler for repeated DNS checks, analytics retention, webhook delivery history retention, and cleanup.
+- Queue workers for webhook deliveries, Destination Checks, weekly summary emails, and optional queued analytics writes.
+- Scheduler for domain verification, diagnostics heartbeats, Destination Monitoring, weekly summaries, analytics retention, and webhook delivery history retention.
+- One-shot database migration process during deployment.
+
+All application processes use the same image, application key, database, Redis,
+and persistent storage. The web process uses port `8080`; worker, scheduler,
+and migration processes override the image entrypoint to run Artisan. See
+[Deployment](deployment.md) for GHCR tags and process commands.
 
 ## Application Areas
 
@@ -30,6 +36,11 @@ The codebase stays modular without over-engineering. Its main Laravel areas are:
 - QrCodes
 - Resolution
 - Analytics
+- Conversions
+- LinkPages
+- AppAssociations
+- DestinationHealth
+- Diagnostics
 - InstanceSettings
 - Webhooks
 
@@ -49,11 +60,23 @@ Primary records:
 - short_link_tags
 - short_link_revisions
 - domains
+- routing_rules
+- routing_variants
+- utm_templates
 - qr_codes
+- qr_code_templates
+- link_pages
+- link_page_items
+- app_associations
+- destination_checks
+- diagnostic_observations
 - analytics_events
+- analytics_views
+- analytics_summary_schedules
+- analytics_summary_recipients
+- analytics_summary_deliveries
 - webhook_endpoints
 - webhook_deliveries
-
 - conversion_attributions
 - instance_settings
 
@@ -78,6 +101,19 @@ Public resolution should be a lean path. The resolver should:
 
 Cache entries should be invalidated when domains, short links, lifecycle fields, passwords, fallback URLs, or QR code routing metadata change.
 
+Smart Routing evaluates ordered rules and weighted variants after availability
+and password checks. The routing editor's preview uses the same routing logic
+with synthetic inputs and makes no requests to destinations or analytics writes.
+Link revisions record mutations from the dashboard, API, imports, and bulk
+actions. Restores append a revision rather than rewriting history; API clients
+can use `If-Match` to prevent concurrent changes from being overwritten.
+
+Supported social preview crawlers use a separate response path that never
+counts visits or scans. Link Pages are public only at `/p/{path}` on the
+application host; entries open normal Short URLs. App Association JSON is
+published only on eligible workspace Domains. See [Functional reference](functional-spec.md)
+and [Security and privacy](security-and-privacy.md) for availability rules.
+
 ## Analytics Pipeline
 
 The public request captures every analytics dimension synchronously (headers are gone once the response is sent) and writes one row to analytics_events after the response is flushed, so recording works on every deployment without a queue worker. Instances that run a worker can set OPENLINK_ANALYTICS_VIA_QUEUE=true to move the write onto the queue instead.
@@ -89,6 +125,11 @@ Each event stores the metric (visit or scan), the resolution outcome, referrer h
 The system should track resolution outcomes even when no visit is counted. Visit limits are consumed only for successful resolutions to the destination URL.
 
 Raw visitor data should not be retained long term. If temporary request metadata is needed for abuse prevention or deduplication, store it briefly and avoid exposing it as visitor profiles.
+
+Saved Views persist each member's report filters. Weekly summary schedules,
+recipients, and deliveries are workspace-owned; delivery uniqueness is enforced
+by schedule, recipient, and local week. The scheduler queues due summaries,
+and a worker sends them through the configured mail transport. See ADR 0022.
 
 ## Domain Verification
 
@@ -127,12 +168,13 @@ The authenticated app should prioritize dense, clear workflows:
 - Workspace switcher
 - Links list with filters, search, status, folder, tags, domain, and analytics summary
 - Link create/edit form
-- Link detail with analytics and QR codes
-- QR code create/edit/export flow
+- Link inspector with analytics, history, Destination Health, and a dedicated visual routing editor
+- QR code studio with design templates, Readability Checks, and PNG/SVG export
+- Link Page editor with live preview and publication controls
 - Domain management and verification screen
 - Workspace members and invite links
-- Workspace settings
-- Instance admin panel
+- Workspace settings for UTM Templates, webhooks, and weekly summaries
+- Instance admin panel with Diagnostics and release information
 
 Avoid a marketing-style landing page as the primary product surface. The first screen after login should be the working dashboard.
 

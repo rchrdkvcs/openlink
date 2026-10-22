@@ -29,7 +29,7 @@ class ManageLinkPagesTest extends TestCase
                 ->has('linkPages', 1)
                 ->where('linkPages.0.name', 'Spring')
                 ->where('linkPages.0.is_published', false)
-                ->where('linkPages.0.public_url', 'http://localhost/p/spring'));
+                ->where('linkPages.0.public_url', url('/p/spring')));
     }
 
     public function test_editor_creates_a_draft_link_page(): void

@@ -20,6 +20,7 @@ export type ShortLinkForm = {
   preview_description: string;
   preview_image: File | null;
   remove_preview_image: boolean;
+  conversion_goal: string;
 };
 
 export type LinkPreviewCard = {
@@ -31,7 +32,7 @@ export type LinkPreviewCard = {
 
 export type QuickLinkForm = Pick<ShortLinkForm, 'destination_url' | 'domain_id' | 'folder_id' | 'slug' | 'is_enabled'>;
 
-export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback' | 'preview';
+export type InspectorSection = 'utm' | 'schedule' | 'limit' | 'password' | 'fallback' | 'preview' | 'conversion';
 
 export type PayloadOptions = { hasPassword?: boolean };
 
@@ -45,6 +46,7 @@ const SECTION_BY_FIELD: Record<string, InspectorSection> = {
   preview_description: 'preview',
   preview_image: 'preview',
   remove_preview_image: 'preview',
+  conversion_goal: 'conversion',
 };
 
 export function folderField(folderId: number | null | undefined): string {
@@ -84,6 +86,7 @@ export function toForm(link: ShortLink): ShortLinkForm {
     preview_description: link.preview?.description ?? '',
     preview_image: null,
     remove_preview_image: false,
+    conversion_goal: link.conversion_goal ?? '',
   };
 }
 
@@ -133,7 +136,15 @@ export function toPayload<
 }
 
 export function closedSections(): Record<InspectorSection, boolean> {
-  return { utm: false, schedule: false, limit: false, password: false, fallback: false, preview: false };
+  return {
+    utm: false,
+    schedule: false,
+    limit: false,
+    password: false,
+    fallback: false,
+    preview: false,
+    conversion: false,
+  };
 }
 
 export function sectionFor(errorKey: string): InspectorSection | null {

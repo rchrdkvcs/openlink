@@ -6,6 +6,7 @@ use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Analytics\Report\AnalyticsEventSlice;
 use App\Services\Analytics\Report\BreakdownSection;
+use App\Services\Analytics\Report\ConversionSection;
 use App\Services\Analytics\Report\EntityRankingSection;
 use App\Services\Analytics\Report\ExportRowsSection;
 use App\Services\Analytics\Report\SummarySection;
@@ -33,6 +34,7 @@ class BuildAnalyticsReport
         private readonly BreakdownSection $breakdowns,
         private readonly EntityRankingSection $rankings,
         private readonly ExportRowsSection $exports,
+        private readonly ConversionSection $conversions,
     ) {}
 
     public function report(Workspace $workspace, AnalyticsFilters $filters): array
@@ -53,6 +55,7 @@ class BuildAnalyticsReport
             'routing' => $this->rankings->routingPerformance($slice),
             'top_links' => $this->rankings->topLinks($slice),
             'top_qr_codes' => $this->rankings->topQrCodes($slice),
+            'conversions' => $this->conversions->build($workspace, $filters),
         ];
     }
 

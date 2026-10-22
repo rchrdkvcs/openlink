@@ -53,6 +53,8 @@ Primary records:
 - analytics_events
 - webhook_endpoints
 - webhook_deliveries
+
+- conversion_attributions
 - instance_settings
 
 ## Short Link Constraints
@@ -79,6 +81,8 @@ Cache entries should be invalidated when domains, short links, lifecycle fields,
 ## Analytics Pipeline
 
 The public request captures every analytics dimension synchronously (headers are gone once the response is sent) and writes one row to analytics_events after the response is flushed, so recording works on every deployment without a queue worker. Instances that run a worker can set OPENLINK_ANALYTICS_VIA_QUEUE=true to move the write onto the queue instead.
+
+Conversion attribution is the one synchronous write: for short links with a conversion goal, the attribution row is inserted before the redirect so the destination can redeem the token immediately. A failed insert is reported and the visitor is redirected without a token. See ADR 0024.
 
 Each event stores the metric (visit or scan), the resolution outcome, referrer host and channel, approximate country, language, device type, browser, operating system, UTM parameters, a bot flag, and a privacy-preserving visitor hash whose salt rotates daily. Reports aggregate these rows on demand with covering indexes; unique visitors are counted as distinct daily hashes.
 

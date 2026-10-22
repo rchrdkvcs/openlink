@@ -279,3 +279,23 @@ _Avoid_: Digest, newsletter, scheduled report
 **Summary Recipient**:
 A current member selected to receive the Workspace Summary. A member stops being a summary recipient when they leave the workspace or are deselected, and any summary not yet delivered to them is cancelled.
 _Avoid_: Subscriber, external recipient
+
+**Conversion Goal**:
+The single named action, such as a registration, that a short link opts into measuring. A short link without a conversion goal does not track conversions.
+_Avoid_: Goal event, conversion event, KPI
+
+**Attribution Token**:
+An opaque, single-use, short-lived value given to the destination on a successful visit or scan of a short link with a conversion goal, so the destination can later report a conversion for that exact visit or scan.
+_Avoid_: Click ID, tracking ID, visitor ID
+
+**Attribution Window**:
+The time after a visit or scan during which its attribution token can still report a conversion.
+_Avoid_: Lookback window, cookie window
+
+**Attributed Visit**:
+A successful visit or scan that received an attribution token. Attributed visits are the denominator of a conversion rate.
+_Avoid_: Tracked click, eligible click
+
+**Conversion**:
+A conversion goal reached by a visitor, reported by the destination with an attribution token inside its attribution window. A conversion counts once per attributed visit and never identifies the visitor.
+_Avoid_: Lead, sale, goal completion

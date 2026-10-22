@@ -227,6 +227,8 @@ Openlink tracks:
 
 Resolution outcomes include success, password failed, expired, disabled, scheduled, not found, domain unavailable, and visit limit reached.
 
+Conversion tracking is opt-in per short link. Setting a conversion goal, such as "Registration", in the link inspector gives each successful visit or scan an attribution token the destination's server can redeem within 24 hours. The analytics page then shows attributed visits, conversions, conversion rates, and tokens still inside their attribution window, per link and per routing destination. Rows with fewer than 30 attributed visits are marked as insufficient evidence, and Openlink never declares a winning variant.
+
 Analytics events are retained for 12 months by default; retention is configurable in the instance admin panel. The analytics page filters by date range, link, domain, folder, tag, and metric, compares each figure to the previous period, and exports the filtered events as CSV.
 
 Members can save the current filters as a named Saved View that only they see. Rolling ranges are stored as relative periods and advance each time the view is opened; custom dates stay fixed. Saving rejects filter targets that do not belong to the workspace, and a view whose link, QR code, domain, folder, tag, routing rule, or variant was later deleted or moved shows an explicit unavailable notice with no data rather than an unfiltered report.

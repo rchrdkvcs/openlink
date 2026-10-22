@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import { CalendarClock, Gauge, LifeBuoy, Lock } from '@lucide/vue';
+import { CalendarClock, Gauge, LifeBuoy, Lock, Target } from '@lucide/vue';
 import { computed } from 'vue';
 
 import DateTimeField from '@/Components/ui/DateTimeField.vue';
@@ -79,6 +79,22 @@ const scheduleSummary = computed(() => {
     <Input v-model="form.fallback_url" placeholder="https://example.com/expired" />
     <p class="text-xs" :class="form.errors.fallback_url ? 'text-danger' : 'text-faint'">
       {{ form.errors.fallback_url ?? 'Where visitors go when the link is expired, scheduled or disabled.' }}
+    </p>
+  </InspectorRow>
+
+  <InspectorRow
+    v-model:open="sections.conversion"
+    :icon="Target"
+    label="Conversion goal"
+    :summary="form.conversion_goal || 'Off'"
+    :active="Boolean(form.conversion_goal)"
+  >
+    <Input v-model="form.conversion_goal" maxlength="80" placeholder="Registration" aria-label="Conversion goal" />
+    <p class="text-xs" :class="form.errors.conversion_goal ? 'text-danger' : 'text-faint'">
+      {{
+        form.errors.conversion_goal ??
+        'Visits get a single-use openlink_attribution token. Your site reports a conversion with it from its server within 24 hours. Clear to stop tracking.'
+      }}
     </p>
   </InspectorRow>
 </template>

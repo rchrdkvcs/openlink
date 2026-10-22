@@ -69,6 +69,11 @@ class ShortLink extends Model
         return $this->hasMany(AnalyticsEvent::class);
     }
 
+    public function conversionAttributions(): HasMany
+    {
+        return $this->hasMany(ConversionAttribution::class);
+    }
+
     public function scopePrimary(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
@@ -82,6 +87,11 @@ class ShortLink extends Model
     public function hasPassword(): bool
     {
         return filled($this->password_hash);
+    }
+
+    public function tracksConversions(): bool
+    {
+        return filled($this->conversion_goal);
     }
 
     public function shortUrl(): string

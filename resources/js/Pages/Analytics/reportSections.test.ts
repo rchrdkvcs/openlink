@@ -46,6 +46,14 @@ function report(overrides: Partial<Report> = {}): Report {
     routing: [],
     top_links: [],
     top_qr_codes: [],
+    conversions: {
+      enabled: false,
+      window_hours: 24,
+      minimum_attributed_visits: 30,
+      totals: { attributed_visits: 0, conversions: 0, pending: 0, rate: null },
+      links: [],
+      routing: [],
+    },
     ...overrides,
   };
 }

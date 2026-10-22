@@ -34,6 +34,7 @@ function link(overrides: Partial<ShortLink> = {}): ShortLink {
     successful_visits: 0,
     has_password: false,
     revision: 1,
+    conversion_goal: null,
     routing_rules: [],
     ...overrides,
   };
@@ -57,6 +58,7 @@ describe('toForm', () => {
       preview_description: '',
       preview_image: null,
       remove_preview_image: false,
+      conversion_goal: '',
     });
   });
 
@@ -66,6 +68,10 @@ describe('toForm', () => {
     expect(form.preview_title).toBe('Spring launch');
     expect(form.preview_description).toBe('New season');
     expect(form.preview_image).toBeNull();
+  });
+
+  it('keeps the conversion goal of links that track conversions', () => {
+    expect(toForm(link({ conversion_goal: 'Registration' })).conversion_goal).toBe('Registration');
   });
 
   it('slices schedule dates to the datetime-local wire format', () => {
@@ -189,6 +195,7 @@ describe('sectionFor', () => {
     ['routing_rules.0.destination_url', null],
     ['preview_title', 'preview'],
     ['preview_image', 'preview'],
+    ['conversion_goal', 'conversion'],
     ['destination_url', null],
     ['slug', null],
   ])('maps %s to %s', (key, section) => {

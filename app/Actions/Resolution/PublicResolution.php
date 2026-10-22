@@ -8,6 +8,7 @@ use App\Models\Domain;
 use App\Models\QrCode;
 use App\Models\ShortLink;
 use App\Services\Analytics\Outcome;
+use App\Services\Conversions\AttributionTokens;
 use App\Services\QrCodes\QrCodeContent;
 use App\Services\ResolutionContextFactory;
 use App\Services\ShortLinks\ShortLinkLifecycle;
@@ -28,6 +29,7 @@ class PublicResolution
         private readonly SmartRouting $routing,
         private readonly ShortUrlCache $shortUrls,
         private readonly QrCodeContent $qrContent,
+        private readonly AttributionTokens $attributionTokens,
     ) {}
 
     public function resolve(Request $request, ResolutionEntry $entry): ResolutionResult
@@ -97,8 +99,9 @@ class PublicResolution
         $context = $this->contexts->fromRequest($request);
         $decision = $this->routing->resolve($shortLink, $context);
         $this->analytics->record($request, $shortLink, $qrCode, Outcome::SUCCESS, $context, $decision);
+        $destinationUrl = $this->attributionTokens->destinationFor($shortLink, $qrCode, $context, $decision);
 
-        return ResolutionResult::redirect(Outcome::SUCCESS, $decision->destinationUrl, $shortLink, $qrCode);
+        return ResolutionResult::redirect(Outcome::SUCCESS, $destinationUrl, $shortLink, $qrCode);
     }
 
     private function block(Request $request, ShortLink $shortLink, ?QrCode $qrCode, string $outcome): ResolutionResult

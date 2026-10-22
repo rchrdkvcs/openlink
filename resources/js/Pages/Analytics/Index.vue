@@ -7,6 +7,7 @@ import AnalyticsFilterBar from '@/Components/analytics/AnalyticsFilterBar.vue';
 import AnalyticsViewsMenu from '@/Components/analytics/AnalyticsViewsMenu.vue';
 import BarList from '@/Components/analytics/BarList.vue';
 import BreakdownCard from '@/Components/analytics/BreakdownCard.vue';
+import ConversionsCard from '@/Components/analytics/ConversionsCard.vue';
 import KpiCard from '@/Components/analytics/KpiCard.vue';
 import RoutingCard from '@/Components/analytics/RoutingCard.vue';
 import TopRankingCard from '@/Components/analytics/TopRankingCard.vue';
@@ -160,6 +161,8 @@ const unavailable = computed(() => unavailableMessage(props.unavailableFilters))
         </section>
 
         <RoutingCard v-if="hasEvents && report.routing.length > 0" :rows="report.routing" />
+
+        <ConversionsCard v-if="report.conversions.enabled" :report="report.conversions" />
 
         <p v-if="hasEvents && summary.bots > 0" class="px-1 pt-1 text-xs text-faint">
           {{ formatNumber(summary.bots) }} bot and crawler requests were excluded in this period.

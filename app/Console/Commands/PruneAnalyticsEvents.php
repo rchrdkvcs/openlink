@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AnalyticsEvent;
+use App\Models\ConversionAttribution;
 use App\Services\InstanceSettings;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -18,8 +19,12 @@ class PruneAnalyticsEvents extends Command
         $deleted = AnalyticsEvent::query()
             ->where('occurred_at', '<', now()->subDays($days))
             ->delete();
+        $attributions = ConversionAttribution::query()
+            ->where('issued_at', '<', now()->subDays($days))
+            ->delete();
 
         $this->info("Pruned {$deleted} analytics events older than {$days} days.");
+        $this->info("Pruned {$attributions} conversion attributions older than {$days} days.");
 
         return self::SUCCESS;
     }

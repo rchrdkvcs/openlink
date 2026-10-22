@@ -12,7 +12,10 @@ use App\Services\ShortLinks\ShortLinkLifecycle;
 
 class LinkPageEntries
 {
-    public function __construct(private readonly ShortLinkLifecycle $lifecycle) {}
+    public function __construct(
+        private readonly ShortLinkLifecycle $lifecycle,
+        private readonly LinkPageIcons $icons,
+    ) {}
 
     public function forEditor(LinkPage $linkPage): array
     {
@@ -23,6 +26,7 @@ class LinkPageEntries
             'destination_url' => $item->shortLink->destination_url,
             'display_label' => $this->displayLabel($item),
             'availability' => $this->availability($item),
+            'icon' => $this->icons->forLink($item->shortLink),
         ])->values()->all();
     }
 
@@ -33,6 +37,7 @@ class LinkPageEntries
             ->map(fn (LinkPageItem $item) => [
                 'label' => $this->displayLabel($item),
                 'url' => $item->shortLink->shortUrl(),
+                'icon' => $this->icons->forLink($item->shortLink),
             ])->values()->all();
     }
 
@@ -43,6 +48,7 @@ class LinkPageEntries
         return array_map(fn (array $option) => [
             ...$option,
             'availability' => $links->has($option['id']) ? $this->availabilityOf($links[$option['id']]) : LinkStatus::Archived->value,
+            'icon' => $links->has($option['id']) ? $this->icons->forLink($links[$option['id']]) : null,
         ], $options);
     }
 

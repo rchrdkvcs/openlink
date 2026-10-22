@@ -29,6 +29,7 @@ class LinkPagePayload
         return [
             ...$this->summary($linkPage),
             'description' => $linkPage->description,
+            'display' => $linkPage->displaySettings(),
             'has_logo' => $linkPage->hasLogo(),
             'logo' => $this->logos->dataUri($linkPage),
             'published_at' => $linkPage->published_at,
@@ -40,6 +41,7 @@ class LinkPagePayload
     {
         return [
             'title' => $linkPage->title,
+            'display' => $linkPage->displaySettings(),
             'description' => $linkPage->description,
             'logo' => $this->logos->dataUri($linkPage),
             'links' => $this->entries->forVisitors($linkPage),

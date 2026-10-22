@@ -20,6 +20,7 @@ function item(id: number, overrides: Partial<EditableItem> = {}): EditableItem {
     short_url: `https://go.example.test/l${id}`,
     destination_url: `https://example.com/${id}`,
     availability: 'active',
+    icon: null,
     ...overrides,
   };
 }
@@ -29,6 +30,7 @@ const option = (id: number, availability: LinkPageAvailability = 'active') => ({
   short_url: `https://go.example.test/l${id}`,
   destination_url: 'https://example.com',
   availability,
+  icon: null,
 });
 
 describe('link page items', () => {
@@ -71,8 +73,9 @@ describe('link page items', () => {
   });
 
   it('previews only the links visitors can see', () => {
-    const page = previewPage({ title: 'Spring', description: '  ' }, null, [
-      item(1, { label: 'Open' }),
+    const display = { show_icons: true, show_labels: false, show_urls: true };
+    const page = previewPage({ title: 'Spring', description: '  ', display }, null, [
+      item(1, { label: 'Open', icon: 'discord' }),
       item(2, { availability: 'archived' }),
     ]);
 
@@ -80,7 +83,8 @@ describe('link page items', () => {
       title: 'Spring',
       description: null,
       logo: null,
-      links: [{ label: 'Open', url: 'https://go.example.test/l1' }],
+      display,
+      links: [{ label: 'Open', url: 'https://go.example.test/l1', icon: 'discord' }],
     });
   });
 

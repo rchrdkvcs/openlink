@@ -24,6 +24,7 @@ class UpdateLinkPage
             'path' => $this->paths->ensureAvailable($data['path'], $linkPage),
             'title' => $data['title'],
             'description' => filled($data['description'] ?? null) ? $data['description'] : null,
+            ...($data['display'] ?? []),
         ]);
 
         return $this->paths->claim(function () use ($request, $linkPage, $data): LinkPage {

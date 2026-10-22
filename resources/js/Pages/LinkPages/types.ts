@@ -1,3 +1,5 @@
+import type { LinkPageDisplay } from '@/Components/LinkPages/types';
+
 import type { ShortLinkOption } from '../QrCodes/types';
 
 export type LinkPageAvailability = 'active' | 'scheduled' | 'expired' | 'disabled' | 'archived' | 'domain_unavailable';
@@ -9,9 +11,10 @@ export type LinkPageItem = {
   destination_url: string;
   display_label: string;
   availability: LinkPageAvailability;
+  icon: string | null;
 };
 
-export type LinkPageShortLinkOption = ShortLinkOption & { availability: LinkPageAvailability };
+export type LinkPageShortLinkOption = ShortLinkOption & { availability: LinkPageAvailability; icon: string | null };
 
 export type LinkPageSummary = {
   id: number;
@@ -26,6 +29,7 @@ export type LinkPageSummary = {
 
 export type LinkPageRecord = LinkPageSummary & {
   description: string | null;
+  display: LinkPageDisplay;
   has_logo: boolean;
   logo: string | null;
   published_at: string | null;

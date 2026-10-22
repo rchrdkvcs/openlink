@@ -1,4 +1,4 @@
-import type { PublicLinkPage } from '@/Components/LinkPages/types';
+import type { LinkPageDisplay, PublicLinkPage } from '@/Components/LinkPages/types';
 import { displayUrl } from '@/lib/links';
 
 import type { LinkPageAvailability, LinkPageItem, LinkPageShortLinkOption } from './types';
@@ -11,6 +11,7 @@ export type EditableItem = {
   short_url: string;
   destination_url: string;
   availability: LinkPageAvailability;
+  icon: string | null;
 };
 
 const AVAILABILITY_LABELS: Record<LinkPageAvailability, string> = {
@@ -33,6 +34,7 @@ export function toEditable(items: LinkPageItem[]): EditableItem[] {
     short_url: item.short_url,
     destination_url: item.destination_url,
     availability: item.availability,
+    icon: item.icon,
   }));
 }
 
@@ -47,6 +49,7 @@ export function addItem(items: EditableItem[], link: LinkPageShortLinkOption): E
       short_url: link.short_url,
       destination_url: link.destination_url,
       availability: link.availability,
+      icon: link.icon,
     },
   ];
 }
@@ -74,7 +77,7 @@ export function toItemsPayload(items: EditableItem[]) {
 }
 
 export function previewPage(
-  content: { title: string; description: string | null },
+  content: { title: string; description: string | null; display: LinkPageDisplay },
   logo: string | null,
   items: EditableItem[],
 ): PublicLinkPage {
@@ -82,9 +85,10 @@ export function previewPage(
     title: content.title,
     description: content.description?.trim() ? content.description : null,
     logo,
+    display: { ...content.display },
     links: items
       .filter((item) => item.availability === 'active')
-      .map((item) => ({ label: itemLabel(item), url: item.short_url })),
+      .map((item) => ({ label: itemLabel(item), url: item.short_url, icon: item.icon })),
   };
 }
 

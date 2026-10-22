@@ -12,6 +12,7 @@ import type { DestinationHealth } from '@/lib/destinationHealth';
 import { randomSlug } from '@/lib/links';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
+import { toForm, type ShortLinkForm } from '@/lib/shortLinks/shortLinkForm';
 import type { UtmTemplate } from '@/lib/utm';
 import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
@@ -25,6 +26,8 @@ import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
 import InspectorUtm from './inspector/InspectorUtm.vue';
 import { useShortLinkEditor } from './inspector/useShortLinkEditor';
+import { changedFields } from './routing/inspectorDraft';
+import RoutingEditorModal from './routing/RoutingEditorModal.vue';
 
 const props = defineProps<{
   link: ShortLink;
@@ -52,6 +55,19 @@ const folderOptions = computed(() => [
     label: folder.name,
   })),
 ]);
+
+const routingOpen = ref(false);
+let inspectorChanges: Partial<ShortLinkForm> = {};
+
+function openRouting() {
+  inspectorChanges = changedFields(form.data(), toForm(props.link));
+  routingOpen.value = true;
+}
+
+async function routingSettled() {
+  await nextTick();
+  Object.assign(form, inspectorChanges);
+}
 
 const healthOpen = ref(false);
 const historyOpen = ref(false);
@@ -82,6 +98,7 @@ const shortUrlChanged = computed(
 );
 
 function onKeydown(event: KeyboardEvent) {
+  if (routingOpen.value) return;
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
     event.preventDefault();
     if (!historyOpen.value) save();
@@ -185,7 +202,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorPreview v-model:open="sections.preview" :form="form" :link="link" />
-          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" :dirty="canEdit && form.isDirty" />
+          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" @open="openRouting" />
           <InspectorHealth
             v-model:open="healthOpen"
             :link="link"
@@ -212,6 +229,15 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
         </button>
       </div>
     </form>
+
+    <RoutingEditorModal
+      v-if="routingOpen"
+      :link="link"
+      :routing-schema="routingSchema"
+      :inspector-dirty="canEdit && form.isDirty"
+      @close="routingOpen = false"
+      @settled="routingSettled"
+    />
 
     <InspectorSaveBar
       :visible="!historyOpen && canEdit && form.isDirty"

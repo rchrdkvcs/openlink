@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 class DeployWorkflowTest extends TestCase
 {
-    public function test_a_published_stable_release_triggers_a_coolify_deployment(): void
+    public function test_published_releases_trigger_image_publication(): void
     {
         $workflow = file_get_contents(
             dirname(__DIR__, 2).'/.github/workflows/deploy.yml',
@@ -14,7 +14,32 @@ class DeployWorkflowTest extends TestCase
 
         $this->assertStringContainsString('release:', $workflow);
         $this->assertStringContainsString('types: [published]', $workflow);
+        $this->assertStringContainsString('packages: write', $workflow);
+        $this->assertStringContainsString('registry: ghcr.io', $workflow);
+        $this->assertStringContainsString('platform: linux/amd64', $workflow);
+        $this->assertStringContainsString('platform: linux/arm64', $workflow);
+        $this->assertStringContainsString('cancel-in-progress: false', $workflow);
+        $this->assertStringNotContainsString('workflow_call:', $workflow);
+        $this->assertStringNotContainsString('workflow_dispatch:', $workflow);
+    }
+
+    public function test_prereleases_publish_without_updating_latest(): void
+    {
+        $workflow = file_get_contents(
+            dirname(__DIR__, 2).'/.github/workflows/deploy.yml',
+        );
+
         $this->assertStringContainsString(
+            'PRERELEASE: ${{ github.event.release.prerelease }}',
+            $workflow,
+        );
+        $this->assertStringContainsString(
+            'if [ "$PRERELEASE" = "true" ]; then'."\n".
+            '            echo "publish=true" >> "$GITHUB_OUTPUT"'."\n".
+            '            exit 0',
+            $workflow,
+        );
+        $this->assertStringNotContainsString(
             'if: github.event.release.prerelease == false',
             $workflow,
         );
@@ -23,31 +48,30 @@ class DeployWorkflowTest extends TestCase
             $workflow,
         );
         $this->assertStringContainsString(
-            'if [ "$RELEASE_ID" != "$latest_release_id" ]',
+            'if [ "$RELEASE_ID" = "$latest_release_id" ]; then'."\n".
+            '            echo "publish=true" >> "$GITHUB_OUTPUT"'."\n".
+            '            echo "latest=true" >> "$GITHUB_OUTPUT"',
             $workflow,
         );
         $this->assertStringContainsString(
-            'cancel-in-progress: false',
+            'PUBLISH_LATEST: ${{ needs.check-release.outputs.latest }}',
             $workflow,
         );
+        $this->assertStringContainsString('tags=(--tag "$IMAGE:$TAG")', $workflow);
         $this->assertStringContainsString(
-            'COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}',
+            'if [ "$PUBLISH_LATEST" = "true" ]; then'."\n".
+            '            tags+=(--tag "$IMAGE:latest")',
             $workflow,
         );
-        $this->assertStringContainsString(
-            'COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}',
-            $workflow,
+    }
+
+    public function test_image_publication_does_not_deploy_to_coolify(): void
+    {
+        $workflow = file_get_contents(
+            dirname(__DIR__, 2).'/.github/workflows/deploy.yml',
         );
-        $this->assertStringContainsString(
-            'Authorization: Bearer $COOLIFY_TOKEN',
-            $workflow,
-        );
-        $this->assertStringContainsString(
-            '--request POST "$COOLIFY_WEBHOOK"',
-            $workflow,
-        );
-        $this->assertStringNotContainsString('--request GET', $workflow);
-        $this->assertStringNotContainsString('workflow_call:', $workflow);
-        $this->assertStringNotContainsString('workflow_dispatch:', $workflow);
+
+        $this->assertStringNotContainsString('coolify', strtolower($workflow));
+        $this->assertStringNotContainsString("\n  deploy:", $workflow);
     }
 }

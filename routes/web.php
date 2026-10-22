@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\InstanceDiagnosticsController;
 use App\Http\Controllers\InstanceSettingsController;
 use App\Http\Controllers\InstanceUpdateController;
 use App\Http\Controllers\InviteLinkController;
@@ -71,6 +72,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/settings/instance', [DashboardController::class, 'settings'])
             ->middleware(EnsureHasWorkspace::class)
             ->name('settings.index');
+        Route::get('/settings/instance/diagnostics', [InstanceDiagnosticsController::class, 'show'])
+            ->middleware([EnsureHasWorkspace::class, 'can:administer-instance'])
+            ->name('settings.diagnostics');
         Route::get('/settings/account', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::get('/profile', fn () => redirect()->route('profile.edit', request()->query()));
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -139,6 +143,12 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');
+        Route::post('/instance-diagnostics/recheck', [InstanceDiagnosticsController::class, 'recheck'])
+            ->middleware(['can:administer-instance', 'throttle:instance-diagnostics'])
+            ->name('instance-diagnostics.recheck');
+        Route::post('/instance-diagnostics/test-mail', [InstanceDiagnosticsController::class, 'testMail'])
+            ->middleware(['can:administer-instance', 'throttle:instance-diagnostics-mail'])
+            ->name('instance-diagnostics.test-mail');
     });
 
     require __DIR__.'/auth.php';

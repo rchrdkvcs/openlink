@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import {
+  Activity,
   Building2,
   Globe2,
   KeyRound,
@@ -91,6 +92,12 @@ const groups = computed(() => {
           href: route('settings.index'),
           icon: Server,
           active: route().current('settings.index'),
+        },
+        {
+          label: 'Diagnostics',
+          href: route('settings.diagnostics'),
+          icon: Activity,
+          active: route().current('settings.diagnostics'),
         },
       ],
     });

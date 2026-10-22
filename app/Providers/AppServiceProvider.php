@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Diagnostics\Heartbeats;
 use App\Services\Dns\DnsLookup;
 use App\Services\Dns\SystemDnsLookup;
 use App\Services\QrCodes\QrCodeLogoCleanup;
 use App\Services\ShortLinks\History\UrlRedaction;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -23,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
         $this->app->bind(UrlRedaction::class, fn ($app) => new UrlRedaction((string) $app['config']->get('app.key')));
+        $this->app->singleton(Heartbeats::class);
     }
 
     public function boot(): void
@@ -38,6 +41,16 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('oauth', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });
+
+        RateLimiter::for('instance-diagnostics', function (Request $request) {
+            return Limit::perMinute(6)->by((string) $request->user()?->id);
+        });
+
+        RateLimiter::for('instance-diagnostics-mail', function (Request $request) {
+            return Limit::perMinutes(10, 3)->by((string) $request->user()?->id);
+        });
+
+        Event::listen(Looping::class, fn () => $this->app->make(Heartbeats::class)->workerLooping());
 
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('discord', DiscordProvider::class);

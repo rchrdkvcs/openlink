@@ -66,6 +66,7 @@ class WorkspaceController extends Controller
                 ->filter(fn (array $domain) => $domain['is_default'] || $domain['status'] === 'active')
                 ->values(),
             'canDelete' => $this->canDelete($user, $workspace),
+            'utmTemplates' => $workspace->utmTemplates()->orderBy('name')->get(),
         ]);
     }
 

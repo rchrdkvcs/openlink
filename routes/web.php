@@ -20,6 +20,7 @@ use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\ShortLinkCsvController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\UtmTemplateController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsureHasWorkspace;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
@@ -95,6 +96,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::patch('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
         Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
+        Route::post('/utm-templates', [UtmTemplateController::class, 'store'])->name('utm-templates.store');
+        Route::patch('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'update'])->name('utm-templates.update');
+        Route::delete('/utm-templates/{utmTemplate}', [UtmTemplateController::class, 'destroy'])->name('utm-templates.destroy');
 
         Route::post('/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
         Route::delete('/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');

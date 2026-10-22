@@ -47,6 +47,7 @@ class DashboardController extends Controller
             'domains' => $domains->forWorkspace($workspace),
             'folders' => $workspace->folders()->orderBy('name')->get(),
             'tags' => $workspace->tags()->orderBy('name')->get(),
+            'utmTemplates' => $workspace->utmTemplates()->orderBy('name')->get(),
             'links' => $page->items(),
             'linksPagination' => LinksQuery::pagination($page),
             'filters' => LinksQuery::filterState($filters),

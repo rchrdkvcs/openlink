@@ -100,6 +100,14 @@ _Avoid_: QR click, QR hit
 A Workspace-owned, named scannable entry point managed from the QR Codes area. A QR Code can be linked to a Short Link, where scans enter through the Short Link's Domain and have their own scan analytics, or it can carry a direct payload such as URL, text, email, phone, SMS, Wi-Fi, vCard, calendar event, location, or a raw QR payload. Exported linked QR Codes encode a stable Openlink URL so their served destination can be changed later without replacing the image. Exported direct-payload QR Codes encode the native payload so device scanners can handle them directly; changing such a payload requires re-exporting existing images.
 _Avoid_: QR image, code
 
+**UTM Parameters**:
+The campaign query parameters `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, and `utm_content` carried by a destination URL or a visitor's request. A destination URL carries at most one value per UTM parameter.
+_Avoid_: Tracking parameters, campaign tags
+
+**UTM Template**:
+A Workspace-owned, named set of UTM Parameter values that Members apply explicitly to a Short Link's Destination URL. Applying a template copies its values; later changes to the template never rewrite existing destination URLs.
+_Avoid_: Campaign, UTM preset, tracking template
+
 **Protected Link**:
 A short link that requires a visitor to provide a password before it can resolve to the destination URL.
 _Avoid_: Locked link, private link, password link

@@ -22,7 +22,18 @@ describe('navigationCommands', () => {
   it('lists navigation, folders, personal settings and other workspaces', () => {
     const ids = navigationCommands(baseContext, fakeActions()).map((command) => command.id);
 
-    expect(ids).toEqual(['home', 'links', 'qr', 'analytics', 'folder-7', 'profile', 'security', 'tokens', 'ws-2']);
+    expect(ids).toEqual([
+      'home',
+      'links',
+      'qr',
+      'link-pages',
+      'analytics',
+      'folder-7',
+      'profile',
+      'security',
+      'tokens',
+      'ws-2',
+    ]);
   });
 
   it('adds workspace and instance settings when permitted', () => {
@@ -34,6 +45,7 @@ describe('navigationCommands', () => {
       'home',
       'links',
       'qr',
+      'link-pages',
       'analytics',
       'folder-7',
       'ws-settings',
@@ -91,7 +103,7 @@ describe('groupCommands', () => {
     const groups = groupCommands(navigationCommands(baseContext, fakeActions()));
 
     expect(groups.map(([group]) => group)).toEqual(['Go to', 'Folders', 'Settings', 'Switch workspace']);
-    expect(groups[3]?.[1][0]?.index).toBe(8);
+    expect(groups[3]?.[1][0]?.index).toBe(9);
   });
 });
 

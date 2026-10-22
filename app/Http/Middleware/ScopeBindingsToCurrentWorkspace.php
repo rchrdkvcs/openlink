@@ -8,6 +8,7 @@ use App\Models\DestinationCheck;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\InviteLink;
+use App\Models\LinkPage;
 use App\Models\QrCode;
 use App\Models\QrCodeTemplate;
 use App\Models\ShortLink;
@@ -28,6 +29,7 @@ class ScopeBindingsToCurrentWorkspace
         Domain::class => 403,
         Folder::class => 403,
         InviteLink::class => 403,
+        LinkPage::class => 403,
         QrCode::class => 403,
         QrCodeTemplate::class => 403,
         ShortLink::class => 403,

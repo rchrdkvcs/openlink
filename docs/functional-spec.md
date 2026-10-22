@@ -209,6 +209,18 @@ Each QR code has a dedicated studio page with a live preview of unsaved settings
 
 Before exporting, any workspace member can run a Readability Check from the studio. It decodes the PNG export of the current draft at the chosen export size (rendered at up to 1024 px for decoding) and reports, per format, whether the code decodes to the expected content, decodes to other content, cannot be decoded, uses an unsupported format, or cannot be checked. The SVG verdict is derived from the PNG decode because both exports draw the same module matrix and design. The check flags weak or inverted contrast, transparent backgrounds, missing or narrow quiet zones, small modules, estimated logo coverage that error correction may not recover, and, when an optional print width is entered, modules smaller than 0.4 mm on paper. It summarises the encoded content, linked Short URL, output and suggested minimum print dimensions, domain availability, and lifecycle restrictions. The draft is sent in a POST body so native payloads never appear in URLs. Results are discarded as out of date as soon as the payload, design, logo, export size, or print width changes. Members who can edit may apply readable settings to the draft when that changes something; nothing is saved until they save. Unsaved logo or target changes must be saved before they can be checked. The check makes no visits or scans, its warnings are guidance, and it always recommends a physical print test. See ADR 0020.
 
+## Link Pages
+
+A Link Page is a Workspace-owned public page with an internal name, a path, a title, an optional description of up to 280 characters, an optional logo, and an ordered list of up to 50 explicitly selected Short Links from the same Workspace. Each entry can have its own label; without one, the Short URL is shown. See ADR 0025.
+
+- A new Link Page is a draft. Only a published Link Page is public, at `https://{application host}/p/{path}`. Unpublishing or deleting it makes that URL show the neutral unavailable page again.
+- The path uses lowercase letters, digits, and hyphens, and is unique across the instance. Short Link slugs `p` and `p/…` are always reserved on the application host, and a path already used by an application-host Short Link `p/{path}` cannot be chosen.
+- Visitors see only the title, description, logo, and the label and Short URL of each entry. Each entry opens its Short URL, so lifecycle rules, passwords, Smart Routing, and analytics apply as usual.
+- Entries whose Short Link is archived, disabled, scheduled, expired, or on an unusable Domain are hidden from visitors without explanation and marked in the editor. A permanently deleted Short Link is removed from every Link Page. A page with no visible entries shows "No links are available right now."
+- The logo must be a PNG, JPEG, or WebP image up to 2 MB. It is re-encoded as a PNG of at most 256 pixels.
+- Every Member can open the editor and its live preview. Owner, Admin, and Editor can create, edit, reorder entries, publish, unpublish, and delete Link Pages. None of these actions changes the selected Short Links.
+- Page views are not recorded yet; Link Pages are not available on workspace Domains or through the API.
+
 ## Analytics
 
 Analytics are aggregated and do not identify individual visitors.

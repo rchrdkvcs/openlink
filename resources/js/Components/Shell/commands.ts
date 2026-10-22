@@ -5,6 +5,7 @@ import {
   Globe2,
   Home,
   KeyRound,
+  LayoutList,
   Link2,
   QrCode,
   Server,
@@ -56,6 +57,14 @@ export function navigationCommands(context: CommandContext, actions: CommandActi
     { id: 'home', group: 'Go to', label: 'Home', icon: Home, run: () => visit('dashboard') },
     { id: 'links', group: 'Go to', label: 'All links', icon: Link2, run: () => visit('links.index') },
     { id: 'qr', group: 'Go to', label: 'QR codes', icon: QrCode, run: () => visit('qr-codes.index') },
+    {
+      id: 'link-pages',
+      group: 'Go to',
+      label: 'Link pages',
+      icon: LayoutList,
+      keywords: 'publish short links',
+      run: () => visit('link-pages.index'),
+    },
     { id: 'analytics', group: 'Go to', label: 'Analytics', icon: BarChart3, run: () => visit('analytics.index') },
     ...context.folders.map((folder) => ({
       id: `folder-${folder.id}`,

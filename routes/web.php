@@ -12,6 +12,7 @@ use App\Http\Controllers\InstanceSettingsController;
 use App\Http\Controllers\InstanceUpdateController;
 use App\Http\Controllers\InviteLinkController;
 use App\Http\Controllers\JoinController;
+use App\Http\Controllers\LinkPageController;
 use App\Http\Controllers\LinkPreviewImageController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\OnboardingController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\ProfileConnectedIdentityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLinkController;
+use App\Http\Controllers\PublicLinkPageController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\QrCodeTemplateController;
 use App\Http\Controllers\ShortLinkController;
@@ -33,6 +35,7 @@ use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceSummaryController;
 use App\Http\Middleware\EnsureHasWorkspace;
 use App\Http\Middleware\ScopeBindingsToCurrentWorkspace;
+use App\Models\LinkPage;
 use App\Models\User;
 use App\Services\ApplicationHost;
 use App\Services\LinkPreviews\LinkPreviewImageStorage;
@@ -60,6 +63,9 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/links/{shortLink}/routing', [ShortLinkRoutingController::class, 'edit'])->name('links.routing');
         Route::get('/links/issues', [DestinationHealthController::class, 'index'])->name('destination-issues.index');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
+        Route::get('/link-pages', [LinkPageController::class, 'index'])->name('link-pages.index');
+        Route::get('/link-pages/short-links/search', [LinkPageController::class, 'shortLinks'])->name('link-pages.short-links');
+        Route::get('/link-pages/{linkPage}', [LinkPageController::class, 'show'])->name('link-pages.show');
         Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
         Route::get('/settings/domains/{domain}/setup', [DomainController::class, 'setup'])->name('domains.setup');
@@ -175,6 +181,11 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/webhook-endpoints/{webhookEndpoint}/test', [WebhookEndpointController::class, 'test'])->middleware('throttle:10,1')->name('webhook-endpoints.test');
         Route::delete('/webhook-endpoints/{webhookEndpoint}', [WebhookEndpointController::class, 'destroy'])->name('webhook-endpoints.destroy');
         Route::post('/webhook-deliveries/{webhookDelivery}/retry', [WebhookEndpointController::class, 'retry'])->middleware('throttle:30,1')->name('webhook-deliveries.retry');
+        Route::post('/link-pages', [LinkPageController::class, 'store'])->name('link-pages.store');
+        Route::patch('/link-pages/{linkPage}', [LinkPageController::class, 'update'])->name('link-pages.update');
+        Route::post('/link-pages/{linkPage}/publish', [LinkPageController::class, 'publish'])->name('link-pages.publish');
+        Route::post('/link-pages/{linkPage}/unpublish', [LinkPageController::class, 'unpublish'])->name('link-pages.unpublish');
+        Route::delete('/link-pages/{linkPage}', [LinkPageController::class, 'destroy'])->name('link-pages.destroy');
 
         Route::patch('/instance-settings', [InstanceSettingsController::class, 'update'])->name('instance-settings.update');
         Route::post('/instance-update', [InstanceUpdateController::class, 'store'])->name('instance-update.store');
@@ -189,6 +200,11 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
     require __DIR__.'/auth.php';
 
     Route::get('/join/{inviteLink}', [JoinController::class, 'show'])->name('join.show');
+
+    Route::get('/'.LinkPage::PATH_PREFIX.'/{path}', PublicLinkPageController::class)
+        ->middleware('throttle:public-resolution')
+        ->where('path', LinkPage::ROUTE_PATTERN)
+        ->name('public.link-page');
 });
 
 Route::get('/', [PublicLinkController::class, 'unavailable'])->middleware('throttle:public-resolution')->name('public.unavailable');

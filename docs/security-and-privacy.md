@@ -44,6 +44,10 @@ Preview crawlers are detected from the User-Agent header, which any client can s
 
 Link preview text is plain text rendered with HTML escaping, and markup is rejected on input. Preview images are decoded and re-encoded as JPEG before storage, which drops SVG, scripts, and metadata. They are stored on the private disk under random names. They are served only through Openlink: on the short link's own domain while the link is active and unprotected, and to workspace members in the dashboard or through the API with their token. Deleting or replacing an image removes the file only when no short link still references it.
 
+## Link Pages
+
+Only published Link Page content is public: title, description, logo, and each visible entry's label and Short URL. Workspace details, members, Destination URLs, Short Link settings, and analytics are never included. Text is rendered as plain text, and uploaded logos are decoded and re-encoded as PNG so that SVG, metadata, and appended content are never served. Draft, unpublished, and unknown Link Pages show the same neutral unavailable page as an unavailable Short URL.
+
 ## Analytics Privacy
 
 Analytics are aggregated by link and QR code. They can include referrer, approximate country, device type, browser, operating system, daily counts, lifetime totals, and resolution outcomes.

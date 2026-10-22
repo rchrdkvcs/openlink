@@ -92,4 +92,9 @@ class Workspace extends Model
     {
         return $this->hasOne(AnalyticsSummarySchedule::class);
     }
+
+    public function linkPages(): HasMany
+    {
+        return $this->hasMany(LinkPage::class);
+    }
 }

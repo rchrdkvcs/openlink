@@ -95,6 +95,8 @@ Owners and admins manage UTM Templates in workspace settings: they can create, r
 
 Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0015.
 
+Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0017.
+
 Disabled links do not resolve, regardless of lifecycle rules. Archived links are hidden from primary dashboard views, preserved for history and analytics, do not resolve, and keep their slug reserved.
 
 ### Bulk actions

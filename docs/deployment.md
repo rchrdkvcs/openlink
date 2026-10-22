@@ -81,6 +81,12 @@ HTTP proxy environment variables.
 Keep `APP_DEBUG=false` in production. Do not commit `.env` files or place
 infrastructure credentials in instance settings.
 
+With `APP_DEBUG=false`, web errors (403, 404, 419, 429, 500, 503) render the
+Openlink error page with the original status code and its `Retry-After`,
+`Refresh`, and rate-limit headers, so maintenance pages created with
+`php artisan down --refresh` still reload; API and JSON requests keep JSON errors. See
+[`technical-spec.md`](./technical-spec.md#public-state-and-error-pages).
+
 The Compose example defines its environment explicitly in
 `x-app-environment`. Adding a variable to `docker/.env` alone does not pass it
 to Laravel: add the matching entry there so app, worker, scheduler, and migration

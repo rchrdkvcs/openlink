@@ -181,6 +181,20 @@ The authenticated app should prioritize dense, clear workflows:
 
 Avoid a marketing-style landing page as the primary product surface. The first screen after login should be the working dashboard.
 
+## Public State and Error Pages
+
+Visitor-facing state pages (protected link password, scheduled countdown, unavailable link, QR payload) and the error page share one layout: a thin-stroke illustration placed directly on a dot pattern, with the state colour carried by the dots. Illustrations loop while the page is shown; under `prefers-reduced-motion` they hold a static pose and only short fades remain.
+
+When `APP_DEBUG` is false, web requests that end in an exception with status 403, 404, 419, 429, 500, or 503 render the `Error` Inertia page instead of the framework error view:
+
+- The HTTP status code is kept. `Retry-After`, `Refresh` (set by `php artisan down --refresh`), and `X-RateLimit-*` headers from the original response are forwarded, including zero values; content headers come from the Inertia response.
+- Requests under `api/*`, requests that expect JSON, JSON responses, and redirects keep the framework response unchanged.
+- Other statuses keep the framework response.
+- If rendering the error page fails, the original framework response is returned.
+- With `APP_DEBUG=true`, the framework exception page is shown as before.
+
+Public resolution outcomes such as an unavailable Short Link are rendered by the resolution responder, not by this exception path, so their neutral copy and status are unaffected.
+
 ## Testing Strategy
 
 Start with feature tests for the domain rules:

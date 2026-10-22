@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { Archive, Folder as FolderIcon, Inbox, Link2 } from '@lucide/vue';
+import { Archive, Download, Folder as FolderIcon, Inbox, Link2, Upload } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ComposerLink } from '@/Components/Links/composerLink';
@@ -18,6 +18,8 @@ import { useNumericUrlParam } from '@/lib/useUrlParam';
 import type { LinksPageProps } from '@/Pages/Links/types';
 import type { ShortLink } from '@/types/shortLinks';
 
+import { exportQuery } from './csv/linkCsv';
+import LinkImportDialog from './csv/LinkImportDialog.vue';
 import LinkInspector from './LinkInspector.vue';
 import LinkRow from './list/LinkRow.vue';
 import LinksBulkBar from './list/LinksBulkBar.vue';
@@ -77,6 +79,12 @@ watch(visibleIds, (ids) => {
 
 const { countdownFor } = useActivationCountdownWithReload(() => props.links);
 
+const importing = ref(false);
+
+function exportLinks() {
+  window.location.href = route('links.export') + '?' + new URLSearchParams(exportQuery(props.filters)).toString();
+}
+
 const toolbar = ref<InstanceType<typeof LinksToolbar> | null>(null);
 const composer = ref<InstanceType<typeof LinkComposer> | null>(null);
 
@@ -124,7 +132,27 @@ useLinkListKeyboard({
                 {{ view.eyebrow }}
               </p>
             </template>
+            <template #actions>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                title="Downloads the links in this view. Visitor passwords, routing rules, QR codes and analytics are not included."
+                @click="exportLinks"
+                ><Download /> Export CSV</Button
+              >
+              <Button v-if="canEdit" variant="ghost" size="sm" type="button" @click="importing = true">
+                <Upload /> Import CSV
+              </Button>
+            </template>
           </PageHeader>
+
+          <LinkImportDialog
+            v-if="canEdit"
+            v-model:open="importing"
+            :domains="usableDomains"
+            :preferred-domain-id="workspace?.preferred_domain_id ?? null"
+          />
 
           <LinkComposer
             v-if="canEdit && !isArchiveView"

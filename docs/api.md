@@ -93,6 +93,8 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | --- | --- | --- |
 | `GET` | `/api/v1/links` | List accessible links (includes status, visits, scans, tags, QR codes) |
 | `POST` | `/api/v1/links` | Create a link |
+| `GET` | `/api/v1/links/export` | Download links as a Link CSV |
+| `POST` | `/api/v1/links/import` | Preview or import a Link CSV (editors and above) |
 | `GET` | `/api/v1/links/{id}` | Show one link |
 | `PATCH` | `/api/v1/links/{id}` | Update destination, lifecycle rules, password, tags |
 | `POST` | `/api/v1/links/{id}/move` | Move to a folder (`folder_id`, null to unfile) |
@@ -120,6 +122,8 @@ Create payload (only `destination_url` is required):
 When `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
 
 The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags.
+
+`GET /api/v1/links/export` accepts the same `search`, `status`, `tag`, and `folder` filters as the list and also includes archived links when no status is given. `POST /api/v1/links/import` takes a multipart `file` (UTF-8 CSV, at most 1,000 links and 1 MB), an optional `mapping` object from column name to zero-based header position, an optional `domain_id` for rows without a domain, and `dry_run`. With `dry_run=1` nothing is created and the response lists `headers`, the resolved `mapping`, each row with `status` `ready` or `invalid` and its `errors`, and a `summary`. Without it, rows are validated again, ready rows are created, and each row reports `created` or `skipped`. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
 ### Domains
 

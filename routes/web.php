@@ -18,6 +18,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicLinkController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ShortLinkController;
+use App\Http\Controllers\ShortLinkCsvController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Middleware\EnsureHasWorkspace;
@@ -42,6 +43,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
         Route::get('/links', [DashboardController::class, 'links'])->name('links.index');
+        Route::get('/links/export', [ShortLinkCsvController::class, 'export'])->name('links.export');
+        Route::get('/links/import/example', [ShortLinkCsvController::class, 'example'])->name('links.import.example');
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::get('/settings/domains', [DashboardController::class, 'domains'])->name('domains.index');
         Route::get('/settings/domains/new', [DomainController::class, 'create'])->name('domains.create');
@@ -111,6 +114,8 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
+        Route::post('/short-links/import/preview', [ShortLinkCsvController::class, 'preview'])->name('short-links.import.preview');
+        Route::post('/short-links/import', [ShortLinkCsvController::class, 'store'])->name('short-links.import');
 
         Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
         Route::get('/qr-codes/short-links/search', [QrCodeController::class, 'shortLinks'])->name('qr-codes.short-links');

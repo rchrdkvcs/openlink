@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\MemberController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\QrCodeController;
 use App\Http\Controllers\Api\V1\ShortLinkController;
+use App\Http\Controllers\Api\V1\ShortLinkCsvController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Middleware\EnsureApiEmailIsVerified;
@@ -61,6 +62,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::get('/links', [ShortLinkController::class, 'index'])->name('links.index');
             Route::post('/links', [ShortLinkController::class, 'store'])->name('links.store');
+            Route::get('/links/export', [ShortLinkCsvController::class, 'export'])->name('links.export');
+            Route::post('/links/import', [ShortLinkCsvController::class, 'import'])->name('links.import');
             Route::get('/links/{shortLink}', [ShortLinkController::class, 'show'])->name('links.show');
             Route::patch('/links/{shortLink}', [ShortLinkController::class, 'update'])->name('links.update');
             Route::post('/links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('links.move');

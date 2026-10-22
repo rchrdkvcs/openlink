@@ -15,11 +15,11 @@ beforeEach(() => {
 describe('unarchiveLink', () => {
   it('refreshes through Inertia and closes the selection only after server success', () => {
     const onSuccess = vi.fn();
-    const link = { id: 7, slug: 'launch', short_url: 'https://go.example.test/launch' };
+    const link = { id: 7, slug: 'launch', short_url: 'https://go.example.test/launch', revision: 3 };
 
     unarchiveLink(link, onSuccess);
 
-    expect(router.post).toHaveBeenCalledWith('short-links.unarchive/7', {}, expect.any(Object));
+    expect(router.post).toHaveBeenCalledWith('short-links.unarchive/7', { expected_revision: 3 }, expect.any(Object));
     expect(onSuccess).not.toHaveBeenCalled();
     expect(toast).not.toHaveBeenCalled();
     const options = vi.mocked(router.post).mock.calls[0][2]!;
@@ -31,7 +31,7 @@ describe('unarchiveLink', () => {
 
   it('keeps the selection and reports a rejected mutation', () => {
     const onSuccess = vi.fn();
-    unarchiveLink({ id: 7, slug: 'launch', short_url: 'https://go.example.test/launch' }, onSuccess);
+    unarchiveLink({ id: 7, slug: 'launch', short_url: 'https://go.example.test/launch', revision: 3 }, onSuccess);
 
     const options = vi.mocked(router.post).mock.calls[0][2]!;
     options.onError?.({ link: 'This link could not be updated.' });

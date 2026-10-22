@@ -10,6 +10,7 @@ use App\Http\Requests\ShortLinks\BulkShortLinkRequest;
 use App\Http\Requests\ShortLinks\MoveShortLinkRequest;
 use App\Http\Requests\ShortLinks\PreviewSmartRoutingRequest;
 use App\Http\Requests\ShortLinks\StoreShortLinkRequest;
+use App\Http\Requests\ShortLinks\UnarchiveShortLinkRequest;
 use App\Http\Requests\ShortLinks\UpdateShortLinkRequest;
 use App\Models\ShortLink;
 use Illuminate\Http\JsonResponse;
@@ -47,9 +48,9 @@ class ShortLinkController extends Controller
         return back();
     }
 
-    public function unarchive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
+    public function unarchive(UnarchiveShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
     {
-        $shortLinks->unarchive($request->user(), $shortLink);
+        $shortLinks->unarchive($request->user(), $shortLink, (int) $request->validated('expected_revision'));
 
         return back();
     }

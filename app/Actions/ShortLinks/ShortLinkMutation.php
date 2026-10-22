@@ -133,11 +133,11 @@ class ShortLinkMutation
         });
     }
 
-    public function unarchive(User $user, ShortLink $shortLink): ShortLink
+    public function unarchive(User $user, ShortLink $shortLink, int $expectedRevision): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
 
-        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink): void {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, $expectedRevision, function () use ($shortLink): void {
             if (! $shortLink->isArchived()) {
                 return;
             }

@@ -43,10 +43,10 @@ export function archiveLink(link: LinkRef, onSuccess?: () => void) {
   );
 }
 
-export function unarchiveLink(link: LinkRef, onSuccess?: () => void) {
+export function unarchiveLink(link: LinkRef & { revision: number }, onSuccess?: () => void) {
   router.post(
     route('short-links.unarchive', link.id),
-    {},
+    { expected_revision: link.revision },
     {
       preserveScroll: true,
       preserveState: true,

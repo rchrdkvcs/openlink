@@ -23,8 +23,12 @@ class Heartbeats
         );
     }
 
-    public function workerLooping(): void
+    public function workerActive(string $connection): void
     {
+        if (config("queue.connections.{$connection}.driver") === 'sync') {
+            return;
+        }
+
         $now = now()->getTimestamp();
 
         if ($this->lastWorkerBeat !== null && $now - $this->lastWorkerBeat < $this->cadenceSeconds()) {

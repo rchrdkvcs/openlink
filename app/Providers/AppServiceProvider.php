@@ -10,6 +10,8 @@ use App\Services\QrCodes\QrCodeLogoCleanup;
 use App\Services\ShortLinks\History\UrlRedaction;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -50,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinutes(10, 3)->by((string) $request->user()?->id);
         });
 
-        Event::listen(Looping::class, fn () => $this->app->make(Heartbeats::class)->workerLooping());
+        Event::listen([Looping::class, JobProcessing::class, JobProcessed::class], fn (Looping|JobProcessing|JobProcessed $event) => $this->app->make(Heartbeats::class)->workerActive($event->connectionName));
 
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('discord', DiscordProvider::class);

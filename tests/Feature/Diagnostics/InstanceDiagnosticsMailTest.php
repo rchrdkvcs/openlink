@@ -42,6 +42,33 @@ class InstanceDiagnosticsMailTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_smtp_without_a_host_is_not_configured(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => null, 'mail.mailers.smtp.url' => null]);
+
+        $this->get(route('settings.diagnostics'))
+            ->assertInertia(fn ($page) => $page
+                ->where('checks.mail.state', 'not_configured')
+                ->where('canSendTestMail', false));
+    }
+
+    public function test_default_smtp_host_is_unset(): void
+    {
+        $config = require config_path('mail.php');
+
+        $this->assertSame(env('MAIL_HOST'), $config['mailers']['smtp']['host']);
+    }
+
+    public function test_test_send_uses_a_bounded_transport_timeout(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.mailers.smtp.timeout' => null]);
+        Mail::fake();
+
+        $this->post(route('instance-diagnostics.test-mail'))->assertRedirect();
+
+        $this->assertSame(10, config('mail.mailers.smtp.timeout'));
+    }
+
     public function test_incomplete_transport_settings_are_not_configured(): void
     {
         config(['mail.default' => 'cloudflare', 'services.cloudflare.account_id' => null, 'services.cloudflare.key' => null]);

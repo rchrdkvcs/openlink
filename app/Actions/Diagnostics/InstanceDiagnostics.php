@@ -15,7 +15,7 @@ use Throwable;
 
 class InstanceDiagnostics
 {
-    private const PROBED = ['database', 'redis', 'storage'];
+    public const MAIL_TIMEOUT_SECONDS = 10;
 
     public function __construct(
         private readonly Heartbeats $heartbeats,
@@ -25,11 +25,6 @@ class InstanceDiagnostics
     public function report(): array
     {
         $observations = DiagnosticObservation::query()->get()->keyBy('name');
-
-        if (! collect(self::PROBED)->every(fn (string $name) => $observations->has($name))) {
-            $this->recheck();
-            $observations = DiagnosticObservation::query()->get()->keyBy('name');
-        }
 
         $worker = $this->worker($observations->get(DiagnosticObservation::WORKER));
 
@@ -54,7 +49,9 @@ class InstanceDiagnostics
     public function recheck(): void
     {
         $this->observe('database', fn () => $this->probes->database());
-        $this->observe('storage', fn () => $this->probes->storage());
+        $this->probes->storageIsLocal()
+            ? $this->observe('storage', fn () => $this->probes->storage())
+            : $this->store('storage', CheckState::Disabled);
 
         if ($this->redisInUse()->isEmpty()) {
             $this->store('redis', CheckState::Disabled);
@@ -72,8 +69,17 @@ class InstanceDiagnostics
 
     public function sendTestMail(User $admin): bool
     {
+        $mailer = (string) config('mail.default');
+        $socketTimeout = ini_get('default_socket_timeout');
+        ini_set('default_socket_timeout', (string) self::MAIL_TIMEOUT_SECONDS);
+
+        if (blank(config("mail.mailers.{$mailer}.timeout")) || (int) config("mail.mailers.{$mailer}.timeout") > self::MAIL_TIMEOUT_SECONDS) {
+            config(["mail.mailers.{$mailer}.timeout" => self::MAIL_TIMEOUT_SECONDS]);
+            Mail::purge($mailer);
+        }
+
         try {
-            Mail::mailer()->to($admin->email)->send(new InstanceDiagnosticsTestMail);
+            Mail::mailer($mailer)->to($admin->email)->send(new InstanceDiagnosticsTestMail);
             $this->store(DiagnosticObservation::MAIL_TEST, CheckState::Healthy);
 
             return true;
@@ -82,6 +88,8 @@ class InstanceDiagnostics
             $this->store(DiagnosticObservation::MAIL_TEST, CheckState::Unavailable);
 
             return false;
+        } finally {
+            ini_set('default_socket_timeout', (string) $socketTimeout);
         }
     }
 
@@ -111,12 +119,12 @@ class InstanceDiagnostics
     private function probed(Collection $observations, string $name, string $label, array $text): array
     {
         $observation = $observations->get($name);
-        $state = CheckState::tryFrom((string) $observation?->state) ?? CheckState::Unavailable;
+        $state = CheckState::tryFrom((string) $observation?->state) ?? CheckState::Missing;
 
         return $this->check(
             $label,
             $state,
-            $text[$state->value] ?? $text[CheckState::Unavailable->value],
+            $text[$state->value] ?? 'This check has not run yet. Select Recheck to run it.',
             $state === CheckState::Healthy ? null : $text['hint'] ?? null,
             $observation?->succeeded_at,
             $observation?->checked_at,
@@ -137,7 +145,8 @@ class InstanceDiagnostics
         return [
             'healthy' => 'Openlink can write to its storage directory.',
             'unavailable' => 'Openlink could not write a test file to its storage directory.',
-            'hint' => 'Make the storage directory writable by the application user and persist it as a volume shared by the app, worker, and scheduler containers.',
+            'disabled' => 'The default storage disk is not local, so Openlink does not probe it. Check it with your storage provider.',
+            'hint' => $this->probes->storageIsLocal() ? 'Make the storage directory writable by the application user and persist it as a volume shared by the app, worker, and scheduler containers.' : null,
         ];
     }
 
@@ -193,6 +202,19 @@ class InstanceDiagnostics
         }
 
         $state = $this->heartbeats->freshness($heartbeat?->succeeded_at);
+
+        if ($state !== CheckState::Healthy && ! config('openlink.analytics.via_queue')) {
+            return $this->check(
+                'Queue worker',
+                CheckState::Disabled,
+                ($state === CheckState::Stale
+                    ? 'No queue worker has reported a heartbeat recently, but none is required. '
+                    : 'No queue worker has reported a heartbeat, but none is required. ').$required,
+                null,
+                $heartbeat?->succeeded_at,
+                now(),
+            );
+        }
 
         return $this->check(
             'Queue worker',
@@ -280,7 +302,7 @@ class InstanceDiagnostics
     private function missingMailSetting(string $mailer, string $transport): ?string
     {
         $required = match ($transport) {
-            'smtp' => ["mail.mailers.{$mailer}.host"],
+            'smtp' => [filled(config("mail.mailers.{$mailer}.url")) ? "mail.mailers.{$mailer}.url" : "mail.mailers.{$mailer}.host"],
             'sendmail' => ["mail.mailers.{$mailer}.path"],
             'cloudflare' => ['services.cloudflare.account_id', 'services.cloudflare.key'],
             'postmark' => ['services.postmark.key'],

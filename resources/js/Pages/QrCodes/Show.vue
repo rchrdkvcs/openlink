@@ -15,6 +15,7 @@ import { PANELS } from './qrPanels';
 import { blockedReason, hasFixes, readabilityRequest, readableFixes } from './qrReadability';
 import AdvancedPanel from './Studio/AdvancedPanel.vue';
 import ContentPanel from './Studio/ContentPanel.vue';
+import ExportPanel from './Studio/ExportPanel.vue';
 import QrCodeActions from './Studio/QrCodeActions.vue';
 import QrCodePreview from './Studio/QrCodePreview.vue';
 import ReadabilityCheck from './Studio/ReadabilityCheck.vue';
@@ -113,16 +114,53 @@ useSaveShortcut(() => {
         </PageHeader>
 
         <div class="flex flex-1 items-center justify-center py-8 xl:py-10">
-          <div class="w-full max-w-[380px]">
-            <QrCodePreview
-              v-model:export-size="exportSize"
-              :qr="qr"
-              :src="previewUrl"
-              :target-type="form.target_type"
-              :background-color="form.background_color"
-              :transparent="form.background_transparent"
-              :pending-logo="form.logo !== null"
-            />
+          <QrCodePreview
+            :name="qr.name"
+            :src="previewUrl"
+            :background-color="form.background_color"
+            :transparent="form.background_transparent"
+            :pending-logo="form.logo !== null"
+          />
+        </div>
+      </div>
+
+      <aside
+        aria-label="QR code settings"
+        class="flex min-w-0 flex-col border-t bg-canvas lg:rounded-xl lg:border xl:h-full xl:w-[420px] xl:shrink-0 xl:overflow-hidden"
+      >
+        <div class="px-5 pb-4 pt-5">
+          <SegmentedControl v-model="panel" :options="PANELS" label="Settings section" class="w-full" />
+        </div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+          <form @submit.prevent="save">
+            <fieldset :disabled="!canEdit" class="contents">
+              <ContentPanel
+                v-show="panel === 'content'"
+                :form="form"
+                :qr="qr"
+                :payload-types="payloadTypes"
+                :payload-descriptors="payloadDescriptors"
+                :short-links="shortLinks"
+              />
+              <StylePanel
+                v-show="panel === 'style'"
+                :form="form"
+                :has-saved-logo="qr.has_logo"
+                :templates="templates"
+                :applied-template="appliedTemplate"
+                :can-manage-templates="canManage"
+                :has-unsaved-changes="isDirty"
+                :qr-token="qr.token"
+                @pick-logo="pickLogo"
+                @remove-logo="removeLogo"
+                @apply-template="applyTemplate"
+              />
+              <AdvancedPanel v-show="panel === 'advanced'" :form="form" />
+            </fieldset>
+          </form>
+          <div v-show="panel === 'advanced'" class="grid gap-6 pt-6">
+            <ExportPanel v-model:export-size="exportSize" :qr="qr" :target-type="form.target_type" :unsaved="isDirty" />
             <ReadabilityCheck
               :state="readability"
               v-model:print-width="printWidth"
@@ -133,41 +171,6 @@ useSaveShortcut(() => {
             />
           </div>
         </div>
-      </div>
-
-      <aside
-        class="flex flex-col border-t bg-canvas lg:overflow-hidden lg:rounded-xl lg:border xl:h-full xl:w-[420px] xl:shrink-0"
-      >
-        <div class="px-5 pb-4 pt-5">
-          <SegmentedControl v-model="panel" :options="PANELS" label="Settings section" class="w-full" />
-        </div>
-
-        <form class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6" @submit.prevent="save">
-          <fieldset :disabled="!canEdit" class="contents">
-            <ContentPanel
-              v-show="panel === 'content'"
-              :form="form"
-              :qr="qr"
-              :payload-types="payloadTypes"
-              :payload-descriptors="payloadDescriptors"
-              :short-links="shortLinks"
-            />
-            <StylePanel
-              v-show="panel === 'style'"
-              :form="form"
-              :has-saved-logo="qr.has_logo"
-              :templates="templates"
-              :applied-template="appliedTemplate"
-              :can-manage-templates="canManage"
-              :has-unsaved-changes="isDirty"
-              :qr-token="qr.token"
-              @pick-logo="pickLogo"
-              @remove-logo="removeLogo"
-              @apply-template="applyTemplate"
-            />
-            <AdvancedPanel v-show="panel === 'advanced'" :form="form" />
-          </fieldset>
-        </form>
 
         <StudioSaveBar
           :visible="canEdit && isDirty"

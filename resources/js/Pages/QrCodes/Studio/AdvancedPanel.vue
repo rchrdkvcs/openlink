@@ -10,7 +10,8 @@ defineProps<{ form: QrEditorForm }>();
 </script>
 
 <template>
-  <div class="grid gap-5">
+  <section class="grid gap-5" aria-labelledby="encoding-heading">
+    <h2 id="encoding-heading" class="text-sm font-medium text-foreground">Encoding</h2>
     <Field label="Margin" hint="Quiet zone around the code, in modules." :error="form.errors.margin">
       <Input v-model="form.margin" type="number" min="0" max="16" />
     </Field>
@@ -24,5 +25,5 @@ defineProps<{ form: QrEditorForm }>();
     <Field label="Default size" hint="Export size in pixels." :error="form.errors.size">
       <Input v-model="form.size" type="number" min="128" max="4096" />
     </Field>
-  </div>
+  </section>
 </template>

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Workspaces\CurrentWorkspace;
+use App\Models\AnalyticsView;
 use App\Models\DestinationCheck;
 use App\Models\Domain;
 use App\Models\Folder;
@@ -23,6 +24,7 @@ class ScopeBindingsToCurrentWorkspace
 {
     private const OUTSIDE_STATUS = [
         DestinationCheck::class => 403,
+        AnalyticsView::class => 404,
         Domain::class => 403,
         Folder::class => 403,
         InviteLink::class => 403,

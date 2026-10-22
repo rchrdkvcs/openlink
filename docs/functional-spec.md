@@ -213,6 +213,10 @@ Resolution outcomes include success, password failed, expired, disabled, schedul
 
 Analytics events are retained for 12 months by default; retention is configurable in the instance admin panel. The analytics page filters by date range, link, domain, folder, tag, and metric, compares each figure to the previous period, and exports the filtered events as CSV.
 
+Members can save the current filters as a named Saved View that only they see. Rolling ranges are stored as relative periods and advance each time the view is opened; custom dates stay fixed. Saving rejects filter targets that do not belong to the workspace, and a view whose link, QR code, domain, folder, tag, routing rule, or variant was later deleted or moved shows an explicit unavailable notice with no data rather than an unfiltered report.
+
+Owners and Admins can schedule a weekly Workspace Summary email from Settings → Weekly summary, choosing a timezone and current members as recipients. Each Monday at 08:00 in that timezone, recipients receive the previous Monday–Sunday totals for visits, QR scans, and visitors, the change against the week before, and the top five links, plus a link to the full report that requires signing in. Empty weeks and weeks whose comparison falls outside the retention window are labelled as such. The settings page shows the last successful delivery, the last sanitized failure, deliveries still waiting for the queue, and the next send time. Turning the summary off, deselecting a recipient, or removing a member cancels deliveries that have not been sent yet.
+
 ## Instance Admin Panel
 
 The instance admin panel manages product settings for the whole installation. It does not manage infrastructure secrets or boot-time server configuration.

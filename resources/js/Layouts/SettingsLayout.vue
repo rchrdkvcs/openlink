@@ -5,6 +5,7 @@ import {
   Building2,
   Globe2,
   KeyRound,
+  Mail,
   Link as LinkIcon,
   Server,
   ShieldCheck,
@@ -49,6 +50,12 @@ const groups = computed(() => {
           href: route('settings.webhooks'),
           icon: Webhook,
           active: route().current('settings.webhooks'),
+        },
+        {
+          label: 'Weekly summary',
+          href: route('settings.summaries'),
+          icon: Mail,
+          active: route().current('settings.summaries'),
         },
       ],
     });

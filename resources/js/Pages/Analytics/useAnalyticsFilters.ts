@@ -15,7 +15,7 @@ export function useAnalyticsFilters(applied: AppliedFilters) {
   const { filters, loading, reload, update } = useServerFilters({
     url: () => route('analytics.index'),
     source: () => initial,
-    only: ['report', 'filters'],
+    only: ['report', 'filters', 'unavailableFilters', 'activeView'],
     debounced: ['range', ...FILTER_KEYS],
     delay: 0,
     query: filterQuery,

@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsEventSlice
 {
+    private const INSTANT = 'Y-m-d H:i:s.u';
+
     public function __construct(
         private readonly Workspace $workspace,
         private readonly AnalyticsFilters $filters,
@@ -23,22 +25,27 @@ class AnalyticsEventSlice
 
     public function query(): Builder
     {
+        $timezone = config('app.timezone');
+        $filters = $this->filters;
+
         return AnalyticsEvent::query()
             ->where('workspace_id', $this->workspace->id)
-            ->whereBetween('occurred_at', [$this->filters->from, $this->filters->to])
-            ->when($this->filters->shortLinkId, fn (Builder $query, int $id) => $query->where('short_link_id', $id))
-            ->when($this->filters->qrCodeId, fn (Builder $query, int $id) => $query->where('qr_code_id', $id))
-            ->when($this->filters->domainId, fn (Builder $query, int $id) => $query->where('domain_id', $id))
-            ->when($this->filters->routingRuleId, fn (Builder $query, int $id) => $query->where('routing_rule_id', $id))
-            ->when($this->filters->routingVariantId, fn (Builder $query, int $id) => $query->where('routing_variant_id', $id))
-            ->when($this->filters->metric, fn (Builder $query, string $metric) => $query->where('metric', $metric))
-            ->when($this->filters->folderId, fn (Builder $query, int $id) => $query->whereIn(
+            ->where('occurred_at', '>=', $filters->from->setTimezone($timezone)->format(self::INSTANT))
+            ->where('occurred_at', '<', $filters->to->setTimezone($timezone)->format(self::INSTANT))
+            ->when($filters->unavailable !== [], fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->when($filters->shortLinkId !== null, fn (Builder $query) => $query->where('short_link_id', $filters->shortLinkId))
+            ->when($filters->qrCodeId !== null, fn (Builder $query) => $query->where('qr_code_id', $filters->qrCodeId))
+            ->when($filters->domainId !== null, fn (Builder $query) => $query->where('domain_id', $filters->domainId))
+            ->when($filters->routingRuleId !== null, fn (Builder $query) => $query->where('routing_rule_id', $filters->routingRuleId))
+            ->when($filters->routingVariantId !== null, fn (Builder $query) => $query->where('routing_variant_id', $filters->routingVariantId))
+            ->when($filters->metric !== null, fn (Builder $query) => $query->where('metric', $filters->metric))
+            ->when($filters->folderId !== null, fn (Builder $query) => $query->whereIn(
                 'short_link_id',
-                ShortLink::query()->where('workspace_id', $this->workspace->id)->where('folder_id', $id)->select('id'),
+                ShortLink::query()->where('workspace_id', $this->workspace->id)->where('folder_id', $filters->folderId)->select('id'),
             ))
-            ->when($this->filters->tagId, fn (Builder $query, int $id) => $query->whereIn(
+            ->when($filters->tagId !== null, fn (Builder $query) => $query->whereIn(
                 'short_link_id',
-                DB::table('short_link_tag')->where('tag_id', $id)->select('short_link_id'),
+                DB::table('short_link_tag')->where('tag_id', $filters->tagId)->select('short_link_id'),
             ));
     }
 

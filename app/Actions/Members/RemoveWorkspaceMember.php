@@ -2,6 +2,7 @@
 
 namespace App\Actions\Members;
 
+use App\Models\AnalyticsSummaryDelivery;
 use App\Models\User;
 use App\Models\WorkspaceMember;
 use Illuminate\Contracts\Auth\Access\Gate;
@@ -15,5 +16,6 @@ class RemoveWorkspaceMember
         $this->gate->forUser($actor)->authorize('delete', $member);
 
         $member->delete();
+        AnalyticsSummaryDelivery::cancelPendingFor($member->workspace_id, $member->user_id);
     }
 }

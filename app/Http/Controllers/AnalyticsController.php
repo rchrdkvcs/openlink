@@ -4,31 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Actions\Analytics\BuildAnalyticsReport;
 use App\Actions\Workspaces\CurrentWorkspace;
+use App\Models\AnalyticsView;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsFilters;
+use App\Services\Analytics\AnalyticsFilterTargets;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function index(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter): Response
+    public function index(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter, AnalyticsFilterTargets $targets): Response
     {
         $workspace = $current->require();
-        $filters = AnalyticsFilters::fromRequest($request);
+        $view = $this->activeView($request, $workspace);
+        $filters = $targets->resolve($workspace, $view ? AnalyticsFilters::fromQuery($view->filters) : AnalyticsFilters::fromRequest($request));
 
         return Inertia::render('Analytics/Index', [
             'report' => $reporter->report($workspace, $filters),
             'filters' => $filters->toQuery() + ['range' => $filters->range],
             'filterOptions' => $this->filterOptions($workspace),
+            'unavailableFilters' => $filters->unavailable,
+            'activeView' => $view ? ['id' => $view->id, 'name' => $view->name] : null,
+            'views' => $workspace->analyticsViews()
+                ->where('user_id', $request->user()->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'filters']),
         ]);
     }
 
-    public function export(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter): StreamedResponse
+    public function export(Request $request, CurrentWorkspace $current, BuildAnalyticsReport $reporter, AnalyticsFilterTargets $targets): StreamedResponse
     {
         $workspace = $current->require();
-        $filters = AnalyticsFilters::fromRequest($request);
+        $filters = $targets->resolve($workspace, AnalyticsFilters::fromRequest($request));
         $filename = sprintf('openlink-analytics-%s-%s.csv', $workspace->slug, now()->format('Y-m-d'));
 
         return response()->streamDownload(function () use ($reporter, $workspace, $filters): void {
@@ -48,6 +59,27 @@ class AnalyticsController extends Controller
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function open(Request $request, Workspace $workspace, CurrentWorkspace $current): RedirectResponse
+    {
+        Gate::authorize('view', $workspace);
+
+        $current->select($workspace);
+
+        return redirect()->route('analytics.index', $request->only(['range', 'from', 'to']));
+    }
+
+    private function activeView(Request $request, Workspace $workspace): ?AnalyticsView
+    {
+        if (! $request->filled('view')) {
+            return null;
+        }
+
+        $view = $workspace->analyticsViews()->find((int) $request->query('view'));
+        abort_unless($view && $request->user()->can('view', $view), 404);
+
+        return $view;
     }
 
     private function filterOptions(Workspace $workspace): array

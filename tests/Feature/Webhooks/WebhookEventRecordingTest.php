@@ -116,6 +116,25 @@ class WebhookEventRecordingTest extends TestCase
         Queue::assertPushed(DeliverWebhook::class, 3);
     }
 
+    public function test_bulk_actions_record_one_update_event_per_link(): void
+    {
+        Queue::fake();
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain('go.example.test');
+        $this->webhookEndpoint($workspace);
+        $first = $this->shortLink($workspace, $domain, 'spring');
+        $second = $this->shortLink($workspace, $domain, 'summer');
+        $this->actingInWorkspace($owner, $workspace);
+
+        $this->post(route('short-links.bulk'), ['action' => 'add_tags', 'ids' => [$first->id, $second->id], 'tags' => ['launch']])->assertRedirect();
+        $this->post(route('short-links.bulk'), ['action' => 'disable', 'ids' => [$first->id, $second->id]])->assertRedirect();
+
+        $deliveries = WebhookDelivery::query()->orderBy('id')->get();
+
+        $this->assertSame(array_fill(0, 4, 'short_link.updated'), $deliveries->map(fn (WebhookDelivery $delivery) => $delivery->event_type->value)->all());
+        $this->assertSame(['launch'], array_column(json_decode($deliveries[0]->payload, true)['data']['tags'], 'name'));
+        $this->assertFalse(json_decode($deliveries[3]->payload, true)['data']['is_enabled']);
+    }
+
     public function test_dashboard_mutations_record_the_same_events_as_the_api(): void
     {
         Queue::fake();

@@ -158,6 +158,7 @@ Route::domain(app(ApplicationHost::class)->host())->group(function () {
         Route::get('/short-links/{shortLink}/preview-image', [LinkPreviewImageController::class, 'show'])->name('short-links.preview-image');
         Route::post('/short-links/{shortLink}/move', [ShortLinkController::class, 'move'])->name('short-links.move');
         Route::post('/short-links/{shortLink}/archive', [ShortLinkController::class, 'archive'])->name('short-links.archive');
+        Route::post('/short-links/{shortLink}/unarchive', [ShortLinkController::class, 'unarchive'])->name('short-links.unarchive');
         Route::delete('/short-links/{shortLink}', [ShortLinkController::class, 'destroy'])->name('short-links.destroy');
         Route::post('/short-links/import/preview', [ShortLinkCsvController::class, 'preview'])->name('short-links.import.preview');
         Route::post('/short-links/import', [ShortLinkCsvController::class, 'store'])->name('short-links.import');

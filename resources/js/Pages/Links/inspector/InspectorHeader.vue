@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Archive, Copy, ExternalLink, QrCode, Trash2, X } from '@lucide/vue';
+import { Archive, ArchiveRestore, Copy, ExternalLink, QrCode, Trash2, X } from '@lucide/vue';
 
 import Favicon from '@/Components/Links/Favicon.vue';
 import Button from '@/Components/ui/Button.vue';
 import IconButton from '@/Components/ui/IconButton.vue';
-import { archiveLink, createQrCodeFor, deleteLink } from '@/lib/linkActions';
+import { archiveLink, createQrCodeFor, deleteLink, unarchiveLink } from '@/lib/linkActions';
 import { displayUrl } from '@/lib/links';
 import { useShell } from '@/lib/shell';
 import { copyToClipboard } from '@/lib/toast';
@@ -40,6 +40,15 @@ const { canEdit } = useShell();
       >
         <Archive class="h-4 w-4" />
       </IconButton>
+      <Button
+        v-else-if="canEdit"
+        variant="secondary"
+        size="sm"
+        type="button"
+        @click="unarchiveLink(link, () => emit('close'))"
+      >
+        <ArchiveRestore class="h-3.5 w-3.5" /> Unarchive
+      </Button>
       <IconButton v-if="canEdit" title="Delete" variant="danger" @click="deleteLink(link, () => emit('close'))">
         <Trash2 class="h-4 w-4" />
       </IconButton>

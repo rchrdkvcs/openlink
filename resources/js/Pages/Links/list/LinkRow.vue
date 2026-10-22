@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Copy, Folder as FolderIcon, Lock, QrCode, Timer } from '@lucide/vue';
+import { Copy, Folder as FolderIcon, Lock, QrCode, Timer, TriangleAlert } from '@lucide/vue';
 
 import Favicon from '@/Components/Links/Favicon.vue';
 import Checkbox from '@/Components/ui/Checkbox.vue';
 import { relativeTime } from '@/lib/datetime';
+import type { LinkHealthSummary } from '@/lib/destinationHealth';
 import { draggedLink } from '@/lib/dragLink';
 import { displayUrl } from '@/lib/links';
 import { useShell } from '@/lib/shell';
@@ -23,6 +24,7 @@ const props = defineProps<{
   compact?: boolean;
   selectable?: boolean;
   checked?: boolean;
+  health?: LinkHealthSummary;
 }>();
 
 const emit = defineEmits<{ select: []; removed: []; toggle: [] }>();
@@ -113,6 +115,13 @@ function onDragStart(event: DragEvent) {
     </div>
 
     <div class="hidden shrink-0 items-center gap-5 sm:flex">
+      <span
+        v-if="health === 'incident'"
+        class="inline-flex items-center gap-1 text-xs text-danger"
+        title="A destination of this link failed repeated checks"
+      >
+        <TriangleAlert class="h-3 w-3" />Destination failing
+      </span>
       <span
         v-if="countdown"
         class="inline-flex items-center gap-1 text-xs tabular-nums text-accent"

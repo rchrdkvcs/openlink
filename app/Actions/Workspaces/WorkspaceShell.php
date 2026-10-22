@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workspaces;
 
+use App\Actions\DestinationHealth\DestinationHealthPayload;
 use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Models\Workspace;
@@ -17,6 +18,7 @@ class WorkspaceShell
     public function __construct(
         private readonly CurrentWorkspace $current,
         private readonly Request $request,
+        private readonly DestinationHealthPayload $destinationHealth,
     ) {}
 
     public function props(): array
@@ -85,6 +87,7 @@ class WorkspaceShell
             'links_count' => (clone $links)->whereNull('archived_at')->count(),
             'unfiled_count' => (clone $links)->whereNull('archived_at')->whereNull('folder_id')->count(),
             'archived_count' => (clone $links)->whereNotNull('archived_at')->count(),
+            'destination_issues_count' => $this->destinationHealth->openCount($workspace),
         ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Analytics\BuildAnalyticsReport;
+use App\Actions\DestinationHealth\DestinationHealthPayload;
 use App\Actions\Domains\DomainPayload;
 use App\Actions\InviteLinks\InviteLinkPayload;
 use App\Actions\Members\MemberRows;
@@ -37,7 +38,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function links(Request $request, CurrentWorkspace $current, LinksQuery $links, DomainPayload $domains, SmartRouting $routing): Response
+    public function links(Request $request, CurrentWorkspace $current, LinksQuery $links, DomainPayload $domains, SmartRouting $routing, DestinationHealthPayload $health): Response
     {
         $workspace = $current->require();
         $filters = $request->validate(LinksQuery::rules());
@@ -52,6 +53,7 @@ class DashboardController extends Controller
             'linksPagination' => LinksQuery::pagination($page),
             'filters' => LinksQuery::filterState($filters),
             'routingSchema' => $routing->editorPayload(),
+            'destinationHealth' => $health->forLinks($workspace, $page->items()),
         ]);
     }
 

@@ -21,6 +21,7 @@ describe('instance settings', () => {
     expect(fields.slug_length).toBe('6');
     expect(fields.reserved_slugs).toBe('admin\nlogin');
     expect(fields.public_unavailable_title).toBe('This link is unavailable');
+    expect(fields.destination_monitoring).toBe(false);
   });
 
   it('describes registration modes', () => {

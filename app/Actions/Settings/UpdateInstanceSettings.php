@@ -34,6 +34,10 @@ class UpdateInstanceSettings
             $this->settings->set($key, $data[$key]);
         }
 
+        if (array_key_exists('destination_monitoring', $data)) {
+            $this->settings->set('destination_monitoring', (bool) $data['destination_monitoring']);
+        }
+
         if (array_key_exists('dns_target', $data)) {
             $this->settings->set('dns_target', trim((string) $data['dns_target']));
         }

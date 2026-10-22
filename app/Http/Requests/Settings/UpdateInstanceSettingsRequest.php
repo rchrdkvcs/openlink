@@ -15,6 +15,7 @@ class UpdateInstanceSettingsRequest extends FormRequest
             'dns_target' => ['nullable', 'string', 'max:255'],
             'slug_length' => ['required', 'integer', 'min:4', 'max:32'],
             'analytics_retention_days' => ['required', 'integer', 'min:30', 'max:3650'],
+            'destination_monitoring' => ['sometimes', 'boolean'],
             'reserved_slugs' => ['nullable', 'string'],
             'reserved_prefixes' => ['nullable', 'string'],
             'public_unavailable_title' => ['required', 'string', 'max:120'],

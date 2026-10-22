@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Workspaces\CurrentWorkspace;
+use App\Models\DestinationCheck;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\InviteLink;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ScopeBindingsToCurrentWorkspace
 {
     private const OUTSIDE_STATUS = [
+        DestinationCheck::class => 403,
         Domain::class => 403,
         Folder::class => 403,
         InviteLink::class => 403,

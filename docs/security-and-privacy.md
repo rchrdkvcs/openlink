@@ -34,6 +34,10 @@ Destination URLs must use HTTP or HTTPS. Dangerous URL schemes are rejected. Obv
 
 Unavailable public pages are neutral. They should not reveal whether a private or expired link exists unless the visitor is in an explicit password flow.
 
+## Destination Checks
+
+Destination Checks run outside public resolution and cannot block or change a redirect. Outbound requests only reach public addresses: loopback, private, reserved, link-local, metadata-service, and alternate numeric host forms are rejected for IPv4 and IPv6, DNS resolution is pinned to the connection to prevent rebinding, and every redirect hop is revalidated. Requests are anonymous and bounded in duration, redirects, and response size; page bodies are never stored.
+
 ## Analytics Privacy
 
 Analytics are aggregated by link and QR code. They can include referrer, approximate country, device type, browser, operating system, daily counts, lifetime totals, and resolution outcomes.

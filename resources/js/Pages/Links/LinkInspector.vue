@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import ShortUrlComposer from '@/Components/Links/ShortUrlComposer.vue';
 import Field from '@/Components/ui/Field.vue';
@@ -7,6 +7,7 @@ import Input from '@/Components/ui/Input.vue';
 import Select from '@/Components/ui/Select.vue';
 import Switch from '@/Components/ui/Switch.vue';
 import TagInput from '@/Components/ui/TagInput.vue';
+import type { DestinationHealth } from '@/lib/destinationHealth';
 import { hasOpenFloatingLayer } from '@/lib/overlays';
 import { useShell } from '@/lib/shell';
 import type { UtmTemplate } from '@/lib/utm';
@@ -14,6 +15,7 @@ import type { Domain, Folder, Tag } from '@/types/payloads';
 import type { RoutingSchema, ShortLink } from '@/types/shortLinks';
 
 import InspectorHeader from './inspector/InspectorHeader.vue';
+import InspectorHealth from './inspector/InspectorHealth.vue';
 import InspectorHistory from './inspector/InspectorHistory.vue';
 import InspectorOptions from './inspector/InspectorOptions.vue';
 import InspectorRouting from './inspector/InspectorRouting.vue';
@@ -28,6 +30,7 @@ const props = defineProps<{
   knownTags: Tag[];
   routingSchema: RoutingSchema;
   utmTemplates: UtmTemplate[];
+  health: Map<string, DestinationHealth>;
 }>();
 
 const emit = defineEmits<{ close: [] }>();
@@ -46,6 +49,8 @@ const folderOptions = computed(() => [
     label: folder.name,
   })),
 ]);
+
+const healthOpen = ref(false);
 
 const shortUrlChanged = computed(
   () => form.slug !== props.link.slug || Number(form.domain_id) !== props.link.domain.id,
@@ -143,6 +148,13 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
             :schema="routingSchema"
             :link-id="link.id"
             :dirty="canEdit && form.isDirty"
+          />
+          <InspectorHealth
+            v-model:open="healthOpen"
+            :link="link"
+            :health="health"
+            :can-check="canEdit"
+            :unsaved="form.isDirty"
           />
         </div>
       </fieldset>

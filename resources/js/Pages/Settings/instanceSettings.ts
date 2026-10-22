@@ -10,6 +10,7 @@ export type InstanceSettingsFields = {
   dns_target: string;
   slug_length: string;
   analytics_retention_days: string;
+  destination_monitoring: boolean;
   reserved_slugs: string;
   reserved_prefixes: string;
   public_unavailable_title: string;
@@ -29,6 +30,7 @@ export function instanceSettingsFields(settings: Record<string, any>): InstanceS
     dns_target: settings.dns_target ?? '',
     slug_length: String(settings.slug_length ?? 6),
     analytics_retention_days: String(settings.analytics_retention_days ?? 365),
+    destination_monitoring: Boolean(settings.destination_monitoring ?? false),
     reserved_slugs: (settings.reserved_slugs ?? []).join('\n'),
     reserved_prefixes: (settings.reserved_prefixes ?? []).join('\n'),
     public_unavailable_title: settings.public_unavailable_title ?? defaultUnavailableTitle,

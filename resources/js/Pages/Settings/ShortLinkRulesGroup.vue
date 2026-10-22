@@ -2,6 +2,7 @@
 import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
 import SettingsRow from '@/Components/ui/SettingsRow.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
+import Switch from '@/Components/ui/Switch.vue';
 import Textarea from '@/Components/ui/Textarea.vue';
 
 import type { InstanceSettingsForm } from './instanceSettings';
@@ -49,6 +50,15 @@ defineProps<{ form: InstanceSettingsForm }>();
         rows="4"
         placeholder="api/&#10;qr/"
       />
+    </SettingsRow>
+    <SettingsRow
+      label="Monitor destinations"
+      description="Checks every destination in the background and reports broken ones under Links › Issues. Contacts destination sites every few hours."
+      :error="form.errors.destination_monitoring"
+    >
+      <div class="flex sm:justify-end">
+        <Switch v-model="form.destination_monitoring" aria-label="Monitor destinations" />
+      </div>
     </SettingsRow>
   </SettingsGroup>
 </template>

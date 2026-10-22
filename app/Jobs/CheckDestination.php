@@ -6,13 +6,14 @@ use App\Actions\DestinationHealth\DestinationChecks;
 use App\Models\DestinationCheck;
 use App\Services\DestinationHealth\DestinationProbe;
 use DateTimeInterface;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Throwable;
 
-class CheckDestination implements ShouldBeUnique, ShouldQueue
+class CheckDestination implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
@@ -24,18 +25,24 @@ class CheckDestination implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 90;
 
-    public int $uniqueFor = 600;
+    public int $uniqueFor = 1920;
 
-    public function __construct(public readonly int $destinationCheckId, public readonly string $host = '') {}
+    public bool $failOnTimeout = true;
+
+    public function __construct(
+        public readonly int $destinationCheckId,
+        public readonly string $host = '',
+        public readonly ?string $generation = null,
+    ) {}
 
     public static function for(DestinationCheck $check): self
     {
-        return new self($check->id, $check->host());
+        return new self($check->id, $check->host(), $check->generation);
     }
 
     public function uniqueId(): string
     {
-        return (string) $this->destinationCheckId;
+        return $this->destinationCheckId.(isset($this->generation) ? ':'.$this->generation : '');
     }
 
     public function retryUntil(): DateTimeInterface
@@ -54,12 +61,35 @@ class CheckDestination implements ShouldBeUnique, ShouldQueue
 
     public function handle(DestinationProbe $probe, DestinationChecks $checks): void
     {
-        $check = DestinationCheck::query()->find($this->destinationCheckId);
+        $check = DestinationCheck::query()->where('generation', $this->generation ?? null)->find($this->destinationCheckId);
 
         if ($check === null) {
             return;
         }
 
+        $started = DestinationCheck::query()
+            ->whereKey($check->id)
+            ->where('generation', $this->generation ?? null)
+            ->update(['execution_state' => 'running', 'started_at' => now()]);
+
+        if (! $started) {
+            return;
+        }
+
+        $check->refresh();
+
+        if ($check->generation !== ($this->generation ?? null)) {
+            return;
+        }
         $checks->record($check, $probe->check($check->url));
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        DestinationCheck::query()
+            ->whereKey($this->destinationCheckId)
+            ->where('generation', $this->generation ?? null)
+            ->whereIn('execution_state', ['queued', 'running'])
+            ->update(['execution_state' => 'failed']);
     }
 }

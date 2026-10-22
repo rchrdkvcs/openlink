@@ -8,6 +8,7 @@ import Button from '@/Components/ui/Button.vue';
 import { relativeTime } from '@/lib/datetime';
 import {
   type DestinationHealth,
+  checkLabel,
   healthLabel,
   healthNote,
   healthVariant,
@@ -27,6 +28,7 @@ const props = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false });
 const requesting = ref(false);
+const error = ref<string | null>(null);
 
 const rows = computed(() =>
   linkDestinations(props.link).map((destination, index) => ({
@@ -40,10 +42,13 @@ const failing = computed(
   () => new Set(rows.value.filter((row) => row.health?.has_incident).map((row) => row.url)).size,
 );
 const checking = computed(() => rows.value.some((row) => row.health?.pending));
+const canRetry = computed(() => rows.value.every((row) => !row.health?.pending || row.health.can_retry));
 
 const summary = computed(() => {
   if (failing.value) return `${failing.value} failing`;
-  if (checking.value) return 'Checking…';
+  if (rows.value.some((row) => row.health?.execution_state === 'running')) return 'Running';
+  if (checking.value) return 'Queued';
+  if (rows.value.some((row) => row.health?.execution_state === 'failed')) return 'Check failed';
   if (rows.value.every((row) => row.health?.status === 'reachable')) return 'Reachable';
   if (rows.value.every((row) => !row.health || row.health.status === 'unchecked')) return 'Not checked';
   return 'See details';
@@ -51,13 +56,17 @@ const summary = computed(() => {
 
 function check() {
   requesting.value = true;
+  error.value = null;
   router.post(
     route('short-links.destination-checks.store', props.link.id),
     {},
     {
       preserveScroll: true,
       preserveState: true,
-      only: ['destinationHealth', 'navigation'],
+      only: ['destinationHealth', 'navigation', 'errors'],
+      onError: (errors) => {
+        error.value = errors.destination_health ?? 'The Destination Check could not be requested. Try again.';
+      },
       onFinish: () => (requesting.value = false),
     },
   );
@@ -72,12 +81,22 @@ function check() {
     :summary="summary"
     :active="failing > 0"
   >
-    <ul class="divide-y overflow-hidden rounded-lg border">
+    <p v-if="error" role="alert" class="text-xs text-danger">{{ error }}</p>
+    <ul aria-live="polite" class="divide-y overflow-hidden rounded-lg border">
       <li v-for="row in rows" :key="row.key" class="flex items-start gap-3 px-3 py-2.5">
         <div class="min-w-0 flex-1">
           <p class="text-xs text-faint">{{ row.label }}</p>
           <p class="truncate text-[13px] text-foreground" :title="row.url">{{ displayUrl(row.url) }}</p>
+          <p v-if="row.health && row.health.execution_state !== 'idle'" class="mt-0.5 text-xs font-medium text-muted">
+            {{ checkLabel(row.health) }}
+          </p>
           <p class="mt-0.5 text-xs text-muted">{{ healthNote(row.health, relativeTime) }}</p>
+          <p
+            v-if="row.health?.checked_at && (row.health.pending || row.health.execution_state === 'failed')"
+            class="mt-0.5 text-xs text-faint"
+          >
+            Latest result checked {{ relativeTime(row.health.checked_at) }}
+          </p>
           <p v-if="row.health?.detail && row.health.status !== 'reachable'" class="mt-0.5 text-xs text-faint">
             {{ row.health.detail }}
           </p>
@@ -87,10 +106,23 @@ function check() {
     </ul>
     <div v-if="canCheck" class="flex items-center justify-between gap-3">
       <p class="text-xs text-faint">
-        {{ unsaved ? 'Checks use the saved destinations.' : 'Checks never affect redirects.' }}
+        {{
+          checking && canRetry
+            ? 'Still queued. Retry replaces the pending request safely.'
+            : unsaved
+              ? 'Checks use the saved destinations.'
+              : 'Checks never affect redirects.'
+        }}
       </p>
-      <Button variant="secondary" size="sm" type="button" :loading="requesting" :disabled="checking" @click="check">
-        <RefreshCw /> Check now
+      <Button
+        variant="secondary"
+        size="sm"
+        type="button"
+        :loading="requesting"
+        :disabled="checking && !canRetry"
+        @click="check"
+      >
+        <RefreshCw /> {{ checking && canRetry ? 'Retry check' : 'Check now' }}
       </Button>
     </div>
   </InspectorRow>

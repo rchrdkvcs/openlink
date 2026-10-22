@@ -29,6 +29,8 @@ class DestinationMonitoringTest extends TestCase
     {
         parent::setUp();
 
+        config(['queue.default' => 'database']);
+
         $this->dns = (new InMemoryDnsLookup)->pointTo('example.com', '93.184.216.34');
         $this->app->instance(DnsLookup::class, $this->dns);
         Http::preventStrayRequests();
@@ -103,7 +105,7 @@ class DestinationMonitoringTest extends TestCase
         $this->assertEqualsCanonicalizing([$old->id, $confirming->id], $pushed);
 
         Queue::fake();
-        DestinationCheck::query()->update(['checked_at' => now()->subDay(), 'requested_at' => null]);
+        DestinationCheck::query()->update(['checked_at' => now()->subDay(), 'requested_at' => null, 'execution_state' => null]);
         $this->artisan('openlink:monitor-destinations', ['--limit' => 2])->assertSuccessful();
         Queue::assertPushed(CheckDestination::class, 2);
     }

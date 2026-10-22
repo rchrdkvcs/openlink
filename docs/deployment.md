@@ -111,6 +111,54 @@ workspace summaries every fifteen minutes, records its heartbeat, and prunes
 analytics and webhook history daily. Destination Monitoring must also be enabled
 by the instance administrator; starting the scheduler alone does not enable it.
 
+## Operating Destination Checks
+
+Manual Destination Checks use the same default queue as the worker. Keep
+`QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, and the same Redis connection,
+queue name, and cache prefix in the web and worker processes. A persistent
+shared cache is required for destination deduplication, host limits, and global
+concurrency slots. The `database` queue is also supported; run the worker against
+that connection if selected. Synchronous, deferred, and background queue drivers
+are rejected for Destination Checks so outbound requests never run in the web
+request. No scheduler is needed for a manual check.
+
+The inspector reports **Queued** until a worker starts the job, **Running**
+while probing, and **Completed** only when a normalized result is saved. The
+latest health result is kept during a recheck and if a job fails. Completed can
+mean an HTTP failure, Inconclusive, or Blocked; it does not imply Reachable.
+The inspector and Issues page keep refreshing while a job is pending, including
+when it waits more than a minute. An old queued request does not become Not
+checked just because time passed.
+
+If a check stays Queued, inspect the worker service and its logs, verify it
+consumes the configured connection and queue, and check `php artisan queue:failed`.
+Start or restart the worker after correcting configuration; pending jobs are
+consumed without another click. A queue submission error or terminal worker
+failure is shown as a failed check and can be retried. A queued job gets up to
+30 minutes for host and global throttling; its unique lock lasts 32 minutes.
+After 60 seconds in Queued, **Retry check** becomes available. It is an explicit
+replacement, not an automatic expiry: leaving the request alone still lets the
+original job run through its full queue waiting window. Replacing it creates a
+new generation; an old queued job skips probing, and late results or failure
+callbacks cannot overwrite the replacement. This also recovers pre-upgrade
+pending rows whose original job is missing. Repeated replacements can delay
+completion on a busy queue, so first verify that a worker is running.
+
+Running has a 120-second lease, longer than the job timeout. If a worker is killed
+without reporting failure, the dashboard treats the expired lease as a failed
+execution and offers **Check now** again. The previous health is preserved;
+an expired lease never claims a successful probe. A restarted worker can also
+retry its reserved job normally until a user replaces its generation.
+
+Jobs time out after 90 seconds and report timeout failures. The Redis and
+database queue reservation defaults are 120 seconds, longer than that timeout;
+keep `REDIS_QUEUE_RETRY_AFTER` or `DB_QUEUE_RETRY_AFTER` above 90 if overridden.
+Keep the worker running with the command above, including on installations
+where queued analytics and scheduled Destination Monitoring are disabled.
+Run migrations before restarting the web and worker processes when upgrading;
+execution state is stored separately from Destination Health. Restart all old
+workers before accepting new check requests so they use generation guards.
+
 ## Diagnostics
 
 Instance administrators can open **Settings → Diagnostics** to see whether

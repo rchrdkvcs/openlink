@@ -12,7 +12,9 @@ class DestinationCheck extends Model
 {
     public const STALE_AFTER_DAYS = 7;
 
-    public const PENDING_FOR_MINUTES = 10;
+    public const QUEUED_RETRY_AFTER_SECONDS = 60;
+
+    public const RUNNING_LEASE_SECONDS = 120;
 
     protected $guarded = [];
 
@@ -22,6 +24,7 @@ class DestinationCheck extends Model
             'status' => DestinationHealthStatus::class,
             'checked_at' => 'datetime',
             'requested_at' => 'datetime',
+            'started_at' => 'datetime',
             'failing_since' => 'datetime',
             'incident_opened_at' => 'datetime',
             'recovered_at' => 'datetime',
@@ -78,11 +81,36 @@ class DestinationCheck extends Model
         return $this->incident_opened_at !== null;
     }
 
+    public function executionState(): string
+    {
+        if ($this->execution_state === 'running' && ($this->started_at === null || $this->started_at->lessThanOrEqualTo(now()->subSeconds(self::RUNNING_LEASE_SECONDS)))) {
+            return 'failed';
+        }
+
+        if ($this->execution_state !== null) {
+            return $this->execution_state;
+        }
+
+        if ($this->requested_at !== null && ($this->checked_at === null || $this->requested_at->greaterThan($this->checked_at))) {
+            return 'queued';
+        }
+
+        return $this->checked_at === null ? 'idle' : 'completed';
+    }
+
     public function isPending(): bool
     {
-        return $this->requested_at !== null
-            && $this->requested_at->greaterThan(now()->subMinutes(self::PENDING_FOR_MINUTES))
-            && ($this->checked_at === null || $this->requested_at->greaterThan($this->checked_at));
+        return in_array($this->executionState(), ['queued', 'running'], true);
+    }
+
+    public function canRetry(): bool
+    {
+        if (! $this->isPending()) {
+            return true;
+        }
+
+        return $this->executionState() === 'queued'
+            && ($this->requested_at === null || $this->requested_at->lessThanOrEqualTo(now()->subSeconds(self::QUEUED_RETRY_AFTER_SECONDS)));
     }
 
     public function isStale(): bool

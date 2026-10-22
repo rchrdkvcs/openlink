@@ -14,5 +14,4 @@ Schedule::command('openlink:verify-pending-domains')->hourly();
 Schedule::command('openlink:heartbeat')->cron(app(Heartbeats::class)->schedulerCron());
 Schedule::command('openlink:monitor-destinations')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('openlink:prune-webhook-deliveries')->dailyAt('03:30');
-Schedule::command('openlink:send-workspace-summaries')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('openlink:send-workspace-summaries')->everyFifteenMinutes()->withoutOverlapping(10);

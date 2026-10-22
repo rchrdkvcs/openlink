@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Workspaces\CurrentWorkspace;
-use App\Models\DestinationCheck;
 use App\Models\AnalyticsView;
+use App\Models\DestinationCheck;
 use App\Models\Domain;
 use App\Models\Folder;
 use App\Models\InviteLink;

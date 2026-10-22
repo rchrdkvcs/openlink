@@ -83,12 +83,12 @@ class ShortLinkMutation
         }));
     }
 
-    public function updateRouting(User $user, ShortLink $shortLink, string $destinationUrl, array $rules): ShortLink
+    public function updateRouting(User $user, ShortLink $shortLink, string $destinationUrl, array $rules, int $expectedRevision): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
         ShortUrlAddress::of($shortLink)->rejectLoop($destinationUrl, 'destination_url');
 
-        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $destinationUrl, $rules): void {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, $expectedRevision, function () use ($shortLink, $destinationUrl, $rules): void {
             $shortLink->update(['destination_url' => $destinationUrl]);
             $this->routing->sync($shortLink, $rules);
             $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);

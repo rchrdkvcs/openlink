@@ -70,6 +70,20 @@ class LinksQuery
             ->through(fn (ShortLink $link) => $this->payload->handle($link));
     }
 
+    public function inspected(Workspace $workspace, ?int $id, array $filters): ?array
+    {
+        if (! $id) {
+            return null;
+        }
+
+        $link = $this->filtered($workspace, [
+            'folder' => $filters['folder'] ?? '',
+            'status' => ($filters['status'] ?? '') === LinkStatus::Archived->value ? LinkStatus::Archived->value : '',
+        ])->whereKey($id)->first();
+
+        return $link ? $this->payload->handle($link) : null;
+    }
+
     public function recent(Workspace $workspace, int $limit): Collection
     {
         return $this->filtered($workspace)

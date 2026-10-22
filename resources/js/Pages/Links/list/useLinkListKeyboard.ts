@@ -6,7 +6,8 @@ export type LinkListShortcuts = {
   move: (delta: number) => void;
 };
 
-const IGNORED_TARGETS = 'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"]';
+const IGNORED_TARGETS =
+  'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [role="option"], [role="combobox"]';
 
 export function useLinkListKeyboard(shortcuts: LinkListShortcuts) {
   const actions: Record<string, (() => void) | undefined> = {
@@ -19,6 +20,11 @@ export function useLinkListKeyboard(shortcuts: LinkListShortcuts) {
   };
 
   function onKeydown(event: KeyboardEvent) {
+    if (
+      event.defaultPrevented ||
+      document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')
+    )
+      return;
     const target = event.target as HTMLElement | null;
     if (target?.closest(IGNORED_TARGETS)) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;

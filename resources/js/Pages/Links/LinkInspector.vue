@@ -25,6 +25,7 @@ import InspectorRouting from './inspector/InspectorRouting.vue';
 import InspectorSaveBar from './inspector/InspectorSaveBar.vue';
 import InspectorUtm from './inspector/InspectorUtm.vue';
 import { useShortLinkEditor } from './inspector/useShortLinkEditor';
+import RoutingEditorModal from './routing/RoutingEditorModal.vue';
 
 const props = defineProps<{
   link: ShortLink;
@@ -40,7 +41,7 @@ const emit = defineEmits<{ close: [] }>();
 
 const { canEdit, canManage } = useShell();
 
-const { form, sections, save, discard, destinationValid, hasErrors } = useShortLinkEditor(
+const { form, sections, save, discard, destinationValid, hasErrors, acceptRoutingSave, stale } = useShortLinkEditor(
   () => props.link,
   () => canEdit.value,
 );
@@ -53,6 +54,7 @@ const folderOptions = computed(() => [
   })),
 ]);
 
+const routingOpen = ref(false);
 const healthOpen = ref(false);
 const historyOpen = ref(false);
 const historyButton = ref<HTMLButtonElement | null>(null);
@@ -82,6 +84,7 @@ const shortUrlChanged = computed(
 );
 
 function onKeydown(event: KeyboardEvent) {
+  if (routingOpen.value) return;
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
     event.preventDefault();
     if (!historyOpen.value) save();
@@ -185,7 +188,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
           />
           <InspectorOptions v-model:sections="sections" :form="form" :successful-visits="link.successful_visits" />
           <InspectorPreview v-model:open="sections.preview" :form="form" :link="link" />
-          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" :dirty="canEdit && form.isDirty" />
+          <InspectorRouting :rules="link.routing_rules ?? []" :link-id="link.id" @open="routingOpen = true" />
           <InspectorHealth
             v-model:open="healthOpen"
             :link="link"
@@ -212,6 +215,20 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown));
         </button>
       </div>
     </form>
+
+    <RoutingEditorModal
+      v-if="routingOpen"
+      :link="link"
+      :routing-schema="routingSchema"
+      :inspector-dirty="canEdit && form.isDirty"
+      @close="routingOpen = false"
+      @saved="acceptRoutingSave"
+    />
+
+    <p v-if="stale && form.isDirty" role="alert" class="shrink-0 border-t px-5 py-3 text-xs text-warning">
+      This link changed while you were editing. Your draft is kept. Discard it to load the latest saved version before
+      editing again.
+    </p>
 
     <InspectorSaveBar
       :visible="!historyOpen && canEdit && form.isDirty"

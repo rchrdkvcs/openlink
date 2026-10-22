@@ -27,7 +27,12 @@ class ShortLinkRoutingController extends Controller
     public function update(UpdateShortLinkRoutingRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
     {
         $data = $request->validated();
-        $shortLinks->updateRouting($request->user(), $shortLink, $data['destination_url'], $data['routing_rules']);
+        $saved = $shortLinks->updateRouting($request->user(), $shortLink, $data['destination_url'], $data['routing_rules'], (int) $data['expected_revision']);
+        Inertia::flash('routingSaved', [
+            'link_id' => $saved->id,
+            'expected_revision' => (int) $data['expected_revision'],
+            'revision' => $saved->revision,
+        ]);
 
         return back();
     }

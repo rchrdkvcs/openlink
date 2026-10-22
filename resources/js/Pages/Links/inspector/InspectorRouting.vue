@@ -1,32 +1,22 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { ChevronRight, Route } from '@lucide/vue';
 import { computed } from 'vue';
 
-import { confirmAction } from '@/lib/confirm';
 import type { RoutingRuleDraft } from '@/types/shortLinks';
 
 const props = defineProps<{
   rules: RoutingRuleDraft[];
   linkId: number;
-  dirty: boolean;
 }>();
 
 const editorUrl = computed(() => route('links.routing', props.linkId));
 
-async function openEditor(event: MouseEvent) {
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+const emit = defineEmits<{ open: [] }>();
 
+function openEditor(event: MouseEvent) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
-  const leave =
-    !props.dirty ||
-    (await confirmAction({
-      title: 'Leave without saving?',
-      message: 'Your changes to this link are not saved yet.',
-      confirmLabel: 'Leave',
-      destructive: true,
-    }));
-  if (leave) router.visit(editorUrl.value);
+  emit('open');
 }
 
 const enabledRules = computed(() => props.rules.filter((rule) => rule.is_enabled).length);
@@ -40,6 +30,7 @@ const status = computed(() => {
 <template>
   <a
     :href="editorUrl"
+    aria-haspopup="dialog"
     class="flex min-h-11 w-full items-center gap-2.5 px-3.5 py-2.5 text-start transition-colors hover:bg-elevated/40 focus-visible:bg-elevated/40 focus-visible:outline-none"
     @click="openEditor"
   >

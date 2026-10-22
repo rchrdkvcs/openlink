@@ -63,7 +63,11 @@ const empty = computed(() => emptyCopy(view.value.scope, searching.value));
 const usableDomains = computed(() => selectableDomains(props.domains));
 
 const selectedId = useNumericUrlParam('link');
-const selected = computed<ShortLink | null>(() => props.links.find((link) => link.id === selectedId.value) ?? null);
+const selected = computed<ShortLink | null>(() =>
+  props.inspectedLink?.id === selectedId.value
+    ? props.inspectedLink
+    : (props.links.find((link) => link.id === selectedId.value) ?? null),
+);
 
 const checkedIds = ref<number[]>([]);
 const visibleIds = computed(() => props.links.map((link) => link.id));
@@ -75,9 +79,10 @@ watch(
     checkedIds.value = [];
   },
 );
-watch(visibleIds, (ids) => {
+watch([visibleIds, () => props.inspectedLink], ([ids, inspected]) => {
   checkedIds.value = keepVisible(checkedIds.value, ids);
-  if (selectedId.value !== null && !ids.includes(selectedId.value)) selectedId.value = null;
+  if (selectedId.value !== null && !ids.includes(selectedId.value) && inspected?.id !== selectedId.value)
+    selectedId.value = null;
 });
 
 const { countdownFor } = useActivationCountdownWithReload(() => props.links);

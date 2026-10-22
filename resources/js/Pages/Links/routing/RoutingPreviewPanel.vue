@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, CornerDownRight, FlaskConical, Lock, Shuffle, TriangleAlert, X } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 
 import Badge from '@/Components/ui/Badge.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -11,7 +11,7 @@ import { fetchJson, HttpError } from '@/lib/http';
 import { conditionSummary } from '@/lib/routing';
 import {
   availabilityReasons,
-  newPreviewContext,
+  type PreviewContext,
   type PreviewDraft,
   previewErrors,
   previewRequest,
@@ -32,13 +32,12 @@ const props = defineProps<{
   unsaved: boolean;
 }>();
 
-const emit = defineEmits<{ result: [preview: RoutingPreview | null] }>();
-
-const context = ref(newPreviewContext(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'));
-const result = ref<RoutingPreview | null>(null);
+const context = defineModel<PreviewContext>('context', { required: true });
+const result = defineModel<RoutingPreview | null>('result', { required: true });
+const requestedTime = defineModel<string>('requestedTime', { required: true });
 const errors = ref<string[]>([]);
 const running = ref(false);
-const requestedTime = ref('');
+let request = 0;
 
 const deviceOptions = computed(() => [
   { value: '', label: 'Unknown' },
@@ -83,33 +82,39 @@ function conditionText(condition: RoutingPreview['rules'][number]['conditions'][
 watch(
   () => props.draft,
   () => {
-    if (!result.value) return;
+    request += 1;
+    running.value = false;
+    errors.value = [];
     result.value = null;
-    emit('result', null);
   },
   { deep: true },
 );
 
+onUnmounted(() => {
+  request += 1;
+});
+
 async function run() {
+  const current = ++request;
   running.value = true;
   errors.value = [];
   requestedTime.value = context.value.occurred_at;
 
   try {
-    result.value = await fetchJson<RoutingPreview>(route('short-links.routing-preview', props.linkId), {
+    const response = await fetchJson<RoutingPreview>(route('short-links.routing-preview', props.linkId), {
       method: 'POST',
       body: JSON.stringify(previewRequest(context.value, props.draft)),
     });
-    emit('result', result.value);
+    if (current === request) result.value = response;
   } catch (error) {
+    if (current !== request) return;
     result.value = null;
-    emit('result', null);
     errors.value =
       error instanceof HttpError && error.status === 422
         ? previewErrors(error.body)
         : ['Couldn’t test routing. Try again.'];
   } finally {
-    running.value = false;
+    if (current === request) running.value = false;
   }
 }
 </script>

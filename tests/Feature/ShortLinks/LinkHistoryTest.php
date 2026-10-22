@@ -628,6 +628,33 @@ class LinkHistoryTest extends TestCase
         $this->assertSame(0, ShortLinkRevision::query()->count());
     }
 
+    public function test_routing_editor_saves_bulk_status_changes_and_bulk_tags_each_record_a_revision(): void
+    {
+        [$workspace, $domain, $owner] = $this->workspaceWithActiveDomain();
+        $this->actingInWorkspace($owner, $workspace);
+
+        $this->post('/short-links', ['domain_id' => $domain->id, 'slug' => 'launch', 'destination_url' => 'https://example.com/a'])->assertRedirect();
+        $link = ShortLink::query()->firstOrFail();
+
+        $this->put(route('short-links.routing.update', $link), [
+            'destination_url' => 'https://example.com/a',
+            'routing_rules' => [$this->franceRule()],
+        ])->assertRedirect();
+        $this->assertSame(2, $link->fresh()->revision);
+
+        $this->post(route('short-links.bulk'), ['action' => 'disable', 'ids' => [$link->id]])->assertRedirect();
+        $this->assertSame(3, $link->fresh()->revision);
+
+        $this->post(route('short-links.bulk'), ['action' => 'add_tags', 'ids' => [$link->id], 'tags' => ['spring']])->assertRedirect();
+        $this->assertSame(4, $link->fresh()->revision);
+
+        $actions = ShortLinkRevision::query()->where('short_link_id', $link->id)->orderBy('number')->get();
+        $this->assertSame(['created', 'updated', 'updated', 'updated'], $actions->map(fn (ShortLinkRevision $revision) => $revision->action->value)->all());
+        $this->assertSame('routing_rules', $actions[1]->changes[0]['field']);
+        $this->assertSame('is_enabled', $actions[2]->changes[0]['field']);
+        $this->assertSame('tags', $actions[3]->changes[0]['field']);
+    }
+
     private function createLink(int $domainId, array $attributes = []): int
     {
         return $this->postJson('/api/v1/links', [

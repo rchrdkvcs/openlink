@@ -286,7 +286,7 @@ class BulkShortLinkActionsTest extends TestCase
         $this->assertDatabaseCount('short_link_tag', 0);
     }
 
-    public function test_tagging_a_full_batch_uses_a_bounded_number_of_queries(): void
+    public function test_tagging_a_full_batch_uses_a_constant_number_of_queries_plus_revisions_per_link(): void
     {
         $links = $this->links(array_map(fn (int $index) => 'link-'.$index, range(1, 40)));
         Tag::create(['workspace_id' => $this->workspace->id, 'name' => 'existing']);
@@ -300,11 +300,11 @@ class BulkShortLinkActionsTest extends TestCase
         $remove = $this->countingQueries(fn () => $this->bulk($this->owner, 'remove_tags', $links, ['tags' => $tags])->assertSessionHasNoErrors());
 
         $this->assertDatabaseCount('short_link_tag', 0);
-        $this->assertLessThan(25, $add);
-        $this->assertLessThan(25, $remove);
+        $this->assertLessThan(25 + 6 * count($links), $add);
+        $this->assertLessThan(25 + 6 * count($links), $remove);
     }
 
-    public function test_cache_invalidation_reuses_the_loaded_domain(): void
+    public function test_cache_invalidation_only_loads_domains_for_revision_snapshots(): void
     {
         $links = $this->links(array_map(fn (int $index) => 'link-'.$index, range(1, 10)));
         $domainQueries = 0;
@@ -316,7 +316,7 @@ class BulkShortLinkActionsTest extends TestCase
 
         $this->bulk($this->owner, 'disable', $links)->assertSessionHasNoErrors();
 
-        $this->assertLessThanOrEqual(2, $domainQueries);
+        $this->assertLessThanOrEqual(2 + 3 * count($links), $domainQueries);
     }
 
     private function countingQueries(callable $callback): int

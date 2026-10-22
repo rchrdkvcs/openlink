@@ -77,11 +77,9 @@ class ShortLinkMutation
         $this->gate->forUser($user)->authorize('update', $shortLink);
         ShortUrlAddress::of($shortLink)->rejectLoop($destinationUrl, 'destination_url');
 
-        return DB::transaction(function () use ($shortLink, $destinationUrl, $rules): ShortLink {
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $destinationUrl, $rules): void {
             $shortLink->update(['destination_url' => $destinationUrl]);
             $this->routing->sync($shortLink, $rules);
-
-            return $shortLink;
         });
     }
 
@@ -123,9 +121,10 @@ class ShortLinkMutation
     public function setEnabled(User $user, ShortLink $shortLink, bool $enabled): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);
-        $shortLink->update(['is_enabled' => $enabled]);
 
-        return $shortLink;
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink, $enabled): void {
+            $shortLink->update(['is_enabled' => $enabled]);
+        });
     }
 
     public function delete(User $user, ShortLink $shortLink): void

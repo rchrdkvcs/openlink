@@ -6,6 +6,7 @@ use App\Models\RoutingRule;
 use App\Models\RoutingVariant;
 use App\Models\ShortLink;
 use App\Models\Tag;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 
 class LinkSnapshot
@@ -20,7 +21,21 @@ class LinkSnapshot
 
     public function capture(ShortLink $shortLink): array
     {
-        $link = ShortLink::query()->with(self::RELATIONS)->findOrFail($shortLink->id);
+        return $this->fromLoaded(ShortLink::query()->with(self::RELATIONS)->findOrFail($shortLink->id));
+    }
+
+    public function captureMany(Collection $shortLinks): array
+    {
+        return ShortLink::query()
+            ->with(self::RELATIONS)
+            ->whereKey($shortLinks->modelKeys())
+            ->get()
+            ->mapWithKeys(fn (ShortLink $link) => [$link->id => $this->fromLoaded($link)])
+            ->all();
+    }
+
+    private function fromLoaded(ShortLink $link): array
+    {
         $digests = [];
         $url = function (string $path, ?string $value) use (&$digests): ?string {
             if (($digest = $this->urls->digest($value)) !== null) {

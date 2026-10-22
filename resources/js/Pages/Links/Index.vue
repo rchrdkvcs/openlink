@@ -77,6 +77,7 @@ watch(
 );
 watch(visibleIds, (ids) => {
   checkedIds.value = keepVisible(checkedIds.value, ids);
+  if (selectedId.value !== null && !ids.includes(selectedId.value)) selectedId.value = null;
 });
 
 const { countdownFor } = useActivationCountdownWithReload(() => props.links);

@@ -47,6 +47,13 @@ class ShortLinkController extends Controller
         return back();
     }
 
+    public function unarchive(Request $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
+    {
+        $shortLinks->unarchive($request->user(), $shortLink);
+
+        return back();
+    }
+
     public function move(MoveShortLinkRequest $request, ShortLink $shortLink, ShortLinkMutation $shortLinks): RedirectResponse
     {
         $shortLinks->move($request->user(), $shortLink, $request->folderId());

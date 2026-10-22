@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   Archive,
+  ArchiveRestore,
   Copy,
   ExternalLink,
   Folder as FolderIcon,
@@ -16,7 +17,7 @@ import { DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMe
 import Menu from '@/Components/ui/Menu.vue';
 import MenuItem from '@/Components/ui/MenuItem.vue';
 import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
-import { archiveLink, createQrCodeFor, deleteLink, moveLinkToFolder } from '@/lib/linkActions';
+import { archiveLink, createQrCodeFor, deleteLink, moveLinkToFolder, unarchiveLink } from '@/lib/linkActions';
 import { useShell } from '@/lib/shell';
 import { copyToClipboard } from '@/lib/toast';
 import type { Folder } from '@/types/payloads';
@@ -83,6 +84,7 @@ function openShortUrl() {
       <MenuItem v-if="link.status !== 'archived'" :icon="Archive" @select="archiveLink(link, () => emit('removed'))"
         >Archive</MenuItem
       >
+      <MenuItem v-else :icon="ArchiveRestore" @select="unarchiveLink(link, () => emit('removed'))">Unarchive</MenuItem>
       <MenuItem :icon="Trash2" destructive @select="deleteLink(link, () => emit('removed'))">Delete</MenuItem>
     </template>
   </Menu>

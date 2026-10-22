@@ -133,6 +133,20 @@ class ShortLinkMutation
         });
     }
 
+    public function unarchive(User $user, ShortLink $shortLink): ShortLink
+    {
+        $this->gate->forUser($user)->authorize('update', $shortLink);
+
+        return $this->recorded($user, $shortLink, RevisionAction::Updated, null, function () use ($shortLink): void {
+            if (! $shortLink->isArchived()) {
+                return;
+            }
+
+            $shortLink->update(['archived_at' => null]);
+            $this->webhooks->shortLink(WebhookEventType::ShortLinkUpdated, $shortLink);
+        });
+    }
+
     public function setEnabled(User $user, ShortLink $shortLink, bool $enabled): ShortLink
     {
         $this->gate->forUser($user)->authorize('update', $shortLink);

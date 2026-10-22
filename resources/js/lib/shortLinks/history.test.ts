@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { LinkRevision } from '@/types/shortLinks';
 
-import { actionLabel, actorLabel, channelLabel, describeChange } from './history';
+import { actionLabel, actorLabel, channelLabel, describeChange, revisionSummary } from './history';
 
 function revision(overrides: Partial<LinkRevision> = {}): LinkRevision {
   return {
@@ -128,7 +128,9 @@ describe('describeChange', () => {
         before: [france],
         after: [{ ...france, conditions: [{ value: 'DE' }] }],
       }),
-    ).toMatchObject({ after: '1. France → https://example.com/fr (conditions changed)' });
+    ).toMatchObject({
+      after: '1. France → https://example.com/fr (configuration changed; URL query values are hidden)',
+    });
   });
 
   it('falls back to the raw field for unknown fields', () => {
@@ -137,5 +139,57 @@ describe('describeChange', () => {
       before: 'x',
       after: 'y',
     });
+  });
+});
+
+describe('revisionSummary', () => {
+  it('explains creation, baseline and restore semantics', () => {
+    expect(revisionSummary(revision({ action: 'created' }))).toBe('Short link created with the settings below.');
+    expect(revisionSummary(revision({ action: 'baseline' }))).toBe(
+      'Settings recorded before the first tracked change.',
+    );
+    expect(revisionSummary(revision({ action: 'restored', restored_from: 1 }))).toBe(
+      'Settings copied from revision 1. Earlier changes are kept.',
+    );
+  });
+
+  it('explains lifecycle and password changes without secrets', () => {
+    expect(revisionSummary(revision({ changes: [{ field: 'is_enabled', before: true, after: false }] }))).toBe(
+      'Link disabled.',
+    );
+    expect(revisionSummary(revision({ changes: [{ field: 'is_archived', before: true, after: false }] }))).toBe(
+      'Link removed from archive.',
+    );
+    expect(revisionSummary(revision({ changes: [{ field: 'has_password', before: false, after: true }] }))).toBe(
+      'Password protection added.',
+    );
+    expect(revisionSummary(revision({ changes: [{ field: 'password_changed', before: null, after: null }] }))).toBe(
+      'Visitor password replaced.',
+    );
+  });
+
+  it('summarises settings without repeating long values', () => {
+    expect(
+      revisionSummary(
+        revision({
+          changes: [
+            { field: 'destination_url', before: null, after: 'https://example.com/long' },
+            { field: 'tags', before: [], after: [] },
+            { field: 'routing_rules', before: [], after: [] },
+          ],
+        }),
+      ),
+    ).toBe('Destination, Tags and 1 more setting updated.');
+    expect(revisionSummary(revision())).toBe('Link settings updated.');
+  });
+
+  it('explains changes whose redacted URL values look the same', () => {
+    expect(
+      describeChange({
+        field: 'destination_url',
+        before: 'https://example.com/?token=•••',
+        after: 'https://example.com/?token=•••',
+      }).after,
+    ).toContain('URL query values are hidden');
   });
 });

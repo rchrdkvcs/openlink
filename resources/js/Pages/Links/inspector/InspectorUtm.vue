@@ -94,7 +94,7 @@ const {
       </Link>
     </p>
 
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-3">
       <div v-for="field in UTM_FIELDS" :key="field.key" class="flex items-end gap-1.5">
         <Field :label="field.label" class="min-w-0 flex-1">
           <Input

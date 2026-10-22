@@ -101,7 +101,7 @@ The link editor includes a UTM builder for the default destination URL (see ADR 
 
 Owners and admins manage UTM Templates in a dedicated UTM templates section accessible from the main navigation and command palette: they can create, rename, update, and delete them. Templates belong to one workspace and hold parameter values only. Any member who can edit links can apply a template from the link editor: the editor lists the changes the template makes, applies them only when confirmed, and leaves every field editable before saving. Applying a template sets only the parameters the template defines. The resulting destination URL is saved like any other destination; links do not remember which template was applied, so updating or deleting a template does not change existing links.
 
-Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0017.
+Every successful change to a short link appends a link revision to its link history, recording when the change happened, who made it, whether it came from the dashboard, the API, or the system, and what changed. Every member can read the link history in its own view inside the link inspector, with newest changes first, explicit before/after values, timestamps, and a back control that preserves unsaved edits. Owners, Admins, and Editors can preview and restore an earlier link revision; restoring records a new link revision and keeps the intervening history. Restoring covers destination and fallback URLs, enabled and archived state, schedule, visit limit, folder, tags, and Smart Routing, but never the short URL, a visitor password, visit totals, analytics, or QR codes. See ADR 0017.
 
 Disabled links do not resolve, regardless of lifecycle rules. Archived links are hidden from primary dashboard views, preserved for history and analytics, do not resolve, and keep their slug reserved.
 
@@ -127,7 +127,7 @@ weighted split-test variant; without a match, the default destination is used.
 Variant assignment is stable for the same visitor within a day. Linked QR Codes
 use the Short Link's routing and retain their own scan attribution.
 
-Smart Routing is edited on a dedicated page for each short link, opened from the link inspector with "Open routing editor". The inspector keeps a compact summary of the first rules.
+The link inspector opens the Smart Routing editor through one direct "Smart routing" section link showing the number of enabled rules. Unsaved edits require confirmation before leaving the inspector.
 
 The page shows the routing as a left-to-right graph. An incoming visit enters the first rule. Each rule node lists its conditions; its "Match" output leads to its destination or its split-test variants, and its "No match" output leads to the next rule. The chain ends at the default destination. The graph is laid out automatically from the ordered rules; dragging a rule up or down changes its priority, and node positions are not saved.
 

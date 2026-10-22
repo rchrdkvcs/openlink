@@ -36,7 +36,7 @@ const panelId = useId();
       :class="open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
     >
       <div class="min-h-0 overflow-hidden">
-        <div class="space-y-3 px-3.5 pb-3.5 pt-1">
+        <div class="space-y-3 px-3.5 py-3.5">
           <slot />
         </div>
       </div>

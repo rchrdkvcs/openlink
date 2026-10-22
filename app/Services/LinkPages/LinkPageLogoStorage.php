@@ -6,6 +6,7 @@ use App\Models\LinkPage;
 use GdImage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,8 @@ use Throwable;
 class LinkPageLogoStorage
 {
     public const MAX_DIMENSION = 256;
+
+    public const MAX_SOURCE_PIXELS = 2048 * 2048;
 
     private const DIRECTORY = 'link-page-logos';
 
@@ -40,7 +43,7 @@ class LinkPageLogoStorage
         }
 
         if ($previous !== $linkPage->logo_path) {
-            $this->delete([$previous]);
+            DB::afterCommit(fn () => $this->delete([$previous]));
         }
 
         return $linkPage;
@@ -82,7 +85,18 @@ class LinkPageLogoStorage
 
     private function reencode(UploadedFile $upload): string
     {
-        $source = @imagecreatefromstring((string) file_get_contents($upload->getRealPath()));
+        $contents = (string) file_get_contents($upload->getRealPath());
+        $size = @getimagesizefromstring($contents);
+
+        if (! $size || $size[0] < 1 || $size[1] < 1) {
+            throw ValidationException::withMessages(['logo' => __('validation.image', ['attribute' => 'logo'])]);
+        }
+
+        if ($size[0] * $size[1] > self::MAX_SOURCE_PIXELS) {
+            throw ValidationException::withMessages(['logo' => __('openlink.validation.link_page_logo_too_large')]);
+        }
+
+        $source = @imagecreatefromstring($contents);
 
         if (! $source instanceof GdImage) {
             throw ValidationException::withMessages(['logo' => __('validation.image', ['attribute' => 'logo'])]);

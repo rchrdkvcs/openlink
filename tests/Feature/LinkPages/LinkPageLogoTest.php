@@ -3,9 +3,12 @@
 namespace Tests\Feature\LinkPages;
 
 use App\Models\LinkPage;
+use App\Services\LinkPages\LinkPageLogoStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Tests\Support\CreatesLinkPages;
 use Tests\TestCase;
 
@@ -87,6 +90,40 @@ class LinkPageLogoTest extends TestCase
         $this->assertSame(0, LinkPage::query()->count());
     }
 
+    public function test_images_with_too_many_pixels_are_rejected_before_decoding(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $linkPage = $this->linkPage($workspace);
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->patch(route('link-pages.update', $linkPage), $this->content(['logo' => $this->pngHeaderUpload(4096, 4096)]))
+            ->assertSessionHasErrors(['logo' => 'Use an image of at most 2048 by 2048 pixels.']);
+
+        $this->assertNull($linkPage->fresh()->logo_path);
+        $this->assertSame([], Storage::allFiles());
+    }
+
+    public function test_previous_logo_survives_a_rolled_back_replacement(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        $linkPage = $this->linkPage($workspace);
+        $this->actingInWorkspace($owner, $workspace)
+            ->patch(route('link-pages.update', $linkPage), $this->content(['logo' => $this->pngUpload(40, 40)]));
+        $previous = $linkPage->fresh()->logo_path;
+
+        try {
+            DB::transaction(function () use ($linkPage): void {
+                app(LinkPageLogoStorage::class)->save($linkPage->fresh(), $this->pngUpload(40, 40));
+
+                throw new RuntimeException('Rolled back');
+            });
+        } catch (RuntimeException) {
+        }
+
+        Storage::assertExists($previous);
+        $this->assertSame($previous, $linkPage->fresh()->logo_path);
+    }
+
     public function test_logos_are_removed_when_their_workspace_is_deleted(): void
     {
         [$workspace, $owner] = $this->workspaceWithOwner();
@@ -104,6 +141,14 @@ class LinkPageLogoTest extends TestCase
     private function content(array $overrides = []): array
     {
         return ['name' => 'Spring', 'path' => 'spring', 'title' => 'Spring', ...$overrides];
+    }
+
+    private function pngHeaderUpload(int $width, int $height): UploadedFile
+    {
+        $header = 'IHDR'.pack('NNCCCCC', $width, $height, 8, 6, 0, 0, 0);
+        $contents = "\x89PNG\r\n\x1a\n".pack('N', 13).$header.pack('N', crc32($header));
+
+        return UploadedFile::fake()->createWithContent('logo.png', $contents);
     }
 
     private function pngUpload(int $width, int $height, string $appended = ''): UploadedFile

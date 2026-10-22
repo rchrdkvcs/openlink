@@ -16,10 +16,12 @@ class CreateLinkPage
     {
         $workspace = $this->current->require('editContent');
 
-        return $workspace->linkPages()->create([
+        $path = $this->paths->ensureAvailable($data['path']);
+
+        return $this->paths->claim(fn (): LinkPage => $workspace->linkPages()->create([
             'name' => $data['name'],
-            'path' => $this->paths->ensureAvailable($data['path']),
+            'path' => $path,
             'title' => $data['name'],
-        ]);
+        ]));
     }
 }

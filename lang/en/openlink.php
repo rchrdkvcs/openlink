@@ -10,5 +10,6 @@ return [
         'slug_reserved' => 'This short link path is reserved by the application.',
         'link_page_path_invalid' => 'Use lowercase letters, numbers, and dashes only, starting and ending with a letter or number.',
         'link_page_path_taken' => 'This page path is already in use.',
+        'link_page_logo_too_large' => 'Use an image of at most 2048 by 2048 pixels.',
     ],
 ];

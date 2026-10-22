@@ -6,6 +6,8 @@ use App\Models\Domain;
 use App\Models\LinkPage;
 use App\Models\ShortLink;
 use App\Services\ApplicationHost;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class LinkPagePaths
@@ -26,10 +28,24 @@ class LinkPagePaths
             ->exists();
 
         if ($taken || $this->usedByShortLink($path)) {
-            throw ValidationException::withMessages(['path' => __('openlink.validation.link_page_path_taken')]);
+            throw $this->taken();
         }
 
         return $path;
+    }
+
+    public function claim(callable $write): mixed
+    {
+        try {
+            return DB::transaction($write);
+        } catch (UniqueConstraintViolationException) {
+            throw $this->taken();
+        }
+    }
+
+    private function taken(): ValidationException
+    {
+        return ValidationException::withMessages(['path' => __('openlink.validation.link_page_path_taken')]);
     }
 
     private function usedByShortLink(string $path): bool

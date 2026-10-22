@@ -6,6 +6,7 @@ use App\Models\LinkPage;
 use App\Services\InstanceSettings;
 use App\Services\SlugService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\CreatesLinkPages;
 use Tests\TestCase;
@@ -46,6 +47,28 @@ class LinkPageAddressTest extends TestCase
             ->assertSessionHasErrors('path');
 
         $this->assertSame(1, LinkPage::query()->count());
+    }
+
+    public function test_path_claimed_concurrently_returns_a_validation_error(): void
+    {
+        [$workspace, $owner] = $this->workspaceWithOwner();
+        [$otherWorkspace] = $this->workspaceWithOwner('Other');
+        LinkPage::creating(function () use ($otherWorkspace): void {
+            DB::table('link_pages')->insertOrIgnore([
+                'workspace_id' => $otherWorkspace->id,
+                'name' => 'First',
+                'path' => 'spring',
+                'title' => 'First',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $this->actingInWorkspace($owner, $workspace)
+            ->post(route('link-pages.store'), ['name' => 'Spring', 'path' => 'spring'])
+            ->assertSessionHasErrors(['path' => 'This page path is already in use.']);
+
+        $this->assertFalse($workspace->linkPages()->exists());
     }
 
     public function test_path_used_by_an_existing_application_host_short_link_is_rejected(): void

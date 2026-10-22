@@ -6,7 +6,6 @@ use App\Models\LinkPage;
 use App\Services\LinkPages\LinkPageLogoStorage;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class UpdateLinkPage
 {
@@ -27,7 +26,7 @@ class UpdateLinkPage
             'description' => filled($data['description'] ?? null) ? $data['description'] : null,
         ]);
 
-        return DB::transaction(function () use ($request, $linkPage, $data): LinkPage {
+        return $this->paths->claim(function () use ($request, $linkPage, $data): LinkPage {
             $this->replaceItems($linkPage, $data['items'] ?? []);
 
             return $this->logos->save(

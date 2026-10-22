@@ -23,46 +23,99 @@ class DeployWorkflowTest extends TestCase
         $this->assertStringNotContainsString('workflow_dispatch:', $workflow);
     }
 
-    public function test_prereleases_publish_without_updating_latest(): void
+    public function test_release_channels_publish_the_expected_tags(): void
     {
-        $workflow = file_get_contents(
-            dirname(__DIR__, 2).'/.github/workflows/deploy.yml',
-        );
+        $cases = [
+            ['v1.6.0-beta.1', 'true', 'current', 'latest', ['publish' => 'true', 'beta' => 'true'], ['v1.6.0-beta.1', 'beta']],
+            ['1.6.0-beta', 'true', 'current', 'latest', ['publish' => 'true', 'beta' => 'true'], ['1.6.0-beta', 'beta']],
+            ['v1.6.0-alpha.1', 'true', 'current', 'latest', ['publish' => 'true'], ['v1.6.0-alpha.1']],
+            ['v1.6.0-rc.1', 'true', 'current', 'latest', ['publish' => 'true'], ['v1.6.0-rc.1']],
+            ['v1.6.0-betamax.1', 'true', 'current', 'latest', ['publish' => 'true'], ['v1.6.0-betamax.1']],
+            ['v1.6.0', 'false', 'latest', 'latest', ['publish' => 'true', 'latest' => 'true'], ['v1.6.0', 'latest']],
+            ['v1.5.4', 'false', 'older', 'latest', [], []],
+            ['v1.6.0-beta.1', 'false', 'latest', 'latest', ['publish' => 'true', 'latest' => 'true'], ['v1.6.0-beta.1', 'latest']],
+        ];
 
-        $this->assertStringContainsString(
-            'PRERELEASE: ${{ github.event.release.prerelease }}',
+        foreach ($cases as [$tag, $prerelease, $releaseId, $latestId, $expectedOutputs, $expectedTags]) {
+            [$outputs] = $this->runWorkflowStep('Select release publication', [
+                'TAG' => $tag,
+                'PRERELEASE' => $prerelease,
+                'RELEASE_ID' => $releaseId,
+                'LATEST_RELEASE_ID' => $latestId,
+                'GITHUB_REPOSITORY' => 'example/openlink',
+            ]);
+
+            $this->assertSame($expectedOutputs, $outputs, $tag);
+
+            if (($outputs['publish'] ?? '') !== 'true') {
+                continue;
+            }
+
+            [, $command] = $this->runWorkflowStep('Publish release manifest', [
+                'TAG' => $tag,
+                'IMAGE' => 'ghcr.io/example/openlink',
+                'PUBLISH_LATEST' => $outputs['latest'] ?? '',
+                'PUBLISH_BETA' => $outputs['beta'] ?? '',
+            ]);
+
+            preg_match_all('/--tag ghcr\.io\/example\/openlink:([^ ]+)/', $command, $matches);
+            $this->assertSame($expectedTags, $matches[1], $tag);
+        }
+    }
+
+    public function test_beta_output_is_forwarded_to_manifest_publication(): void
+    {
+        $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/deploy.yml');
+
+        $this->assertStringContainsString('beta: ${{ steps.release.outputs.beta }}', $workflow);
+        $this->assertStringContainsString('PUBLISH_BETA: ${{ needs.check-release.outputs.beta }}', $workflow);
+        $this->assertStringContainsString('TAG: ${{ github.event.release.tag_name }}', $workflow);
+    }
+
+    private function runWorkflowStep(string $name, array $environment): array
+    {
+        $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/deploy.yml');
+        $matched = preg_match(
+            '/      - name: '.preg_quote($name, '/').'\n.*?        run: \|\n((?:          [^\n]*\n|\n)+)/s',
             $workflow,
+            $matches,
         );
-        $this->assertStringContainsString(
-            'if [ "$PRERELEASE" = "true" ]; then'."\n".
-            '            echo "publish=true" >> "$GITHUB_OUTPUT"'."\n".
-            '            exit 0',
-            $workflow,
-        );
-        $this->assertStringNotContainsString(
-            'if: github.event.release.prerelease == false',
-            $workflow,
-        );
-        $this->assertStringContainsString(
-            'gh api "repos/$GITHUB_REPOSITORY/releases/latest"',
-            $workflow,
-        );
-        $this->assertStringContainsString(
-            'if [ "$RELEASE_ID" = "$latest_release_id" ]; then'."\n".
-            '            echo "publish=true" >> "$GITHUB_OUTPUT"'."\n".
-            '            echo "latest=true" >> "$GITHUB_OUTPUT"',
-            $workflow,
-        );
-        $this->assertStringContainsString(
-            'PUBLISH_LATEST: ${{ needs.check-release.outputs.latest }}',
-            $workflow,
-        );
-        $this->assertStringContainsString('tags=(--tag "$IMAGE:$TAG")', $workflow);
-        $this->assertStringContainsString(
-            'if [ "$PUBLISH_LATEST" = "true" ]; then'."\n".
-            '            tags+=(--tag "$IMAGE:latest")',
-            $workflow,
-        );
+        $this->assertSame(1, $matched);
+
+        $outputPath = tempnam(sys_get_temp_dir(), 'release-output-');
+        $workingDirectory = sys_get_temp_dir().'/release-digests-'.bin2hex(random_bytes(8));
+        mkdir($workingDirectory);
+        touch($workingDirectory.'/example');
+
+        try {
+            $script = 'gh() { printf "%s\n" "$LATEST_RELEASE_ID"; }'."\n".
+                'docker() { printf "%s " "$@"; }'."\n".
+                preg_replace('/^ {10}/m', '', $matches[1]);
+            $process = proc_open(
+                ['bash', '-e', '-c', $script],
+                [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes,
+                $workingDirectory,
+                [...getenv(), ...$environment, 'GITHUB_OUTPUT' => $outputPath],
+            );
+            $stdout = stream_get_contents($pipes[1]);
+            $stderr = stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            $this->assertSame(0, proc_close($process), $stderr);
+
+            $outputs = [];
+            foreach (file($outputPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+                [$key, $value] = explode('=', $line, 2);
+                $outputs[$key] = $value;
+            }
+
+            return [$outputs, $stdout];
+        } finally {
+            unlink($outputPath);
+            unlink($workingDirectory.'/example');
+            rmdir($workingDirectory);
+        }
     }
 
     public function test_image_publication_does_not_deploy_to_coolify(): void

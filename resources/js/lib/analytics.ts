@@ -29,14 +29,14 @@ export type TimePoint = {
   blocked: number;
 };
 
-export type BreakdownRow = {
+type BreakdownRow = {
   label: string;
   count: number;
   visitors: number;
   share: number;
 };
 
-export type OutcomeRow = {
+type OutcomeRow = {
   outcome: string;
   count: number;
   share: number;
@@ -79,7 +79,7 @@ export type ConversionMeasures = {
   rate: number | null;
 };
 
-export type ConversionLinkRow = ConversionMeasures & {
+type ConversionLinkRow = ConversionMeasures & {
   id: number;
   slug: string | null;
   short_url: string | null;
@@ -87,7 +87,7 @@ export type ConversionLinkRow = ConversionMeasures & {
   insufficient_evidence: boolean;
 };
 
-export type ConversionRoutingRow = ConversionMeasures & {
+type ConversionRoutingRow = ConversionMeasures & {
   short_link_id: number;
   slug: string | null;
   routing_rule_id: number | null;

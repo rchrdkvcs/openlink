@@ -16,7 +16,7 @@ export function keepSelected(
   return selected && !results.some((link) => link.id === selected.id) ? [selected, ...results] : results;
 }
 
-export async function fetchShortLinks(term: string): Promise<ShortLinkOption[] | null> {
+async function fetchShortLinks(term: string): Promise<ShortLinkOption[] | null> {
   const response = await fetch(route('qr-codes.short-links', { search: term }), {
     headers: { Accept: 'application/json' },
   });

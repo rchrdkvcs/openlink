@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted } from 'vue';
 
-export function isSaveShortcut(event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'key'>): boolean {
+function isSaveShortcut(event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'key'>): boolean {
   return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's';
 }
 

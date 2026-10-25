@@ -49,17 +49,12 @@ export default {
         dialog: '0 0 0 1px hsl(var(--border-strong) / 1), 0 24px 64px -16px rgb(0 0 0 / 0.6)',
       },
       keyframes: {
-        'fade-in': {
-          from: { opacity: '0' },
-          to: { opacity: '1' },
-        },
         'slide-up': {
           from: { opacity: '0', transform: 'translateY(6px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
       },
       animation: {
-        'fade-in': 'fade-in 0.2s ease-out',
         'slide-up': 'slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },

@@ -27,11 +27,6 @@ class InviteLink extends Model
         return $this->belongsTo(Workspace::class);
     }
 
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by_id');
-    }
-
     public function isUsable(): bool
     {
         return $this->revoked_at === null

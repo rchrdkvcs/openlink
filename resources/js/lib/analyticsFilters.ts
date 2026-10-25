@@ -52,7 +52,7 @@ export function isRangeReady(state: AnalyticsFilterState): boolean {
   return state.range !== 'custom' || Boolean(state.from && state.to);
 }
 
-export type NamedOption = { id: number; name: string };
+type NamedOption = { id: number; name: string };
 
 export type AnalyticsFilterOptions = {
   links: LinkOption[];
@@ -64,7 +64,7 @@ export type AnalyticsFilterOptions = {
   routingVariants: NamedOption[];
 };
 
-export type DimensionKey = Exclude<FilterKey, 'link'>;
+type DimensionKey = Exclude<FilterKey, 'link'>;
 
 export type Dimension = { key: DimensionKey; label: string; icon: unknown; options: SelectOption[] };
 

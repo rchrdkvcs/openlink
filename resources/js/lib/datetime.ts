@@ -2,7 +2,7 @@ export type CalendarDay = { date: Date; inMonth: boolean; key: string; isToday: 
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export function dateKey(d: Date): string {
+function dateKey(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 

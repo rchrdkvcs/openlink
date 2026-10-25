@@ -4,7 +4,7 @@ import type { QrCodeRecord, TargetType } from './types';
 
 const compactNumber = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-export function payloadTypeLabel(type: string | null, payloadTypes: Record<string, string>): string {
+function payloadTypeLabel(type: string | null, payloadTypes: Record<string, string>): string {
   return payloadTypes[type ?? ''] ?? type ?? 'Content';
 }
 

@@ -69,11 +69,6 @@ class ShortLink extends Model
         return $this->hasMany(AnalyticsEvent::class);
     }
 
-    public function conversionAttributions(): HasMany
-    {
-        return $this->hasMany(ConversionAttribution::class);
-    }
-
     public function scopePrimary(Builder $query): Builder
     {
         return $query->whereNull('archived_at');

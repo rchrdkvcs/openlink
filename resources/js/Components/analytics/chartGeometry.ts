@@ -66,5 +66,3 @@ export function createChartScale(points: TimePoint[], width: number) {
 
   return { x, y, linePath, areaPath, indexAt, yTicks, xLabels: labelIndexes(count) };
 }
-
-export type ChartScale = ReturnType<typeof createChartScale>;

@@ -4,7 +4,7 @@ import type { ExportFormat, QrAppearance, QrCodeRecord } from './types';
 
 export type DecodeStatus = 'readable' | 'mismatch' | 'unreadable' | 'unsupported' | 'unavailable';
 
-export type FormatCheck = {
+type FormatCheck = {
   status: DecodeStatus;
   decoded: string | null;
   reason?: string;
@@ -64,9 +64,9 @@ export type ReadableFixes = { appearance: Partial<QrAppearance>; exportSize?: nu
 
 export type ReadabilityRequest = { url: string; body: Record<string, unknown>; version: number };
 
-export const READABLE_COLORS = { foreground_color: '#111827', background_color: '#ffffff' } as const;
+const READABLE_COLORS = { foreground_color: '#111827', background_color: '#ffffff' } as const;
 
-export const READABLE_MARGIN = 4;
+const READABLE_MARGIN = 4;
 
 const FIXABLE = new Set<ReadabilityWarning['code']>([
   'low_contrast',

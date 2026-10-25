@@ -5,7 +5,7 @@ import type { PreviewRuleStatus, RoutingPreview } from './preview';
 import type { RuleListChange } from './rules';
 import { conditionSummary, ruleName, variantShare } from './summary';
 
-export type PathState = 'idle' | 'taken' | 'dimmed';
+type PathState = 'idle' | 'taken' | 'dimmed';
 
 export type GraphNodeKind = 'entry' | 'rule' | 'destination' | 'variant' | 'default';
 
@@ -42,7 +42,7 @@ export type GraphNode =
   | { id: string; type: 'destination' | 'variant'; position: Position; data: DestinationNodeData }
   | { id: string; type: 'default'; position: Position; data: DefaultNodeData };
 
-export type GraphEdgeKind = 'flow' | 'match' | 'next';
+type GraphEdgeKind = 'flow' | 'match' | 'next';
 
 export type GraphEdge = {
   id: string;
@@ -57,7 +57,7 @@ type Position = { x: number; y: number };
 
 export type GraphOptions = { schema: RoutingSchema; errors?: FormErrors; preview?: RoutingPreview | null };
 
-export const LAYOUT = {
+const LAYOUT = {
   entryX: 0,
   ruleX: 300,
   destinationX: 680,
@@ -269,8 +269,4 @@ export function reorderRule(rules: RoutingRuleDraft[], from: number, to: number)
   reordered.splice(target, 0, moved);
 
   return { rules: reordered, focus: target };
-}
-
-export function dropIndex(nodes: GraphNode[], from: number, droppedY: number): number {
-  return nodes.filter((node) => node.type === 'rule' && node.data.index !== from && node.position.y < droppedY).length;
 }

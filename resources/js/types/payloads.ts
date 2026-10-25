@@ -9,7 +9,7 @@ export type WorkspaceSummary = {
   preferred_domain_id?: number | null;
 };
 
-export type DomainDnsRecord = { type: string; value: string };
+type DomainDnsRecord = { type: string; value: string };
 
 export type Domain = {
   id: number;
@@ -64,7 +64,7 @@ export type InviteLink = {
   created_at: string | null;
 };
 
-export type MemberUser = { id: number; name: string; email: string; profile_avatar_url?: string | null };
+type MemberUser = { id: number; name: string; email: string; profile_avatar_url?: string | null };
 
 export type Member = { id: number; role: string; created_at: string; user: MemberUser };
 

@@ -23,7 +23,7 @@ export type PreviewDraft = { destination_url: string; routing_rules: RoutingRule
 
 export type PreviewRuleStatus = 'disabled' | 'not_matched' | 'matched' | 'skipped' | 'not_reached';
 
-export type PreviewCondition = {
+type PreviewCondition = {
   type: string;
   operator: string;
   value: RoutingCondition['value'];
@@ -31,7 +31,7 @@ export type PreviewCondition = {
   matched: boolean;
 };
 
-export type PreviewVariant = {
+type PreviewVariant = {
   id: number | null;
   name: string;
   destination_url: string;

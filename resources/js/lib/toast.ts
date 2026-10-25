@@ -1,8 +1,8 @@
 import { reactive } from 'vue';
 
-export type ToastTone = 'default' | 'success' | 'danger';
+type ToastTone = 'default' | 'success' | 'danger';
 
-export type ToastAction = { label: string; run: () => void };
+type ToastAction = { label: string; run: () => void };
 
 export type Toast = {
   id: number;

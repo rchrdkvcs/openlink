@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Analytics\Outcome;
+use App\Services\InstanceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,23 @@ class PublicResolutionTest extends TestCase
         parent::setUp();
 
         config(['openlink.analytics.via_queue' => true]);
+    }
+
+    public function test_unavailable_pages_follow_the_instance_branding_setting(): void
+    {
+        $this->get('/missing-link')
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Unavailable')
+                ->where('showBranding', true));
+
+        app(InstanceSettings::class)->set('public_error_branding', false);
+
+        $this->get('/missing-link')
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Unavailable')
+                ->where('showBranding', false));
     }
 
     public function test_visit_limit_rechecks_count_when_two_resolutions_start_with_stale_link_instances(): void

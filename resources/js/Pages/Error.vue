@@ -10,6 +10,7 @@ import Button from '@/Components/ui/Button.vue';
 import { errorState } from '@/lib/publicStates';
 
 const props = defineProps<{
+  showBranding: boolean;
   status: number;
 }>();
 
@@ -23,7 +24,12 @@ function retry() {
 <template>
   <Head :title="state.title" />
 
-  <PublicStateLayout :title="state.title" :description="state.description" :tone="state.tone">
+  <PublicStateLayout
+    :title="state.title"
+    :description="state.description"
+    :tone="state.tone"
+    :show-branding="showBranding"
+  >
     <template #art>
       <StateArt :scene="state.scene" :tone="state.tone" />
     </template>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Services\InstanceSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,12 +29,24 @@ class ErrorPageResponder
         }
 
         try {
-            return Inertia::render('Error', ['status' => $response->getStatusCode()])
+            return Inertia::render('Error', [
+                'status' => $response->getStatusCode(),
+                'showBranding' => $this->showBranding(),
+            ])
                 ->toResponse($request)
                 ->setStatusCode($response->getStatusCode())
                 ->withHeaders($this->forwardedHeaders($response));
         } catch (Throwable) {
             return $response;
+        }
+    }
+
+    private function showBranding(): bool
+    {
+        try {
+            return (bool) app(InstanceSettings::class)->get('public_error_branding');
+        } catch (Throwable) {
+            return InstanceSettings::DEFAULTS['public_error_branding'];
         }
     }
 

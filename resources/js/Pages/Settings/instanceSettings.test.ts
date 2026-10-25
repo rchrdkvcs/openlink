@@ -22,6 +22,11 @@ describe('instance settings', () => {
     expect(fields.reserved_slugs).toBe('admin\nlogin');
     expect(fields.public_unavailable_title).toBe('This link is unavailable');
     expect(fields.destination_monitoring).toBe(false);
+    expect(fields.public_error_branding).toBe(true);
+  });
+
+  it('preserves disabled branding', () => {
+    expect(instanceSettingsFields({ public_error_branding: false }).public_error_branding).toBe(false);
   });
 
   it('describes registration modes', () => {

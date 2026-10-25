@@ -3,6 +3,7 @@ import { ref } from 'vue';
 
 import type { StateTone } from '@/lib/publicStates';
 
+import PoweredBy from './PoweredBy.vue';
 import PublicBackdrop from './PublicBackdrop.vue';
 
 withDefaults(
@@ -11,8 +12,9 @@ withDefaults(
     description?: string;
     tone?: StateTone;
     wide?: boolean;
+    showBranding?: boolean;
   }>(),
-  { tone: 'accent', wide: false },
+  { tone: 'accent', wide: false, showBranding: false },
 );
 
 const art = ref<HTMLElement | null>(null);
@@ -50,6 +52,9 @@ const art = ref<HTMLElement | null>(null);
         </div>
       </section>
     </div>
+    <footer v-if="showBranding" class="relative px-6 pb-6 pt-2">
+      <PoweredBy />
+    </footer>
   </main>
 </template>
 

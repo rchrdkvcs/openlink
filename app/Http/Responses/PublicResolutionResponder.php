@@ -4,6 +4,7 @@ namespace App\Http\Responses;
 
 use App\Actions\Resolution\ResolutionResult;
 use App\Actions\Resolution\ResolutionView;
+use App\Services\InstanceSettings;
 use App\Services\QrCodes\QrCodeContent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PublicResolutionResponder
 {
+    public function __construct(private readonly InstanceSettings $settings) {}
+
     public function toResponse(Request $request, ResolutionResult $result): Response
     {
         return match ($result->view) {
@@ -66,6 +69,7 @@ class PublicResolutionResponder
     private function unavailable(Request $request): Response
     {
         return Inertia::render('Public/Unavailable', [
+            'showBranding' => (bool) $this->settings->get('public_error_branding'),
             'title' => 'This link is unavailable',
             'message' => 'The link cannot be opened right now.',
         ])->toResponse($request)->setStatusCode(404);

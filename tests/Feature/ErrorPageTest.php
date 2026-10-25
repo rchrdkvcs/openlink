@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\InstanceSettings;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,6 +34,34 @@ class ErrorPageTest extends TestCase
                     ->component('Error')
                     ->where('status', $status));
         }
+    }
+
+    public function test_error_pages_follow_the_instance_branding_setting(): void
+    {
+        config(['app.debug' => false]);
+        $settings = $this->mock(InstanceSettings::class);
+        $settings->shouldReceive('get')->with('public_error_branding')->andReturn(false);
+
+        $this->post('/__error-page/404')
+            ->assertNotFound()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Error')
+                ->where('showBranding', false));
+    }
+
+    public function test_error_pages_still_render_when_branding_settings_are_unavailable(): void
+    {
+        config(['app.debug' => false]);
+        $this->mock(InstanceSettings::class)
+            ->shouldReceive('get')
+            ->with('public_error_branding')
+            ->andThrow(new RuntimeException('Settings are unavailable.'));
+
+        $this->post('/__error-page/500')
+            ->assertStatus(500)
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Error')
+                ->where('showBranding', true));
     }
 
     public function test_inertia_visits_receive_the_error_page_as_an_inertia_response(): void

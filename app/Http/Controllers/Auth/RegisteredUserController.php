@@ -7,6 +7,7 @@ use App\Actions\Workspaces\CurrentWorkspace;
 use App\Http\Controllers\Controller;
 use App\Models\InviteLink;
 use App\Models\User;
+use App\Services\InstanceSettings;
 use App\Services\OAuth\OAuthProviderRegistry;
 use App\Services\Registration\AccountRegistration;
 use Illuminate\Http\RedirectResponse;
@@ -20,18 +21,15 @@ use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
-    public function create(Request $request, AccountRegistration $registration, OAuthProviderRegistry $providers): Response
+    public function create(Request $request, AccountRegistration $registration, OAuthProviderRegistry $providers, InstanceSettings $settings): Response
     {
         $inviteLink = $this->usableInviteLink($request->query('invite'));
 
         $inviteAllowsRegistration = $registration->acceptsInvite($inviteLink);
-        $registrationAllowsOAuth = $registration->allowsNewUser($inviteLink);
-
-        if (! $registrationAllowsOAuth) {
-            redirect()
-                ->route('login')
-                ->with('status', 'Registration is invite-only. Use an invite link or sign in.')
-                ->throwResponse();
+        if (! $registration->allowsNewUser($inviteLink)) {
+            return Inertia::render('Auth/RegistrationUnavailable', [
+                'mode' => $settings->get('registration_mode'),
+            ]);
         }
 
         return Inertia::render('Auth/Register', [
@@ -40,7 +38,7 @@ class RegisteredUserController extends Controller
                 'workspace' => $inviteLink->workspace->name,
                 'role' => $inviteLink->role,
             ] : null,
-            'oauthProviders' => $registrationAllowsOAuth ? $providers->availableProviders() : [],
+            'oauthProviders' => $providers->availableProviders(),
         ]);
     }
 

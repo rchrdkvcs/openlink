@@ -32,6 +32,23 @@ class PublicResolutionTest extends TestCase
         config(['openlink.analytics.via_queue' => true]);
     }
 
+    public function test_unavailable_pages_follow_the_instance_branding_setting(): void
+    {
+        $this->get('/missing-link')
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Unavailable')
+                ->where('showBranding', true));
+
+        app(InstanceSettings::class)->set('public_error_branding', false);
+
+        $this->get('/missing-link')
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Unavailable')
+                ->where('showBranding', false));
+    }
+
     public function test_visit_limit_rechecks_count_when_two_resolutions_start_with_stale_link_instances(): void
     {
         $link = $this->link('one-visit', ['visit_limit' => 1, 'password_hash' => Hash::make('secret')]);

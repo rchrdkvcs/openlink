@@ -1,4 +1,14 @@
-export type StateScene = 'locked' | 'scheduled' | 'ready' | 'unlinked' | 'offline' | 'expired' | 'payload';
+export type StateScene =
+  | 'locked'
+  | 'scheduled'
+  | 'ready'
+  | 'unlinked'
+  | 'offline'
+  | 'expired'
+  | 'payload'
+  | 'workspace'
+  | 'link'
+  | 'team';
 
 export type StateTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
 

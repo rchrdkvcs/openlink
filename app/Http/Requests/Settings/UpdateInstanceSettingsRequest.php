@@ -23,6 +23,7 @@ class UpdateInstanceSettingsRequest extends FormRequest
             'destination_monitoring' => ['sometimes', 'boolean'],
             'reserved_slugs' => ['nullable', 'string'],
             'reserved_prefixes' => ['nullable', 'string'],
+            'public_error_branding' => ['sometimes', 'boolean'],
         ];
 
         if ($this->routeIs('api.*')) {

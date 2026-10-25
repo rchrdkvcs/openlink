@@ -21,6 +21,11 @@ describe('instance settings', () => {
     expect(fields.slug_length).toBe('6');
     expect(fields.reserved_slugs).toBe('admin\nlogin');
     expect(fields.destination_monitoring).toBe(false);
+    expect(fields.public_error_branding).toBe(true);
+  });
+
+  it('preserves disabled branding', () => {
+    expect(instanceSettingsFields({ public_error_branding: false }).public_error_branding).toBe(false);
   });
 
   it('describes registration modes', () => {

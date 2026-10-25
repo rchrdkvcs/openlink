@@ -10,6 +10,8 @@ The product is a focused operational tool: fast lists, clear status indicators, 
 
 The first user created on an instance becomes an instance admin. The instance supports closed, invite-only, and open registration modes, with invite-only as the default.
 
+Instance settings present these modes as Private, Invite link only, and Public. Private disables new accounts even through a usable invite link; existing users can still sign in and join workspaces. Invite link only requires a usable workspace invite link, while Public permits account creation without one. The first account can always be created to initialize the instance. Visitors who cannot register see a dedicated page explaining the current restriction and offering sign-in; the sign-in page offers account creation only when public registration or first-account setup is available.
+
 Users authenticate with email and password or configured OAuth providers. Two-factor authentication is available for user accounts. Password reset is handled by email.
 
 Email and password registration sends a verification email immediately. Email verification is optional by default, so a new user can use Openlink even before mail is configured. An Instance Admin can require verification in instance settings. When required, users with an unverified email can access the profile page to resend verification, change their email, manage their password, or delete their account, but cannot use Openlink's main authenticated surfaces until their email is verified. Instance settings remain accessible to an unverified Instance Admin with a workspace so the requirement can be turned off again. OAuth-created users are treated as verified only when the provider returns a verified email. Changing the primary email makes the user unverified until the new email is confirmed.
@@ -289,6 +291,7 @@ Instance settings include:
 - Analytics retention
 - Destination Monitoring
 - Feature flags for optional product capabilities
+- Error and unavailable page branding
 
 Secrets, database credentials, Redis credentials, mail credentials, storage credentials, and boot-time Laravel configuration remain outside the panel.
 

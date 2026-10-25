@@ -13,6 +13,7 @@ export type InstanceSettingsFields = {
   destination_monitoring: boolean;
   reserved_slugs: string;
   reserved_prefixes: string;
+  public_error_branding: boolean;
 };
 
 export type InstanceSettingsForm = InertiaForm<InstanceSettingsFields>;
@@ -28,25 +29,26 @@ export function instanceSettingsFields(settings: Record<string, any>): InstanceS
     destination_monitoring: Boolean(settings.destination_monitoring ?? false),
     reserved_slugs: (settings.reserved_slugs ?? []).join('\n'),
     reserved_prefixes: (settings.reserved_prefixes ?? []).join('\n'),
+    public_error_branding: Boolean(settings.public_error_branding ?? true),
   };
 }
 
 export const registrationModes: { value: RegistrationMode; label: string; description: string; icon: unknown }[] = [
   {
     value: 'closed',
-    label: 'Closed',
-    description: 'No one can create an account. Existing users keep access.',
+    label: 'Private',
+    description: 'No one can create an account, even with an invite link. Existing users keep access.',
     icon: Lock,
   },
   {
     value: 'invite_only',
-    label: 'Invite-only',
-    description: 'People join only through invite links shared by members.',
+    label: 'Invite link only',
+    description: 'A valid workspace invite link is required to create an account.',
     icon: Mail,
   },
   {
     value: 'open',
-    label: 'Open',
+    label: 'Public',
     description: 'Anyone who reaches the sign-up page can create an account.',
     icon: UserPlus,
   },

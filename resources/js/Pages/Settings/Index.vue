@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast';
 import { instanceSettingsFields, registrationDescription, registrationModes, retentionHint } from './instanceSettings';
 import type { UpdateStatus } from './instanceUpdates';
 import ShortLinkRulesGroup from './ShortLinkRulesGroup.vue';
+import UnavailablePageGroup from './UnavailablePageGroup.vue';
 import UpdatesGroup from './UpdatesGroup.vue';
 
 const props = defineProps<{
@@ -118,6 +119,8 @@ function discardChanges() {
             </div>
           </SettingsRow>
         </SettingsGroup>
+
+        <UnavailablePageGroup :form="settingsForm" />
 
         <SaveBar
           :dirty="settingsForm.isDirty"

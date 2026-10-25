@@ -38,6 +38,7 @@ class InstanceSettings
         'slug_length' => 6,
         'analytics_retention_days' => 365,
         'destination_monitoring' => false,
+        'public_error_branding' => true,
     ];
 
     public function get(string $key, mixed $default = null): mixed

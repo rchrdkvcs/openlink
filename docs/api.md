@@ -1,6 +1,6 @@
 # HTTP API
 
-Openlink exposes a token-based JSON API under `/api/v1` for the integration endpoints documented below. Some dashboard features, including Link Pages and webhook endpoint management, are not exposed through this API. It is designed for browser extensions, CLI tools, and other integrations. API access requires a verified email only when instance settings require email verification.
+Openlink exposes a token-based JSON API under `/api/v1` for the integration endpoints documented below. Some dashboard features, including Link Pages and webhook endpoint management, are not exposed through this API. It is designed for browser extensions, CLI tools, and other integrations. Main workspace API surfaces require a verified email only when instance settings require email verification. Instance settings remain available to Instance Admins without email verification.
 
 ## Authentication
 
@@ -86,8 +86,10 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | `GET` | `/api/v1/workspaces` | List workspaces with the user's role |
 | `POST` | `/api/v1/workspaces` | Create a workspace (`name`) |
 | `GET` | `/api/v1/workspaces/current` | Active workspace, role, and capabilities |
-| `PATCH` | `/api/v1/workspaces/current` | Rename / set preferred domain (`name`, `preferred_domain_id`) |
+| `PATCH` | `/api/v1/workspaces/{workspace}` | Update name, preferred domain, icon, or color (Owner/Admin) |
 | `DELETE` | `/api/v1/workspaces/{id}` | Delete a workspace (owner only) |
+
+Workspace PATCH is partial: omitted `name`, `preferred_domain_id`, `icon`, and `color` stay unchanged. A supplied `name` must be nonempty and at most 120 characters. Send `null` for `preferred_domain_id`, `icon`, or `color` to clear that value. The preferred domain must belong to this workspace or be the instance Default Domain; icon and color must use the values supported by the web form. The path identifies the workspace being updated and requires permission to manage that workspace.
 
 ### Short links
 
@@ -101,7 +103,7 @@ All routes below require `Authorization: Bearer <token>`. They also require a ve
 | `PATCH` | `/api/v1/links/{id}` | Update destination, lifecycle rules, password, tags |
 | `POST` | `/api/v1/links/{id}/move` | Move to a folder (`folder_id`, null to unfile) |
 | `POST` | `/api/v1/links/{id}/archive` | Archive the link |
-| `DELETE` | `/api/v1/links/{id}` | Delete permanently (managers only) |
+| `DELETE` | `/api/v1/links/{id}` | Delete permanently (Owner/Admin/Editor) |
 | `GET` | `/api/v1/links/{id}/revisions` | List the link history, newest first (20 per page) |
 | `GET` | `/api/v1/links/{id}/revisions/{number}` | Show one link revision with its snapshot and a restore preview |
 | `POST` | `/api/v1/links/{id}/revisions/{number}/restore` | Restore a link revision (`expected_revision` or `If-Match` required) |
@@ -122,21 +124,24 @@ Create payload (only `destination_url` is required):
   "password": "s3cret",
   "tags": "marketing, launch",
   "preview_title": "Spring launch",
-  "preview_description": "Everything new this season."
-
+  "preview_description": "Everything new this season.",
   "conversion_goal": "Registration"
 }
 ```
 
 Link responses include `preview` with `title`, `description`, and `image_url`. For API clients, `image_url` points to `GET /api/v1/links/{id}/preview-image`, which needs the same token and workspace as the link. To upload a preview image, send `multipart/form-data` with `preview_image` (PNG, JPG, or WebP up to 5 MB and 4096 × 4096 pixels). Updates sent this way must use `POST` with `_method=PATCH`. Send `remove_preview_image=true` to remove the image. Omitted preview fields are left unchanged on update.
 
-When `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
+On creation, when `domain_id` is omitted the API falls back to the workspace's preferred domain, then to the instance default domain — convenient for a "shorten current page" extension action. When `slug` is omitted a slug is generated.
 
-The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), and `tag` filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags. `conversion_goal` (at most 80 characters) turns on conversion tracking for the link; omit it to keep the current goal, or send `null`/an empty string to stop tracking. See [Conversions](#conversions).
+`PATCH /api/v1/links/{id}` is partial: send only the fields to change. Omitted values, including the domain, slug, folder, fallback, lifecycle dates, Visit Limit, password, tags, routing, conversion goal, and preview, are preserved. Explicit `null` clears nullable fields (`folder_id`, `fallback_url`, `activates_at`, `expires_at`, `visit_limit`, `password`, `tags`, `routing_rules`, `conversion_goal`, `preview_title`, `preview_description`). Empty strings are normalized to `null` for these fields. `destination_url`, `domain_id`, `slug`, and `is_enabled` cannot be null or empty when supplied; `is_enabled=false` disables the link. `preview_image=null` leaves the stored image unchanged; use `remove_preview_image=true` to remove it. Address changes revalidate the retained destination and enabled routing targets against the resulting Short URL.
+
+POST and PATCH both accept `routing_rules`, an ordered array of up to 50 rules, with at most 20 conditions and 20 variants per rule. Omit it on PATCH to retain routing; send `[]` or `null` to remove all rules. Rules accept `id` (on update, belonging to this link), `name`, `type` (`conditional` or `split_test`), `is_enabled`, `match_mode` (`all` or `any`), `conditions`, `destination_url`, and `variants`. Conditions use `type`, `operator`, `value`, and an optional `timezone`; supported types and operators are those of the routing editor. An enabled conditional rule needs a destination; an enabled split test needs at least two enabled variants with positive weights. Each variant accepts `id`, `name`, `is_enabled`, `destination_url`, and integer `weight` from 1 to 1,000,000. Destinations must be HTTP(S) URLs and enabled targets cannot loop to the Short URL. Routing is configured through link writes; there is no separate API routing endpoint.
+
+The link list returns 50 items per page in `data` and pagination details in `meta` (`current_page`, `last_page`, `per_page`, `total`). Use `page` to select a page and optional `search`, `status` (`active`, `scheduled`, `expired`, `disabled`, `archived`), `tag`, and `folder` (a folder ID or `unfiled`) filters. Without a status filter, the API includes archived links. The web Links page hides them by default. `PATCH /api/v1/links/{id}` accepts `tags` as a comma-separated string; send an empty string to remove all tags. `conversion_goal` (at most 80 characters) turns on conversion tracking for the link; omit it to keep the current goal, or send `null`/an empty string to stop tracking. See [Conversions](#conversions).
 
 `GET /api/v1/links/export` accepts the same `search`, `status`, `tag`, and `folder` filters as the list and also includes archived links when no status is given. `POST /api/v1/links/import` takes a multipart `file` (UTF-8 CSV, at most 1,000 links and 1 MB), an optional `mapping` object from column name to zero-based header position, an optional `domain_id` for rows without a domain, and `dry_run`. With `dry_run=1` nothing is created and the response lists `headers`, the resolved `mapping`, each row with `status` `ready` or `invalid` and its `errors`, and a `summary`. Without it, rows are validated again, ready rows are created, and each row reports `created` or `skipped`. The format and the import rules are described in [`link-csv.md`](./link-csv.md).
 
-Every link payload includes `revision`, the number of its latest link revision, and single-link responses carry it as an `ETag` header (`"3"`). To detect concurrent updates, send it back either as `If-Match: "3"` on `PATCH`, `move`, `archive`, and `restore`, which answers `412` when the link has moved on, or as `expected_revision` in the `PATCH` or `restore` body, which answers `422` on `expected_revision`. Restoring always requires one of the two. For backward compatibility, `PATCH`, `move`, and `archive` without either precondition are still accepted and overwrite whatever is current (last write wins); new clients should always send `If-Match`. A link created before link history existed reports revision `0` until its first change, which records a `baseline` revision first.
+Every link payload includes `revision`, the number of its latest link revision, and single-link responses carry it as an `ETag` header (`"3"`). To detect concurrent updates, send it back either as `If-Match: "3"` on `PATCH`, `move`, `archive`, and `restore`, which answers `412` when the link has moved on, or as `expected_revision` in the `PATCH` or `restore` body, which answers `422` on `expected_revision`. Restoring always requires one of the two. For backward compatibility, `PATCH`, `move`, and `archive` without either precondition are still accepted (last write wins for supplied fields); new clients should always send `If-Match`. A link created before link history existed reports revision `0` until its first change, which records a `baseline` revision first.
 
 Each link revision lists `number`, `action` (`baseline`, `created`, `updated`, `moved`, `archived`, `restored`), `channel` (`dashboard`, `api`, `system`), `actor` (`null` once the member's account is deleted), `restored_from`, and `changes` as `{ field, before, after }` entries. URL query values and fragments appear as `•••`, snapshots carry a `url_digests` map of keyed hashes for those URLs, and a replaced password appears as a value-free `password_changed` entry. The detail endpoint adds `restore`: whether the revision is restorable, why not, the changes a restore would make, and notes about deleted folders, recreated tags or routing rules, passwords, and the short URL. Restoring never changes the short URL, visit totals, analytics, QR codes, or passwords. Routing rules and variants that analytics refer to are never deleted by a restore; they stay on the link turned off. A revision recorded in an unsupported format, or whose redacted URL the link no longer uses, answers `422` on `revision`.
 
@@ -173,6 +178,8 @@ Domain `status` is one of `pending_verification`, `failed_verification`, `owners
 | `DELETE` | `/api/v1/qr-codes/{token}` | Delete a QR code and its logo |
 | `GET` | `/api/v1/qr-codes/{token}/preview` | Inline SVG preview; accepts the customization fields, `remove_logo`, and `template_id` as query overrides for live previews; `template_id` requires permission to edit the QR Code |
 | `GET` | `/api/v1/qr-codes/{token}/export/{png\|svg}` | Download the QR code; accepts a `size` query override |
+
+QR route keys are the QR Code `token`, not its numeric ID. `template_id` is supported only on update and preview, not creation. Appearance `style` accepts exactly `square`, `rounded`, or `dot`; `eye_style` accepts `square`, `rounded`, or `circle`.
 
 A linked QR image encodes `https://{link-domain}/qr/{token}`, so scans enter through the Domain selected for the Short Link. Direct-payload images encode their native content. When a logo is set, the effective error correction level is raised to at least quartile.
 
@@ -251,9 +258,24 @@ Openlink stores the link, QR Code, Routing Rule and variant, and timestamps for 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/v1/instance-settings` | Read instance settings |
-| `PATCH` | `/api/v1/instance-settings` | Update instance settings (same fields and validation as the web form) |
+| `PATCH` | `/api/v1/instance-settings` | Partially update instance settings |
 
-`registration_mode`, `require_email_verification`, `default_domain`, `slug_length`, `analytics_retention_days`, `public_unavailable_title`, and `public_unavailable_message` are required. `dns_target`, `reserved_slugs`, and `reserved_prefixes` are optional: omit them to keep their current values, or send `null`/an empty string to clear them. Saving makes `default_domain` the active Default Domain.
+Both routes require `administer-instance` permission and are outside the email-verification middleware. PATCH preserves every omitted setting. Accepted fields and constraints are:
+
+| Field | Validation when supplied |
+| --- | --- |
+| `registration_mode` | `closed`, `invite_only`, or `open` |
+| `require_email_verification` | Boolean |
+| `default_domain` | Nonempty string, at most 255 characters; makes this the active Default Domain |
+| `dns_target` | Nullable string, at most 255 characters |
+| `slug_length` | Integer, 4–32 |
+| `analytics_retention_days` | Integer, 30–3650 (default 365) |
+| `destination_monitoring` | Boolean |
+| `reserved_slugs`, `reserved_prefixes` | Nullable newline-separated strings |
+| `public_unavailable_title` | Nonempty string, at most 120 characters |
+| `public_unavailable_message` | Nonempty string, at most 500 characters |
+
+Send `null`/an empty string to clear `dns_target`, `reserved_slugs`, or `reserved_prefixes`; explicit `false` is preserved for boolean settings. Other settings cannot be null or empty. `instance_name` exists in stored defaults but is not writable through this endpoint or the web settings validator. These routes do not manage infrastructure secrets or add a branding capability.
 
 ## Webhooks
 

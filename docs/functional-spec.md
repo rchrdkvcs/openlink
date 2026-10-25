@@ -211,7 +211,7 @@ QR code features:
 - Configurable background color
 - Configurable margin (quiet zone, in modules)
 - Configurable error correction level
-- Module style: squares, rounded, or dots
+- Module style: `square`, `rounded`, or `dot`
 - Eye style: square, rounded, or circle
 - Transparent background
 - Optional centered logo (error correction is raised to at least quartile when a logo is set)

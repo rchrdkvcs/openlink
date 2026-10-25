@@ -13,6 +13,7 @@ export type InstanceSettingsFields = {
   destination_monitoring: boolean;
   reserved_slugs: string;
   reserved_prefixes: string;
+  public_error_branding: boolean;
   public_unavailable_title: string;
   public_unavailable_message: string;
 };
@@ -33,6 +34,7 @@ export function instanceSettingsFields(settings: Record<string, any>): InstanceS
     destination_monitoring: Boolean(settings.destination_monitoring ?? false),
     reserved_slugs: (settings.reserved_slugs ?? []).join('\n'),
     reserved_prefixes: (settings.reserved_prefixes ?? []).join('\n'),
+    public_error_branding: Boolean(settings.public_error_branding ?? true),
     public_unavailable_title: settings.public_unavailable_title ?? defaultUnavailableTitle,
     public_unavailable_message: settings.public_unavailable_message ?? defaultUnavailableMessage,
   };

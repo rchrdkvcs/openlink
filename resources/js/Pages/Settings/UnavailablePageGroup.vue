@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { CircleAlert } from '@lucide/vue';
 
+import PoweredBy from '@/Components/PublicState/PoweredBy.vue';
 import Input from '@/Components/ui/Input.vue';
 import SettingsGroup from '@/Components/ui/SettingsGroup.vue';
 import SettingsRow from '@/Components/ui/SettingsRow.vue';
+import Switch from '@/Components/ui/Switch.vue';
 import Textarea from '@/Components/ui/Textarea.vue';
 
 import { defaultUnavailableMessage, defaultUnavailableTitle, type InstanceSettingsForm } from './instanceSettings';
@@ -27,6 +29,15 @@ defineProps<{ form: InstanceSettingsForm }>();
         :placeholder="defaultUnavailableMessage"
       />
     </SettingsRow>
+    <SettingsRow
+      label="Show Openlink branding"
+      description="Show “powered by opnlnk.app” at the bottom of error and unavailable link pages."
+      :error="form.errors.public_error_branding"
+    >
+      <div class="flex sm:justify-end">
+        <Switch v-model="form.public_error_branding" aria-label="Show Openlink branding" />
+      </div>
+    </SettingsRow>
     <SettingsRow label="Preview" stacked>
       <div class="relative overflow-hidden rounded-lg border bg-background">
         <div
@@ -45,6 +56,7 @@ defineProps<{ form: InstanceSettingsForm }>();
             </p>
           </div>
         </div>
+        <PoweredBy v-if="form.public_error_branding" class="px-6 pb-5" />
       </div>
     </SettingsRow>
   </SettingsGroup>

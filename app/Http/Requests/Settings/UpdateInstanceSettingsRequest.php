@@ -23,6 +23,7 @@ class UpdateInstanceSettingsRequest extends FormRequest
             'destination_monitoring' => ['sometimes', 'boolean'],
             'reserved_slugs' => ['nullable', 'string'],
             'reserved_prefixes' => ['nullable', 'string'],
+            'public_error_branding' => ['sometimes', 'boolean'],
             'public_unavailable_title' => ['required', 'string', 'max:120'],
             'public_unavailable_message' => ['required', 'string', 'max:500'],
         ];

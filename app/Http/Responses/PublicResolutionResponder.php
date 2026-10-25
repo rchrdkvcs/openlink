@@ -69,6 +69,7 @@ class PublicResolutionResponder
     private function unavailable(Request $request): Response
     {
         return Inertia::render('Public/Unavailable', [
+            'showBranding' => (bool) $this->settings->get('public_error_branding'),
             'title' => $this->settings->get('public_unavailable_title'),
             'message' => $this->settings->get('public_unavailable_message'),
         ])->toResponse($request)->setStatusCode(404);

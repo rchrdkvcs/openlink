@@ -14,6 +14,39 @@ class InstanceSettingsApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_branding_can_be_disabled_and_reenabled_through_settings(): void
+    {
+        $admin = $this->actAsInstanceAdmin();
+
+        $this->getJson('/api/v1/instance-settings')
+            ->assertOk()
+            ->assertJsonPath('data.public_error_branding', true);
+
+        $this->patchJson('/api/v1/instance-settings', ['public_error_branding' => false])
+            ->assertOk()
+            ->assertJsonPath('data.public_error_branding', false);
+
+        $this->patchJson('/api/v1/instance-settings', ['slug_length' => 8])
+            ->assertOk()
+            ->assertJsonPath('data.public_error_branding', false);
+
+        $this->actingAs($admin)
+            ->patch(route('instance-settings.update'), [...$this->requiredFields(), 'public_error_branding' => true])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertTrue(app(InstanceSettings::class)->get('public_error_branding'));
+    }
+
+    public function test_branding_requires_a_boolean_value(): void
+    {
+        $this->actAsInstanceAdmin();
+
+        $this->patchJson('/api/v1/instance-settings', ['public_error_branding' => 'invalid'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('public_error_branding');
+    }
+
     public function test_updating_settings_without_dns_target_preserves_it(): void
     {
         $settings = app(InstanceSettings::class);

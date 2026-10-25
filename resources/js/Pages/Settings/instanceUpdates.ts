@@ -1,4 +1,4 @@
-export type UpdateState = 'pending' | 'running' | 'succeeded' | 'failed' | null;
+type UpdateState = 'pending' | 'running' | 'succeeded' | 'failed' | null;
 
 export type UpdateStatus = {
   current: string;

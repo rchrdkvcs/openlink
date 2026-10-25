@@ -10,7 +10,7 @@ const STATUSES: Record<LinkStatus, StatusPresentation> = {
   archived: { label: 'Archived', dot: 'bg-faint' },
 };
 
-export const LINK_STATUSES = Object.keys(STATUSES) as LinkStatus[];
+const LINK_STATUSES = Object.keys(STATUSES) as LinkStatus[];
 
 export function linkStatusLabel(status: LinkStatus): string {
   return STATUSES[status]?.label ?? status;

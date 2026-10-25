@@ -16,7 +16,7 @@ export const LINK_CSV_COLUMNS = [
   { key: 'format_version', label: 'Format version' },
 ] as const;
 
-export type LinkCsvColumn = (typeof LINK_CSV_COLUMNS)[number]['key'];
+type LinkCsvColumn = (typeof LINK_CSV_COLUMNS)[number]['key'];
 
 export type ColumnMapping = Partial<Record<LinkCsvColumn, number>>;
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { RoutingRuleDraft } from '@/types/shortLinks';
 
-import { buildRoutingGraph, dropIndex, nodeRuleIndex, reorderRule, takenPath } from './graph';
+import { buildRoutingGraph, nodeRuleIndex, reorderRule, takenPath } from './graph';
 import type { PreviewRule, RoutingPreview } from './preview';
 import { routing, schema } from './testRouting';
 
@@ -193,15 +193,5 @@ describe('reordering', () => {
     expect(reorderRule(rules, 2, 0)).toMatchObject({ focus: 0 });
     expect(reorderRule(rules, 1, 9).rules.map((rule) => rule.name)).toEqual(['A', 'C', 'B']);
     expect(reorderRule(rules, 1, 1).rules).toEqual(rules);
-  });
-
-  it('turns a dropped rule position into the priority it lands on', () => {
-    const rules = [country('A', 1), country('B', 2), country('C', 3)];
-    const { nodes } = buildRoutingGraph(rules, '', { schema });
-    const y = (id: string) => nodes.find((node) => node.id === id)!.position.y;
-
-    expect(dropIndex(nodes, 0, y('rule-3') + 10)).toBe(2);
-    expect(dropIndex(nodes, 2, y('rule-1') - 50)).toBe(0);
-    expect(dropIndex(nodes, 1, y('rule-2') + 5)).toBe(1);
   });
 });

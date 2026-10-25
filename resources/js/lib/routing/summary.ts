@@ -6,7 +6,7 @@ export function conditionLabel(schema: RoutingSchema, type: string): string {
   return schema.conditionTypes.find((option) => option.value === type)?.label ?? type;
 }
 
-export function formatConditionValue(schema: RoutingSchema, condition: RoutingCondition): string {
+function formatConditionValue(schema: RoutingSchema, condition: RoutingCondition): string {
   if (!hasValueInput(condition)) return '';
   if (isRange(condition.value)) return `${condition.value.from ?? ''}-${condition.value.to ?? ''}`;
 

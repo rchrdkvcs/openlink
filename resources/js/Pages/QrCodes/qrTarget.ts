@@ -35,7 +35,7 @@ export function blankTarget(descriptors: PayloadDescriptors, targetType: TargetT
   };
 }
 
-export function isPayloadErrorKey(key: string): boolean {
+function isPayloadErrorKey(key: string): boolean {
   return key === 'payload_type' || key === 'short_link_id' || key === 'payload' || key.startsWith('payload.');
 }
 

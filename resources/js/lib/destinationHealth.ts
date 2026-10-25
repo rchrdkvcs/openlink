@@ -1,6 +1,6 @@
 import type { ShortLink } from '@/types/shortLinks';
 
-export type DestinationHealthStatus =
+type DestinationHealthStatus =
   | 'unchecked'
   | 'reachable'
   | 'http_failure'
@@ -30,7 +30,7 @@ export type DestinationHealth = {
   stale: boolean;
 };
 
-export type DestinationRole = 'destination' | 'fallback' | 'routing_rule' | 'routing_variant';
+type DestinationRole = 'destination' | 'fallback' | 'routing_rule' | 'routing_variant';
 
 export type LinkDestination = { url: string; role: DestinationRole; label: string };
 
@@ -67,7 +67,7 @@ const FAILURES: DestinationHealthStatus[] = [
   'timeout',
 ];
 
-export function isFailure(status: DestinationHealthStatus): boolean {
+function isFailure(status: DestinationHealthStatus): boolean {
   return FAILURES.includes(status);
 }
 

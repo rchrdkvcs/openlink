@@ -4,12 +4,6 @@ import { leisureIconCategories } from '@/lib/workspaceIconsLeisure';
 import { workIconCategories } from '@/lib/workspaceIconsWork';
 import { worldIconCategories } from '@/lib/workspaceIconsWorld';
 
-export type WorkspaceAppearance = {
-  name: string;
-  icon?: string | null;
-  color?: string | null;
-};
-
 export type WorkspaceIconCategory = { label: string; icons: Record<string, Component> };
 
 export const WORKSPACE_ICON_CATEGORIES: WorkspaceIconCategory[] = [

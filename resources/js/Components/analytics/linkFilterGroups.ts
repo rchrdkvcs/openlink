@@ -1,8 +1,8 @@
 import { shortLabel, type LinkOption } from '@/lib/analytics';
 
 export const RESULT_LIMIT = 50;
-export const RECENT_LIMIT = 8;
-export const TOP_LIMIT = 5;
+const RECENT_LIMIT = 8;
+const TOP_LIMIT = 5;
 
 export type LinkEntry = { key: string; link: LinkOption | null };
 export type LinkGroup = { label: string | null; entries: LinkEntry[] };

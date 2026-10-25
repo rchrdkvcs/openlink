@@ -6,7 +6,6 @@ import {
   hasValueInput,
   scalarValue,
   shareDescription,
-  usesTimeOperators,
   valueInputType,
   valuePlaceholder,
   variantShare,
@@ -68,8 +67,7 @@ describe('conditions', () => {
     expect(first).toEqual({ type: 'utm_campaign', operator: 'between', value: { from: '07:00', to: '08:00' } });
     expect(first.value).not.toBe(second.value);
     expect(model.operators(first)).toBe(custom.operators.time);
-    expect(usesTimeOperators(custom, 'utm_campaign')).toBe(true);
-    expect(usesTimeOperators(custom, 'unknown')).toBe(false);
+    expect(model.operators({ type: 'unknown', operator: 'is' })).toBe(custom.operators.scalar);
   });
 
   it('resets operator, value and timezone when the condition type changes', () => {

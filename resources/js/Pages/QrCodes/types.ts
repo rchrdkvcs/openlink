@@ -4,7 +4,7 @@ export type PayloadValue = string | number | boolean | null;
 
 export type PayloadValues = Record<string, PayloadValue>;
 
-export type QrPayloadByType = {
+type QrPayloadByType = {
   url: { url: string };
   text: { text: string };
   email: { email: string; subject?: string | null; body?: string | null };
@@ -33,7 +33,7 @@ export type QrPayloadByType = {
 
 export type PayloadType = keyof QrPayloadByType;
 
-export type QrPayloadTarget =
+type QrPayloadTarget =
   | { [K in PayloadType]: { payload_type: K; payload: QrPayloadByType[K] } }[PayloadType]
   | { payload_type: null; payload: null };
 
@@ -84,7 +84,7 @@ export type PayloadField = {
   disabledWhen?: { key: string; value: unknown };
 };
 
-export type PayloadDescriptor = {
+type PayloadDescriptor = {
   label: string;
   hint: string;
   defaults: PayloadValues;

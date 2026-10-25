@@ -2,7 +2,7 @@ import { computed } from 'vue';
 
 import { useServerFilters } from '@/lib/useServerFilters';
 
-export const QR_SEARCH_DEBOUNCE = 300;
+const QR_SEARCH_DEBOUNCE = 300;
 
 export function useQrCodeQuery(source: () => { search: string }) {
   const { filters, goToPage } = useServerFilters({

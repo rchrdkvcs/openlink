@@ -34,15 +34,7 @@ export function normalizeUrl(value: string): string {
   return isLikelyUrl(`https://${trimmed}`) ? `https://${trimmed}` : trimmed;
 }
 
-export function hostOf(value: string): string {
-  try {
-    return new URL(value.includes('://') ? value : `https://${value}`).host;
-  } catch {
-    return '';
-  }
-}
-
-export function originOf(value: string): string | null {
+function originOf(value: string): string | null {
   try {
     const url = new URL(value);
 

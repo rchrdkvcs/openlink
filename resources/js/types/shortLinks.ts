@@ -29,7 +29,7 @@ export type ShortLink = {
   routing_rules: RoutingRuleDraft[];
 };
 
-export type LinkPreview = {
+type LinkPreview = {
   title: string | null;
   description: string | null;
   image_url: string | null;
@@ -69,7 +69,7 @@ export type RoutingRuleDraft = {
 
 export type RoutingOption = { value: string; label: string };
 
-export type RoutingPreset = {
+type RoutingPreset = {
   kind: string;
   label: string;
   description: string;
@@ -94,7 +94,7 @@ export type RoutingSchema = {
   presets: RoutingPreset[];
 };
 
-export type RevisionAction = 'baseline' | 'created' | 'updated' | 'moved' | 'archived' | 'restored';
+type RevisionAction = 'baseline' | 'created' | 'updated' | 'moved' | 'archived' | 'restored';
 
 export type MutationChannel = 'dashboard' | 'api' | 'system';
 
@@ -110,7 +110,7 @@ export type LinkRevision = {
   created_at: string;
 };
 
-export type RestorePreview = {
+type RestorePreview = {
   restorable: boolean;
   reason: string | null;
   changes: RevisionChange[];

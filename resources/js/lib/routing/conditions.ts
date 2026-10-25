@@ -25,10 +25,6 @@ function copyValue(value: RoutingCondition['value']): RoutingCondition['value'] 
   return isRange(value) ? { ...value } : value;
 }
 
-export function usesTimeOperators(schema: RoutingSchema, type: string): boolean {
-  return operatorGroup(schema, type) === 'time';
-}
-
 export function isZoned(schema: RoutingSchema, type: string): boolean {
   return conditionType(schema, type)?.zoned === true;
 }

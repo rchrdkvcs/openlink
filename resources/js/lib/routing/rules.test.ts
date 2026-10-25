@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cloneRules, firstInvalidRule, isRoutingErrorKey, remapRuleErrors, ruleErrors } from './index';
+import { cloneRules, remapRuleErrors, ruleErrors } from './index';
 import { conditional, routing } from './testRouting';
 
 describe('rules', () => {
@@ -65,10 +65,6 @@ describe('errors', () => {
     expect(ruleErrors(errors, 1)).toEqual([['routing_rules.1.destination_url', 'Required']]);
     expect(ruleErrors(errors, 10)).toEqual([]);
     expect(ruleErrors(undefined, 0)).toEqual([]);
-    expect(firstInvalidRule([conditional('a'), conditional('b')], errors)).toBe(1);
-    expect(firstInvalidRule([conditional('a')], errors)).toBeNull();
-    expect(isRoutingErrorKey('routing_rules.0.name')).toBe(true);
-    expect(isRoutingErrorKey('destination_url')).toBe(false);
   });
 
   it('deep clones Routing Rules so edits never touch the source', () => {

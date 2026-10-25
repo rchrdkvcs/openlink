@@ -11,7 +11,7 @@ export function withQuery(base: string, params: Record<string, string | number>)
 
 type PreviewDesign = QrAppearance & Partial<Pick<QrEditorFields, 'remove_logo' | 'template_id'>>;
 
-export function previewDesignQuery(design: Partial<PreviewDesign>): Record<string, number> {
+function previewDesignQuery(design: Partial<PreviewDesign>): Record<string, number> {
   return {
     ...(design.template_id ? { template_id: design.template_id } : {}),
     ...(design.remove_logo ? { remove_logo: 1 } : {}),
@@ -41,7 +41,7 @@ export function previewUrl(token: string, appearance: PreviewDesign, version: nu
   return withQuery(thumbnailUrl(token), previewQuery(appearance, version));
 }
 
-export function exportUrl(token: string, format: ExportFormat, size?: number): string {
+function exportUrl(token: string, format: ExportFormat, size?: number): string {
   return withQuery(route('qr-codes.export', [token, format]), size === undefined ? {} : { size });
 }
 

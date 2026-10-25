@@ -14,7 +14,7 @@ import {
   stepDirection,
 } from './onboardingSteps';
 
-export type OnboardingFirstLink = { short_url: string; destination_url: string };
+type OnboardingFirstLink = { short_url: string; destination_url: string };
 
 export type OnboardingProps = {
   workspace: WorkspaceSummary | null;

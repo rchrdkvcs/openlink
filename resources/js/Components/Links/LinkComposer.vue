@@ -140,8 +140,8 @@ defineExpose({ focus });
     @focusout="onFocusOut"
     @submit.prevent="submit"
   >
-    <div class="flex items-center gap-2.5 pl-3.5 pr-1.5" :class="size === 'lg' ? 'h-12' : 'h-11'">
-      <Favicon :url="normalized" :size="size === 'lg' ? 'lg' : 'sm'" />
+    <div class="flex items-center gap-2.5 p-2" :class="size === 'lg' ? 'h-12' : 'h-11'">
+      <Favicon :url="normalized" :size="size === 'lg' ? 'lg' : 'md'" class="bg-transparent! outline-none!" />
       <input
         ref="input"
         v-model="form.destination_url"

@@ -14,8 +14,6 @@ class UpdateInstanceSettings
         'require_email_verification',
         'slug_length',
         'analytics_retention_days',
-        'public_unavailable_title',
-        'public_unavailable_message',
     ];
 
     private const LIST_KEYS = ['reserved_slugs', 'reserved_prefixes'];

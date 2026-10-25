@@ -289,7 +289,6 @@ Instance settings include:
 - Analytics retention
 - Destination Monitoring
 - Feature flags for optional product capabilities
-- Public unavailable page basics
 
 Secrets, database credentials, Redis credentials, mail credentials, storage credentials, and boot-time Laravel configuration remain outside the panel.
 

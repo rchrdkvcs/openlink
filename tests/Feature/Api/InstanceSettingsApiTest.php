@@ -14,6 +14,41 @@ class InstanceSettingsApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_migration_removes_only_unavailable_page_settings(): void
+    {
+        $settings = app(InstanceSettings::class);
+        $settings->set('public_unavailable_title', 'Legacy title');
+        $settings->set('public_unavailable_message', 'Legacy message');
+        $settings->set('slug_length', 8);
+
+        $migration = require database_path('migrations/2026_10_25_000000_remove_public_unavailable_settings.php');
+        $migration->up();
+
+        $this->assertArrayNotHasKey('public_unavailable_title', $settings->all());
+        $this->assertArrayNotHasKey('public_unavailable_message', $settings->all());
+        $this->assertSame(8, $settings->get('slug_length'));
+    }
+
+    public function test_removed_unavailable_settings_are_not_exposed_or_saved(): void
+    {
+        $this->actAsInstanceAdmin();
+
+        $this->getJson('/api/v1/instance-settings')
+            ->assertOk()
+            ->assertJsonMissingPath('data.public_unavailable_title')
+            ->assertJsonMissingPath('data.public_unavailable_message');
+
+        $this->patchJson('/api/v1/instance-settings', [
+            'public_unavailable_title' => 'Custom title',
+            'public_unavailable_message' => 'Custom message',
+        ])->assertOk()
+            ->assertJsonMissingPath('data.public_unavailable_title')
+            ->assertJsonMissingPath('data.public_unavailable_message');
+
+        $this->assertDatabaseMissing('instance_settings', ['key' => 'public_unavailable_title']);
+        $this->assertDatabaseMissing('instance_settings', ['key' => 'public_unavailable_message']);
+    }
+
     public function test_updating_settings_without_dns_target_preserves_it(): void
     {
         $settings = app(InstanceSettings::class);
@@ -82,8 +117,6 @@ class InstanceSettingsApiTest extends TestCase
             'default_domain' => 'localhost',
             'slug_length' => 8,
             'analytics_retention_days' => 365,
-            'public_unavailable_title' => 'Unavailable',
-            'public_unavailable_message' => 'Gone.',
         ];
     }
 }

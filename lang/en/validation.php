@@ -99,8 +99,6 @@ return [
         'password_confirmation' => 'password confirmation',
         'permission' => 'permission',
         'preferred_domain_id' => 'preferred domain',
-        'public_unavailable_message' => 'unavailable page message',
-        'public_unavailable_title' => 'unavailable page title',
         'preview_description' => 'preview description',
         'preview_image' => 'preview image',
         'preview_title' => 'preview title',

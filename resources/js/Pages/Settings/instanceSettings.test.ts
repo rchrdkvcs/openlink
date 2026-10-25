@@ -20,12 +20,21 @@ describe('instance settings', () => {
     expect(fields.registration_mode).toBe('invite_only');
     expect(fields.slug_length).toBe('6');
     expect(fields.reserved_slugs).toBe('admin\nlogin');
-    expect(fields.public_unavailable_title).toBe('This link is unavailable');
     expect(fields.destination_monitoring).toBe(false);
   });
 
   it('describes registration modes', () => {
     expect(registrationDescription('closed')).toContain('No one can create an account');
+  });
+
+  it('omits legacy unavailable page settings from the form', () => {
+    const fields = instanceSettingsFields({
+      public_unavailable_title: 'Legacy title',
+      public_unavailable_message: 'Legacy message',
+    });
+
+    expect(fields).not.toHaveProperty('public_unavailable_title');
+    expect(fields).not.toHaveProperty('public_unavailable_message');
   });
 
   it('explains retention in months or years', () => {

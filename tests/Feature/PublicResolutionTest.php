@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Services\Analytics\Outcome;
+use App\Services\InstanceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -131,6 +132,20 @@ class PublicResolutionTest extends TestCase
 
         $this->assertSame(Outcome::DOMAIN_UNAVAILABLE, $result->outcome);
         $this->assertSame(ResolutionView::Unavailable, $result->view);
+    }
+
+    public function test_unavailable_page_uses_fixed_copy_despite_legacy_settings(): void
+    {
+        $settings = app(InstanceSettings::class);
+        $settings->set('public_unavailable_title', 'Legacy title');
+        $settings->set('public_unavailable_message', 'Legacy message');
+
+        $this->get('/missing-link')
+            ->assertNotFound()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/Unavailable')
+                ->where('title', 'This link is unavailable')
+                ->where('message', 'The link cannot be opened right now.'));
     }
 
     private function resolve(ResolutionEntry $entry): ResolutionResult

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Services\OAuth\OAuthProviderRegistry;
+use App\Services\Registration\AccountRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +20,11 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create(OAuthProviderRegistry $providers): Response
+    public function create(OAuthProviderRegistry $providers, AccountRegistration $registration): Response
     {
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
+            'canRegister' => $registration->allowsNewUser(),
             'oauthProviders' => $providers->availableProviders(),
             'status' => session('status'),
         ]);

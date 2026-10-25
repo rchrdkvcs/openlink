@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
@@ -79,13 +80,17 @@ class RegistrationTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
     }
 
-    public function test_registration_screen_redirects_to_login_when_invite_only_after_first_user(): void
+    public function test_registration_screen_explains_invite_only_access_after_first_user(): void
     {
         User::factory()->create();
 
         $this->get('/register')
-            ->assertRedirect(route('login', absolute: false))
-            ->assertSessionHas('status', 'Registration is invite-only. Use an invite link or sign in.');
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Auth/RegistrationUnavailable')
+                ->where('mode', 'invite_only')
+                ->missing('oauthProviders')
+                ->missing('invite'));
     }
 
     public function test_closed_registration_still_allows_first_user_to_bootstrap_only_once(): void

@@ -14,7 +14,6 @@ use App\Http\Requests\ShortLinks\UpdateShortLinkRequest;
 use App\Models\ShortLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 
 class ShortLinkController extends Controller
@@ -22,7 +21,7 @@ class ShortLinkController extends Controller
     public function index(Request $request, CurrentWorkspace $current, LinksQuery $links): JsonResponse
     {
         $workspace = $current->require();
-        $filters = $request->validate(Arr::except(LinksQuery::rules(), 'folder'));
+        $filters = $request->validate(LinksQuery::rules());
         $page = $links->paginate($workspace, [
             ...$filters,
             'status' => $filters['status'] ?? LinksQuery::ALL_STATUSES,

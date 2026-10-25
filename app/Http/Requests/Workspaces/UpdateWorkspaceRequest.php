@@ -6,9 +6,15 @@ class UpdateWorkspaceRequest extends StoreWorkspaceRequest
 {
     public function rules(): array
     {
-        return [
+        $rules = [
             ...parent::rules(),
             'preferred_domain_id' => ['nullable', 'integer'],
         ];
+
+        if ($this->routeIs('api.*')) {
+            array_unshift($rules['name'], 'sometimes');
+        }
+
+        return $rules;
     }
 }

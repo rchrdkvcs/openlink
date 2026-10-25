@@ -31,7 +31,9 @@ class UpdateInstanceSettings
         $this->gate->forUser($actor)->authorize('administer-instance');
 
         foreach (self::SCALAR_KEYS as $key) {
-            $this->settings->set($key, $data[$key]);
+            if (array_key_exists($key, $data)) {
+                $this->settings->set($key, $data[$key]);
+            }
         }
 
         if (array_key_exists('destination_monitoring', $data)) {
@@ -48,7 +50,9 @@ class UpdateInstanceSettings
             }
         }
 
-        $this->domains->ensureDefaultDomain($data['default_domain']);
+        if (array_key_exists('default_domain', $data)) {
+            $this->domains->ensureDefaultDomain($data['default_domain']);
+        }
     }
 
     private function lines(string $value): array

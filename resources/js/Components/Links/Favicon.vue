@@ -31,7 +31,7 @@ const box = computed(
 <template>
   <span
     class="grid shrink-0 place-items-center overflow-hidden"
-    :class="[box, loaded ? '' : 'bg-elevated outline outline-1 -outline-offset-1 outline-white/10']"
+    :class="[box, loaded ? '' : 'bg-elevated outline -outline-offset-1 outline-white/10']"
   >
     <img
       v-if="src"

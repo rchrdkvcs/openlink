@@ -43,19 +43,19 @@ export function instanceSettingsFields(settings: Record<string, any>): InstanceS
 export const registrationModes: { value: RegistrationMode; label: string; description: string; icon: unknown }[] = [
   {
     value: 'closed',
-    label: 'Closed',
-    description: 'No one can create an account. Existing users keep access.',
+    label: 'Private',
+    description: 'No one can create an account, even with an invite link. Existing users keep access.',
     icon: Lock,
   },
   {
     value: 'invite_only',
-    label: 'Invite-only',
-    description: 'People join only through invite links shared by members.',
+    label: 'Invite link only',
+    description: 'A valid workspace invite link is required to create an account.',
     icon: Mail,
   },
   {
     value: 'open',
-    label: 'Open',
+    label: 'Public',
     description: 'Anyone who reaches the sign-up page can create an account.',
     icon: UserPlus,
   },

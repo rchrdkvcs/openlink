@@ -14,6 +14,7 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 
 defineProps<{
   canResetPassword?: boolean;
+  canRegister: boolean;
   oauthProviders: Record<string, boolean>;
   status?: string;
 }>();
@@ -89,6 +90,8 @@ const submit = () => {
       </Button>
     </form>
 
-    <template #footer> New to Openlink? <AuthLink :href="route('register')">Create an account</AuthLink> </template>
+    <template v-if="canRegister" #footer>
+      New to Openlink? <AuthLink :href="route('register')">Create an account</AuthLink>
+    </template>
   </GuestLayout>
 </template>

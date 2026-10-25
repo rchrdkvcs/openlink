@@ -70,8 +70,8 @@ class PublicResolutionResponder
     {
         return Inertia::render('Public/Unavailable', [
             'showBranding' => (bool) $this->settings->get('public_error_branding'),
-            'title' => $this->settings->get('public_unavailable_title'),
-            'message' => $this->settings->get('public_unavailable_message'),
+            'title' => 'This link is unavailable',
+            'message' => 'The link cannot be opened right now.',
         ])->toResponse($request)->setStatusCode(404);
     }
 }

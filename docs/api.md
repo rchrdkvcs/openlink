@@ -272,8 +272,6 @@ Both routes require `administer-instance` permission and are outside the email-v
 | `analytics_retention_days` | Integer, 30–3650 (default 365) |
 | `destination_monitoring` | Boolean |
 | `reserved_slugs`, `reserved_prefixes` | Nullable newline-separated strings |
-| `public_unavailable_title` | Nonempty string, at most 120 characters |
-| `public_unavailable_message` | Nonempty string, at most 500 characters |
 
 Send `null`/an empty string to clear `dns_target`, `reserved_slugs`, or `reserved_prefixes`; explicit `false` is preserved for boolean settings. Other settings cannot be null or empty. `instance_name` exists in stored defaults but is not writable through this endpoint or the web settings validator. These routes do not manage infrastructure secrets or add a branding capability.
 

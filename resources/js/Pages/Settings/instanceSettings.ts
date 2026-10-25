@@ -14,14 +14,9 @@ export type InstanceSettingsFields = {
   reserved_slugs: string;
   reserved_prefixes: string;
   public_error_branding: boolean;
-  public_unavailable_title: string;
-  public_unavailable_message: string;
 };
 
 export type InstanceSettingsForm = InertiaForm<InstanceSettingsFields>;
-
-export const defaultUnavailableTitle = 'This link is unavailable';
-export const defaultUnavailableMessage = 'The link cannot be opened right now.';
 
 export function instanceSettingsFields(settings: Record<string, any>): InstanceSettingsFields {
   return {
@@ -35,8 +30,6 @@ export function instanceSettingsFields(settings: Record<string, any>): InstanceS
     reserved_slugs: (settings.reserved_slugs ?? []).join('\n'),
     reserved_prefixes: (settings.reserved_prefixes ?? []).join('\n'),
     public_error_branding: Boolean(settings.public_error_branding ?? true),
-    public_unavailable_title: settings.public_unavailable_title ?? defaultUnavailableTitle,
-    public_unavailable_message: settings.public_unavailable_message ?? defaultUnavailableMessage,
   };
 }
 

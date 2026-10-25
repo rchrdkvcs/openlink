@@ -39,8 +39,6 @@ class InstanceSettings
         'analytics_retention_days' => 365,
         'destination_monitoring' => false,
         'public_error_branding' => true,
-        'public_unavailable_title' => 'This link is unavailable',
-        'public_unavailable_message' => 'The link cannot be opened right now.',
     ];
 
     public function get(string $key, mixed $default = null): mixed

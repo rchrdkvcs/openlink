@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { Archive, Download, Folder as FolderIcon, Inbox, Link2, Upload } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 

@@ -69,7 +69,7 @@ class WorkspaceController extends Controller
     {
         $data = $request->validated();
 
-        $workspace = $workspaces->handle($request->user(), $workspace, $data['name'], $data['preferred_domain_id'] ?? null, $data['icon'] ?? null, $data['color'] ?? null);
+        $workspace = $workspaces->handle($request->user(), $workspace, $data);
 
         return response()->json([
             'data' => $workspace->only(['id', 'name', 'slug', 'icon', 'color', 'preferred_domain_id']),

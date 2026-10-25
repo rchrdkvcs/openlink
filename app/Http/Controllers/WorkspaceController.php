@@ -105,7 +105,12 @@ class WorkspaceController extends Controller
     {
         $data = $request->validated();
 
-        $workspaces->handle($request->user(), $workspace, $data['name'], $data['preferred_domain_id'] ?? null, $data['icon'] ?? null, $data['color'] ?? null);
+        $workspaces->handle($request->user(), $workspace, [
+            'preferred_domain_id' => null,
+            'icon' => null,
+            'color' => null,
+            ...$data,
+        ]);
 
         return back();
     }

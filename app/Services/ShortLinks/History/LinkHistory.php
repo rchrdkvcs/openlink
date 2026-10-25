@@ -23,6 +23,8 @@ class LinkHistory
         $current = (int) ShortLink::query()->whereKey($shortLink->id)->lockForUpdate()->value('revision');
 
         if ($expectedRevision !== null && $expectedRevision !== $current) {
+            abort_if($this->request->routeIs('api.*') && $this->request->hasHeader('If-Match'), 412, 'This link was changed by someone else. Fetch it again, then retry with its current ETag.');
+
             throw ValidationException::withMessages([
                 'expected_revision' => 'This link was changed by someone else since you opened it. Reload it to see the latest version, then try again.',
             ]);

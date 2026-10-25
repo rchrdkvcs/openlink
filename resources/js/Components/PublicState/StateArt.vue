@@ -138,6 +138,37 @@ const qrModules = [
         </g>
       </template>
 
+      <template v-else-if="scene === 'workspace'">
+        <path class="layer-low" d="M12 40l20 9 20-9" />
+        <path class="layer-mid" d="M12 32l20 9 20-9" />
+        <path class="layer-top" d="M32 15l20 9-20 9-20-9Z" stroke="hsl(var(--tone))" />
+      </template>
+
+      <template v-else-if="scene === 'link'">
+        <path class="join-high" d="M34 22l6-6a8.49 8.49 0 0 1 12 12l-6 6" />
+        <path class="join-low" d="M30 42l-6 6a8.49 8.49 0 0 1-12-12l6-6" />
+        <path class="join-bar" pathLength="1" d="M26.5 37.5l11-11" stroke="hsl(var(--tone))" />
+      </template>
+
+      <template v-else-if="scene === 'team'">
+        <circle cx="32" cy="24" r="5" />
+        <path d="M22 44a10 10 0 0 1 20 0" />
+        <g stroke="hsl(var(--foreground) / 0.2)">
+          <circle cx="13" cy="30" r="3.5" />
+          <path d="M6.5 43a6.5 6.5 0 0 1 13 0" />
+          <circle cx="51" cy="30" r="3.5" />
+          <path d="M44.5 43a6.5 6.5 0 0 1 13 0" />
+        </g>
+        <g class="seat seat-left" stroke="hsl(var(--tone))">
+          <circle cx="13" cy="30" r="3.5" />
+          <path d="M6.5 43a6.5 6.5 0 0 1 13 0" />
+        </g>
+        <g class="seat seat-right" stroke="hsl(var(--tone))">
+          <circle cx="51" cy="30" r="3.5" />
+          <path d="M44.5 43a6.5 6.5 0 0 1 13 0" />
+        </g>
+      </template>
+
       <template v-else-if="scene === 'payload'">
         <defs>
           <linearGradient :id="scanId" x1="0" y1="0" x2="0" y2="1">
@@ -285,6 +316,42 @@ const qrModules = [
 .sand-stream {
   stroke-dasharray: 1.5 2.5;
   animation: sand-stream 6.4s linear infinite;
+}
+
+.layer-mid {
+  animation: layer-mid 6s var(--ease-in-out) infinite;
+}
+
+.layer-top {
+  animation: layer-top 6s var(--ease-in-out) infinite;
+}
+
+.join-high,
+.join-low {
+  animation: link-join 5.2s var(--ease-in-out) infinite;
+}
+
+.join-high {
+  --joined: translate(-3px, 3px);
+}
+
+.join-low {
+  --joined: translate(3px, -3px);
+}
+
+.join-bar {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: join-bar 5.2s var(--ease-out) infinite;
+}
+
+.seat {
+  opacity: 0;
+  animation: seat-join 6s ease-in-out infinite;
+}
+
+.seat-right {
+  animation-delay: 0.7s;
 }
 
 .qr-scan {
@@ -524,6 +591,83 @@ const qrModules = [
   }
 }
 
+@keyframes layer-mid {
+  0%,
+  18%,
+  100% {
+    transform: translateY(0);
+  }
+
+  48%,
+  66% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes layer-top {
+  0%,
+  18%,
+  100% {
+    transform: translateY(0);
+  }
+
+  48%,
+  66% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes link-join {
+  0%,
+  14%,
+  92%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  32%,
+  80% {
+    transform: var(--joined);
+  }
+}
+
+@keyframes join-bar {
+  0%,
+  32% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+
+  46%,
+  78% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  86%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes seat-join {
+  0%,
+  16% {
+    opacity: 0;
+  }
+
+  30%,
+  78% {
+    opacity: 1;
+  }
+
+  92%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes qr-scan {
   0% {
     opacity: 0;
@@ -555,6 +699,19 @@ const qrModules = [
 
   .state-art {
     animation: art-fade 0.2s ease both !important;
+  }
+
+  .join-high,
+  .join-low {
+    transform: var(--joined);
+  }
+
+  .join-bar {
+    stroke-dashoffset: 0;
+  }
+
+  .seat {
+    opacity: 1;
   }
 }
 </style>

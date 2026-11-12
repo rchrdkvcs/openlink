@@ -74,6 +74,14 @@ Conversion tracking is opt-in per short link and off by default. A short link wi
 
 Tokens expire 24 hours after issue and convert at most once. They are redeemed only by an authenticated server-to-server API call from a member who can edit content in the token's workspace, with rate limiting. The conversion request accepts nothing but the token, so integrations cannot send personal or customer data. Attribution records, converted or not, follow analytics retention measured from their issue time, because unconverted records are the denominator of past conversion rates. An expired token can no longer convert, and its record holds only a hash of a dead token. Records are deleted with their link or workspace. See ADR 0024.
 
+## Error Reporting
+
+Error reporting is opt-in per instance and sends events only to the backend the operator configures; see [deployment.md](deployment.md#error-reporting). No DSN is bundled, so an instance without one reports nothing.
+
+Events carry the exception, stack trace, request method and path, release, and environment. They never carry IP addresses, user agents, referrers, cookies, query strings, request or response bodies, SQL bindings, queue payloads, stack frame variables, or user identity, on the server or in the browser. Visitor passwords, API tokens, and session data therefore cannot reach an event through request data. Exception messages are sent as written, so code must not put secrets or personal data in them.
+
+Tracing is off by default. When enabled, it covers dashboard requests and background jobs only; public resolution, QR Code scans, Link Pages, and App Association files are never traced, and the browser SDK is never loaded for visitors.
+
 ## Secrets and Configuration
 
 Infrastructure secrets remain outside the instance admin panel and workspace settings. This includes database credentials, Redis credentials, mail credentials, storage credentials, app keys, and boot-time Laravel configuration.

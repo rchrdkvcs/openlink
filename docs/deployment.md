@@ -198,6 +198,37 @@ checks that the mail transport accepts it, not inbox delivery. Test emails go
 to the administrator's own address. Detailed failures go to the application
 log rather than the screen.
 
+## Error reporting
+
+Error reporting is optional and off by default. An instance sends nothing
+anywhere until its operator sets a DSN, and Openlink ships no default DSN. Any
+Sentry-compatible backend works: Sentry SaaS, self-hosted Sentry, GlitchTip, or
+Bugsink.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `SENTRY_LARAVEL_DSN` | empty | Reports server exceptions from the app, queue worker, and scheduler. |
+| `SENTRY_BROWSER_DSN` | empty | Reports dashboard JavaScript errors. The SDK is downloaded only when this is set. |
+| `SENTRY_ENVIRONMENT` | `APP_ENV` | Environment name attached to events. |
+| `SENTRY_RELEASE` | `OPENLINK_VERSION` | Release attached to events; release images set it to their tag. |
+| `SENTRY_SAMPLE_RATE` | `1.0` | Share of server errors sent. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0` | Share of dashboard requests and background jobs traced. |
+| `SENTRY_BROWSER_TRACES_SAMPLE_RATE` | `0` | Share of dashboard page loads traced in the browser. |
+
+The browser DSN is public by design: every dashboard visitor can read it. Use a
+separate browser project, or restrict allowed domains in your Sentry project
+settings. Use a different DSN for each Openlink instance.
+
+Visitor-facing traffic is excluded. Short URL resolution, QR Code scans, Link
+Pages, preview images, password forms, and App Association files are never
+traced, and the browser SDK is never loaded on Link Pages or workspace domains.
+Exceptions raised while serving them are still reported, without visitor data.
+See [Security and Privacy](security-and-privacy.md#error-reporting) for what an
+event contains.
+
+With Docker Compose, add the variables you need to `docker/.env`; the compose
+file passes them to the app, worker, and scheduler.
+
 ## Weekly Workspace Summaries
 
 Workspace Summaries depend on three pieces of infrastructure. The Laravel

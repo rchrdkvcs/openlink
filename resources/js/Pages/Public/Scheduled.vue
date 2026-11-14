@@ -80,9 +80,7 @@ const activationLabel = new Date(props.activatesAt).toLocaleString(undefined, {
 
     <template #description>
       <template v-if="done">Redirecting you to the destination…</template>
-      <template v-else>
-        <span class="font-medium text-foreground">{{ shortUrl }}</span> goes live in
-      </template>
+      <template v-else> <span class="font-medium text-foreground">{{ shortUrl }}</span> goes live in </template>
     </template>
 
     <div v-if="!done" class="flex items-start justify-center gap-2 sm:gap-4" role="timer" aria-live="off">

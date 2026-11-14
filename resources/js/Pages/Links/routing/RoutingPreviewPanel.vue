@@ -123,8 +123,8 @@ async function run() {
   <div class="@container grid min-w-0 gap-5">
     <p class="text-xs leading-relaxed text-muted">
       Simulate a visitor to see which rule wins. Testing
-      <strong class="font-medium text-foreground">{{ draft && unsaved ? 'unsaved changes' : 'saved routing' }}</strong
-      >. Nothing is saved, no visit or analytics event is recorded, and destinations are not contacted.
+      <strong class="font-medium text-foreground">{{ draft && unsaved ? 'unsaved changes' : 'saved routing' }}</strong>.
+      Nothing is saved, no visit or analytics event is recorded, and destinations are not contacted.
     </p>
 
     <form class="grid gap-4" @submit.prevent="run">

@@ -23,8 +23,7 @@ withDefaults(
         :style="{ width: `${Math.max(row.share, 1.5)}%` }"
       />
       <span class="relative z-10 min-w-0 flex-1 truncate text-[13px] text-foreground">
-        <span v-if="row.prefix" class="me-1.5">{{ row.prefix }}</span
-        >{{ row.display ?? row.label }}
+        <span v-if="row.prefix" class="me-1.5">{{ row.prefix }}</span>{{ row.display ?? row.label }}
       </span>
       <span class="relative z-10 hidden w-12 text-end text-xs tabular-nums text-faint sm:block">{{ row.share }}%</span>
       <span class="relative z-10 w-14 text-end text-[13px] font-medium tabular-nums text-foreground">{{

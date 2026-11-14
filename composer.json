@@ -17,6 +17,7 @@
         "laravel/tinker": "^3.0.2",
         "pragmarx/google2fa": "^9.1.0",
         "predis/predis": "^3.7.0",
+        "sentry/sentry-laravel": "^4.30",
         "socialiteproviders/discord": "^4.2.0",
         "symfony/http-client": "^8.1.9",
         "tightenco/ziggy": "^2.6.5"

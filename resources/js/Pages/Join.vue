@@ -50,12 +50,14 @@ function join() {
         It may have reached its limit or been revoked. Ask a workspace admin for a new link.
       </template>
       <template v-else-if="isMember">
-        You already belong to <span class="font-medium text-foreground">{{ invite.workspace }}</span
-        >.
+        You already belong to <span class="font-medium text-foreground">{{ invite.workspace }}</span>.
       </template>
       <template v-else>
-        You’ve been invited as <span class="font-medium text-foreground">{{ roleLabel(invite.role) }}</span
-        >.<template v-if="!isAuthenticated"> Sign in or create an account to continue.</template>
+        You’ve been invited as <span class="font-medium text-foreground">{{ roleLabel(invite.role) }}</span>.<template
+          v-if="!isAuthenticated"
+        >
+          Sign in or create an account to continue.</template
+        >
       </template>
     </template>
 

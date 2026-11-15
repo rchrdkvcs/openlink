@@ -70,8 +70,8 @@ function edit(endpoint: WebhookEndpoint) {
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-foreground">Signing secret</p>
           <p class="mt-0.5 text-[13px] text-muted">
-            Use it to verify deliveries to <span class="break-all font-mono">{{ revealedUrl }}</span
-            >. Copy it now. It won't be shown again.
+            Use it to verify deliveries to <span class="break-all font-mono">{{ revealedUrl }}</span>. Copy it now. It
+            won't be shown again.
           </p>
         </div>
         <IconButton title="Dismiss" @click="revealed = null"><X /></IconButton>

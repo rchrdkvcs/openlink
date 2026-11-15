@@ -47,8 +47,7 @@ const submit = () => {
 
     <AuthNotice v-if="invite" tone="accent" class="mb-6">
       You’re joining <span class="font-semibold">{{ invite.workspace }}</span> as
-      <span class="font-semibold">{{ roleLabel(invite.role) }}</span
-      >.
+      <span class="font-semibold">{{ roleLabel(invite.role) }}</span>.
     </AuthNotice>
 
     <OAuthButtons class="mb-6" :providers="oauthProviders" intent="register" :invite="invite?.token" />

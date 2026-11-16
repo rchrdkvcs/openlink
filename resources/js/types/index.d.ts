@@ -1,3 +1,5 @@
+import type { ErrorReportingConfig } from '@/lib/errorReporting';
+
 import type { Folder, WorkspaceSummary } from './payloads';
 
 export interface User {
@@ -31,4 +33,5 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
   canManageWorkspace?: boolean;
   canEditWorkspace?: boolean;
   navigation?: Navigation | null;
+  errorReporting?: ErrorReportingConfig | null;
 };

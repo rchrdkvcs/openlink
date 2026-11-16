@@ -34,6 +34,11 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'sentry' => [
+        'browser_dsn' => env('SENTRY_BROWSER_DSN'),
+        'browser_traces_sample_rate' => (float) env('SENTRY_BROWSER_TRACES_SAMPLE_RATE', 0.0),
+    ],
+
     'discord' => [
         'client_id' => env('DISCORD_CLIENT_ID'),
         'client_secret' => env('DISCORD_CLIENT_SECRET'),

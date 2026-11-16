@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Workspaces\WorkspaceShell;
+use App\Services\ErrorReporting\BrowserErrorReporting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -27,6 +28,7 @@ class HandleInertiaRequests extends Middleware
                     'profile_avatar_url' => $user->profileAvatarUrl(),
                 ] : null,
             ],
+            'errorReporting' => app(BrowserErrorReporting::class)->forRequest($request),
             ...app(WorkspaceShell::class, ['request' => $request])->props(),
         ];
     }

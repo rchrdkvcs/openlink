@@ -1,7 +1,0 @@
-name = "openlink-edge"
-main = "worker.js"
-compatibility_date = "2026-11-01"
-routes = [{ pattern = "*/*", zone_name = "opnlnk.app" }]
-
-[vars]
-ORIGIN_HOST = "origin.opnlnk.app"

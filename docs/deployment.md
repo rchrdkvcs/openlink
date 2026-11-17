@@ -114,12 +114,16 @@ In the Cloudflare zone of your instance, for example `example.com`:
    `cname.example.com` as the fallback origin. Openlink reads it from the
    Cloudflare API and shows it to members as the DNS Target, so there is no
    DNS Target to enter in the instance settings.
-4. In [`edge/cloudflare/wrangler.toml`](../edge/cloudflare/wrangler.toml),
-   set `zone_name` to your zone and `ORIGIN_HOST` to your Edge Origin. Then,
-   from `edge/cloudflare`, run `wrangler deploy` and
-   `wrangler secret put EDGE_SECRET`. The deploy creates the `*/*` Worker
-   route; add a route without a Worker for any other proxied hostname in the
-   zone.
+4. Deploy a Worker on the `*/*` route of the zone and add a route without a
+   Worker for any other proxied hostname in the zone. Openlink does not ship
+   this Worker; it only expects every request to reach the Edge Origin with:
+   - the URL hostname replaced by the Edge Origin, keeping the method, path,
+     query, headers and body;
+   - `X-Openlink-Host` set to the original hostname;
+   - `X-Openlink-Client-Ip` set to `CF-Connecting-IP`;
+   - `X-Openlink-Country` set to the visitor's Cloudflare country code;
+   - `X-Openlink-Edge-Secret` set to a secret stored in the Worker;
+   - redirects returned to the visitor instead of followed.
 5. Create an API token limited to the zone with the **SSL and Certificates:
    Edit** and **Zone: Read** permissions.
 
@@ -127,7 +131,7 @@ Then configure Openlink:
 
 ```dotenv
 OPENLINK_DOMAIN_EDGE=cloudflare
-OPENLINK_EDGE_SECRET=<same value as the Worker EDGE_SECRET>
+OPENLINK_EDGE_SECRET=<same value as the Worker secret>
 OPENLINK_CLOUDFLARE_API_TOKEN=<api token>
 ```
 
@@ -157,8 +161,7 @@ Keep a queue worker running. Apex domains work only when their DNS provider
 supports CNAME flattening, `ALIAS` or `ANAME` records.
 
 `OPENLINK_EDGE_SECRET` accepts a comma-separated list of secrets. To rotate it,
-add the new value to the list, run `wrangler secret put EDGE_SECRET` with it,
-then remove the old value. Requests that do not carry a configured secret are
+add the new value to the list, set it as the Worker secret, then remove the old value. Requests that do not carry a configured secret are
 served on their own host and cannot claim a workspace domain, and visitors'
 own `X-Forwarded-*` headers are discarded on signed requests.
 

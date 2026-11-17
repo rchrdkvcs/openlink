@@ -94,6 +94,58 @@ services receive the same configuration. In particular, the example fixes
 `MAIL_MAILER` to `log`; replace it with your mail transport and forward the
 matching mail settings before expecting outgoing emails.
 
+## Serving workspace domains through Cloudflare
+
+By default (`OPENLINK_DOMAIN_EDGE=direct`) every workspace domain points at
+your own reverse proxy, which must route it and issue its certificate. A hosted
+instance can instead keep a fixed set of hostnames on its platform and let
+Cloudflare for SaaS terminate TLS for every workspace domain
+(`OPENLINK_DOMAIN_EDGE=cloudflare`). See
+[ADR 0028](adr/0028-serve-workspace-domains-through-a-cloudflare-edge.md).
+
+In the Cloudflare zone of your instance, for example `example.com`:
+
+1. Add the application host, the Default Domain and an origin host such as
+   `origin.example.com` to your platform, and create their DNS records as
+   **DNS only**.
+2. Create `cname.example.com` as a **proxied** `AAAA` record to `100::`.
+3. Under **SSL/TLS → Custom Hostnames**, enable Cloudflare for SaaS and set
+   `cname.example.com` as the fallback origin.
+4. Deploy [`edge/cloudflare/worker.js`](../edge/cloudflare/worker.js) with
+   `wrangler deploy` from `edge/cloudflare`, then set the `ORIGIN_HOST`
+   variable to `origin.example.com` and the `EDGE_SECRET` secret.
+5. Add the Worker route `*/*` on the zone. Add a route without a Worker for
+   any other proxied hostname in the zone.
+6. Create an API token limited to the zone with the **SSL and Certificates:
+   Edit** permission.
+7. Set the instance DNS Target to `cname.example.com` in the instance settings.
+
+Then configure Openlink:
+
+```dotenv
+OPENLINK_DOMAIN_EDGE=cloudflare
+OPENLINK_EDGE_SECRET=<same value as the Worker EDGE_SECRET>
+OPENLINK_CLOUDFLARE_ZONE_ID=<zone id>
+OPENLINK_CLOUDFLARE_API_TOKEN=<api token>
+```
+
+Workspace members then add a TXT record to prove ownership and a single CNAME
+to `cname.example.com`. Once the TXT record is found, Openlink creates the
+custom hostname, Cloudflare validates it over HTTP and issues the certificate,
+and the domain becomes active when both are active. Disabling or deleting a
+domain removes its custom hostname. Apex domains work only when their DNS
+provider supports CNAME flattening, `ALIAS` or `ANAME` records.
+
+`OPENLINK_EDGE_SECRET` accepts a comma-separated list, so a secret can be
+rotated by adding the new value, updating the Worker, then removing the old
+value. Requests that do not carry a configured secret are served on their own
+host and cannot claim a workspace domain.
+
+When switching an existing instance to the Cloudflare edge, run
+`php artisan openlink:verify-pending-domains --all` once. It creates custom
+hostnames for domains that are already active and lists those whose DNS still
+points elsewhere; ask their owners to replace their record with the CNAME.
+
 ## Background processes
 
 Keep these processes running with the same image and configuration as the app:

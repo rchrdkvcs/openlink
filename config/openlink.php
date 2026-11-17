@@ -6,6 +6,15 @@ return [
         'via_queue' => env('OPENLINK_ANALYTICS_VIA_QUEUE', false),
     ],
 
+    'domain_edge' => [
+        'driver' => env('OPENLINK_DOMAIN_EDGE', 'direct'),
+        'secrets' => array_values(array_filter(array_map('trim', explode(',', (string) env('OPENLINK_EDGE_SECRET', ''))))),
+        'cloudflare' => [
+            'zone_id' => env('OPENLINK_CLOUDFLARE_ZONE_ID'),
+            'api_token' => env('OPENLINK_CLOUDFLARE_API_TOKEN'),
+        ],
+    ],
+
     'diagnostics' => [
         'heartbeat_minutes' => (int) env('OPENLINK_HEARTBEAT_MINUTES', 1),
     ],

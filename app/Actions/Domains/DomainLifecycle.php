@@ -5,9 +5,8 @@ namespace App\Actions\Domains;
 use App\Enums\DomainStatus;
 use App\Models\Domain;
 use App\Models\Workspace;
-use App\Services\Dns\CloudflareProxyRanges;
 use App\Services\Dns\DnsLookup;
-use App\Services\Dns\DomainDnsTarget;
+use App\Services\DomainEdge\DomainEdge;
 use App\Services\InstanceSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +16,7 @@ class DomainLifecycle
 {
     public function __construct(
         private readonly DnsLookup $dns,
-        private readonly DomainDnsTarget $target,
-        private readonly CloudflareProxyRanges $cloudflare,
+        private readonly DomainEdge $edge,
         private readonly InstanceSettings $settings,
     ) {}
 
@@ -62,6 +60,8 @@ class DomainLifecycle
 
     public function disable(Domain $domain): Domain
     {
+        $this->edge->release($domain);
+
         $domain->forceFill([
             'status' => DomainStatus::Disabled,
             'disabled_at' => $domain->disabled_at ?? now(),
@@ -121,11 +121,9 @@ class DomainLifecycle
 
     private function checkPointing(Domain $domain): void
     {
-        $ips = array_map('strtolower', $this->dns->ipAddresses($domain->hostname));
-        $pointed = $ips !== [] && array_intersect($ips, $this->target->targetIps()) !== [];
-        $proxied = $domain->isOwnershipVerified() && $this->cloudflare->coverAll($ips);
+        $connection = $this->edge->connect($domain);
 
-        if ($pointed || $proxied) {
+        if ($connection->connected) {
             $domain->forceFill(['dns_pointed_at' => now(), 'dns_check_error' => null]);
 
             if ($domain->status === DomainStatus::OwnershipVerified) {
@@ -136,9 +134,7 @@ class DomainLifecycle
         }
 
         if ($domain->status !== DomainStatus::Active) {
-            $domain->dns_check_error = $ips === []
-                ? 'The domain does not resolve to any IP address yet.'
-                : 'The domain resolves, but not to this server. If you use a proxy such as Cloudflare, this check may stay orange — visiting a short URL on this domain will activate it.';
+            $domain->dns_check_error = $connection->error;
         }
     }
 

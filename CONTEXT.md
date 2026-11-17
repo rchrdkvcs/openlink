@@ -64,6 +64,10 @@ _Avoid_: Custom domain, host, hostname
 The instance-level IP address or hostname that workspace domains must point to. Configured by the instance admin; falls back to the default domain when unset.
 _Avoid_: Server address, origin
 
+**Domain Edge**:
+The infrastructure that receives traffic for workspace domains, issues their certificates and forwards it to Openlink. It is either the instance's own reverse proxy (direct) or a Cloudflare zone that registers each domain as a custom hostname once its ownership is proven.
+_Avoid_: CDN, proxy, load balancer
+
 **Default Domain**:
 The instance-level domain available for creating short URLs without adding a workspace-owned domain.
 _Avoid_: Primary domain, system domain

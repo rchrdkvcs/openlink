@@ -10,6 +10,8 @@ class InMemoryDnsLookup implements DnsLookup
 
     private array $ips = [];
 
+    private array $cnames = [];
+
     public function publishTxt(string $hostname, string ...$values): self
     {
         $this->txt[$hostname] = $values;
@@ -24,6 +26,13 @@ class InMemoryDnsLookup implements DnsLookup
         return $this;
     }
 
+    public function aliasTo(string $hostname, string $target): self
+    {
+        $this->cnames[$hostname] = [$target];
+
+        return $this;
+    }
+
     public function txtValues(string $hostname): array
     {
         return $this->txt[$hostname] ?? [];
@@ -32,5 +41,10 @@ class InMemoryDnsLookup implements DnsLookup
     public function ipAddresses(string $hostname): array
     {
         return $this->ips[$hostname] ?? [];
+    }
+
+    public function cnameTargets(string $hostname): array
+    {
+        return $this->cnames[$hostname] ?? [];
     }
 }

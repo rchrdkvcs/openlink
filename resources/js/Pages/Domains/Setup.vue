@@ -7,13 +7,17 @@ import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
-import { setupDescription, setupStep } from '@/lib/domains';
+import { domainEdge, setupDescription, setupStep } from '@/lib/domains';
+import { useShell } from '@/lib/shell';
 import type { DomainSetup } from '@/types/payloads';
 
 import DnsRecordsStep from './DnsRecordsStep.vue';
 import SetupProgress from './SetupProgress.vue';
 
 const props = defineProps<{ domain: DomainSetup | null }>();
+
+const { domainEdge: edgeMode } = useShell();
+const edge = computed(() => domainEdge(edgeMode.value));
 
 const step = computed(() => setupStep(props.domain));
 const pageTitle = computed(() => props.domain?.hostname ?? 'Add a domain');
@@ -75,9 +79,7 @@ function submitHostname() {
           </span>
         </Transition>
         <h2 class="mt-4 text-[15px] font-semibold text-foreground">{{ domain.hostname }} is ready</h2>
-        <p class="mt-1 max-w-sm text-[13px] leading-relaxed text-muted">
-          You can now create short links on it. HTTPS may take a few minutes on the first visit.
-        </p>
+        <p class="mt-1 max-w-sm text-[13px] leading-relaxed text-muted">{{ edge.readyMessage }}</p>
         <div class="mt-6 flex gap-2">
           <Button variant="secondary" type="button" @click="router.visit(route('domains.index'))">View domains</Button>
           <Button type="button" @click="router.visit(route('links.index'))"

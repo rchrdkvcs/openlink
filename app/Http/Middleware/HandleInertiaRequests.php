@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Workspaces\WorkspaceShell;
+use App\Enums\DomainEdgeMode;
 use App\Services\ErrorReporting\BrowserErrorReporting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -29,6 +30,7 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'errorReporting' => app(BrowserErrorReporting::class)->forRequest($request),
+            'domainEdge' => app(DomainEdgeMode::class)->value,
             ...app(WorkspaceShell::class, ['request' => $request])->props(),
         ];
     }

@@ -30,6 +30,11 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function ownedWorkspaces(): HasMany
+    {
+        return $this->hasMany(Workspace::class, 'owner_id');
+    }
+
     public function workspaceMemberships(): HasMany
     {
         return $this->hasMany(WorkspaceMember::class);
@@ -130,5 +135,12 @@ class User extends Authenticatable implements MustVerifyEmail
             ->value('role');
 
         return $role === null ? null : WorkspaceRole::from($role);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            $user->ownedWorkspaces()->get()->each(fn (Workspace $workspace) => $workspace->delete());
+        });
     }
 }

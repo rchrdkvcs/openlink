@@ -97,4 +97,11 @@ class Workspace extends Model
     {
         return $this->hasMany(LinkPage::class);
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Workspace $workspace): void {
+            $workspace->domains()->get()->each(fn (Domain $domain) => $domain->delete());
+        });
+    }
 }

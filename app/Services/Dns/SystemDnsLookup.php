@@ -47,4 +47,14 @@ class SystemDnsLookup implements DnsLookup
 
         return array_values(array_unique($ips));
     }
+
+    public function cnameTargets(string $hostname): array
+    {
+        return collect(@dns_get_record($hostname, DNS_CNAME) ?: [])
+            ->map(fn (array $record): string => rtrim(strtolower((string) ($record['target'] ?? '')), '.'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
 }

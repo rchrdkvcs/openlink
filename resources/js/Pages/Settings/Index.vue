@@ -12,6 +12,8 @@ import SettingsRow from '@/Components/ui/SettingsRow.vue';
 import StepperInput from '@/Components/ui/StepperInput.vue';
 import Switch from '@/Components/ui/Switch.vue';
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { domainEdge } from '@/lib/domains';
+import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
 
 import { instanceSettingsFields, registrationDescription, registrationModes, retentionHint } from './instanceSettings';
@@ -23,7 +25,11 @@ import UpdatesGroup from './UpdatesGroup.vue';
 const props = defineProps<{
   settings: Record<string, any>;
   updateStatus: UpdateStatus | null;
+  managedDnsTarget?: string | null;
 }>();
+
+const { domainEdge: edgeMode } = useShell();
+const dnsTargetIsManaged = computed(() => domainEdge(edgeMode.value).managesDnsTarget);
 
 const isInstanceAdmin = computed(() => Object.keys(props.settings).length > 0);
 
@@ -97,6 +103,19 @@ function discardChanges() {
             <Input id="default-domain" v-model="settingsForm.default_domain" placeholder="localhost" />
           </SettingsRow>
           <SettingsRow
+            v-if="dnsTargetIsManaged"
+            label="DNS target"
+            description="Managed by Cloudflare: workspace domains point to the fallback origin of your Cloudflare zone."
+          >
+            <p
+              class="truncate rounded-lg border bg-elevated/60 px-3 py-2 font-mono text-[13px] text-foreground"
+              :title="managedDnsTarget ?? undefined"
+            >
+              {{ managedDnsTarget || 'Not available' }}
+            </p>
+          </SettingsRow>
+          <SettingsRow
+            v-else
             label="DNS target"
             description="Where workspace domains should point. Empty uses the default domain."
             for="dns-target"

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ApplyEdgeHeaders;
 use App\Http\Middleware\EnsureEmailIsVerifiedWhenRequired;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Responses\ErrorPageResponder;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(ApplyEdgeHeaders::class);
         $middleware->alias(['verified' => EnsureEmailIsVerifiedWhenRequired::class]);
         $middleware->trustProxies(
             at: env('TRUSTED_PROXIES', '*'),

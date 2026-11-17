@@ -3,6 +3,9 @@
 namespace App\Actions\Domains;
 
 use App\Actions\ShortLinks\AvailableDomains;
+use App\Enums\DomainEdgeMode;
+use App\Enums\DomainStatus;
+use App\Enums\EdgeStatus;
 use App\Models\Domain;
 use App\Models\Workspace;
 use App\Services\Dns\DomainDnsTarget;
@@ -13,6 +16,7 @@ class DomainPayload
     public function __construct(
         private readonly DomainDnsTarget $target,
         private readonly AvailableDomains $domains,
+        private readonly DomainEdgeMode $edge,
     ) {}
 
     public function forWorkspace(Workspace $workspace): Collection
@@ -40,10 +44,21 @@ class DomainPayload
             'ownership_verified' => $domain->isOwnershipVerified(),
             'dns_pointed' => $domain->isPointed(),
             'dns_check_error' => $domain->dns_check_error,
+            'edge_status' => $domain->edge_status?->value,
+            'needs_dns_update' => $this->needsDnsUpdate($domain),
             'dns_record' => [
                 'type' => $this->target->recordType(),
                 'value' => $this->target->value(),
             ],
         ];
+    }
+
+    private function needsDnsUpdate(Domain $domain): bool
+    {
+        return $this->edge === DomainEdgeMode::Cloudflare
+            && ! $domain->is_default
+            && $domain->status === DomainStatus::Active
+            && $domain->disabled_at === null
+            && $domain->edge_status !== EdgeStatus::Connected;
     }
 }

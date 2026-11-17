@@ -46,7 +46,9 @@
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
 | **Domain** | A workspace-owned internet name used to publish short URLs. | Custom domain, host, hostname |
-| **DNS Target** | The instance-level IP address or hostname that workspace domains must point to. | Server address, origin |
+| **DNS Target** | The instance-level IP address or hostname that workspace domains must point to; the zone's fallback origin on the Cloudflare Domain Edge. | Server address, origin |
+| **Domain Edge** | The infrastructure that receives traffic for workspace domains, issues their certificates and forwards it to Openlink: the instance's own reverse proxy (direct) or a Cloudflare zone with one custom hostname per domain. | CDN, proxy, load balancer |
+| **Edge Origin** | The hostname on the hosting platform that the Cloudflare Domain Edge forwards workspace-domain traffic to with signed headers. | Origin host, origin, backend |
 | **Default Domain** | The instance-level domain available for creating short URLs without adding a workspace-owned domain. | Primary domain, system domain |
 | **Preferred Domain** | The workspace-selected domain used by default when creating new short links in that workspace. | Default workspace domain, primary workspace domain |
 | **Visit** | A successful resolution of a short link that sends a visitor to the destination URL. | Click, hit, request |

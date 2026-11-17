@@ -5,9 +5,9 @@ namespace App\Actions\Domains;
 use App\Enums\DomainStatus;
 use App\Models\Domain;
 use App\Models\Workspace;
-use App\Services\Dns\CloudflareProxyRanges;
 use App\Services\Dns\DnsLookup;
-use App\Services\Dns\DomainDnsTarget;
+use App\Services\DomainEdge\DomainEdge;
+use App\Services\DomainEdge\EdgeConnection;
 use App\Services\InstanceSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +17,7 @@ class DomainLifecycle
 {
     public function __construct(
         private readonly DnsLookup $dns,
-        private readonly DomainDnsTarget $target,
-        private readonly CloudflareProxyRanges $cloudflare,
+        private readonly DomainEdge $edge,
         private readonly InstanceSettings $settings,
     ) {}
 
@@ -39,7 +38,7 @@ class DomainLifecycle
         }
 
         $this->checkOwnership($domain);
-        $this->checkPointing($domain);
+        $this->applyConnection($domain, $this->edge->connect($domain));
         $domain->save();
 
         return $domain;
@@ -62,6 +61,7 @@ class DomainLifecycle
 
     public function disable(Domain $domain): Domain
     {
+        $domain->releaseEdgeHostname();
         $domain->forceFill([
             'status' => DomainStatus::Disabled,
             'disabled_at' => $domain->disabled_at ?? now(),
@@ -84,6 +84,7 @@ class DomainLifecycle
         DB::transaction(function () use ($domain): void {
             if ($domain->exists && $domain->workspace_id !== null) {
                 $domain->appAssociations()->delete();
+                $domain->releaseEdgeHostname();
             }
 
             $domain->forceFill([
@@ -100,6 +101,18 @@ class DomainLifecycle
         $this->settings->set('default_domain', $hostname);
 
         return $domain;
+    }
+
+    public function releaseAbandoned(): int
+    {
+        $domains = Domain::query()->abandoned()->whereNotNull('edge_hostname_id')->get();
+
+        $domains->each(function (Domain $domain): void {
+            $domain->releaseEdgeHostname();
+            $domain->save();
+        });
+
+        return $domains->count();
     }
 
     private function checkOwnership(Domain $domain): void
@@ -119,26 +132,24 @@ class DomainLifecycle
         ]);
     }
 
-    private function checkPointing(Domain $domain): void
+    private function applyConnection(Domain $domain, EdgeConnection $connection): void
     {
-        $ips = array_map('strtolower', $this->dns->ipAddresses($domain->hostname));
-        $pointed = $ips !== [] && array_intersect($ips, $this->target->targetIps()) !== [];
-        $proxied = $domain->isOwnershipVerified() && $this->cloudflare->coverAll($ips);
+        if ($domain->edge_hostname_id !== $connection->hostnameId) {
+            $domain->releaseEdgeHostname();
+        }
 
-        if ($pointed || $proxied) {
-            $domain->forceFill(['dns_pointed_at' => now(), 'dns_check_error' => null]);
+        $domain->forceFill([
+            'edge_hostname_id' => $connection->hostnameId,
+            'edge_status' => $connection->status,
+            'dns_check_error' => $domain->status === DomainStatus::Active ? null : $connection->waitingReason,
+        ]);
+
+        if ($connection->isConnected()) {
+            $domain->forceFill(['dns_pointed_at' => now()]);
 
             if ($domain->status === DomainStatus::OwnershipVerified) {
                 $this->activate($domain);
             }
-
-            return;
-        }
-
-        if ($domain->status !== DomainStatus::Active) {
-            $domain->dns_check_error = $ips === []
-                ? 'The domain does not resolve to any IP address yet.'
-                : 'The domain resolves, but not to this server. If you use a proxy such as Cloudflare, this check may stay orange — visiting a short URL on this domain will activate it.';
         }
     }
 

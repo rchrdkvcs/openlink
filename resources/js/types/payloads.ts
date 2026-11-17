@@ -11,6 +11,10 @@ export type WorkspaceSummary = {
 
 type DomainDnsRecord = { type: string; value: string };
 
+export type DomainEdgeMode = 'direct' | 'cloudflare';
+
+export type EdgeStatus = 'waiting' | 'issuing' | 'connected';
+
 export type Domain = {
   id: number;
   hostname: string;
@@ -23,6 +27,8 @@ export type Domain = {
   ownership_verified?: boolean;
   dns_pointed?: boolean;
   dns_check_error?: string | null;
+  edge_status?: EdgeStatus | null;
+  needs_dns_update?: boolean;
   dns_record?: DomainDnsRecord;
 };
 

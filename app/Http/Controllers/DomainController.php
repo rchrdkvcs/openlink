@@ -17,18 +17,18 @@ use Inertia\Response;
 
 class DomainController extends Controller
 {
-    public function create(CurrentWorkspace $current): Response
+    public function create(CurrentWorkspace $current, DomainPayload $payload): Response
     {
         $current->require('manage');
 
-        return Inertia::render('Domains/Setup', ['domain' => null]);
+        return Inertia::render('Domains/Setup', ['domain' => null, 'edge' => $payload->edge()]);
     }
 
     public function setup(Domain $domain, DomainPayload $payload): Response
     {
         Gate::authorize('manage', $domain);
 
-        return Inertia::render('Domains/Setup', ['domain' => $payload->handle($domain)]);
+        return Inertia::render('Domains/Setup', ['domain' => $payload->handle($domain), 'edge' => $payload->edge()]);
     }
 
     public function store(StoreDomainRequest $request, CurrentWorkspace $current, DomainLifecycle $domains): RedirectResponse

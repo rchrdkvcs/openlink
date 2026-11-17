@@ -6,6 +6,7 @@ import {
   domainStatusLabel,
   domainStatusVariant,
   domainSubtitle,
+  readyMessage,
   setupDescription,
   setupStep,
   transferTargetOptions,
@@ -76,10 +77,24 @@ describe('domain setup', () => {
       dns_record: { type: 'A', value: '1.2.3.4' },
     };
 
-    const [txt, pointing] = dnsRecordRequirements(domain);
+    const [txt, pointing] = dnsRecordRequirements(domain, 'direct');
 
     expect(txt).toMatchObject({ type: 'TXT', name: '_openlink.go.example.com', done: true, error: null });
     expect(pointing).toMatchObject({ type: 'A', name: 'go.example.com', value: '1.2.3.4', done: false });
+    expect(pointing.purpose).toBe('Sends visitors to this server');
     expect(pointing.error).toBe('No A record');
+
+    const [, edgePointing] = dnsRecordRequirements(
+      { ...domain, dns_record: { type: 'CNAME', value: 'cname.example.com' } },
+      'cloudflare',
+    );
+
+    expect(edgePointing).toMatchObject({ type: 'CNAME', value: 'cname.example.com' });
+    expect(edgePointing.purpose).toContain('HTTPS automatically');
+  });
+
+  it('tells members who sets up HTTPS once a domain is ready', () => {
+    expect(readyMessage('cloudflare')).toContain('HTTPS is set up automatically');
+    expect(readyMessage('direct')).toContain('instance administrator');
   });
 });

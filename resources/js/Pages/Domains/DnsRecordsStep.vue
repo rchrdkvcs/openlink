@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { RefreshCw } from '@lucide/vue';
+import { Info, RefreshCw } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
 import { dnsRecordRequirements } from '@/lib/domains';
-import type { DomainSetup } from '@/types/payloads';
+import type { DomainEdge, DomainSetup } from '@/types/payloads';
 
 import DnsRecordCard from './DnsRecordCard.vue';
 
-const props = defineProps<{ domain: DomainSetup }>();
+const props = defineProps<{ domain: DomainSetup; edge: DomainEdge }>();
 
 const pollIntervalMs = 15000;
 
-const records = computed(() => dnsRecordRequirements(props.domain));
+const records = computed(() => dnsRecordRequirements(props.domain, props.edge));
 const checking = ref(false);
 
 function checkNow() {
@@ -46,6 +46,19 @@ onBeforeUnmount(() => {
   </p>
 
   <DnsRecordCard v-for="record in records" :key="record.key" :record="record" />
+
+  <div
+    v-if="edge === 'direct'"
+    role="note"
+    class="flex items-start gap-2.5 rounded-xl border bg-surface px-4 py-3 text-[13px] leading-relaxed text-muted"
+  >
+    <Info class="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+    <p>
+      DNS records alone do not enable HTTPS on this instance. Your instance administrator also has to add
+      <span class="font-medium text-foreground">{{ domain.hostname }}</span> to the server so it can serve your short
+      links securely.
+    </p>
+  </div>
 
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <p class="text-xs leading-relaxed text-faint">

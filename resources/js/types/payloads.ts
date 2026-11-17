@@ -26,6 +26,8 @@ export type Domain = {
   dns_record?: DomainDnsRecord;
 };
 
+export type DomainEdge = 'direct' | 'cloudflare';
+
 export type DomainSetup = Domain &
   Required<Pick<Domain, 'expected_txt_name' | 'expected_txt' | 'ownership_verified' | 'dns_pointed' | 'dns_record'>> & {
     failure_reason: string | null;

@@ -15,6 +15,11 @@ class DomainPayload
         private readonly AvailableDomains $domains,
     ) {}
 
+    public function edge(): string
+    {
+        return config('openlink.domain_edge.driver') === 'cloudflare' ? 'cloudflare' : 'direct';
+    }
+
     public function forWorkspace(Workspace $workspace): Collection
     {
         return $workspace->domains()

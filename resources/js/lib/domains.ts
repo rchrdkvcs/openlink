@@ -1,4 +1,4 @@
-import type { Domain, DomainSetup, WorkspaceSummary } from '@/types/payloads';
+import type { Domain, DomainEdge, DomainSetup, WorkspaceSummary } from '@/types/payloads';
 
 export type DomainBadgeVariant = 'outline' | 'success' | 'danger' | 'default' | 'warning';
 
@@ -64,6 +64,11 @@ export function setupDescription(step: SetupStep): string {
   return 'Verified and serving short links.';
 }
 
+export function readyMessage(edge: DomainEdge): string {
+  if (edge === 'cloudflare') return 'You can now create short links on it. HTTPS is set up automatically.';
+  return 'You can now create short links on it. If it does not open over HTTPS yet, ask your instance administrator to add it to the server.';
+}
+
 export type DnsRecordRequirement = {
   key: 'txt' | 'pointing';
   purpose: string;
@@ -74,7 +79,7 @@ export type DnsRecordRequirement = {
   error: string | null;
 };
 
-export function dnsRecordRequirements(domain: DomainSetup): DnsRecordRequirement[] {
+export function dnsRecordRequirements(domain: DomainSetup, edge: DomainEdge): DnsRecordRequirement[] {
   return [
     {
       key: 'txt',
@@ -87,7 +92,10 @@ export function dnsRecordRequirements(domain: DomainSetup): DnsRecordRequirement
     },
     {
       key: 'pointing',
-      purpose: 'Sends visitors to this server',
+      purpose:
+        edge === 'cloudflare'
+          ? 'Sends visitors to Openlink and enables HTTPS automatically'
+          : 'Sends visitors to this server',
       type: domain.dns_record.type,
       name: domain.hostname,
       value: domain.dns_record.value,

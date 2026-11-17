@@ -10,6 +10,7 @@ The Domain Edge is chosen with `OPENLINK_DOMAIN_EDGE`. `direct` keeps the self-h
 - **Active means served.** With the Cloudflare edge, a domain becomes active when its custom hostname and certificate are both active, replacing the IP comparison. Observed traffic still activates an ownership-verified domain.
 - **HTTP certificate validation.** Custom hostnames use HTTP validation and TLS 1.2 or later, so the CNAME is the only routing record a member adds.
 - **Signed forwarding.** The Worker sends the visitor's host, IP address and country in `X-Openlink-*` headers with a shared secret. A global middleware applies them only when the secret matches one of `OPENLINK_EDGE_SECRET`, so the rest of the application keeps reading the request host, IP address and `CF-IPCountry`. The secret is infrastructure configuration and stays in the environment (ADR 0002).
+- **Direct means operator-routed.** The direct edge no longer treats Cloudflare proxy addresses as pointing: self-hosted instances route workspace domains through their own reverse proxy, and the setup page tells members that an administrator must add the domain there before it serves HTTPS. Observed traffic still activates domains behind proxies the IP check cannot see.
 - **Lifecycle stays in Openlink.** Disabling or deleting a domain removes its custom hostname. Cloudflare outages leave a domain waiting with a message and are retried by the hourly check instead of failing the request.
 
 ## Considered options

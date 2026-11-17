@@ -3,19 +3,17 @@
 namespace App\Services\DomainEdge;
 
 use App\Models\Domain;
+use App\Services\Dns\DnsLookup;
 use App\Services\Dns\DomainDnsTarget;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\RequestException;
 use Throwable;
 
 class CloudflareDomainEdge implements DomainEdge
 {
-    private const API = 'https://api.cloudflare.com/client/v4';
-
     public function __construct(
+        private readonly CloudflareZone $zone,
+        private readonly DnsLookup $dns,
         private readonly DomainDnsTarget $target,
-        private readonly string $zoneId,
-        private readonly string $apiToken,
     ) {}
 
     public function connect(Domain $domain): EdgeConnection
@@ -24,8 +22,10 @@ class CloudflareDomainEdge implements DomainEdge
             return EdgeConnection::connected();
         }
 
-        if (! $domain->isOwnershipVerified()) {
-            return EdgeConnection::waiting();
+        $aliased = $this->aliasesTarget($domain->hostname);
+
+        if (! $domain->isOwnershipVerified() && ! $aliased) {
+            return EdgeConnection::waiting('HTTPS setup starts as soon as Openlink finds the TXT or CNAME record.');
         }
 
         try {
@@ -33,59 +33,64 @@ class CloudflareDomainEdge implements DomainEdge
         } catch (Throwable $exception) {
             report($exception);
 
-            return EdgeConnection::waiting('Openlink could not reach Cloudflare to set up this domain. It will retry automatically.');
+            return EdgeConnection::waiting($this->failureReason($exception), $domain->edge_hostname_id);
         }
+
+        $id = (string) $hostname['id'];
 
         if (($hostname['status'] ?? null) === 'active' && data_get($hostname, 'ssl.status') === 'active') {
-            return EdgeConnection::connected();
+            return EdgeConnection::connected($id);
         }
 
-        return EdgeConnection::waiting($this->waitingReason($domain, $hostname));
+        $problem = $this->reportedProblem($domain, $hostname);
+
+        if ($aliased || ($hostname['status'] ?? null) === 'active') {
+            return EdgeConnection::issuing($id, $problem);
+        }
+
+        return EdgeConnection::waiting(
+            $problem ?? "Point {$domain->hostname} to {$this->target->value()} with a CNAME record. HTTPS is issued automatically once it resolves.",
+            $id,
+        );
     }
 
-    public function release(Domain $domain): void
+    public function release(string $hostnameId): void
     {
-        if ($domain->edge_hostname_id === null) {
-            return;
+        $response = $this->zone->client()->delete($this->zone->customHostnames($hostnameId));
+
+        if ($response->failed() && $response->status() !== 404) {
+            throw new RequestException($response);
         }
+    }
 
-        try {
-            $response = $this->client()->delete($this->path($domain->edge_hostname_id));
+    private function aliasesTarget(string $hostname): bool
+    {
+        $aliases = $this->dns->cnameTargets($hostname);
 
-            if (! $response->successful() && $response->status() !== 404) {
-                $response->throw();
-            }
-        } catch (Throwable $exception) {
-            report($exception);
-        }
-
-        $domain->edge_hostname_id = null;
+        return $aliases !== [] && in_array(rtrim(strtolower($this->target->value()), '.'), $aliases, true);
     }
 
     private function hostnameFor(Domain $domain): array
     {
         if ($domain->edge_hostname_id !== null) {
-            $response = $this->client()->get($this->path($domain->edge_hostname_id));
+            $response = $this->zone->client()->get($this->zone->customHostnames($domain->edge_hostname_id));
 
             if ($response->successful()) {
                 return $response->json('result');
             }
 
-            if (! $response->clientError()) {
-                $response->throw();
+            if ($response->status() !== 404) {
+                throw new RequestException($response);
             }
         }
 
-        $hostname = $this->find($domain->hostname) ?? $this->create($domain->hostname);
-        $domain->edge_hostname_id = $hostname['id'];
-
-        return $hostname;
+        return $this->find($domain->hostname) ?? $this->create($domain->hostname);
     }
 
     private function find(string $hostname): ?array
     {
-        $matches = $this->client()
-            ->get($this->path(), ['hostname' => $hostname])
+        $matches = $this->zone->client()
+            ->get($this->zone->customHostnames(), ['hostname' => $hostname])
             ->throw()
             ->json('result', []);
 
@@ -94,8 +99,8 @@ class CloudflareDomainEdge implements DomainEdge
 
     private function create(string $hostname): array
     {
-        return $this->client()
-            ->post($this->path(), [
+        return $this->zone->client()
+            ->post($this->zone->customHostnames(), [
                 'hostname' => $hostname,
                 'ssl' => [
                     'method' => 'http',
@@ -107,29 +112,43 @@ class CloudflareDomainEdge implements DomainEdge
             ->json('result');
     }
 
-    private function waitingReason(Domain $domain, array $hostname): string
+    private function failureReason(Throwable $exception): string
     {
-        $reported = data_get($hostname, 'ssl.validation_errors.0.message')
-            ?? data_get($hostname, 'verification_errors.0');
+        $status = $exception instanceof RequestException ? $exception->response->status() : null;
 
-        if (is_string($reported) && $reported !== '') {
-            return $reported;
+        return match (true) {
+            $exception instanceof CloudflareMisconfiguration, $status === 401, $status === 403 => 'HTTPS setup is paused because this Openlink instance cannot use Cloudflare right now. Your DNS records are not the problem; the instance administrator has to fix the Cloudflare settings.',
+            $status === 429 => 'Cloudflare is limiting requests right now. Openlink will retry automatically.',
+            default => 'Openlink could not reach Cloudflare to set up this domain. It will retry automatically.',
+        };
+    }
+
+    private function reportedProblem(Domain $domain, array $hostname): ?string
+    {
+        $messages = collect(data_get($hostname, 'ssl.validation_errors', []))
+            ->map(fn (mixed $error): mixed => is_array($error) ? ($error['message'] ?? null) : $error)
+            ->merge(data_get($hostname, 'verification_errors', []))
+            ->filter(fn (mixed $message): bool => is_string($message) && trim($message) !== '');
+
+        if ($messages->isEmpty()) {
+            return null;
         }
 
-        return "Point {$domain->hostname} to {$this->target->value()} with a CNAME record. HTTPS is issued automatically once it resolves.";
-    }
+        $reported = strtolower($messages->implode(' '));
+        $host = $domain->hostname;
+        $target = $this->target->value();
 
-    private function path(?string $id = null): string
-    {
-        return "zones/{$this->zoneId}/custom_hostnames".($id === null ? '' : "/{$id}");
-    }
-
-    private function client(): PendingRequest
-    {
-        return Http::baseUrl(self::API)
-            ->withToken($this->apiToken)
-            ->acceptJson()
-            ->connectTimeout(5)
-            ->timeout(10);
+        return match (true) {
+            str_contains($reported, 'caa') => "A CAA record on {$host} blocks the certificate authorities Cloudflare uses. Remove it, or also allow letsencrypt.org and pki.goog.",
+            str_contains($reported, 'cname'),
+            str_contains($reported, 'not point'),
+            str_contains($reported, 'nxdomain'),
+            str_contains($reported, 'not resolve') => "{$host} does not point to {$target} yet. Check the CNAME record; DNS changes can take a while to spread.",
+            str_contains($reported, 'timed out'),
+            str_contains($reported, 'timeout') => "Certificate validation for {$host} timed out. Check that its CNAME record points to {$target}. Openlink keeps retrying.",
+            str_contains($reported, 'pending'),
+            str_contains($reported, 'validation') => "Cloudflare is validating {$host} before issuing HTTPS. This usually takes a few minutes.",
+            default => "Cloudflare could not issue HTTPS for {$host} yet. Openlink keeps retrying.",
+        };
     }
 }

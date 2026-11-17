@@ -56,5 +56,17 @@ namespace Tests\Unit {
                 (new SystemDnsLookup)->ipAddresses('go.example.test')
             );
         }
+
+        public function test_cname_targets_are_lowercased_without_the_trailing_dot(): void
+        {
+            SystemDnsLookupTestRecords::$records = [
+                'go.example.test' => [
+                    DNS_CNAME => [['target' => 'CNAME.Openlink.test.'], ['target' => 'cname.openlink.test']],
+                ],
+            ];
+
+            $this->assertSame(['cname.openlink.test'], (new SystemDnsLookup)->cnameTargets('go.example.test'));
+            $this->assertSame([], (new SystemDnsLookup)->cnameTargets('other.example.test'));
+        }
     }
 }

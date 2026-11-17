@@ -1,6 +1,6 @@
 import type { ErrorReportingConfig } from '@/lib/errorReporting';
 
-import type { Folder, WorkspaceSummary } from './payloads';
+import type { DomainEdgeMode, Folder, WorkspaceSummary } from './payloads';
 
 export interface User {
   id: number;
@@ -34,4 +34,5 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
   canEditWorkspace?: boolean;
   navigation?: Navigation | null;
   errorReporting?: ErrorReportingConfig | null;
+  domainEdge?: DomainEdgeMode;
 };

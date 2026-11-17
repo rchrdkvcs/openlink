@@ -25,6 +25,4 @@ class DirectDomainEdge implements DomainEdge
             ? 'The domain does not resolve to any IP address yet.'
             : 'The domain resolves, but not to this server.');
     }
-
-    public function release(Domain $domain): void {}
 }

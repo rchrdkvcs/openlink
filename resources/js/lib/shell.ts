@@ -20,6 +20,7 @@ export function useShell() {
     isOwner: computed(() => isOwnerRole(role.value)),
     canManage: computed(() => Boolean(page.props.canManageWorkspace)),
     canEdit: computed(() => Boolean(page.props.canEditWorkspace)),
+    domainEdge: computed(() => page.props.domainEdge ?? 'direct'),
     query,
   };
 }

@@ -57,16 +57,20 @@ The public URL made from a domain and slug.
 _Avoid_: Shortened URL, public link
 
 **Domain**:
-A workspace-owned hostname used to publish short URLs. A domain must be active before it can serve short links: ownership is proven with a DNS TXT record, and the domain becomes active once its DNS points to the server — confirmed by an IP check or by real traffic reaching the server on that hostname.
+A workspace-owned hostname used to publish short URLs. A domain must be active before it can serve short links: ownership is proven with a DNS TXT record, and the domain becomes active once its DNS points to the server — confirmed by an IP check, by real traffic reaching the server on that hostname, or, on the Cloudflare Domain Edge, by its custom hostname and certificate becoming active.
 _Avoid_: Custom domain, host, hostname
 
 **DNS Target**:
-The instance-level IP address or hostname that workspace domains must point to. Configured by the instance admin; falls back to the default domain when unset.
+The instance-level IP address or hostname that workspace domains must point to. Configured by the instance admin and falls back to the default domain when unset; with the Cloudflare Domain Edge it is the zone's fallback origin and is managed by Cloudflare.
 _Avoid_: Server address, origin
 
 **Domain Edge**:
-The infrastructure that receives traffic for workspace domains, issues their certificates and forwards it to Openlink. It is either the instance's own reverse proxy (direct) or a Cloudflare zone that registers each domain as a custom hostname once its ownership is proven.
+The infrastructure that receives traffic for workspace domains, issues their certificates and forwards it to Openlink. It is either the instance's own reverse proxy (direct) or a Cloudflare zone that registers each domain as a custom hostname as soon as its TXT record or its CNAME to the DNS Target is found, and releases it when the domain is disabled, deleted or abandoned.
 _Avoid_: CDN, proxy, load balancer
+
+**Edge Origin**:
+The hostname on the instance's hosting platform that the Cloudflare Domain Edge forwards workspace-domain traffic to, carrying the visitor's host in signed headers. Members never see it; they point their domains at the DNS Target.
+_Avoid_: Origin host, origin, backend
 
 **Default Domain**:
 The instance-level domain available for creating short URLs without adding a workspace-owned domain.

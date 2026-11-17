@@ -2,10 +2,16 @@
 import { Check, Copy } from '@lucide/vue';
 
 import Badge from '@/Components/ui/Badge.vue';
-import type { DnsRecordRequirement } from '@/lib/domains';
+import type { DnsRecordProgress, DnsRecordRequirement } from '@/lib/domains';
 import { copyToClipboard } from '@/lib/toast';
 
 const props = defineProps<{ record: DnsRecordRequirement }>();
+
+const badgeVariants: Record<DnsRecordProgress, 'success' | 'warning' | 'accent'> = {
+  waiting: 'warning',
+  issuing: 'accent',
+  done: 'success',
+};
 
 const copyable = [
   { label: 'Name', field: 'name', copied: 'Name copied' },
@@ -35,8 +41,8 @@ function copy(field: 'name' | 'value', message: string) {
           <p class="text-[13px] text-muted">{{ record.purpose }}</p>
         </div>
       </div>
-      <Badge :variant="record.done ? 'success' : 'warning'" dot class="shrink-0">
-        {{ record.done ? 'Found' : 'Waiting' }}
+      <Badge :variant="badgeVariants[record.progress]" dot class="shrink-0">
+        {{ record.statusLabel }}
       </Badge>
     </header>
 
@@ -66,6 +72,9 @@ function copy(field: 'name' | 'value', message: string) {
       </div>
     </dl>
 
+    <p v-if="record.note && !record.done" class="border-t px-4 py-2.5 text-xs text-muted sm:px-5" aria-live="polite">
+      {{ record.note }}
+    </p>
     <p v-if="record.error && !record.done" class="border-t px-4 py-2.5 text-xs text-warning sm:px-5">
       {{ record.error }}
     </p>

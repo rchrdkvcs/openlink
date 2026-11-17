@@ -2,20 +2,30 @@
 
 namespace App\Services\Dns;
 
+use App\Enums\DomainEdgeMode;
+use App\Services\DomainEdge\CloudflareZone;
 use App\Services\InstanceSettings;
+use Throwable;
 
 class DomainDnsTarget
 {
+    private ?string $resolved = null;
+
     public function __construct(
         private readonly InstanceSettings $settings,
         private readonly DnsLookup $resolver,
+        private readonly DomainEdgeMode $mode,
+        private readonly CloudflareZone $zone,
     ) {}
 
     public function value(): string
     {
-        $target = trim((string) $this->settings->get('dns_target', ''));
+        return $this->resolved ??= $this->isManagedByEdge() ? $this->edgeValue() : $this->configuredValue();
+    }
 
-        return $target !== '' ? $target : (string) $this->settings->get('default_domain');
+    public function isManagedByEdge(): bool
+    {
+        return $this->mode === DomainEdgeMode::Cloudflare;
     }
 
     public function recordType(): string
@@ -32,5 +42,23 @@ class DomainDnsTarget
         }
 
         return array_map('strtolower', $this->resolver->ipAddresses($value));
+    }
+
+    private function edgeValue(): string
+    {
+        try {
+            return $this->zone->fallbackOrigin()['origin'];
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->configuredValue();
+        }
+    }
+
+    private function configuredValue(): string
+    {
+        $target = trim((string) $this->settings->get('dns_target', ''));
+
+        return $target !== '' ? $target : (string) $this->settings->get('default_domain');
     }
 }

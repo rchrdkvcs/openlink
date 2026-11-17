@@ -42,6 +42,11 @@ class WebhookEndpointManagementTest extends TestCase
             {
                 throw new RuntimeException('Saving an endpoint must not perform DNS lookups.');
             }
+
+            public function cnameTargets(string $hostname): array
+            {
+                throw new RuntimeException('Saving an endpoint must not perform DNS lookups.');
+            }
         });
     }
 

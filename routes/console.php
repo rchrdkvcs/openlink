@@ -10,7 +10,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('openlink:prune-analytics')->dailyAt('03:15');
-Schedule::command('openlink:verify-pending-domains')->hourly();
+Schedule::command('openlink:verify-pending-domains')->hourly()->withoutOverlapping();
+Schedule::command('openlink:verify-pending-domains --issuing')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('openlink:heartbeat')->cron(app(Heartbeats::class)->schedulerCron());
 Schedule::command('openlink:monitor-destinations')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('openlink:prune-webhook-deliveries')->dailyAt('03:30');

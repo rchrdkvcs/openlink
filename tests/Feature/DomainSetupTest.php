@@ -121,7 +121,8 @@ class DomainSetupTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Domains/Setup')
-                ->where('edge', 'direct')
+                ->where('domainEdge', 'direct')
+                ->where('domain.needs_dns_update', false)
                 ->where('domain.hostname', $domain->hostname)
                 ->where('domain.status', DomainStatus::Pending->value)
                 ->where('domain.expected_txt_name', '_openlink.'.$domain->hostname)
@@ -137,10 +138,36 @@ class DomainSetupTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('domains.setup', $domain))
-            ->assertInertia(fn ($page) => $page->where('edge', 'cloudflare'));
+            ->assertInertia(fn ($page) => $page->where('domainEdge', 'cloudflare'));
         $this->actingAs($user)
             ->get(route('domains.create'))
-            ->assertInertia(fn ($page) => $page->where('edge', 'cloudflare'));
+            ->assertInertia(fn ($page) => $page->where('domainEdge', 'cloudflare'));
+    }
+
+    public function test_direct_edge_does_not_treat_cloudflare_proxy_addresses_as_pointing(): void
+    {
+        [, $domain, $user] = $this->workspaceWithDomain();
+        app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
+        $this->publishOwnership($domain)->pointTo($domain->hostname, '104.16.0.10', '2606:4700::6810:a');
+
+        $this->actingAs($user)->post(route('domains.verify', $domain))->assertRedirect();
+
+        $domain->refresh();
+        $this->assertSame(DomainStatus::OwnershipVerified, $domain->status);
+        $this->assertNull($domain->dns_pointed_at);
+        $this->assertSame('The domain resolves, but not to this server.', $domain->dns_check_error);
+    }
+
+    public function test_direct_edge_keeps_the_configured_dns_target_in_instance_settings(): void
+    {
+        [, , $user] = $this->workspaceWithDomain();
+        $user->forceFill(['is_instance_admin' => true])->save();
+        app(InstanceSettings::class)->set('dns_target', '203.0.113.10');
+
+        $this->actingAs($user)->get(route('settings.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('managedDnsTarget', null)
+                ->where('settings.dns_target', '203.0.113.10'));
     }
 
     private function publishOwnership(Domain $domain): InMemoryDnsLookup

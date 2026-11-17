@@ -2,13 +2,14 @@
 
 namespace App\Providers;
 
+use App\Enums\DomainEdgeMode;
 use App\Jobs\CheckDestination;
 use App\Models\User;
 use App\Services\Diagnostics\Heartbeats;
 use App\Services\Dns\DnsLookup;
-use App\Services\Dns\DomainDnsTarget;
 use App\Services\Dns\SystemDnsLookup;
 use App\Services\DomainEdge\CloudflareDomainEdge;
+use App\Services\DomainEdge\CloudflareZone;
 use App\Services\DomainEdge\DirectDomainEdge;
 use App\Services\DomainEdge\DomainEdge;
 use App\Services\LinkPages\LinkPageLogoCleanup;
@@ -33,14 +34,16 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
-        $this->app->bind(DomainEdge::class, fn ($app) => match ($app['config']->get('openlink.domain_edge.driver')) {
-            'cloudflare' => new CloudflareDomainEdge(
-                $app->make(DomainDnsTarget::class),
-                (string) $app['config']->get('openlink.domain_edge.cloudflare.zone_id'),
-                (string) $app['config']->get('openlink.domain_edge.cloudflare.api_token'),
-            ),
-            default => $app->make(DirectDomainEdge::class),
-        });
+        $this->app->bind(DomainEdgeMode::class, fn ($app) => DomainEdgeMode::fromConfig($app['config']->get('openlink.domain_edge.driver')));
+        $this->app->bind(CloudflareZone::class, fn ($app) => new CloudflareZone(
+            $app['cache']->store(),
+            (string) $app['config']->get('openlink.domain_edge.cloudflare.api_token'),
+            (string) $app['config']->get('openlink.domain_edge.cloudflare.zone_id'),
+        ));
+        $this->app->bind(DomainEdge::class, fn ($app) => $app->make(match ($app->make(DomainEdgeMode::class)) {
+            DomainEdgeMode::Cloudflare => CloudflareDomainEdge::class,
+            DomainEdgeMode::Direct => DirectDomainEdge::class,
+        }));
         $this->app->bind(UrlRedaction::class, fn ($app) => new UrlRedaction((string) $app['config']->get('app.key')));
         $this->app->singleton(Heartbeats::class);
     }

@@ -4,16 +4,20 @@ import { Info, RefreshCw } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import Button from '@/Components/ui/Button.vue';
-import { dnsRecordRequirements } from '@/lib/domains';
-import type { DomainEdge, DomainSetup } from '@/types/payloads';
+import { dnsRecordRequirements, domainEdge } from '@/lib/domains';
+import { useShell } from '@/lib/shell';
+import type { DomainSetup } from '@/types/payloads';
 
 import DnsRecordCard from './DnsRecordCard.vue';
 
-const props = defineProps<{ domain: DomainSetup; edge: DomainEdge }>();
+const props = defineProps<{ domain: DomainSetup }>();
+
+const { domainEdge: edgeMode } = useShell();
+const edge = computed(() => domainEdge(edgeMode.value));
 
 const pollIntervalMs = 15000;
 
-const records = computed(() => dnsRecordRequirements(props.domain, props.edge));
+const records = computed(() => dnsRecordRequirements(props.domain, edgeMode.value));
 const checking = ref(false);
 
 function checkNow() {
@@ -48,7 +52,7 @@ onBeforeUnmount(() => {
   <DnsRecordCard v-for="record in records" :key="record.key" :record="record" />
 
   <div
-    v-if="edge === 'direct'"
+    v-if="edge.administratorAddsDomains"
     role="note"
     class="flex items-start gap-2.5 rounded-xl border bg-surface px-4 py-3 text-[13px] leading-relaxed text-muted"
   >

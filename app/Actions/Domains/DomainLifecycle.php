@@ -7,6 +7,7 @@ use App\Models\Domain;
 use App\Models\Workspace;
 use App\Services\Dns\DnsLookup;
 use App\Services\DomainEdge\DomainEdge;
+use App\Services\DomainEdge\EdgeConnection;
 use App\Services\InstanceSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,7 @@ class DomainLifecycle
         }
 
         $this->checkOwnership($domain);
-        $this->checkPointing($domain);
+        $this->applyConnection($domain, $this->edge->connect($domain));
         $domain->save();
 
         return $domain;
@@ -60,8 +61,7 @@ class DomainLifecycle
 
     public function disable(Domain $domain): Domain
     {
-        $this->edge->release($domain);
-
+        $domain->releaseEdgeHostname();
         $domain->forceFill([
             'status' => DomainStatus::Disabled,
             'disabled_at' => $domain->disabled_at ?? now(),
@@ -84,6 +84,7 @@ class DomainLifecycle
         DB::transaction(function () use ($domain): void {
             if ($domain->exists && $domain->workspace_id !== null) {
                 $domain->appAssociations()->delete();
+                $domain->releaseEdgeHostname();
             }
 
             $domain->forceFill([
@@ -100,6 +101,18 @@ class DomainLifecycle
         $this->settings->set('default_domain', $hostname);
 
         return $domain;
+    }
+
+    public function releaseAbandoned(): int
+    {
+        $domains = Domain::query()->abandoned()->whereNotNull('edge_hostname_id')->get();
+
+        $domains->each(function (Domain $domain): void {
+            $domain->releaseEdgeHostname();
+            $domain->save();
+        });
+
+        return $domains->count();
     }
 
     private function checkOwnership(Domain $domain): void
@@ -119,22 +132,24 @@ class DomainLifecycle
         ]);
     }
 
-    private function checkPointing(Domain $domain): void
+    private function applyConnection(Domain $domain, EdgeConnection $connection): void
     {
-        $connection = $this->edge->connect($domain);
+        if ($domain->edge_hostname_id !== $connection->hostnameId) {
+            $domain->releaseEdgeHostname();
+        }
 
-        if ($connection->connected) {
-            $domain->forceFill(['dns_pointed_at' => now(), 'dns_check_error' => null]);
+        $domain->forceFill([
+            'edge_hostname_id' => $connection->hostnameId,
+            'edge_status' => $connection->status,
+            'dns_check_error' => $domain->status === DomainStatus::Active ? null : $connection->waitingReason,
+        ]);
+
+        if ($connection->isConnected()) {
+            $domain->forceFill(['dns_pointed_at' => now()]);
 
             if ($domain->status === DomainStatus::OwnershipVerified) {
                 $this->activate($domain);
             }
-
-            return;
-        }
-
-        if ($domain->status !== DomainStatus::Active) {
-            $domain->dns_check_error = $connection->error;
         }
     }
 

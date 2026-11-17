@@ -8,7 +8,13 @@ import Menu from '@/Components/ui/Menu.vue';
 import MenuItem from '@/Components/ui/MenuItem.vue';
 import MenuSeparator from '@/Components/ui/MenuSeparator.vue';
 import { confirmAction } from '@/lib/confirm';
-import { domainNeedsSetup, domainStatusLabel, domainStatusVariant, domainSubtitle } from '@/lib/domains';
+import {
+  domainNeedsSetup,
+  domainStatusLabel,
+  domainStatusVariant,
+  domainSubtitle,
+  setupActionLabel,
+} from '@/lib/domains';
 import { useShell } from '@/lib/shell';
 import { toast } from '@/lib/toast';
 import type { Domain } from '@/types/payloads';
@@ -86,7 +92,7 @@ async function destroy() {
       :href="route('domains.setup', domain.id)"
       class="hidden h-8 items-center rounded-lg border bg-elevated/60 px-3 text-[13px] font-medium text-foreground transition-colors hover:border-border-strong hover:bg-elevated sm:inline-flex"
     >
-      Continue setup
+      {{ setupActionLabel(domain) }}
     </Link>
     <Badge :variant="domainStatusVariant(domain)" dot class="shrink-0">{{ domainStatusLabel(domain) }}</Badge>
     <Menu v-if="canAct" width="w-56">
@@ -101,7 +107,7 @@ async function destroy() {
       </template>
       <MenuItem :icon="RefreshCw" @select="verify">Check DNS now</MenuItem>
       <MenuItem v-if="needsSetup" :icon="Settings2" @select="router.visit(route('domains.setup', domain.id))">
-        Continue setup
+        {{ setupActionLabel(domain) }}
       </MenuItem>
       <MenuItem
         v-if="domain.status === 'active'"

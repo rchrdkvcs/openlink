@@ -7,13 +7,17 @@ import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Input from '@/Components/ui/Input.vue';
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
-import { readyMessage, setupDescription, setupStep } from '@/lib/domains';
-import type { DomainEdge, DomainSetup } from '@/types/payloads';
+import { domainEdge, setupDescription, setupStep } from '@/lib/domains';
+import { useShell } from '@/lib/shell';
+import type { DomainSetup } from '@/types/payloads';
 
 import DnsRecordsStep from './DnsRecordsStep.vue';
 import SetupProgress from './SetupProgress.vue';
 
-const props = defineProps<{ domain: DomainSetup | null; edge: DomainEdge }>();
+const props = defineProps<{ domain: DomainSetup | null }>();
+
+const { domainEdge: edgeMode } = useShell();
+const edge = computed(() => domainEdge(edgeMode.value));
 
 const step = computed(() => setupStep(props.domain));
 const pageTitle = computed(() => props.domain?.hostname ?? 'Add a domain');
@@ -60,7 +64,7 @@ function submitHostname() {
       </form>
     </section>
 
-    <DnsRecordsStep v-else-if="step === 2 && domain" :domain="domain" :edge="edge" />
+    <DnsRecordsStep v-else-if="step === 2 && domain" :domain="domain" />
 
     <section v-else-if="domain" class="rounded-xl border bg-surface px-6 py-10">
       <div class="flex flex-col items-center text-center">
@@ -75,7 +79,7 @@ function submitHostname() {
           </span>
         </Transition>
         <h2 class="mt-4 text-[15px] font-semibold text-foreground">{{ domain.hostname }} is ready</h2>
-        <p class="mt-1 max-w-sm text-[13px] leading-relaxed text-muted">{{ readyMessage(edge) }}</p>
+        <p class="mt-1 max-w-sm text-[13px] leading-relaxed text-muted">{{ edge.readyMessage }}</p>
         <div class="mt-6 flex gap-2">
           <Button variant="secondary" type="button" @click="router.visit(route('domains.index'))">View domains</Button>
           <Button type="button" @click="router.visit(route('links.index'))"

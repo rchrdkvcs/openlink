@@ -10,6 +10,7 @@ use App\Actions\Members\MemberRows;
 use App\Actions\ShortLinks\LinksQuery;
 use App\Actions\Workspaces\CurrentWorkspace;
 use App\Services\Analytics\AnalyticsFilters;
+use App\Services\Dns\DomainDnsTarget;
 use App\Services\InstanceSettings;
 use App\Services\ShortLinks\SmartRouting;
 use App\Services\UpdateStatus;
@@ -76,7 +77,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function settings(Request $request, CurrentWorkspace $current, InstanceSettings $settings, UpdateStatus $updates): Response
+    public function settings(Request $request, CurrentWorkspace $current, InstanceSettings $settings, UpdateStatus $updates, DomainDnsTarget $target): Response
     {
         $current->require();
         $isAdmin = $request->user()->can('administer-instance');
@@ -84,6 +85,7 @@ class DashboardController extends Controller
         return Inertia::render('Settings/Index', [
             'settings' => $isAdmin ? $settings->all() : [],
             'updateStatus' => $isAdmin ? $updates->get() : null,
+            'managedDnsTarget' => $isAdmin && $target->isManagedByEdge() ? $target->value() : null,
         ]);
     }
 }

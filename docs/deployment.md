@@ -102,49 +102,78 @@ instance can instead keep a fixed set of hostnames on its platform and let
 Cloudflare for SaaS terminate TLS for every workspace domain
 (`OPENLINK_DOMAIN_EDGE=cloudflare`). See
 [ADR 0028](adr/0028-serve-workspace-domains-through-a-cloudflare-edge.md).
+Any other value stops the application with an error.
 
 In the Cloudflare zone of your instance, for example `example.com`:
 
-1. Add the application host, the Default Domain and an origin host such as
-   `origin.example.com` to your platform, and create their DNS records as
+1. Add the application host, the Default Domain and the Edge Origin, such as
+   `origin.example.com`, to your platform, and create their DNS records as
    **DNS only**.
 2. Create `cname.example.com` as a **proxied** `AAAA` record to `100::`.
 3. Under **SSL/TLS → Custom Hostnames**, enable Cloudflare for SaaS and set
-   `cname.example.com` as the fallback origin.
-4. Deploy [`edge/cloudflare/worker.js`](../edge/cloudflare/worker.js) with
-   `wrangler deploy` from `edge/cloudflare`, then set the `ORIGIN_HOST`
-   variable to `origin.example.com` and the `EDGE_SECRET` secret.
-5. Add the Worker route `*/*` on the zone. Add a route without a Worker for
-   any other proxied hostname in the zone.
-6. Create an API token limited to the zone with the **SSL and Certificates:
-   Edit** permission.
-7. Set the instance DNS Target to `cname.example.com` in the instance settings.
+   `cname.example.com` as the fallback origin. Openlink reads it from the
+   Cloudflare API and shows it to members as the DNS Target, so there is no
+   DNS Target to enter in the instance settings.
+4. In [`edge/cloudflare/wrangler.toml`](../edge/cloudflare/wrangler.toml),
+   set `zone_name` to your zone and `ORIGIN_HOST` to your Edge Origin. Then,
+   from `edge/cloudflare`, run `wrangler deploy` and
+   `wrangler secret put EDGE_SECRET`. The deploy creates the `*/*` Worker
+   route; add a route without a Worker for any other proxied hostname in the
+   zone.
+5. Create an API token limited to the zone with the **SSL and Certificates:
+   Edit** and **Zone: Read** permissions.
 
 Then configure Openlink:
 
 ```dotenv
 OPENLINK_DOMAIN_EDGE=cloudflare
 OPENLINK_EDGE_SECRET=<same value as the Worker EDGE_SECRET>
-OPENLINK_CLOUDFLARE_ZONE_ID=<zone id>
 OPENLINK_CLOUDFLARE_API_TOKEN=<api token>
 ```
 
+Openlink finds the zone through the token. `OPENLINK_CLOUDFLARE_ZONE_ID` is
+only needed when the token can read several zones, and overrides the
+discovered zone when set.
+
+Run `php artisan openlink:edge-check` after every configuration change. It
+checks the edge value, the secret, the token, the zone, that the fallback
+origin is active and that the DNS Target resolves, prints `PASS` or `FAIL` for
+each, and exits with a non-zero status when one fails.
+
 Workspace members then add a TXT record to prove ownership and a single CNAME
-to `cname.example.com`. Once the TXT record is found, Openlink creates the
-custom hostname, Cloudflare validates it over HTTP and issues the certificate,
-and the domain becomes active when both are active. Disabling or deleting a
-domain removes its custom hostname. Apex domains work only when their DNS
-provider supports CNAME flattening, `ALIAS` or `ANAME` records.
+to `cname.example.com`. Openlink creates the custom hostname as soon as it
+finds either record, so Cloudflare validates the hostname over HTTP and issues
+the certificate while the TXT record is still spreading. The domain becomes
+active once the TXT record is found and the custom hostname and certificate
+are active. Domains waiting for their certificate are rechecked every five
+minutes, others every hour.
 
-`OPENLINK_EDGE_SECRET` accepts a comma-separated list, so a secret can be
-rotated by adding the new value, updating the Worker, then removing the old
-value. Requests that do not carry a configured secret are served on their own
-host and cannot claim a workspace domain.
+A custom hostname is released when its domain is disabled, deleted, turned into
+the Default Domain, deleted with its workspace or account, loses both its TXT
+and CNAME records before becoming active, or stays inactive for 30 days after
+it was added. Releases go through the queue and are retried for about a day;
+a release that still fails is reported with the hostname to delete by hand.
+Keep a queue worker running. Apex domains work only when their DNS provider
+supports CNAME flattening, `ALIAS` or `ANAME` records.
 
-When switching an existing instance to the Cloudflare edge, run
-`php artisan openlink:verify-pending-domains --all` once. It creates custom
-hostnames for domains that are already active and lists those whose DNS still
-points elsewhere; ask their owners to replace their record with the CNAME.
+`OPENLINK_EDGE_SECRET` accepts a comma-separated list of secrets. To rotate it,
+add the new value to the list, run `wrangler secret put EDGE_SECRET` with it,
+then remove the old value. Requests that do not carry a configured secret are
+served on their own host and cannot claim a workspace domain, and visitors'
+own `X-Forwarded-*` headers are discarded on signed requests.
+
+### Moving an existing instance to the Cloudflare edge
+
+1. Configure Cloudflare and the environment as above, then run
+   `php artisan openlink:edge-check` until every check passes.
+2. Run `php artisan openlink:verify-pending-domains --all`. It creates custom
+   hostnames for every domain, including active ones, and prints a table of
+   the domains that do not reach the edge yet, with their workspace and owner
+   email.
+3. Contact those owners and ask them to replace their record with the CNAME.
+   Their domains stay active meanwhile; the domain list shows them as
+   **Update DNS** and the setup page shows the CNAME again.
+4. Run the command again later to see who is left.
 
 ## Background processes
 
@@ -161,10 +190,12 @@ To invoke Artisan in the image, override its default web-server entrypoint;
 the Compose file already does this for its background services.
 
 The queue handles webhook deliveries, Destination Checks, weekly summary
-emails, and analytics when `OPENLINK_ANALYTICS_VIA_QUEUE=true`. Keep
+emails, custom hostname releases on the Cloudflare Domain Edge, and analytics
+when `OPENLINK_ANALYTICS_VIA_QUEUE=true`. Keep
 `QUEUE_CONNECTION=redis` for asynchronous execution.
 
-The scheduler verifies pending domains hourly, checks due destinations and
+The scheduler verifies pending domains hourly (every five minutes while a
+certificate is being issued on the Cloudflare edge), checks due destinations and
 workspace summaries every fifteen minutes, records its heartbeat, and prunes
 analytics and webhook history daily. Destination Monitoring must also be enabled
 by the instance administrator; starting the scheduler alone does not enable it.
